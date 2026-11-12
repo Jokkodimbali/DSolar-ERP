@@ -28,7 +28,7 @@ describe('CatalogueService', () => {
   });
   it('refuse un taux supérieur à 100%', async () => {
     const svc = new CatalogueService(repository(), products());
-    await expect(svc.createTaxRegime({ code: 'TVA', name: 'TVA', rate: '101' })).rejects.toThrow(
+    expect(() => svc.createTaxRegime({ code: 'TVA', name: 'TVA', rate: '101' })).toThrow(
       BadRequestException,
     );
   });
