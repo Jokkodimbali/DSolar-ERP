@@ -14,15 +14,15 @@ describe('InventoryService', () => {
     operationKey: 'k',
   };
   it('refuse les quantités négatives', async () => {
-    await expect(service.adjust({ ...valid, quantity: '-1' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(() => service.adjust({ ...valid, quantity: '-1' })).toThrow(BadRequestException);
   });
   it('refuse plus de trois décimales', async () => {
-    await expect(service.adjust({ ...valid, quantity: '1.0001' })).rejects.toBeInstanceOf(
+    expect(() => service.adjust({ ...valid, quantity: '1.0001' })).toThrow(
       BadRequestException,
     );
   });
   it('refuse une justification trop courte', async () => {
-    await expect(service.adjust({ ...valid, reason: 'abc' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(() => service.adjust({ ...valid, reason: 'abc' })).toThrow(BadRequestException);
   });
   it('délègue une commande valide au repository', async () => {
     await service.adjust(valid);
