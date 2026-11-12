@@ -9,5 +9,14 @@ import { CatalogueController } from './presentation/catalogue.controller';
 import { CatalogueService } from './application/catalogue.service';
 import { CATALOGUE_REPOSITORY } from './application/catalogue.repository';
 import { PrismaCatalogueRepository } from './infrastructure/prisma-catalogue.repository';
-@Module({imports:[PrismaModule,IdentityModule],controllers:[ProductsController,CatalogueController],providers:[ProductsService,CatalogueService,{provide:CATALOGUE_REPOSITORY,useClass:PrismaCatalogueRepository},{provide:PRODUCT_REPOSITORY,useClass:PrismaProductRepository}]})
+@Module({
+  imports: [PrismaModule, IdentityModule],
+  controllers: [ProductsController, CatalogueController],
+  providers: [
+    ProductsService,
+    CatalogueService,
+    { provide: CATALOGUE_REPOSITORY, useClass: PrismaCatalogueRepository },
+    { provide: PRODUCT_REPOSITORY, useClass: PrismaProductRepository },
+  ],
+})
 export class ProductsModule {}

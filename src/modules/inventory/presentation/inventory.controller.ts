@@ -13,14 +13,16 @@ export class InventoryController {
   constructor(private readonly inventory: InventoryService) {}
   @Get('stores/:storeId/products/:productId')
   @RequirePermissions('inventory.read')
-  balance(@Param('storeId', ParseUUIDPipe) storeId: string,
+  balance(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @CurrentUserId() actorId: string) {
+    @CurrentUserId() actorId: string,
+  ) {
     return this.inventory.balance(storeId, productId, actorId);
   }
   @Post('adjustments')
   @RequirePermissions('inventory.manage')
   adjust(@Body() dto: AdjustStockDto, @CurrentUserId() actorId: string) {
-    return this.inventory.adjust({...dto, actorId});
+    return this.inventory.adjust({ ...dto, actorId });
   }
 }

@@ -6,20 +6,38 @@ import { NewStore, Store } from '../domain/store';
 @Injectable()
 export class PrismaStoreRepository implements StoreRepository {
   constructor(private readonly prisma: PrismaService) {}
-  findAll(): Promise<Store[]> { return this.prisma.store.findMany({ orderBy: { name: 'asc' } }); }
-  findById(id: string): Promise<Store | null> { return this.prisma.store.findUnique({ where: { id } }); }
-  findByCode(code: string): Promise<Store | null> { return this.prisma.store.findUnique({ where: { code } }); }
+  findAll(): Promise<Store[]> {
+    return this.prisma.store.findMany({ orderBy: { name: 'asc' } });
+  }
+  findById(id: string): Promise<Store | null> {
+    return this.prisma.store.findUnique({ where: { id } });
+  }
+  findByCode(code: string): Promise<Store | null> {
+    return this.prisma.store.findUnique({ where: { code } });
+  }
   async create(input: NewStore): Promise<Store> {
-    try { return await this.prisma.store.create({ data: input }); }
-    catch (error: unknown) { this.handle(error); throw error; }
+    try {
+      return await this.prisma.store.create({ data: input });
+    } catch (error: unknown) {
+      this.handle(error);
+      throw error;
+    }
   }
   async update(id: string, input: { name?: string; address?: string | null }): Promise<Store> {
-    try { return await this.prisma.store.update({ where: { id }, data: input }); }
-    catch (error: unknown) { this.handle(error); throw error; }
+    try {
+      return await this.prisma.store.update({ where: { id }, data: input });
+    } catch (error: unknown) {
+      this.handle(error);
+      throw error;
+    }
   }
   async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Store> {
-    try { return await this.prisma.store.update({ where: { id }, data: { status } }); }
-    catch (error: unknown) { this.handle(error); throw error; }
+    try {
+      return await this.prisma.store.update({ where: { id }, data: { status } });
+    } catch (error: unknown) {
+      this.handle(error);
+      throw error;
+    }
   }
   private handle(error: unknown): void {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return;

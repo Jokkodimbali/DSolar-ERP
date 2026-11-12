@@ -10,8 +10,13 @@ import { INVENTORY_REPOSITORY } from './application/inventory.port';
 import { PrismaInventoryRepository } from './infrastructure/prisma-inventory.repository';
 import { InventoryController } from './presentation/inventory.controller';
 @Module({
-  imports:[PrismaModule,IdentityModule],
-  controllers:[InventoryController,TransfersController],
-  providers:[InventoryService,TransfersService,{provide:TRANSFER_REPOSITORY,useClass:PrismaTransfersRepository},{provide:INVENTORY_REPOSITORY,useClass:PrismaInventoryRepository}]
+  imports: [PrismaModule, IdentityModule],
+  controllers: [InventoryController, TransfersController],
+  providers: [
+    InventoryService,
+    TransfersService,
+    { provide: TRANSFER_REPOSITORY, useClass: PrismaTransfersRepository },
+    { provide: INVENTORY_REPOSITORY, useClass: PrismaInventoryRepository },
+  ],
 })
 export class InventoryModule {}

@@ -26,6 +26,11 @@ export interface PublicIdentity {
 }
 
 export function toPublicIdentity(user: IdentityUser): PublicIdentity {
-  return { id: user.id, email: user.email, nomComplet: user.fullName,
-    permissions: user.permissions, magasinsAutorises: user.storeIds };
+  return {
+    id: user.id,
+    email: user.email,
+    nomComplet: user.fullName,
+    permissions: user.permissions,
+    magasinsAutorises: user.storeIds,
+  };
 }

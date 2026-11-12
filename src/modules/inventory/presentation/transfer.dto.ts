@@ -1,4 +1,13 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, IsUUID, Length, Matches, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 export class TransferLineDto {
   @IsUUID() productId!: string;
@@ -7,7 +16,11 @@ export class TransferLineDto {
 export class CreateTransferDto {
   @IsUUID() originId!: string;
   @IsUUID() destinationId!: string;
-  @IsString() @Length(3,60) number!: string;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100)
-  @ValidateNested({each:true}) @Type(()=>TransferLineDto) lines!: TransferLineDto[];
+  @IsString() @Length(3, 60) number!: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => TransferLineDto)
+  lines!: TransferLineDto[];
 }

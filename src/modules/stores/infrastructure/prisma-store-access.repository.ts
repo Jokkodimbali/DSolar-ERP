@@ -11,13 +11,20 @@ export class PrismaStoreAccessRepository implements StoreAccessRepository {
     return (await this.prisma.userStoreAccess.count({ where: { userId, storeId } })) > 0;
   }
   async grant(userId: string, storeId: string): Promise<void> {
-    await this.prisma.userStoreAccess.upsert({ where: { userId_storeId: { userId, storeId } }, create: { userId, storeId }, update: {} });
+    await this.prisma.userStoreAccess.upsert({
+      where: { userId_storeId: { userId, storeId } },
+      create: { userId, storeId },
+      update: {},
+    });
   }
   async revoke(userId: string, storeId: string): Promise<void> {
     await this.prisma.userStoreAccess.deleteMany({ where: { userId, storeId } });
   }
   async listStoreIds(userId: string): Promise<string[]> {
-    const rows = await this.prisma.userStoreAccess.findMany({ where: { userId: userId }, select: { storeId: true } });
-    return rows.map(row => row.storeId);
+    const rows = await this.prisma.userStoreAccess.findMany({
+      where: { userId: userId },
+      select: { storeId: true },
+    });
+    return rows.map((row) => row.storeId);
   }
 }
