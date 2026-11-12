@@ -17,7 +17,8 @@
     "bootstrap:admin": "npm run build && node dist/scripts/bootstrap-admin.js",
     "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "seed:admin": "npm run bootstrap:admin"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
