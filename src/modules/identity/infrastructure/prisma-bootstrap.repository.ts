@@ -24,28 +24,29 @@ export class PrismaBootstrapRepository implements BootstrapRepository {
           'inventory.read',
           'inventory.manage',
         ];
-        for (const code of permissionCodes) {
-          await tx.permission.upsert({ where: { code }, create: { code, description: code }, update: {} });
-        }
+        await tx.permission.createMany({
+          data: permissionCodes.map((code) => ({ code, description: code })),
+          skipDuplicates: true,
+        });
         const role = await tx.role.upsert({
           where: { code: 'ADMIN' },
           create: { code: 'ADMIN', name: 'Administrateur' },
           update: {},
         });
-        for (const code of permissionCodes) {
-          const permission = await tx.permission.findUniqueOrThrow({ where: { code } });
-          await tx.rolePermission.upsert({
-            where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-            create: { roleId: role.id, permissionId: permission.id },
-            update: {},
-          });
-        }
+        const permissions = await tx.permission.findMany({
+          where: { code: { in: permissionCodes } },
+          select: { id: true },
+        });
+        await tx.rolePermission.createMany({
+          data: permissions.map((permission) => ({ roleId: role.id, permissionId: permission.id })),
+          skipDuplicates: true,
+        });
         await tx.user.create({
           data: { email, fullName, passwordHash, roles: { create: [{ roleId: role.id }] } },
         });
         return 'created';
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
     );
   }
 }
