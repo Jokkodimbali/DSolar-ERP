@@ -1,0 +1,586 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+}
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model Store {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(30)
+  name String @db.VarChar(160)
+  address String?
+  status StoreStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stocks StoreStock[]
+  userAccess UserStoreAccess[]
+  stocksOut StockMovement[]
+  transfersOut StockTransfer[] @relation("TransferOrigin")
+  transfersIn StockTransfer[] @relation("TransferDestination")
+  receipts GoodsReceipt[]
+  inventories InventorySession[]
+  deliveries DeliveryLine[]
+  salesLines SalesOrderLine[]
+}
+
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  sku String @unique @db.VarChar(80)
+  name String @db.VarChar(200)
+  description String?
+  unit String @default("PIECE")
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stocks StoreStock[]
+  categoryId String? @db.Uuid
+  brandId String? @db.Uuid
+  taxRegimeId String? @db.Uuid
+  category Category? @relation(fields:[categoryId],references:[id],onDelete:Restrict)
+  brand Brand? @relation(fields:[brandId],references:[id],onDelete:Restrict)
+  taxRegime TaxRegime? @relation(fields:[taxRegimeId],references:[id],onDelete:Restrict)
+  prices ProductPrice[]
+  movements StockMovement[]
+  transferLines StockTransferLine[]
+  receiptLines GoodsReceiptLine[]
+  inventoryLines InventoryLine[]
+  proformaLines ProformaLine[]
+  salesLines SalesOrderLine[]
+  deliveryLines DeliveryLine[]
+  invoiceLines InvoiceLine[]
+  serials SerialNumber[]
+  isSolarPlant Boolean @default(false)
+}
+
+model StoreStock {
+  id String @id @default(uuid()) @db.Uuid
+  storeId String @db.Uuid
+  productId String @db.Uuid
+  quantity Decimal @default(0) @db.Decimal(18,3)
+  reserved Decimal @default(0) @db.Decimal(18,3)
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  updatedAt DateTime @updatedAt
+  @@unique([storeId,productId])
+  @@index([productId])
+}
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique @db.VarChar(255)
+  fullName String @db.VarChar(180)
+  passwordHash String
+  status UserStatus @default(ACTIVE)
+  tokenVersion Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  roles UserRole[]
+  stores UserStoreAccess[]
+  sessions RefreshSession[]
+  auditLogs AuditLog[]
+  payments Payment[]
+}
+
+model Role {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(60)
+  name String @db.VarChar(120)
+  users UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(100)
+  description String @db.VarChar(200)
+  roles RolePermission[]
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  role Role @relation(fields:[roleId],references:[id],onDelete:Restrict)
+  @@id([userId,roleId])
+}
+
+model RolePermission {
+  roleId String @db.Uuid
+  permissionId String @db.Uuid
+  role Role @relation(fields:[roleId],references:[id],onDelete:Cascade)
+  permission Permission @relation(fields:[permissionId],references:[id],onDelete:Restrict)
+  @@id([roleId,permissionId])
+}
+
+model UserStoreAccess {
+  userId String @db.Uuid
+  storeId String @db.Uuid
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  @@id([userId,storeId])
+}
+
+model RefreshSession {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Référentiels et tarification
+model Category {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique
+  name String
+  parentId String? @db.Uuid
+  parent Category? @relation("CategoryTree",fields:[parentId],references:[id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+}
+model Brand {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  products Product[]
+}
+model TaxRegime {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique
+  name String
+  rate Decimal @db.Decimal(7,4)
+  legalBasis String?
+  validFrom DateTime?
+  validTo DateTime?
+  products Product[]
+}
+model ProductPrice {
+  id String @id @default(uuid()) @db.Uuid
+  productId String @db.Uuid
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  purchasePrice Decimal? @db.Decimal(18,2)
+  salePrice Decimal @db.Decimal(18,2)
+  validFrom DateTime @default(now())
+  validTo DateTime?
+  @@index([productId,validFrom])
+}
+
+enum MovementType {
+  RECEIPT
+  DELIVERY
+  TRANSFER_OUT
+  TRANSFER_IN
+  INVENTORY_ADJUSTMENT
+  RETURN_IN
+  RETURN_OUT
+  SITE_CONSUMPTION
+  DAMAGE
+  LOSS
+}
+enum DocumentStatus {
+  DRAFT
+  ISSUED
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_DELIVERED
+  DELIVERED
+  CANCELLED
+}
+enum TransferStatus {
+  DRAFT
+  APPROVED
+  SHIPPED
+  RECEIVED
+  CLOSED_WITH_DISCREPANCY
+  CANCELLED
+}
+enum ReceiptStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  MOBILE_MONEY
+  OTHER
+}
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+// Journal de stock immuable après validation
+model StockMovement {
+  id String @id @default(uuid()) @db.Uuid
+  storeId String @db.Uuid
+  productId String @db.Uuid
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  type MovementType
+  quantity Decimal @db.Decimal(18,3)
+  referenceType String
+  referenceId String @db.Uuid
+  operationKey String @unique
+  actorId String? @db.Uuid
+  reason String?
+  createdAt DateTime @default(now())
+  @@index([storeId,productId,createdAt])
+  @@index([referenceType,referenceId])
+}
+model SerialNumber {
+  id String @id @default(uuid()) @db.Uuid
+  productId String @db.Uuid
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  serial String @unique
+  currentStoreId String? @db.Uuid
+  status String @default("AVAILABLE")
+  createdAt DateTime @default(now())
+}
+model StockTransfer {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  originId String @db.Uuid
+  destinationId String @db.Uuid
+  origin Store @relation("TransferOrigin",fields:[originId],references:[id],onDelete:Restrict)
+  destination Store @relation("TransferDestination",fields:[destinationId],references:[id],onDelete:Restrict)
+  status TransferStatus @default(DRAFT)
+  createdById String @db.Uuid
+  approvedById String? @db.Uuid
+  shippedById String? @db.Uuid
+  receivedById String? @db.Uuid
+  cancelledById String? @db.Uuid
+  closedById String? @db.Uuid
+  approvedAt DateTime?
+  cancelledAt DateTime?
+  closedAt DateTime?
+  lines StockTransferLine[]
+  events StockTransferEvent[]
+  createdAt DateTime @default(now())
+  shippedAt DateTime?
+  receivedAt DateTime?
+}
+model StockTransferLine {
+  id String @id @default(uuid()) @db.Uuid
+  transferId String @db.Uuid
+  productId String @db.Uuid
+  transfer StockTransfer @relation(fields:[transferId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,3)
+  receivedQuantity Decimal @default(0) @db.Decimal(18,3)
+  damagedQuantity Decimal @default(0) @db.Decimal(18,3)
+  missingQuantity Decimal @default(0) @db.Decimal(18,3)
+  @@unique([transferId,productId])
+}
+model StockTransferEvent {
+  id String @id @default(uuid()) @db.Uuid
+  transferId String @db.Uuid
+  transfer StockTransfer @relation(fields:[transferId],references:[id],onDelete:Restrict)
+  actorId String @db.Uuid
+  action String @db.VarChar(40)
+  operationKey String @unique @db.VarChar(120)
+  payload Json?
+  createdAt DateTime @default(now())
+  @@index([transferId,createdAt])
+}
+model InventorySession {
+  id String @id @default(uuid()) @db.Uuid
+  storeId String @db.Uuid
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  status String @default("DRAFT")
+  startedAt DateTime @default(now())
+  validatedAt DateTime?
+  lines InventoryLine[]
+}
+model InventoryLine {
+  id String @id @default(uuid()) @db.Uuid
+  sessionId String @db.Uuid
+  productId String @db.Uuid
+  session InventorySession @relation(fields:[sessionId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  expected Decimal @db.Decimal(18,3)
+  counted Decimal? @db.Decimal(18,3)
+  reason String?
+  @@unique([sessionId,productId])
+}
+
+// Fournisseurs et approvisionnements
+model Supplier {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  taxId String?
+  phone String?
+  email String?
+  address String?
+  active Boolean @default(true)
+  orders PurchaseOrder[]
+}
+model PurchaseOrder {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  supplierId String @db.Uuid
+  supplier Supplier @relation(fields:[supplierId],references:[id],onDelete:Restrict)
+  status OrderStatus @default(DRAFT)
+  orderedAt DateTime @default(now())
+  lines PurchaseOrderLine[]
+  receipts GoodsReceipt[]
+}
+model PurchaseOrderLine {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  order PurchaseOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  productId String @db.Uuid
+  quantity Decimal @db.Decimal(18,3)
+  unitCost Decimal @db.Decimal(18,2)
+}
+model GoodsReceipt {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  purchaseOrderId String? @db.Uuid
+  purchaseOrder PurchaseOrder? @relation(fields:[purchaseOrderId],references:[id],onDelete:Restrict)
+  storeId String @db.Uuid
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  status ReceiptStatus @default(DRAFT)
+  receivedAt DateTime?
+  lines GoodsReceiptLine[]
+}
+model GoodsReceiptLine {
+  id String @id @default(uuid()) @db.Uuid
+  receiptId String @db.Uuid
+  productId String @db.Uuid
+  receipt GoodsReceipt @relation(fields:[receiptId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,3)
+  unitCost Decimal @db.Decimal(18,2)
+}
+
+// Clients, proformas, commandes, livraisons
+model Customer {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  taxId String?
+  phone String?
+  email String?
+  address String?
+  createdAt DateTime @default(now())
+  proformas Proforma[]
+  orders SalesOrder[]
+  invoices Invoice[]
+}
+model Proforma {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  customerId String @db.Uuid
+  customer Customer @relation(fields:[customerId],references:[id],onDelete:Restrict)
+  status DocumentStatus @default(DRAFT)
+  issuedAt DateTime?
+  expiresAt DateTime?
+  total Decimal @default(0) @db.Decimal(18,2)
+  lines ProformaLine[]
+  salesOrders SalesOrder[]
+  createdAt DateTime @default(now())
+}
+model ProformaLine {
+  id String @id @default(uuid()) @db.Uuid
+  proformaId String @db.Uuid
+  productId String @db.Uuid
+  storeId String @db.Uuid
+  proforma Proforma @relation(fields:[proformaId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,3)
+  unitPrice Decimal @db.Decimal(18,2)
+  discount Decimal @default(0) @db.Decimal(18,2)
+  taxRate Decimal @default(0) @db.Decimal(7,4)
+  lineTotal Decimal @db.Decimal(18,2)
+}
+model SalesOrder {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  customerId String @db.Uuid
+  proformaId String? @db.Uuid
+  customer Customer @relation(fields:[customerId],references:[id],onDelete:Restrict)
+  proforma Proforma? @relation(fields:[proformaId],references:[id],onDelete:Restrict)
+  status OrderStatus @default(DRAFT)
+  paymentStatus PaymentStatus @default(UNPAID)
+  total Decimal @db.Decimal(18,2)
+  amountPaid Decimal @default(0) @db.Decimal(18,2)
+  createdAt DateTime @default(now())
+  lines SalesOrderLine[]
+  deliveries DeliveryNote[]
+  payments Payment[]
+  invoices Invoice[]
+  discounts DiscountApproval[]
+}
+model SalesOrderLine {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  productId String @db.Uuid
+  storeId String @db.Uuid
+  order SalesOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,3)
+  unitPrice Decimal @db.Decimal(18,2)
+  discount Decimal @default(0) @db.Decimal(18,2)
+  taxRate Decimal @default(0) @db.Decimal(7,4)
+  lineTotal Decimal @db.Decimal(18,2)
+}
+model DeliveryNote {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  orderId String @db.Uuid
+  order SalesOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  status ReceiptStatus @default(DRAFT)
+  deliveredAt DateTime?
+  lines DeliveryLine[]
+}
+model DeliveryLine {
+  id String @id @default(uuid()) @db.Uuid
+  deliveryId String @db.Uuid
+  productId String @db.Uuid
+  storeId String @db.Uuid
+  delivery DeliveryNote @relation(fields:[deliveryId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,3)
+}
+
+// Factures, avoirs, encaissements et remises
+model Invoice {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  customerId String @db.Uuid
+  orderId String? @db.Uuid
+  customer Customer @relation(fields:[customerId],references:[id],onDelete:Restrict)
+  order SalesOrder? @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  status InvoiceStatus @default(DRAFT)
+  issuedAt DateTime?
+  totalHt Decimal @db.Decimal(18,2)
+  totalTax Decimal @db.Decimal(18,2)
+  totalTtc Decimal @db.Decimal(18,2)
+  lines InvoiceLine[]
+  creditNotes CreditNote[]
+  allocations PaymentAllocation[]
+}
+model InvoiceLine {
+  id String @id @default(uuid()) @db.Uuid
+  invoiceId String @db.Uuid
+  productId String @db.Uuid
+  invoice Invoice @relation(fields:[invoiceId],references:[id],onDelete:Restrict)
+  product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,3)
+  unitPrice Decimal @db.Decimal(18,2)
+  discount Decimal @default(0) @db.Decimal(18,2)
+  taxRate Decimal @db.Decimal(7,4)
+  taxAmount Decimal @db.Decimal(18,2)
+  lineTotal Decimal @db.Decimal(18,2)
+}
+model CreditNote {
+  id String @id @default(uuid()) @db.Uuid
+  number String @unique
+  invoiceId String @db.Uuid
+  invoice Invoice @relation(fields:[invoiceId],references:[id],onDelete:Restrict)
+  amount Decimal @db.Decimal(18,2)
+  reason String
+  issuedAt DateTime?
+}
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  order SalesOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  receivedById String @db.Uuid
+  receivedBy User @relation(fields:[receivedById],references:[id],onDelete:Restrict)
+  installmentNumber Int
+  amount Decimal @db.Decimal(18,2)
+  method PaymentMethod
+  externalReference String?
+  idempotencyKey String @unique
+  receivedAt DateTime @default(now())
+  allocations PaymentAllocation[]
+  reversals PaymentReversal[]
+  @@unique([orderId,installmentNumber])
+}
+model PaymentAllocation {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String @db.Uuid
+  invoiceId String @db.Uuid
+  payment Payment @relation(fields:[paymentId],references:[id],onDelete:Restrict)
+  invoice Invoice @relation(fields:[invoiceId],references:[id],onDelete:Restrict)
+  amount Decimal @db.Decimal(18,2)
+  @@unique([paymentId,invoiceId])
+}
+model PaymentReversal {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String @db.Uuid
+  payment Payment @relation(fields:[paymentId],references:[id],onDelete:Restrict)
+  amount Decimal @db.Decimal(18,2)
+  reason String
+  createdAt DateTime @default(now())
+}
+model DiscountApproval {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  order SalesOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  type DiscountType
+  value Decimal @db.Decimal(18,2)
+  reason String?
+  approvedById String? @db.Uuid
+  approvedAt DateTime?
+}
+model DocumentSequence {
+  id String @id @default(uuid()) @db.Uuid
+  type String
+  period String
+  nextNumber Int @default(1)
+  @@unique([type,period])
+}
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  actorId String? @db.Uuid
+  actor User? @relation(fields:[actorId],references:[id],onDelete:SetNull)
+  action String
+  entityType String
+  entityId String
+  storeId String? @db.Uuid
+  payload Json?
+  createdAt DateTime @default(now())
+  @@index([entityType,entityId,createdAt])
+}
+model IdempotencyKey {
+  key String @id
+  operation String
+  response Json?
+  createdAt DateTime @default(now())
+}
