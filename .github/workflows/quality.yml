@@ -1,0 +1,27 @@
+name: Qualité backend
+on:
+  push:
+    branches: [main, 'audit/**', develop]
+  pull_request:
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+          DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+      - run: npm run prisma:validate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+          DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test -- --passWithNoTests
