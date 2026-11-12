@@ -39,4 +39,11 @@ describe('AuthUseCases', () => {
     await expect(useCases.login('a@b.sn', 'secret')).rejects.toThrow(UnauthorizedException);
     expect(passwords.verify).not.toHaveBeenCalled();
   });
+  it('révoque uniquement le refresh token correspondant lors de la déconnexion', async () => {
+    tokens.verifyRefresh.mockResolvedValue({ sub: 'user-1', sid: 'session-1', typ: 'refresh' });
+    sessions.revokeIfHash.mockResolvedValue(undefined);
+    await expect(useCases.logout('ancien-token')).resolves.toEqual({ message: 'Déconnexion effectuée.' });
+    expect(sessions.revokeIfHash).toHaveBeenCalledWith('session-1', expect.stringMatching(/^[a-f0-9]{64}$/));
+    expect(sessions.revoke).not.toHaveBeenCalled();
+  });
 });
