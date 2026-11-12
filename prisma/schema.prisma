@@ -1,3 +1,8 @@
+// Schéma DSolar ERP — documentation métier en français.
+// Les identifiants techniques Prisma restent en anglais pour conserver la compatibilité
+// avec les repositories NestJS, les requêtes Prisma et les futures migrations.
+// Une traduction des noms des modèles ou champs exigerait un refactoring coordonné.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -145,7 +150,7 @@ model RefreshSession {
   @@index([expiresAt])
 }
 
-// Référentiels et tarification
+// Référentiels et tarification : catégories, marques, fiscalité et historique des prix
 model Category {
   id String @id @default(uuid()) @db.Uuid
   code String @unique
@@ -242,7 +247,7 @@ enum DiscountType {
   FIXED_AMOUNT
 }
 
-// Journal de stock immuable après validation
+// Mouvements de stock : entrées, sorties et traçabilité
 model StockMovement {
   id String @id @default(uuid()) @db.Uuid
   storeId String @db.Uuid
@@ -336,7 +341,7 @@ model InventoryLine {
   @@unique([sessionId,productId])
 }
 
-// Fournisseurs et approvisionnements
+// Achats : fournisseurs, commandes et réceptions
 model Supplier {
   id String @id @default(uuid()) @db.Uuid
   name String
@@ -386,7 +391,7 @@ model GoodsReceiptLine {
   unitCost Decimal @db.Decimal(18,2)
 }
 
-// Clients, proformas, commandes, livraisons
+// Ventes : clients, devis proforma, commandes et livraisons
 model Customer {
   id String @id @default(uuid()) @db.Uuid
   name String
@@ -477,7 +482,7 @@ model DeliveryLine {
   quantity Decimal @db.Decimal(18,3)
 }
 
-// Factures, avoirs, encaissements et remises
+// Facturation : factures, avoirs, encaissements et remises
 model Invoice {
   id String @id @default(uuid()) @db.Uuid
   number String @unique
