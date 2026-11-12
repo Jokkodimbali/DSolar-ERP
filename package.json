@@ -14,7 +14,10 @@
     "prisma:deploy": "prisma migrate deploy",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
-    "bootstrap:admin": "npm run build && node dist/scripts/bootstrap-admin.js"
+    "bootstrap:admin": "npm run build && node dist/scripts/bootstrap-admin.js",
+    "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
+    "prisma:validate": "prisma validate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -42,7 +45,11 @@
     "ts-jest": "^29.2.0",
     "typescript": "^5.7.0",
     "eslint": "^9.0.0",
-    "@types/supertest": "^6.0.2"
+    "@types/supertest": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.0.0"
   },
   "jest": {
     "moduleFileExtensions": [
