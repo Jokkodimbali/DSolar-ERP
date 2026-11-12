@@ -19,6 +19,12 @@ export class PrismaSessionRepository implements SessionRepository {
     });
     return result.count === 1;
   }
+  async revokeIfHash(id: string, expectedHash: string): Promise<void> {
+    await this.prisma.refreshSession.updateMany({
+      where: { id, tokenHash: expectedHash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
   async revoke(id: string): Promise<void> {
     await this.prisma.refreshSession.updateMany({ where: { id }, data: { revokedAt: new Date() } });
   }
