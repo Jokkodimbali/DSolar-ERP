@@ -17,9 +17,7 @@ describe('InventoryService', () => {
     expect(() => service.adjust({ ...valid, quantity: '-1' })).toThrow(BadRequestException);
   });
   it('refuse plus de trois décimales', async () => {
-    expect(() => service.adjust({ ...valid, quantity: '1.0001' })).toThrow(
-      BadRequestException,
-    );
+    expect(() => service.adjust({ ...valid, quantity: '1.0001' })).toThrow(BadRequestException);
   });
   it('refuse une justification trop courte', async () => {
     expect(() => service.adjust({ ...valid, reason: 'abc' })).toThrow(BadRequestException);
