@@ -1,10 +1,18 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { NewStore, Store } from '../domain/store';
 import { STORE_REPOSITORY, StoreRepository } from './store.repository';
 @Injectable()
 export class StoresUseCases {
   constructor(@Inject(STORE_REPOSITORY) private readonly stores: StoreRepository) {}
-  list(): Promise<Store[]> { return this.stores.findAll(); }
+  list(): Promise<Store[]> {
+    return this.stores.findAll();
+  }
   async get(id: string): Promise<Store> {
     const store = await this.stores.findById(id);
     if (!store) throw new NotFoundException('Magasin introuvable.');
@@ -22,7 +30,10 @@ export class StoresUseCases {
     const name = input.name?.trim();
     if (input.name !== undefined && !name) throw new BadRequestException('Le nom est obligatoire.');
     const address = input.address === null ? null : input.address?.trim();
-    return this.stores.update(id, { ...(name !== undefined ? { name } : {}), ...(input.address !== undefined ? { address } : {}) });
+    return this.stores.update(id, {
+      ...(name !== undefined ? { name } : {}),
+      ...(input.address !== undefined ? { address } : {}),
+    });
   }
   async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Store> {
     const store = await this.get(id);

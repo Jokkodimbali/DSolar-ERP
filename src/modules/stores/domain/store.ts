@@ -7,4 +7,8 @@ export interface Store {
   createdAt: Date;
   updatedAt: Date;
 }
-export interface NewStore { code: string; name: string; address?: string; }
+export interface NewStore {
+  code: string;
+  name: string;
+  address?: string;
+}

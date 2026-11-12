@@ -12,6 +12,11 @@ import { StoresController } from './presentation/stores.controller';
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [StoresController],
-  providers: [StoresUseCases, StoreAccessUseCases, { provide: STORE_ACCESS_REPOSITORY, useClass: PrismaStoreAccessRepository }, { provide: STORE_REPOSITORY, useClass: PrismaStoreRepository }],
+  providers: [
+    StoresUseCases,
+    StoreAccessUseCases,
+    { provide: STORE_ACCESS_REPOSITORY, useClass: PrismaStoreAccessRepository },
+    { provide: STORE_REPOSITORY, useClass: PrismaStoreRepository },
+  ],
 })
 export class StoresModule {}

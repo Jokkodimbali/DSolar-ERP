@@ -1,8 +1,14 @@
 export const TRANSFER_REPOSITORY = Symbol('TRANSFER_REPOSITORY');
-export interface TransferLineInput { productId: string; quantity: string; }
+export interface TransferLineInput {
+  productId: string;
+  quantity: string;
+}
 export interface CreateTransferInput {
-  originId: string; destinationId: string; actorId: string;
-  number: string; lines: TransferLineInput[];
+  originId: string;
+  destinationId: string;
+  actorId: string;
+  number: string;
+  lines: TransferLineInput[];
 }
 export interface ReceiptLineInput {
   lineId: string;

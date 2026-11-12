@@ -7,7 +7,14 @@ import { StoresModule } from './modules/stores/stores.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ProductsModule } from './modules/products/products.module';
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, IdentityModule, StoresModule, ProductsModule, InventoryModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    IdentityModule,
+    StoresModule,
+    ProductsModule,
+    InventoryModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}

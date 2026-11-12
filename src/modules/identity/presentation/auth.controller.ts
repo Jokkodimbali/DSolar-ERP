@@ -9,9 +9,19 @@ import { LoginDto, RefreshDto } from './dto/auth.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly useCases: AuthUseCases) {}
-  @Post('login') login(@Body() dto: LoginDto) { return this.useCases.login(dto.email, dto.password); }
-  @Post('refresh') refresh(@Body() dto: RefreshDto) { return this.useCases.refresh(dto.refreshToken); }
-  @Post('logout') logout(@Body() dto: RefreshDto) { return this.useCases.logout(dto.refreshToken); }
-  @Get('me') @UseGuards(AccessGuard) @ApiBearerAuth()
-  me(@CurrentUserId() userId: string) { return this.useCases.me(userId); }
+  @Post('login') login(@Body() dto: LoginDto) {
+    return this.useCases.login(dto.email, dto.password);
+  }
+  @Post('refresh') refresh(@Body() dto: RefreshDto) {
+    return this.useCases.refresh(dto.refreshToken);
+  }
+  @Post('logout') logout(@Body() dto: RefreshDto) {
+    return this.useCases.logout(dto.refreshToken);
+  }
+  @Get('me')
+  @UseGuards(AccessGuard)
+  @ApiBearerAuth()
+  me(@CurrentUserId() userId: string) {
+    return this.useCases.me(userId);
+  }
 }

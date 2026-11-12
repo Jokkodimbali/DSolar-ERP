@@ -19,12 +19,19 @@ import { AuthController } from './presentation/auth.controller';
 @Module({
   imports: [PrismaModule, JwtModule.register({})],
   controllers: [AuthController, UsersController],
-  providers: [AuthUseCases, UserManagementService, BootstrapService, { provide: BOOTSTRAP_REPOSITORY, useClass: PrismaBootstrapRepository }, AccessGuard,
-    PrismaUserRepository, { provide: USER_MANAGEMENT_REPOSITORY, useClass: PrismaUserManagementRepository },
+  providers: [
+    AuthUseCases,
+    UserManagementService,
+    BootstrapService,
+    { provide: BOOTSTRAP_REPOSITORY, useClass: PrismaBootstrapRepository },
+    AccessGuard,
+    PrismaUserRepository,
+    { provide: USER_MANAGEMENT_REPOSITORY, useClass: PrismaUserManagementRepository },
     { provide: USER_REPOSITORY, useExisting: PrismaUserRepository },
     { provide: SESSION_REPOSITORY, useClass: PrismaSessionRepository },
     { provide: PASSWORD_SERVICE, useClass: ArgonPasswordService },
-    { provide: TOKEN_SERVICE, useClass: JwtTokenService }],
+    { provide: TOKEN_SERVICE, useClass: JwtTokenService },
+  ],
   exports: [AccessGuard, USER_REPOSITORY, TOKEN_SERVICE, BootstrapService],
 })
 export class IdentityModule {}

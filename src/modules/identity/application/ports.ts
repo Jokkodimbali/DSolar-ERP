@@ -20,8 +20,17 @@ export interface PasswordService {
   verify(hash: string, value: string): Promise<boolean>;
   hash(value: string): Promise<string>;
 }
-export interface AccessClaims { sub: string; ver: number; typ: 'access'; }
-export interface RefreshClaims { sub: string; sid: string; typ: 'refresh'; jti?: string; }
+export interface AccessClaims {
+  sub: string;
+  ver: number;
+  typ: 'access';
+}
+export interface RefreshClaims {
+  sub: string;
+  sid: string;
+  typ: 'refresh';
+  jti?: string;
+}
 export interface TokenService {
   signAccess(claims: AccessClaims): Promise<string>;
   signRefresh(claims: RefreshClaims): Promise<string>;
