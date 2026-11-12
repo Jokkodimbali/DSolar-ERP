@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CATALOGUE_REPOSITORY, CatalogueRepository, ReferenceKind } from './catalogue.repository';
 import { PRODUCT_REPOSITORY, ProductRepository } from './product.repository';
 @Injectable()
