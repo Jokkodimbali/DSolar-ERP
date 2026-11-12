@@ -72,7 +72,7 @@ export class PrismaTransfersRepository implements TransferRepository {
       if(transfer.status!==TransferStatus.APPROVED)throw new ConflictException('Transfert non approuvé.');
       for(const line of [...transfer.lines].sort((a,b)=>a.productId.localeCompare(b.productId))){
         await tx.storeStock.upsert({where:{storeId_productId:{storeId:transfer.originId,productId:line.productId}},
-          create:{storeId:transfer.originId,productId:line.productId,quantity:D(0),reserved:D(0)},update:{}});
+          create:{storeId:transfer.originId,productId:line.productId,quantity:D('0'),reserved:D('0')},update:{}});
         // The update and reservation check are in one serializable transaction; rollback is atomic.
         const changed=await tx.storeStock.updateMany({where:{storeId:transfer.originId,productId:line.productId,quantity:{gte:line.quantity}},
           data:{quantity:{decrement:line.quantity}}});
@@ -110,7 +110,7 @@ export class PrismaTransfersRepository implements TransferRepository {
         if(total.greaterThan(remaining))throw new ConflictException('Réception supérieure au restant à traiter.');
         if(good.greaterThan(0)){
           await tx.storeStock.upsert({where:{storeId_productId:{storeId:transfer.destinationId,productId:current.productId}},
-            create:{storeId:transfer.destinationId,productId:current.productId,quantity:good,reserved:D(0)},
+            create:{storeId:transfer.destinationId,productId:current.productId,quantity:good,reserved:D('0')},
             update:{quantity:{increment:good}}});
           await tx.stockMovement.create({data:{storeId:transfer.destinationId,productId:current.productId,
             quantity:good,type:MovementType.TRANSFER_IN,referenceType:'STOCK_TRANSFER',referenceId:id,
@@ -136,7 +136,7 @@ export class PrismaTransfersRepository implements TransferRepository {
     return this.atomic(async tx=>{
       const transfer=await this.load(tx,id,actorId,'origin');
       if(transfer.status===TransferStatus.CANCELLED)return transfer;
-      if(![TransferStatus.DRAFT,TransferStatus.APPROVED].includes(transfer.status))
+      if(transfer.status!==TransferStatus.DRAFT && transfer.status!==TransferStatus.APPROVED)
         throw new ConflictException('Un transfert expédié ne peut pas être annulé.');
       const updated=await tx.stockTransfer.update({where:{id},data:{status:TransferStatus.CANCELLED,cancelledAt:new Date(),cancelledById:actorId}});
       await this.event(tx,id,actorId,'CANCELLED','TRANSFER_CANCEL:'+id);
