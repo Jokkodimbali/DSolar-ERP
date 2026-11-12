@@ -10,7 +10,7 @@ export class PrismaBootstrapRepository implements BootstrapRepository {
       // Verrou transactionnel partagé par toutes les initialisations concurrentes.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(72816421)`;
       if (await tx.user.count() > 0) return 'already_initialized';
-      const permissionCodes = ['users.manage', 'stores.read', 'stores.manage'];
+      const permissionCodes = ['users.manage', 'stores.read', 'stores.manage', 'products.read', 'products.manage', 'inventory.read', 'inventory.manage'];
       for (const code of permissionCodes) {
         await tx.permission.upsert({ where: { code }, create: { code, description: code }, update: {} });
       }
