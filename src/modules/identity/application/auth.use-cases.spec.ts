@@ -9,6 +9,7 @@ describe('AuthUseCases', () => {
     findById: jest.fn(),
     rotate: jest.fn(),
     revoke: jest.fn(),
+    revokeIfHash: jest.fn(),
     revokeAllForUser: jest.fn(),
   } as jest.Mocked<SessionRepository>;
   const passwords = { verify: jest.fn(), hash: jest.fn() } as jest.Mocked<PasswordService>;
