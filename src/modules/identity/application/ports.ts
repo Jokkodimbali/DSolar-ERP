@@ -14,6 +14,7 @@ export interface SessionRepository {
   findById(id: string): Promise<SessionRecord | null>;
   rotate(id: string, expectedHash: string, newHash: string, expiresAt: Date): Promise<boolean>;
   revoke(id: string): Promise<void>;
+  revokeIfHash(id: string, expectedHash: string): Promise<void>;
   revokeAllForUser(userId: string): Promise<void>;
 }
 export interface PasswordService {
