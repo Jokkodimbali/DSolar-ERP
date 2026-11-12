@@ -87,7 +87,7 @@ export class AuthUseCases {
   async logout(refreshToken: string): Promise<{ message: string }> {
     try {
       const claims = await this.tokens.verifyRefresh(refreshToken);
-      await this.sessions.revoke(claims.sid);
+      await this.sessions.revokeIfHash(claims.sid, hashToken(refreshToken));
     } catch {
       /* Déconnexion idempotente. */
     }
