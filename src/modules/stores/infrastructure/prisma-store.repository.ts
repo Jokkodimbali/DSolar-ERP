@@ -56,9 +56,13 @@ export class PrismaStoreRepository implements StoreRepository {
               }),
             ]);
             if (stocks > 0)
-              throw new ConflictException('Impossible de désactiver un magasin contenant du stock ou des réservations.');
+              throw new ConflictException(
+                'Impossible de désactiver un magasin contenant du stock ou des réservations.',
+              );
             if (pendingTransfers > 0)
-              throw new ConflictException('Impossible de désactiver un magasin avec des transferts en cours.');
+              throw new ConflictException(
+                'Impossible de désactiver un magasin avec des transferts en cours.',
+              );
           }
           return tx.store.update({ where: { id }, data: { status } });
         },
