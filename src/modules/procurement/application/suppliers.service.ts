@@ -33,7 +33,7 @@ export class SuppliersService {
     const result: Partial<SupplierInput> = {};
     for (const key of ['name', 'taxId', 'phone', 'email', 'address'] as const) {
       if (input[key] !== undefined)
-        result[key] = typeof input[key] === 'string' ? input[key].trim() : input[key];
+        result[key] = typeof input[key] === 'string' ? input[key].trim() : (input[key] ?? undefined);
     }
     if (typeof result.email === 'string') result.email = result.email.toLowerCase();
     return result as T;
