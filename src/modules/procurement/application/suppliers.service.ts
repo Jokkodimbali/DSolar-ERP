@@ -12,7 +12,7 @@ export class SuppliersService {
     if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
     return supplier;
   }
-  create(input: SupplierInput) {
+  async create(input: SupplierInput) {
     const cleaned = this.normalize(input);
     if (!cleaned.name) throw new BadRequestException('Le nom du fournisseur est obligatoire.');
     return this.suppliers.create(cleaned as SupplierInput);
