@@ -6,9 +6,15 @@ import { SupplierInput, SuppliersRepository } from '../application/suppliers.rep
 @Injectable()
 export class PrismaSuppliersRepository implements SuppliersRepository {
   constructor(private readonly prisma: PrismaService) {}
-  list() { return this.prisma.supplier.findMany({ orderBy: { name: 'asc' } }); }
-  find(id: string) { return this.prisma.supplier.findUnique({ where: { id } }); }
-  create(input: SupplierInput) { return this.prisma.supplier.create({ data: input }); }
+  list() {
+    return this.prisma.supplier.findMany({ orderBy: { name: 'asc' } });
+  }
+  find(id: string) {
+    return this.prisma.supplier.findUnique({ where: { id } });
+  }
+  create(input: SupplierInput) {
+    return this.prisma.supplier.create({ data: input });
+  }
   async update(id: string, input: Partial<SupplierInput>) {
     try {
       return await this.prisma.supplier.update({ where: { id }, data: input });

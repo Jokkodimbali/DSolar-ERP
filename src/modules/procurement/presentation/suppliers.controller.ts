@@ -24,9 +24,24 @@ export class UpdateSupplierDto {
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliers: SuppliersService) {}
-  @Get() @RequirePermissions('inventory.read') list() { return this.suppliers.list(); }
-  @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) { return this.suppliers.get(id); }
-  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: SupplierDto) { return this.suppliers.create(dto); }
-  @Patch(':id') @RequirePermissions('inventory.manage') update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSupplierDto) { return this.suppliers.update(id, dto); }
-  @Post(':id/deactivate') @RequirePermissions('inventory.manage') deactivate(@Param('id', ParseUUIDPipe) id: string) { return this.suppliers.deactivate(id); }
+  @Get() @RequirePermissions('inventory.read') list() {
+    return this.suppliers.list();
+  }
+  @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) {
+    return this.suppliers.get(id);
+  }
+  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: SupplierDto) {
+    return this.suppliers.create(dto);
+  }
+  @Patch(':id') @RequirePermissions('inventory.manage') update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateSupplierDto,
+  ) {
+    return this.suppliers.update(id, dto);
+  }
+  @Post(':id/deactivate') @RequirePermissions('inventory.manage') deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.suppliers.deactivate(id);
+  }
 }

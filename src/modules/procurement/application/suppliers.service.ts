@@ -4,7 +4,9 @@ import { SUPPLIERS_REPOSITORY, SupplierInput, SuppliersRepository } from './supp
 @Injectable()
 export class SuppliersService {
   constructor(@Inject(SUPPLIERS_REPOSITORY) private readonly suppliers: SuppliersRepository) {}
-  list() { return this.suppliers.list(); }
+  list() {
+    return this.suppliers.list();
+  }
   async get(id: string) {
     const supplier = await this.suppliers.find(id);
     if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
