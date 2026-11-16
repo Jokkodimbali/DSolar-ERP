@@ -12,6 +12,11 @@ import { PurchaseOrdersRepository } from './application/purchase-orders.reposito
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [SuppliersController, PurchaseOrdersController],
-  providers: [SuppliersService, PurchaseOrdersService, PurchaseOrdersRepository, { provide: SUPPLIERS_REPOSITORY, useClass: PrismaSuppliersRepository }],
+  providers: [
+    SuppliersService,
+    PurchaseOrdersService,
+    PurchaseOrdersRepository,
+    { provide: SUPPLIERS_REPOSITORY, useClass: PrismaSuppliersRepository },
+  ],
 })
 export class ProcurementModule {}
