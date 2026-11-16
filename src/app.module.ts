@@ -6,6 +6,7 @@ import { IdentityModule } from './modules/identity/identity.module';
 import { StoresModule } from './modules/stores/stores.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ProductsModule } from './modules/products/products.module';
+import { ProcurementModule } from './modules/procurement/procurement.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -14,6 +15,7 @@ import { ProductsModule } from './modules/products/products.module';
     StoresModule,
     ProductsModule,
     InventoryModule,
+    ProcurementModule,
   ],
   controllers: [HealthController],
 })
