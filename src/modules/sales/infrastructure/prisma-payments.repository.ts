@@ -170,4 +170,81 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
+
+  async allocate(
+    orderId: string,
+    paymentId: string,
+    invoiceId: string,
+    actorId: string,
+    amountText: string,
+  ) {
+    const amount = new Prisma.Decimal(amountText);
+    if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
+      throw new ConflictException('Montant affecté invalide.');
+    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          include: { lines: true },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        const stores = [...new Set(order.lines.map((line) => line.storeId))];
+        const allowed = await tx.userStoreAccess.count({
+          where: { userId: actorId, storeId: { in: stores } },
+        });
+        if (!stores.length || allowed !== stores.length) {
+          throw new ForbiddenException('Accès magasin refusé.');
+        }
+        const payment = await tx.payment.findFirst({
+          where: { id: paymentId, orderId },
+          include: { allocations: true, reversals: true },
+        });
+        if (!payment) throw new NotFoundException('Encaissement introuvable.');
+        if (payment.reversals.length) throw new ConflictException('Encaissement contrepassé.');
+        const invoice = await tx.invoice.findFirst({
+          where: { id: invoiceId, orderId, status: 'ISSUED' },
+          include: { allocations: true, creditNotes: true },
+        });
+        if (!invoice) {
+          throw new ConflictException('Facture émise liée à la commande introuvable.');
+        }
+        if (invoice.creditNotes.length) {
+          throw new ConflictException('Facture avec avoir : affectation manuelle bloquée.');
+        }
+        const paymentAllocated = payment.allocations.reduce(
+          (sum, allocation) => sum.plus(allocation.amount),
+          new Prisma.Decimal(0),
+        );
+        const invoiceAllocated = invoice.allocations.reduce(
+          (sum, allocation) => sum.plus(allocation.amount),
+          new Prisma.Decimal(0),
+        );
+        if (amount.greaterThan(payment.amount.minus(paymentAllocated))) {
+          throw new ConflictException('Affectation supérieure au montant disponible du règlement.');
+        }
+        if (amount.greaterThan(invoice.totalTtc.minus(invoiceAllocated))) {
+          throw new ConflictException('Affectation supérieure au solde de la facture.');
+        }
+        if (payment.allocations.some((allocation) => allocation.invoiceId === invoiceId)) {
+          throw new ConflictException('Règlement déjà affecté à cette facture.');
+        }
+        const allocation = await tx.paymentAllocation.create({
+          data: { paymentId, invoiceId, amount },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PAYMENT_ALLOCATED',
+            entityType: 'PaymentAllocation',
+            entityId: allocation.id,
+            payload: { orderId, paymentId, invoiceId, amount: amount.toString() },
+          },
+        });
+        return allocation;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
 }
