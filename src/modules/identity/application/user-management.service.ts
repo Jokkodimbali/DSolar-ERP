@@ -60,7 +60,7 @@ export class UserManagementService {
   }
   private async validateAccess(roles: string[], stores: string[]): Promise<void> {
     const permittedRoles = new Set(['ADMIN', 'MAGASINIER']);
-    if (roles.some((role) => !permittedRoles.has(role))) {
+    if (roles.some((role) => !permittedRoles.has(role)) || new Set(roles).size !== 1) {
       throw new BadRequestException('Seuls les rôles super administrateur et magasinier sont autorisés.');
     }
     if (roles.length === 0 || !(await this.users.rolesExist([...new Set(roles)])))
