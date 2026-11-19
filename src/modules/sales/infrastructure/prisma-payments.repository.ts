@@ -218,7 +218,11 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         if (amount.greaterThan(payment.amount.minus(paymentAllocated))) {
           throw new ConflictException('Affectation supérieure au montant disponible du règlement.');
         }
-        if (amount.greaterThan(invoice.totalTtc.minus(invoiceAllocated))) {
+        const credited = invoice.creditNotes.reduce(
+          (sum, note) => sum.plus(note.amount),
+          new Prisma.Decimal(0),
+        );
+        if (amount.greaterThan(invoice.totalTtc.minus(invoiceAllocated).minus(credited))) {
           throw new ConflictException('Affectation supérieure au solde de la facture.');
         }
         if (payment.allocations.some((allocation) => allocation.invoiceId === invoiceId)) {
