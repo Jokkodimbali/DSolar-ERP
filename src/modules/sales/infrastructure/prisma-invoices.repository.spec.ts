@@ -16,14 +16,16 @@ describe('PrismaInvoicesRepository', () => {
     status: 'CONFIRMED',
     total: decimal('118'),
     invoices: [],
-    lines: [{
-      storeId,
-      productId,
-      quantity: decimal('2'),
-      unitPrice: decimal('50'),
-      discount: decimal('0'),
-      taxRate: decimal('18'),
-    }],
+    lines: [
+      {
+        storeId,
+        productId,
+        quantity: decimal('2'),
+        unitPrice: decimal('50'),
+        discount: decimal('0'),
+        taxRate: decimal('18'),
+      },
+    ],
   };
   const tx = {
     $queryRaw: jest.fn(),
@@ -60,24 +62,18 @@ describe('PrismaInvoicesRepository', () => {
       ...order,
       invoices: [{ id: invoiceId }],
     });
-    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
     expect(tx.invoice.create).not.toHaveBeenCalled();
   });
 
   it('refuse une facture si le total ne correspond pas à la commande', async () => {
     tx.salesOrder.findUnique.mockResolvedValue({ ...order, total: decimal('117') });
-    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
   });
 
   it('refuse la facturation sans accès au magasin', async () => {
     tx.userStoreAccess.count.mockResolvedValue(0);
-    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ForbiddenException);
   });
 
   it('interdit l’annulation directe d’une facture émise', async () => {
@@ -88,9 +84,7 @@ describe('PrismaInvoicesRepository', () => {
       allocations: [],
       creditNotes: [],
     });
-    await expect(repository.cancel(invoiceId, actorId)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(repository.cancel(invoiceId, actorId)).rejects.toThrow(ConflictException);
     expect(tx.invoice.update).not.toHaveBeenCalled();
   });
 });

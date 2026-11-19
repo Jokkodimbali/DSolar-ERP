@@ -24,7 +24,13 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
 
 @Module({
   imports: [PrismaModule, IdentityModule],
-  controllers: [CustomersController, ProformasController, OrdersController, DeliveriesController, InvoicesController],
+  controllers: [
+    CustomersController,
+    ProformasController,
+    OrdersController,
+    DeliveriesController,
+    InvoicesController,
+  ],
   providers: [
     CustomersService,
     OrdersService,

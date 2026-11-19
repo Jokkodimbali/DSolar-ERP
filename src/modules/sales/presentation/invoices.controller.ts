@@ -25,10 +25,7 @@ export class InvoicesController {
 
   @Post('from-order/:orderId')
   @RequirePermissions('sales.manage')
-  createFromOrder(
-    @Param('orderId', ParseUUIDPipe) orderId: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  createFromOrder(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
     return this.invoices.createFromOrder(orderId, actorId);
   }
 
