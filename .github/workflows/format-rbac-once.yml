@@ -1,4 +1,4 @@
-name: Format inventory fixes once
+name: Format sales access fixes once
 on:
   push:
     branches: [dev]
