@@ -34,6 +34,12 @@ export class StockCountController {
     return this.counts.record(id, actorId, dto.lines);
   }
 
+  @Post(':id/cancel')
+  @RequirePermissions('inventory.manage')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.counts.cancel(id, actorId);
+  }
+
   @Post(':id/validate')
   @RequirePermissions('inventory.manage')
   validate(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
