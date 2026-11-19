@@ -10,7 +10,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
 
   list(actorId: string) {
     return this.prisma.salesOrder.findMany({
-      where: { lines: { some: {}, every: { store: { userAccess: { some: { userId: actorId } } } } } },
+      where: {
+        lines: {
+          some: {},
+          every: { store: { userAccess: { some: { userId: actorId } } } },
+        },
+      },
       include: { lines: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -45,19 +50,24 @@ export class PrismaOrdersRepository implements OrdersRepository {
       if (authorized !== storeIds.length)
         throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
 
-      const totals = new Map<string, { storeId: string; productId: string; quantity: Prisma.Decimal }>();
+      const totals = new Map<
+        string,
+        { storeId: string; productId: string; quantity: Prisma.Decimal }
+      >();
       for (const line of order.lines) {
         const key = `${line.storeId}:${line.productId}`;
         const current = totals.get(key);
         if (current) current.quantity = current.quantity.plus(line.quantity);
-        else totals.set(key, {
-          storeId: line.storeId,
-          productId: line.productId,
-          quantity: line.quantity,
-        });
+        else
+          totals.set(key, {
+            storeId: line.storeId,
+            productId: line.productId,
+            quantity: line.quantity,
+          });
       }
       for (const item of [...totals.values()].sort((a, b) =>
-        `${a.storeId}:${a.productId}`.localeCompare(`${b.storeId}:${b.productId}`))) {
+        `${a.storeId}:${a.productId}`.localeCompare(`${b.storeId}:${b.productId}`),
+      )) {
         if (!item.quantity.greaterThan(0))
           throw new ConflictException('Quantité de commande invalide.');
         const changed = await tx.$executeRaw`
