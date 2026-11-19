@@ -18,25 +18,29 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
     if (!user || user.status !== 'ACTIVE' || !user.roles.some(({ role }) => role.code === 'ADMIN')) {
       throw new ForbiddenException('Rapport financier réservé au super administrateur.');
     }
-    const orders = await this.prisma.salesOrder.groupBy({
-      by: ['paymentStatus'],
-      where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
-      _count: { _all: true },
-      _sum: { total: true, amountPaid: true },
-    });
-    // Facturation et avoirs sont des indicateurs distincts des encaissements.
-    // Les factures annulées ou en brouillon ne contribuent pas au CA facturé.
-    const [invoices, credits] = await Promise.all([
-      this.prisma.invoice.aggregate({
-        where: { status: 'ISSUED' },
-        _count: { _all: true },
-        _sum: { totalTtc: true },
-      }),
-      this.prisma.creditNote.aggregate({
-        where: { invoice: { status: 'ISSUED' }, issuedAt: { not: null } },
-        _sum: { amount: true },
-      }),
-    ]);
+    // Une seule photographie cohérente des commandes, factures et avoirs.
+    // Le niveau RepeatableRead empêche les lectures de refléter des instants différents.
+    const { orders, invoices, credits } = await this.prisma.$transaction(
+      async (tx) => {
+        const orders = await tx.salesOrder.groupBy({
+          by: ['paymentStatus'],
+          where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+          _count: { _all: true },
+          _sum: { total: true, amountPaid: true },
+        });
+        const invoices = await tx.invoice.aggregate({
+          where: { status: 'ISSUED' },
+          _count: { _all: true },
+          _sum: { totalTtc: true },
+        });
+        const credits = await tx.creditNote.aggregate({
+          where: { invoice: { status: 'ISSUED' }, issuedAt: { not: null } },
+          _sum: { amount: true },
+        });
+        return { orders, invoices, credits };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
     const grossInvoiced = invoices._sum.totalTtc ?? new Prisma.Decimal(0);
     const creditNotesTotal = credits._sum.amount ?? new Prisma.Decimal(0);
     const total = orders.reduce((sum, group) => sum.plus(group._sum.total ?? 0), new Prisma.Decimal(0));
