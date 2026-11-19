@@ -12,4 +12,7 @@ export class PaymentsService {
   record(orderId: string, actorId: string, input: RecordPaymentInput) {
     return this.payments.record(orderId, actorId, input);
   }
+  reverse(orderId: string, paymentId: string, actorId: string, reason: string) {
+    return this.payments.reverse(orderId, paymentId, actorId, reason);
+  }
 }
