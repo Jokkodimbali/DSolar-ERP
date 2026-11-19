@@ -7,6 +7,23 @@ import { PaymentsRepository, RecordPaymentInput } from '../application/payments.
 export class PrismaPaymentsRepository implements PaymentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async assertStoreAccess(tx: Prisma.TransactionClient, stores: string[], actorId: string) {
+    if (!stores.length) throw new ForbiddenException('Commande sans magasin autorisé.');
+    const user = await tx.user.findUnique({
+      where: { id: actorId },
+      select: {
+        status: true,
+        roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } },
+      },
+    });
+    if (!user || user.status !== 'ACTIVE') throw new ForbiddenException('Utilisateur inactif.');
+    if (user.roles.length > 0) return;
+    const allowed = await tx.userStoreAccess.count({
+      where: { userId: actorId, storeId: { in: stores } },
+    });
+    if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
+  }
+
   list(orderId: string, actorId: string) {
     return this.prisma.payment.findMany({
       where: {
@@ -38,12 +55,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           throw new ConflictException('La commande doit être confirmée.');
         }
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
-        const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
-        });
-        if (!stores.length || allowed !== stores.length) {
-          throw new ForbiddenException('Accès magasin refusé.');
-        }
+        await this.assertStoreAccess(tx, stores, actorId);
         const previous = await tx.payment.findUnique({
           where: { idempotencyKey: input.idempotencyKey },
         });
@@ -126,12 +138,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
-        const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
-        });
-        if (!stores.length || allowed !== stores.length) {
-          throw new ForbiddenException('Accès magasin refusé.');
-        }
+        await this.assertStoreAccess(tx, stores, actorId);
         const payment = await tx.payment.findFirst({
           where: { id: paymentId, orderId },
           include: { reversals: true, allocations: true },
@@ -200,12 +207,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
-        const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
-        });
-        if (!stores.length || allowed !== stores.length) {
-          throw new ForbiddenException('Accès magasin refusé.');
-        }
+        await this.assertStoreAccess(tx, stores, actorId);
         const payment = await tx.payment.findFirst({
           where: { id: paymentId, orderId },
           include: { allocations: true, reversals: true },
@@ -282,12 +284,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
-        const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
-        });
-        if (!stores.length || allowed !== stores.length) {
-          throw new ForbiddenException('Accès magasin refusé.');
-        }
+        await this.assertStoreAccess(tx, stores, actorId);
         const allocation = await tx.paymentAllocation.findFirst({
           where: { id: allocationId, paymentId, payment: { orderId } },
           select: { id: true, invoiceId: true, amount: true },
