@@ -4,7 +4,7 @@ on:
     branches: [main, dev]
   pull_request:
 permissions:
-  contents: write
+  contents: read
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -18,20 +18,6 @@ jobs:
           cache: npm
       - name: Installer les dépendances
         run: npm install --no-audit --no-fund
-      - name: Formater le projet
-        if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-        run: npm run format
-      - name: Versionner le formatage et le lockfile
-        if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -u
-          git add package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m "style: appliquer Prettier et synchroniser les dépendances"
-            git push
-          fi
       - name: Générer le client Prisma
         run: npm run prisma:generate
         env:
