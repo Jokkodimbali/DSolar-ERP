@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsNumberString, IsUUID, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, Matches, IsUUID, ValidateNested } from 'class-validator';
 
 export class DeliveryLineDto {
   @IsUUID()
@@ -8,7 +8,9 @@ export class DeliveryLineDto {
   @IsUUID()
   productId!: string;
 
-  @IsNumberString()
+  @Matches(/^(?:0|[1-9]\\d*)(?:\\.\\d{1,3})?$/, {
+    message: 'La quantité doit être un nombre positif avec au plus trois décimales.',
+  })
   quantity!: string;
 }
 
