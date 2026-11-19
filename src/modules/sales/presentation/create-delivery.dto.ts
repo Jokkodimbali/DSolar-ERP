@@ -8,7 +8,7 @@ export class DeliveryLineDto {
   @IsUUID()
   productId!: string;
 
-  @Matches(/^(?:0|[1-9]\\d*)(?:\\.\\d{1,3})?$/, {
+  @Matches(/^(?!(?:0)(?:\.0{1,3})?$)(?:0|[1-9]\d*)(?:\.\d{1,3})?$/, {
     message: 'La quantité doit être un nombre positif avec au plus trois décimales.',
   })
   quantity!: string;
