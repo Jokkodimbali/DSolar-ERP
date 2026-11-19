@@ -9,7 +9,10 @@ export class PrismaTransfersRepository implements TransferRepository {
   constructor(private readonly prisma: PrismaService) {}
   private async access(tx: Prisma.TransactionClient, storeId: string, userId: string) {
     const [user, store, access] = await Promise.all([
-      tx.user.findUnique({ where: { id: userId }, select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } } }),
+      tx.user.findUnique({
+        where: { id: userId },
+        select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } },
+      }),
       tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
       tx.userStoreAccess.findUnique({ where: { userId_storeId: { userId, storeId } } }),
     ]);
