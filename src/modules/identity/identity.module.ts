@@ -14,6 +14,7 @@ import { ArgonPasswordService, JwtTokenService } from './infrastructure/crypto-s
 import { PrismaSessionRepository } from './infrastructure/prisma-session.repository';
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
 import { AccessGuard } from './presentation/access.guard';
+import { LoginRateLimitGuard } from './presentation/login-rate-limit.guard';
 import { AuthController } from './presentation/auth.controller';
 
 @Module({
@@ -25,6 +26,7 @@ import { AuthController } from './presentation/auth.controller';
     BootstrapService,
     { provide: BOOTSTRAP_REPOSITORY, useClass: PrismaBootstrapRepository },
     AccessGuard,
+    LoginRateLimitGuard,
     PrismaUserRepository,
     { provide: USER_MANAGEMENT_REPOSITORY, useClass: PrismaUserManagementRepository },
     { provide: USER_REPOSITORY, useExisting: PrismaUserRepository },
