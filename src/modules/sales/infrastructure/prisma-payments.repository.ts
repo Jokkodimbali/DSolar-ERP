@@ -45,6 +45,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           where: { idempotencyKey: input.idempotencyKey },
         });
         if (previous) {
+          const reversalCount = await tx.paymentReversal.count({ where: { paymentId: previous.id } });
+          if (reversalCount) throw new ConflictException('Encaissement contrepassé : nouvelle saisie requise.');
           if (
             previous.orderId !== orderId ||
             previous.receivedById !== actorId ||
