@@ -9,10 +9,16 @@ describe('PrismaSalesReportRepository', () => {
     salesOrder: { groupBy: jest.fn() },
     invoice: { aggregate: jest.fn() },
     creditNote: { aggregate: jest.fn() },
+    $transaction: jest.fn(),
   };
   const repository = new PrismaSalesReportRepository(prisma as unknown as PrismaService);
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma),
+    );
+  });
 
   it('refuse un magasinier et ne lit aucune donnée commerciale', async () => {
     prisma.user.findUnique.mockResolvedValue({
@@ -22,6 +28,7 @@ describe('PrismaSalesReportRepository', () => {
     await expect(repository.summary('user-id')).rejects.toThrow(ForbiddenException);
     expect(prisma.salesOrder.groupBy).not.toHaveBeenCalled();
     expect(prisma.invoice.aggregate).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('refuse un compte désactivé', async () => {
@@ -57,6 +64,9 @@ describe('PrismaSalesReportRepository', () => {
       grossInvoiced: '350.50',
       creditNotesTotal: '20.10',
       netInvoiced: '330.40',
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
     });
   });
 
