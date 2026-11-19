@@ -28,4 +28,10 @@ describe('PaymentsService', () => {
     await service.record('order', 'actor', input);
     expect(repository.record).toHaveBeenCalledWith('order', 'actor', input);
   });
+
+  it('affecte un encaissement à une facture émise', async () => {
+    repository.allocate.mockResolvedValue({ id: 'allocation' });
+    await service.allocate('order', 'payment', 'invoice', 'actor', '2500');
+    expect(repository.allocate).toHaveBeenCalledWith('order', 'payment', 'invoice', 'actor', '2500');
+  });
 });
