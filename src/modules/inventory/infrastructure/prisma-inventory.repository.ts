@@ -1,7 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, MovementType } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { InventoryRepository, StockAdjustment, StockBalance } from '../application/inventory.port';
+import { InventoryRepository, StockAdjustment, StockBalance, StoreStockItem } from '../application/inventory.port';
 
 @Injectable()
 export class PrismaInventoryRepository implements InventoryRepository {
@@ -35,6 +35,42 @@ export class PrismaInventoryRepository implements InventoryRepository {
       reserved: reserved.toFixed(3),
       available: quantity.minus(reserved).toFixed(3),
     };
+  }
+  async listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const [store, user, access] = await Promise.all([
+        tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
+        tx.user.findUnique({
+          where: { id: actorId },
+          select: {
+            status: true,
+            roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } },
+          },
+        }),
+        tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
+      ]);
+      if (!store) throw new NotFoundException('Magasin introuvable.');
+      if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
+      if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0)) {
+        throw new ForbiddenException('Accès à ce magasin non autorisé.');
+      }
+      const stocks = await tx.storeStock.findMany({
+        where: { storeId, product: { active: true } },
+        select: {
+          productId: true,
+          quantity: true,
+          reserved: true,
+          product: { select: { sku: true, name: true, unit: true } },
+        },
+        orderBy: { product: { name: 'asc' } },
+      });
+      return stocks.map((stock) => ({
+        ...this.format(storeId, stock.productId, stock.quantity, stock.reserved),
+        sku: stock.product.sku,
+        name: stock.product.name,
+        unit: stock.product.unit,
+      }));
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
   async getBalance(storeId: string, productId: string, actorId: string): Promise<StockBalance> {
     return this.prisma.$transaction(async (tx) => {
