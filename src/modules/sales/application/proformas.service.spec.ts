@@ -3,8 +3,7 @@ import { ProformasRepository } from './proformas.port';
 import { ProformasService } from './proformas.service';
 
 describe('ProformasService', () => {
-  const repository = { list: jest.fn(), find: jest.fn(), create: jest.fn(), issue: jest.fn() }
-    as jest.Mocked<ProformasRepository>;
+  const repository = { list: jest.fn(), find: jest.fn(), create: jest.fn(), issue: jest.fn() } as jest.Mocked<ProformasRepository>;
   const service = new ProformasService(repository);
   const base = {
     number: ' PF-001 ', customerId: 'customer-id',
