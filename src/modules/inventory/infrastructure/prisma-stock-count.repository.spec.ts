@@ -40,6 +40,36 @@ describe('PrismaStockCountRepository', () => {
     expect(tx.inventorySession.create).not.toHaveBeenCalled();
   });
 
+  it('annule une session ouverte sans modifier le stock', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [],
+    });
+    tx.inventorySession.updateMany.mockResolvedValue({ count: 1 });
+    tx.inventorySession.findUniqueOrThrow.mockResolvedValue({
+      id: 'session-id',
+      status: 'CANCELLED',
+      lines: [],
+    });
+    await expect(repository.cancel('session-id', 'actor-id')).resolves.toMatchObject({
+      status: 'CANCELLED',
+    });
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+  });
+
+  it('refuse d’annuler un inventaire validé', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'VALIDATED',
+      lines: [],
+    });
+    await expect(repository.cancel('session-id', 'actor-id')).rejects.toThrow(ConflictException);
+  });
+
   it('refuse une deuxième session ouverte', async () => {
     tx.inventorySession.findFirst.mockResolvedValue({ id: 'existing' });
     await expect(repository.start('store-id', 'actor-id')).rejects.toThrow(ConflictException);
