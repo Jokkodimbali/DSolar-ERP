@@ -314,5 +314,4 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
-
 }

@@ -20,5 +20,11 @@ export interface PaymentsRepository {
     actorId: string,
     amount: string,
   ): Promise<unknown>;
-  cancelAllocation(orderId: string, paymentId: string, allocationId: string, actorId: string, reason: string): Promise<unknown>;
+  cancelAllocation(
+    orderId: string,
+    paymentId: string,
+    allocationId: string,
+    actorId: string,
+    reason: string,
+  ): Promise<unknown>;
 }

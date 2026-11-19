@@ -18,7 +18,13 @@ export class PaymentsService {
   allocate(orderId: string, paymentId: string, invoiceId: string, actorId: string, amount: string) {
     return this.payments.allocate(orderId, paymentId, invoiceId, actorId, amount);
   }
-  cancelAllocation(orderId: string, paymentId: string, allocationId: string, actorId: string, reason: string) {
+  cancelAllocation(
+    orderId: string,
+    paymentId: string,
+    allocationId: string,
+    actorId: string,
+    reason: string,
+  ) {
     return this.payments.cancelAllocation(orderId, paymentId, allocationId, actorId, reason);
   }
 }
