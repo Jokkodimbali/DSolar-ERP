@@ -191,5 +191,4 @@ describe('PrismaStockCountRepository', () => {
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
   });
-
 });
