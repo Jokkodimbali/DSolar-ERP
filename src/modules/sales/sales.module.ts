@@ -13,7 +13,11 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [CustomersController, ProformasController],
-  providers: [CustomersService, ProformasService,
-    { provide: PROFORMAS_REPOSITORY, useClass: PrismaProformasRepository }, { provide: CUSTOMERS_REPOSITORY, useClass: PrismaCustomersRepository }],
+  providers: [
+    CustomersService,
+    ProformasService,
+    { provide: PROFORMAS_REPOSITORY, useClass: PrismaProformasRepository },
+    { provide: CUSTOMERS_REPOSITORY, useClass: PrismaCustomersRepository },
+  ],
 })
 export class SalesModule {}

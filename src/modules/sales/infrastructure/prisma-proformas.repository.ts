@@ -6,18 +6,26 @@ import { ProformaInput, ProformasRepository } from '../application/proformas.por
 @Injectable()
 export class PrismaProformasRepository implements ProformasRepository {
   constructor(private readonly prisma: PrismaService) {}
-  list() { return this.prisma.proforma.findMany({ include: { lines: true }, orderBy: { createdAt: 'desc' } }); }
-  find(id: string) { return this.prisma.proforma.findUnique({ where: { id }, include: { lines: true } }); }
+  list() {
+    return this.prisma.proforma.findMany({ include: { lines: true }, orderBy: { createdAt: 'desc' } });
+  }
+  find(id: string) {
+    return this.prisma.proforma.findUnique({ where: { id }, include: { lines: true } });
+  }
   async create(input: ProformaInput) {
     const lines = input.lines.map((line) => {
       const gross = new Prisma.Decimal(line.quantity).mul(line.unitPrice);
       const net = gross.minus(line.discount);
-      const total = net.mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
+      const total = net
+        .mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
         .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
       return {
-        productId: line.productId, storeId: line.storeId,
-        quantity: new Prisma.Decimal(line.quantity), unitPrice: new Prisma.Decimal(line.unitPrice),
-        discount: new Prisma.Decimal(line.discount), taxRate: new Prisma.Decimal(line.taxRate),
+        productId: line.productId,
+        storeId: line.storeId,
+        quantity: new Prisma.Decimal(line.quantity),
+        unitPrice: new Prisma.Decimal(line.unitPrice),
+        discount: new Prisma.Decimal(line.discount),
+        taxRate: new Prisma.Decimal(line.taxRate),
         lineTotal: total,
       };
     });
@@ -40,7 +48,9 @@ export class PrismaProformasRepository implements ProformasRepository {
           throw new ConflictException('Magasin inexistant ou inactif.');
         return tx.proforma.create({
           data: {
-            number: input.number, customerId: input.customerId, total,
+            number: input.number,
+            customerId: input.customerId,
+            total,
             ...(input.expiresAt ? { expiresAt: new Date(input.expiresAt) } : {}),
             lines: { create: lines },
           },
@@ -85,10 +95,14 @@ export class PrismaProformasRepository implements ProformasRepository {
       const lines = input.lines.map((line) => {
         const net = new Prisma.Decimal(line.quantity).mul(line.unitPrice).minus(line.discount);
         return {
-          productId: line.productId, storeId: line.storeId,
-          quantity: new Prisma.Decimal(line.quantity), unitPrice: new Prisma.Decimal(line.unitPrice),
-          discount: new Prisma.Decimal(line.discount), taxRate: new Prisma.Decimal(line.taxRate),
-          lineTotal: net.mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
+          productId: line.productId,
+          storeId: line.storeId,
+          quantity: new Prisma.Decimal(line.quantity),
+          unitPrice: new Prisma.Decimal(line.unitPrice),
+          discount: new Prisma.Decimal(line.discount),
+          taxRate: new Prisma.Decimal(line.taxRate),
+          lineTotal: net
+            .mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
             .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
         };
       });
@@ -96,7 +110,8 @@ export class PrismaProformasRepository implements ProformasRepository {
       return tx.proforma.update({
         where: { id },
         data: {
-          number: input.number, customerId: input.customerId,
+          number: input.number,
+          customerId: input.customerId,
           expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
           total: lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0)),
           lines: { create: lines },
