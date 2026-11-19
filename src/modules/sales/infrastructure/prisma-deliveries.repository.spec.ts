@@ -53,9 +53,9 @@ describe('PrismaDeliveriesRepository', () => {
   });
 
   it('refuse de créer une livraison supérieure au reliquat', async () => {
-    tx.salesOrder.findUnique.mockResolvedValue(order('3', [
-      { status: 'CONFIRMED', lines: [line('2')] },
-    ]));
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('3', [{ status: 'CONFIRMED', lines: [line('2')] }]),
+    );
     await expect(
       repository.create(orderId, actorId, {
         lines: [{ storeId, productId, quantity: '2' }],
@@ -75,9 +75,9 @@ describe('PrismaDeliveriesRepository', () => {
   });
 
   it('confirme une livraison partielle et décrémente les réservations', async () => {
-    tx.salesOrder.findUnique.mockResolvedValue(order('5', [
-      { id: deliveryId, status: 'DRAFT', lines: [line('2')] },
-    ]));
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('5', [{ id: deliveryId, status: 'DRAFT', lines: [line('2')] }]),
+    );
     await repository.confirm(orderId, deliveryId, actorId);
     expect(tx.storeStock.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -95,10 +95,12 @@ describe('PrismaDeliveriesRepository', () => {
   });
 
   it('termine la commande lorsque tout est livré', async () => {
-    tx.salesOrder.findUnique.mockResolvedValue(order('5', [
-      { id: deliveryId, status: 'DRAFT', lines: [line('3')] },
-      { id: 'other', status: 'CONFIRMED', lines: [line('2')] },
-    ]));
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('5', [
+        { id: deliveryId, status: 'DRAFT', lines: [line('3')] },
+        { id: 'other', status: 'CONFIRMED', lines: [line('2')] },
+      ]),
+    );
     await repository.confirm(orderId, deliveryId, actorId);
     expect(tx.salesOrder.update).toHaveBeenCalledWith({
       where: { id: orderId },
@@ -107,9 +109,9 @@ describe('PrismaDeliveriesRepository', () => {
   });
 
   it('ne débite pas le stock en cas de réservation insuffisante', async () => {
-    tx.salesOrder.findUnique.mockResolvedValue(order('5', [
-      { id: deliveryId, status: 'DRAFT', lines: [line('2')] },
-    ]));
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('5', [{ id: deliveryId, status: 'DRAFT', lines: [line('2')] }]),
+    );
     tx.storeStock.updateMany.mockResolvedValue({ count: 0 });
     await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(
       ConflictException,
