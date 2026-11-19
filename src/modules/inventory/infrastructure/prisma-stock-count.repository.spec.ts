@@ -254,5 +254,4 @@ describe('PrismaStockCountRepository', () => {
     await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
   });
-
 });
