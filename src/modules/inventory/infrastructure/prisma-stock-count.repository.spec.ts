@@ -26,8 +26,8 @@ describe('PrismaStockCountRepository', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    prisma.$transaction.mockImplementation(
-      (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    prisma.$transaction.mockImplementation((callback: (client: typeof tx) => Promise<unknown>) =>
+      callback(tx),
     );
     tx.store.findUnique.mockResolvedValue({ status: 'ACTIVE' });
     tx.user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'admin' }] });
@@ -61,12 +61,14 @@ describe('PrismaStockCountRepository', () => {
       id: 'session-id',
       storeId: 'store-id',
       status: 'DRAFT',
-      lines: [{
-        productId: 'product-id',
-        counted: new Prisma.Decimal(3),
-        expected: new Prisma.Decimal(5),
-        reason: 'Comptage',
-      }],
+      lines: [
+        {
+          productId: 'product-id',
+          counted: new Prisma.Decimal(3),
+          expected: new Prisma.Decimal(5),
+          reason: 'Comptage',
+        },
+      ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
       quantity: new Prisma.Decimal(6),
