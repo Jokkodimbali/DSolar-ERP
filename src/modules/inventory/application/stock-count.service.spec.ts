@@ -24,9 +24,7 @@ describe('StockCountService', () => {
   });
 
   it('refuse les quantités négatives', () => {
-    expect(() => service.record('id', 'actor', [{ ...line, counted: '-1' }])).toThrow(
-      BadRequestException,
-    );
+    expect(() => service.record('id', 'actor', [{ ...line, counted: '-1' }])).toThrow(BadRequestException);
   });
 
   it('refuse plus de trois décimales', () => {
