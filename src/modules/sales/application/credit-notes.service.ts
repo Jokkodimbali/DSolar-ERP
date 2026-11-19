@@ -3,9 +3,7 @@ import { CREDIT_NOTES_REPOSITORY, CreditNotesRepository } from './credit-notes.p
 
 @Injectable()
 export class CreditNotesService {
-  constructor(
-    @Inject(CREDIT_NOTES_REPOSITORY) private readonly creditNotes: CreditNotesRepository,
-  ) {}
+  constructor(@Inject(CREDIT_NOTES_REPOSITORY) private readonly creditNotes: CreditNotesRepository) {}
 
   list(invoiceId: string, actorId: string) {
     return this.creditNotes.list(invoiceId, actorId);

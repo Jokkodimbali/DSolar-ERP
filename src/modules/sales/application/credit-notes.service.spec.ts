@@ -19,11 +19,6 @@ describe('CreditNotesService', () => {
   it('émet un avoir avec motif documenté', async () => {
     repository.issue.mockResolvedValue({ id: 'credit-note' });
     await service.issue('invoice', 'actor', '2500', 'Correction de facturation');
-    expect(repository.issue).toHaveBeenCalledWith(
-      'invoice',
-      'actor',
-      '2500',
-      'Correction de facturation',
-    );
+    expect(repository.issue).toHaveBeenCalledWith('invoice', 'actor', '2500', 'Correction de facturation');
   });
 });
