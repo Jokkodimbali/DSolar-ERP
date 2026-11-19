@@ -27,7 +27,7 @@ jobs:
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/modules/sales src/modules/identity
-            git commit -m "style: format RBAC tests and repository"
+            git add src/modules/sales src/modules/identity src/modules/inventory
+            git commit -m "style: format backend corrections"
             git push origin HEAD:dev
           fi
