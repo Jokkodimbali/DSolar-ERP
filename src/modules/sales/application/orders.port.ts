@@ -5,4 +5,5 @@ export interface OrdersRepository {
   find(id: string, actorId: string): Promise<unknown | null>;
   convert(proformaId: string, actorId: string): Promise<unknown>;
   confirm(id: string, actorId: string): Promise<unknown>;
+  cancel(id: string, actorId: string): Promise<unknown>;
 }
