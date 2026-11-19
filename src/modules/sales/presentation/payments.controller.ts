@@ -5,6 +5,7 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { PaymentsService } from '../application/payments.service';
 import { RecordPaymentDto } from './record-payment.dto';
 import { ReversePaymentDto } from './reverse-payment.dto';
+import { AllocatePaymentDto } from './allocate-payment.dto';
 
 @ApiTags('Encaissements')
 @ApiBearerAuth()
@@ -37,5 +38,15 @@ export class PaymentsController {
     @Body() input: ReversePaymentDto,
   ) {
     return this.payments.reverse(orderId, paymentId, actorId, input.reason);
+  }
+  @Post(':paymentId/allocations')
+  @RequirePermissions('sales.manage')
+  allocate(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('paymentId', ParseUUIDPipe) paymentId: string,
+    @CurrentUserId() actorId: string,
+    @Body() input: AllocatePaymentDto,
+  ) {
+    return this.payments.allocate(orderId, paymentId, input.invoiceId, actorId, input.amount);
   }
 }
