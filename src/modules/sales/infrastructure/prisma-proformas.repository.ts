@@ -149,9 +149,7 @@ export class PrismaProformasRepository implements ProformasRepository {
       where: {
         id,
         status: from as DocumentStatus,
-        ...(to === 'ACCEPTED'
-          ? { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }
-          : {}),
+        ...(to === 'ACCEPTED' ? { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } : {}),
       },
       data: { status: to },
     });
