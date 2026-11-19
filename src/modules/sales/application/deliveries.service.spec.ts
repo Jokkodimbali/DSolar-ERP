@@ -5,6 +5,9 @@ import { DeliveriesRepository } from './deliveries.port';
 describe('DeliveriesService', () => {
   const repository: jest.Mocked<DeliveriesRepository> = {
     list: jest.fn(),
+    create: jest.fn(),
+    confirm: jest.fn(),
+    cancel: jest.fn(),
     find: jest.fn(),
   };
   const service = new DeliveriesService(repository);
