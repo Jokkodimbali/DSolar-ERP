@@ -13,6 +13,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "test:watch": "jest --watch",
+    "test:integration": "node scripts/integration-smoke.cjs",
     "typecheck": "tsc --noEmit",
     "bootstrap:admin": "npm run build && node dist/scripts/bootstrap-admin.js",
     "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
