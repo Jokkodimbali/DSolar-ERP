@@ -99,7 +99,6 @@ export class ProformasService {
       throw new BadRequestException('La date d’expiration doit être future.');
   }
   private ensureNotExpired(expiresAt: Date | null) {
-    if (expiresAt && expiresAt.getTime() <= Date.now())
-      throw new ConflictException('Ce devis a expiré.');
+    if (expiresAt && expiresAt.getTime() <= Date.now()) throw new ConflictException('Ce devis a expiré.');
   }
 }
