@@ -15,7 +15,13 @@ export interface StockAdjustment {
   operationKey: string;
   actorId: string;
 }
+export interface StoreStockItem extends StockBalance {
+  sku: string;
+  name: string;
+  unit: string;
+}
 export interface InventoryRepository {
+  listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]>;
   getBalance(storeId: string, productId: string, actorId: string): Promise<StockBalance>;
   adjust(command: StockAdjustment): Promise<StockBalance>;
 }
