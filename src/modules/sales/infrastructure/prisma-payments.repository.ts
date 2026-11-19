@@ -28,7 +28,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
         const order = await tx.salesOrder.findUnique({
           where: { id: orderId },
-          include: { lines: true, payments: { orderBy: { installmentNumber: 'asc' } } },
+          include: { lines: true, payments: { include: { reversals: true }, orderBy: { installmentNumber: 'asc' } } },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
         if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.status)) {
@@ -64,14 +64,17 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           throw new ConflictException('Montant invalide.');
         }
         // Reversed installments retain their unique installment number: do not reuse slots silently.
-        if (order.payments.length >= 2) {
-          throw new ConflictException('Deux encaissements maximum par commande.');
+        const activePayments = order.payments.filter(
+          (payment) => !payment.reversals?.length,
+        );
+        if (activePayments.length >= 2) {
+          throw new ConflictException('Deux encaissements actifs maximum par commande.');
         }
         const remaining = order.total.minus(order.amountPaid);
         if (amount.greaterThan(remaining)) {
           throw new ConflictException('Montant supérieur au solde de la commande.');
         }
-        if (order.payments.length === 1 && !amount.equals(remaining)) {
+        if (activePayments.length === 1 && !amount.equals(remaining)) {
           throw new ConflictException('La deuxième tranche doit solder la commande.');
         }
         const nextPaid = order.amountPaid.plus(amount);
