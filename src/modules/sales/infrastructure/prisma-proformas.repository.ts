@@ -92,51 +92,51 @@ export class PrismaProformasRepository implements ProformasRepository {
   async update(id: string, input: ProformaInput) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
-      const existing = await tx.proforma.findUnique({ where: { id } });
-      if (!existing) throw new NotFoundException('Devis introuvable.');
-      if (existing.status !== DocumentStatus.DRAFT)
-        throw new ConflictException('Seul un brouillon est modifiable.');
-      const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
-      if (!customer) throw new NotFoundException('Client introuvable.');
-      const products = await tx.product.findMany({
-        where: { id: { in: input.lines.map((line) => line.productId) }, active: true },
-        select: { id: true },
-      });
-      if (products.length !== new Set(input.lines.map((line) => line.productId)).size)
-        throw new ConflictException('Produit inexistant ou inactif.');
-      const stores = await tx.store.findMany({
-        where: { id: { in: input.lines.map((line) => line.storeId) }, status: 'ACTIVE' },
-        select: { id: true },
-      });
-      if (stores.length !== new Set(input.lines.map((line) => line.storeId)).size)
-        throw new ConflictException('Magasin inexistant ou inactif.');
-      const lines = input.lines.map((line) => {
-        const net = new Prisma.Decimal(line.quantity).mul(line.unitPrice).minus(line.discount);
-        return {
-          productId: line.productId,
-          storeId: line.storeId,
-          quantity: new Prisma.Decimal(line.quantity),
-          unitPrice: new Prisma.Decimal(line.unitPrice),
-          discount: new Prisma.Decimal(line.discount),
-          taxRate: new Prisma.Decimal(line.taxRate),
-          lineTotal: net
-            .mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
-            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
-        };
-      });
-      await tx.proformaLine.deleteMany({ where: { proformaId: id } });
-      return tx.proforma.update({
-        where: { id },
-        data: {
-          number: input.number ?? existing.number,
-          customerId: input.customerId,
-          expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-          total: lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0)),
-          lines: { create: lines },
-        },
-        include: { lines: true },
-      });
+        await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
+        const existing = await tx.proforma.findUnique({ where: { id } });
+        if (!existing) throw new NotFoundException('Devis introuvable.');
+        if (existing.status !== DocumentStatus.DRAFT)
+          throw new ConflictException('Seul un brouillon est modifiable.');
+        const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
+        if (!customer) throw new NotFoundException('Client introuvable.');
+        const products = await tx.product.findMany({
+          where: { id: { in: input.lines.map((line) => line.productId) }, active: true },
+          select: { id: true },
+        });
+        if (products.length !== new Set(input.lines.map((line) => line.productId)).size)
+          throw new ConflictException('Produit inexistant ou inactif.');
+        const stores = await tx.store.findMany({
+          where: { id: { in: input.lines.map((line) => line.storeId) }, status: 'ACTIVE' },
+          select: { id: true },
+        });
+        if (stores.length !== new Set(input.lines.map((line) => line.storeId)).size)
+          throw new ConflictException('Magasin inexistant ou inactif.');
+        const lines = input.lines.map((line) => {
+          const net = new Prisma.Decimal(line.quantity).mul(line.unitPrice).minus(line.discount);
+          return {
+            productId: line.productId,
+            storeId: line.storeId,
+            quantity: new Prisma.Decimal(line.quantity),
+            unitPrice: new Prisma.Decimal(line.unitPrice),
+            discount: new Prisma.Decimal(line.discount),
+            taxRate: new Prisma.Decimal(line.taxRate),
+            lineTotal: net
+              .mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
+              .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
+          };
+        });
+        await tx.proformaLine.deleteMany({ where: { proformaId: id } });
+        return tx.proforma.update({
+          where: { id },
+          data: {
+            number: input.number ?? existing.number,
+            customerId: input.customerId,
+            expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+            total: lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0)),
+            lines: { create: lines },
+          },
+          include: { lines: true },
+        });
       });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
