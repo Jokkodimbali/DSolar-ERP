@@ -27,7 +27,7 @@ class ProformaLineDto {
   @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(100) taxRate!: number;
 }
 class CreateProformaDto {
-  @IsString() @IsNotEmpty() @MaxLength(100) number!: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) number?: string;
   @IsUUID() customerId!: string;
   @IsOptional() @IsDateString() expiresAt?: string;
   @IsArray()
