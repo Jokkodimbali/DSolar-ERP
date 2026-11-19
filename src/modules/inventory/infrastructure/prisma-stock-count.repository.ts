@@ -105,6 +105,26 @@ export class PrismaStockCountRepository implements StockCountRepository {
     });
   }
 
+  cancel(id: string, actorId: string) {
+    return this.execute(async (tx) => {
+      const session = await this.session(tx, id, actorId);
+      if (session.status !== 'DRAFT') {
+        throw new ConflictException('Seul un inventaire ouvert peut être annulé.');
+      }
+      const updated = await tx.inventorySession.updateMany({
+        where: { id, status: 'DRAFT' },
+        data: { status: 'CANCELLED' },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException('Inventaire modifié simultanément.');
+      }
+      return tx.inventorySession.findUniqueOrThrow({
+        where: { id },
+        include: { lines: true },
+      });
+    });
+  }
+
   validate(id: string, actorId: string) {
     return this.execute(async (tx) => {
       const session = await this.session(tx, id, actorId);
@@ -128,7 +148,12 @@ export class PrismaStockCountRepository implements StockCountRepository {
         const difference = counted.minus(stock.quantity);
         if (difference.isZero()) continue;
         const updated = await tx.storeStock.updateMany({
-          where: { storeId: session.storeId, productId: line.productId, quantity: stock.quantity },
+          where: {
+            storeId: session.storeId,
+            productId: line.productId,
+            quantity: stock.quantity,
+            reserved: { lte: counted },
+          },
           data: { quantity: { increment: difference } },
         });
         if (updated.count !== 1) throw new ConflictException('Conflit concurrent sur le stock.');
