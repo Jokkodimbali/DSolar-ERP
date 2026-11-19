@@ -103,4 +103,68 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
+
+  async reverse(orderId: string, paymentId: string, actorId: string, reason: string) {
+    const normalizedReason = reason.trim();
+    if (normalizedReason.length < 10 || normalizedReason.length > 500) {
+      throw new ConflictException('Un motif de contrepassation détaillé est obligatoire.');
+    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          include: { lines: true },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        const stores = [...new Set(order.lines.map((line) => line.storeId))];
+        const allowed = await tx.userStoreAccess.count({
+          where: { userId: actorId, storeId: { in: stores } },
+        });
+        if (!stores.length || allowed !== stores.length) {
+          throw new ForbiddenException('Accès magasin refusé.');
+        }
+        const payment = await tx.payment.findFirst({
+          where: { id: paymentId, orderId },
+          include: { reversals: true, allocations: true },
+        });
+        if (!payment) throw new NotFoundException('Encaissement introuvable.');
+        if (payment.allocations.length) {
+          throw new ConflictException('Annuler les affectations comptables avant la contrepassation.');
+        }
+        if (payment.reversals.length) {
+          throw new ConflictException('Encaissement déjà contrepassé.');
+        }
+        if (order.amountPaid.lessThan(payment.amount)) {
+          throw new ConflictException('Solde encaissé incohérent.');
+        }
+        const reversal = await tx.paymentReversal.create({
+          data: { paymentId, amount: payment.amount, reason: normalizedReason },
+        });
+        const amountPaid = order.amountPaid.minus(payment.amount);
+        await tx.salesOrder.update({
+          where: { id: orderId },
+          data: {
+            amountPaid,
+            paymentStatus: amountPaid.equals(0)
+              ? 'UNPAID'
+              : amountPaid.equals(order.total)
+                ? 'PAID'
+                : 'PARTIALLY_PAID',
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PAYMENT_REVERSED',
+            entityType: 'PaymentReversal',
+            entityId: reversal.id,
+            payload: { orderId, paymentId, amount: payment.amount.toString(), reason: normalizedReason },
+          },
+        });
+        return reversal;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
 }
