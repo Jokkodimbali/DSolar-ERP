@@ -42,7 +42,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             where: { id: input.purchaseOrderId },
             include: { lines: true },
           });
-          if (!order || ![OrderStatus.CONFIRMED, OrderStatus.PARTIALLY_DELIVERED].includes(order.status))
+          if (!order || !(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PARTIALLY_DELIVERED))
             throw new ConflictException('Commande fournisseur non confirmée.');
           const products = new Set(order.lines.map((line) => line.productId));
           if (input.lines.some((line) => !products.has(line.productId)))
@@ -85,7 +85,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           where: { id: receipt.purchaseOrderId },
           include: { lines: true },
         });
-        if (!order || ![OrderStatus.CONFIRMED, OrderStatus.PARTIALLY_DELIVERED].includes(order.status))
+        if (!order || !(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PARTIALLY_DELIVERED))
           throw new ConflictException('Commande fournisseur non confirmée.');
         const prior = await tx.goodsReceipt.findMany({
           where: { purchaseOrderId: order.id, status: ReceiptStatus.CONFIRMED },
