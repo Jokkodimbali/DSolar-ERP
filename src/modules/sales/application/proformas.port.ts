@@ -1,5 +1,5 @@
 export interface ProformaInput {
-  number: string;
+  number?: string;
   customerId: string;
   expiresAt?: string;
   lines: Array<{
