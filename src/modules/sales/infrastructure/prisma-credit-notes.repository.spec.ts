@@ -40,32 +40,32 @@ describe('PrismaCreditNotesRepository', () => {
   });
 
   it('refuse un avoir supérieur au solde net des affectations', async () => {
-    await expect(
-      repository.issue(invoiceId, actorId, '50.01', 'Correction de prix'),
-    ).rejects.toThrow(ConflictException);
+    await expect(repository.issue(invoiceId, actorId, '50.01', 'Correction de prix')).rejects.toThrow(
+      ConflictException,
+    );
     expect(tx.creditNote.create).not.toHaveBeenCalled();
   });
 
   it('refuse un montant négatif ou trop précis', async () => {
-    await expect(
-      repository.issue(invoiceId, actorId, '-1', 'Correction de prix'),
-    ).rejects.toThrow(ConflictException);
-    await expect(
-      repository.issue(invoiceId, actorId, '1.001', 'Correction de prix'),
-    ).rejects.toThrow(ConflictException);
+    await expect(repository.issue(invoiceId, actorId, '-1', 'Correction de prix')).rejects.toThrow(
+      ConflictException,
+    );
+    await expect(repository.issue(invoiceId, actorId, '1.001', 'Correction de prix')).rejects.toThrow(
+      ConflictException,
+    );
   });
 
   it('interdit la création sans accès au magasin', async () => {
     tx.userStoreAccess.count.mockResolvedValue(0);
-    await expect(
-      repository.issue(invoiceId, actorId, '10.00', 'Correction de prix'),
-    ).rejects.toThrow(ForbiddenException);
+    await expect(repository.issue(invoiceId, actorId, '10.00', 'Correction de prix')).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('refuse un avoir sur une facture brouillon', async () => {
     tx.invoice.findUnique.mockResolvedValue({ ...invoice, status: 'DRAFT' });
-    await expect(
-      repository.issue(invoiceId, actorId, '10.00', 'Correction de prix'),
-    ).rejects.toThrow(ConflictException);
+    await expect(repository.issue(invoiceId, actorId, '10.00', 'Correction de prix')).rejects.toThrow(
+      ConflictException,
+    );
   });
 });
