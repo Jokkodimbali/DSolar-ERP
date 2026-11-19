@@ -28,7 +28,9 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: u.passwordHash,
       status: u.status,
       tokenVersion: u.tokenVersion,
-      permissions: [...new Set(u.roles.flatMap((x) => x.role.permissions.map((y) => y.permission.code)))],
+      permissions: [...new Set(u.roles
+          .filter((x) => ['ADMIN', 'MAGASINIER'].includes(x.role.code))
+          .flatMap((x) => x.role.permissions.map((y) => y.permission.code)))],
       storeIds: u.stores.map((x) => x.storeId),
     };
   }
