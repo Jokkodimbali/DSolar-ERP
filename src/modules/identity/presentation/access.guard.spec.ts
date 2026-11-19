@@ -64,7 +64,7 @@ describe('AccessGuard', () => {
     await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
-  it.each(['Bearer ', 'Bearer one two', 'Basic abc', 'Bearer one\\ntwo'])(
+  it.each(['Bearer ', 'Bearer one two', 'Basic abc', 'Bearer one\ntwo'])(
     'refuse un en-tête Authorization malformé : %s',
     async (header) => {
       request.headers.authorization = header;
