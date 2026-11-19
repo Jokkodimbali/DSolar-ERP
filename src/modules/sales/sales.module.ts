@@ -1,3 +1,7 @@
+import { SALES_REPORT_REPOSITORY } from './application/sales-report.port';
+import { SalesReportService } from './application/sales-report.service';
+import { PrismaSalesReportRepository } from './infrastructure/prisma-sales-report.repository';
+import { SalesReportController } from './presentation/sales-report.controller';
 import { Module } from '@nestjs/common';
 import { CREDIT_NOTES_REPOSITORY } from './application/credit-notes.port';
 import { CreditNotesService } from './application/credit-notes.service';
@@ -40,6 +44,7 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
     InvoicesController,
     PaymentsController,
     CreditNotesController,
+    SalesReportController,
   ],
   providers: [
     CustomersService,
@@ -48,6 +53,8 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
     InvoicesService,
     PaymentsService,
     CreditNotesService,
+    SalesReportService,
+    { provide: SALES_REPORT_REPOSITORY, useClass: PrismaSalesReportRepository },
     { provide: CREDIT_NOTES_REPOSITORY, useClass: PrismaCreditNotesRepository },
     { provide: PAYMENTS_REPOSITORY, useClass: PrismaPaymentsRepository },
     { provide: INVOICES_REPOSITORY, useClass: PrismaInvoicesRepository },
