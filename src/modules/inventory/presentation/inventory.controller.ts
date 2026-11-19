@@ -13,10 +13,7 @@ export class InventoryController {
   constructor(private readonly inventory: InventoryService) {}
   @Get('stores/:storeId/stock')
   @RequirePermissions('inventory.read')
-  listStoreStock(
-    @Param('storeId', ParseUUIDPipe) storeId: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  listStoreStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.inventory.listStoreStock(storeId, actorId);
   }
   @Get('stores/:storeId/products/:productId')
