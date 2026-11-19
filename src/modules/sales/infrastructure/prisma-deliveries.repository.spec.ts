@@ -53,9 +53,7 @@ describe('PrismaDeliveriesRepository', () => {
   });
 
   it('refuse de créer une livraison supérieure au reliquat', async () => {
-    tx.salesOrder.findUnique.mockResolvedValue(
-      order('3', [{ status: 'CONFIRMED', lines: [line('2')] }]),
-    );
+    tx.salesOrder.findUnique.mockResolvedValue(order('3', [{ status: 'CONFIRMED', lines: [line('2')] }]));
     await expect(
       repository.create(orderId, actorId, {
         lines: [{ storeId, productId, quantity: '2' }],
@@ -110,9 +108,7 @@ describe('PrismaDeliveriesRepository', () => {
 
   it('regroupe les lignes identiques en un seul mouvement de stock', async () => {
     tx.salesOrder.findUnique.mockResolvedValue(
-      order('5', [
-        { id: deliveryId, status: 'DRAFT', lines: [line('1'), line('2')] },
-      ]),
+      order('5', [{ id: deliveryId, status: 'DRAFT', lines: [line('1'), line('2')] }]),
     );
     await repository.confirm(orderId, deliveryId, actorId);
     expect(tx.storeStock.updateMany).toHaveBeenCalledTimes(1);
@@ -129,13 +125,9 @@ describe('PrismaDeliveriesRepository', () => {
 
   it('refuse une double confirmation du même bon', async () => {
     tx.salesOrder.findUnique.mockResolvedValue(
-      order('5', [
-        { id: deliveryId, status: 'CONFIRMED', lines: [line('2')] },
-      ]),
+      order('5', [{ id: deliveryId, status: 'CONFIRMED', lines: [line('2')] }]),
     );
-    await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(ConflictException);
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
   });
 
@@ -144,9 +136,7 @@ describe('PrismaDeliveriesRepository', () => {
       order('5', [{ id: deliveryId, status: 'DRAFT', lines: [line('2')] }]),
     );
     tx.storeStock.updateMany.mockResolvedValue({ count: 0 });
-    await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(ConflictException);
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
     expect(tx.deliveryNote.update).not.toHaveBeenCalled();
   });

@@ -17,12 +17,9 @@ describe('CreateDeliveryDto', () => {
     await expect(validateQuantity(quantity)).resolves.toHaveLength(0);
   });
 
-  it.each(['-1', '1.1234', '1e3', 'NaN', '1,5', ''])(
-    'rejette la quantité %s',
-    async (quantity) => {
-      expect((await validateQuantity(quantity)).length).toBeGreaterThan(0);
-    },
-  );
+  it.each(['-1', '1.1234', '1e3', 'NaN', '1,5', ''])('rejette la quantité %s', async (quantity) => {
+    expect((await validateQuantity(quantity)).length).toBeGreaterThan(0);
+  });
 
   it('rejette un bon sans ligne', async () => {
     const dto = plainToInstance(CreateDeliveryDto, { lines: [] });
