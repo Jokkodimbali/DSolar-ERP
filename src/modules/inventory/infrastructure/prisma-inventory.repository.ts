@@ -1,7 +1,12 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, MovementType } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { InventoryRepository, StockAdjustment, StockBalance, StoreStockItem } from '../application/inventory.port';
+import {
+  InventoryRepository,
+  StockAdjustment,
+  StockBalance,
+  StoreStockItem,
+} from '../application/inventory.port';
 
 @Injectable()
 export class PrismaInventoryRepository implements InventoryRepository {
@@ -37,7 +42,8 @@ export class PrismaInventoryRepository implements InventoryRepository {
     };
   }
   async listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]> {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(
+      async (tx) => {
       const [store, user, access] = await Promise.all([
         tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
         tx.user.findUnique({
@@ -70,7 +76,9 @@ export class PrismaInventoryRepository implements InventoryRepository {
         name: stock.product.name,
         unit: stock.product.unit,
       }));
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
   async getBalance(storeId: string, productId: string, actorId: string): Promise<StockBalance> {
     return this.prisma.$transaction(async (tx) => {
