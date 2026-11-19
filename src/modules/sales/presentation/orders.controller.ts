@@ -23,6 +23,12 @@ export class OrdersController {
     return this.orders.get(id, actorId);
   }
 
+  @Post(':id/confirm')
+  @RequirePermissions('sales.manage')
+  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.orders.confirm(id, actorId);
+  }
+
   @Post('from-proforma/:id')
   @RequirePermissions('sales.manage')
   convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
