@@ -65,7 +65,7 @@ export class PrismaProformasRepository implements ProformasRepository {
   }
   async issue(id: string) {
     const result = await this.prisma.proforma.updateMany({
-      where: { id, status: DocumentStatus.DRAFT },
+      where: { id, status: DocumentStatus.DRAFT, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
       data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
     });
     if (!result.count) throw new ConflictException('Devis déjà traité.');
@@ -122,7 +122,11 @@ export class PrismaProformasRepository implements ProformasRepository {
   }
   async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED') {
     const result = await this.prisma.proforma.updateMany({
-      where: { id, status: from as DocumentStatus },
+      where: {
+        id,
+        status: from as DocumentStatus,
+        ...(to === 'ACCEPTED' ? { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } : {}),
+      },
       data: { status: to },
     });
     if (!result.count) throw new ConflictException('Transition de statut impossible.');
