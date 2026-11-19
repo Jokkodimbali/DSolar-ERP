@@ -108,6 +108,63 @@ export class PrismaOrdersRepository implements OrdersRepository {
     );
   }
 
+  async cancel(id: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${id}::uuid FOR UPDATE`;
+        const order = await tx.salesOrder.findUnique({
+          where: { id },
+          include: { lines: true, deliveries: true, payments: true },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        if (order.status !== 'DRAFT' && order.status !== 'CONFIRMED') {
+          throw new ConflictException('Cette commande ne peut plus être annulée.');
+        }
+        if (order.deliveries.length || order.payments.length) {
+          throw new ConflictException('Annulation interdite après livraison ou paiement.');
+        }
+        const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
+        const authorized = await tx.userStoreAccess.count({
+          where: { userId: actorId, storeId: { in: storeIds } },
+        });
+        if (authorized !== storeIds.length) {
+          throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
+        }
+        if (order.status === 'CONFIRMED') {
+          for (const line of order.lines) {
+            const changed = await tx.storeStock.updateMany({
+              where: {
+                storeId: line.storeId,
+                productId: line.productId,
+                reserved: { gte: line.quantity },
+              },
+              data: { reserved: { decrement: line.quantity } },
+            });
+            if (changed.count !== 1) {
+              throw new ConflictException('Réservation de stock incohérente.');
+            }
+          }
+        }
+        const updated = await tx.salesOrder.update({
+          where: { id },
+          data: { status: 'CANCELLED' },
+          include: { lines: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'SALES_ORDER_CANCELLED',
+            entityType: 'SalesOrder',
+            entityId: id,
+            payload: { previousStatus: order.status },
+          },
+        });
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
   async convert(proformaId: string, actorId: string) {
     try {
       return await this.prisma.$transaction(
