@@ -73,7 +73,11 @@ export class PrismaProformasRepository implements ProformasRepository {
   }
   async issue(id: string) {
     const result = await this.prisma.proforma.updateMany({
-      where: { id, status: DocumentStatus.DRAFT, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      where: {
+        id,
+        status: DocumentStatus.DRAFT,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
       data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
     });
     if (!result.count) throw new ConflictException('Devis déjà traité.');
@@ -133,7 +137,9 @@ export class PrismaProformasRepository implements ProformasRepository {
       where: {
         id,
         status: from as DocumentStatus,
-        ...(to === 'ACCEPTED' ? { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } : {}),
+        ...(to === 'ACCEPTED'
+          ? { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }
+          : {}),
       },
       data: { status: to },
     });
