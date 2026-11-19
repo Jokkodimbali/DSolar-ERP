@@ -10,13 +10,13 @@ export class PrismaInventoryRepository implements InventoryRepository {
     const [store, product, user, access] = await Promise.all([
       tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
       tx.product.findUnique({ where: { id: productId }, select: { active: true } }),
-      tx.user.findUnique({ where: { id: actorId }, select: { status: true } }),
+      tx.user.findUnique({ where: { id: actorId }, select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } } }),
       tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
     ]);
     if (!store || !product) throw new NotFoundException('Magasin ou produit introuvable.');
     if (store.status !== 'ACTIVE' || !product.active)
       throw new ConflictException('Magasin ou produit inactif.');
-    if (!user || user.status !== 'ACTIVE' || !access)
+    if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
       throw new ForbiddenException('Accès à ce magasin non autorisé.');
   }
   private format(
