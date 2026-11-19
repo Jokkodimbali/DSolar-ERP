@@ -23,7 +23,7 @@ describe('Financial amount validation', () => {
 
   it.each(cases)('accepte les montants valides pour $dto', async ({ dto, extra }) => {
     for (const amount of ['1', '1.5', '1.50', '1000000.00']) {
-      const errors = await validate(plainToInstance(dto, { ...extra, amount }));
+      const errors = await validate(plainToInstance(dto as typeof RecordPaymentDto, { ...extra, amount }));
       expect(errors).toHaveLength(0);
     }
   });
