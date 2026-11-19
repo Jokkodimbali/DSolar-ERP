@@ -12,4 +12,5 @@ export interface RecordPaymentInput {
 export interface PaymentsRepository {
   list(orderId: string, actorId: string): Promise<unknown[]>;
   record(orderId: string, actorId: string, input: RecordPaymentInput): Promise<unknown>;
+  reverse(orderId: string, paymentId: string, actorId: string, reason: string): Promise<unknown>;
 }
