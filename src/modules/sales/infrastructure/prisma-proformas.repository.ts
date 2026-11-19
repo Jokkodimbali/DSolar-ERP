@@ -87,6 +87,7 @@ export class PrismaProformasRepository implements ProformasRepository {
 
   async update(id: string, input: ProformaInput) {
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
       const existing = await tx.proforma.findUnique({ where: { id } });
       if (!existing) throw new NotFoundException('Devis introuvable.');
       if (existing.status !== DocumentStatus.DRAFT)
@@ -123,7 +124,7 @@ export class PrismaProformasRepository implements ProformasRepository {
       return tx.proforma.update({
         where: { id },
         data: {
-          number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
+          number: input.number ?? existing.number,
           customerId: input.customerId,
           expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
           total: lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0)),
