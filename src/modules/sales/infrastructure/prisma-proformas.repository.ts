@@ -6,11 +6,19 @@ import { ProformaInput, ProformasRepository } from '../application/proformas.por
 @Injectable()
 export class PrismaProformasRepository implements ProformasRepository {
   constructor(private readonly prisma: PrismaService) {}
-  list() {
+  async list() {
+    await this.expireOverdue();
     return this.prisma.proforma.findMany({ include: { lines: true }, orderBy: { createdAt: 'desc' } });
   }
-  find(id: string) {
+  async find(id: string) {
+    await this.expireOverdue(id);
     return this.prisma.proforma.findUnique({ where: { id }, include: { lines: true } });
+  }
+  private async expireOverdue(id?: string): Promise<void> {
+    await this.prisma.proforma.updateMany({
+      where: { ...(id ? { id } : {}), status: DocumentStatus.ISSUED, expiresAt: { lte: new Date() } },
+      data: { status: DocumentStatus.EXPIRED },
+    });
   }
   async create(input: ProformaInput) {
     const lines = input.lines.map((line) => {
