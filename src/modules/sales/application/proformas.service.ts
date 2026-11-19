@@ -54,8 +54,8 @@ export class ProformasService {
   async update(id: string, input: ProformaInput) {
     const current = await this.get(id);
     if (current.status !== 'DRAFT') throw new ConflictException('Seul un brouillon est modifiable.');
-    const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
-    if (!number || !input.lines.length) throw new BadRequestException('Numéro et lignes obligatoires.');
+    const number = input.number?.trim().toUpperCase();
+    if (!input.lines.length) throw new BadRequestException('Lignes obligatoires.');
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
@@ -73,7 +73,7 @@ export class ProformasService {
       seen.add(key);
     }
     this.validateExpiry(input.expiresAt);
-    return this.proformas.update(id, { ...input, number });
+    return this.proformas.update(id, { ...input, ...(number ? { number } : {}) });
   }
   async accept(id: string) {
     const current = await this.get(id);
