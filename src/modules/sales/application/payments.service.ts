@@ -15,4 +15,7 @@ export class PaymentsService {
   reverse(orderId: string, paymentId: string, actorId: string, reason: string) {
     return this.payments.reverse(orderId, paymentId, actorId, reason);
   }
+  allocate(orderId: string, paymentId: string, invoiceId: string, actorId: string, amount: string) {
+    return this.payments.allocate(orderId, paymentId, invoiceId, actorId, amount);
+  }
 }
