@@ -24,17 +24,19 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
   }
 
-  list(orderId: string, actorId: string) {
+  async list(orderId: string, actorId: string) {
+    const order = await this.prisma.salesOrder.findUnique({
+      where: { id: orderId },
+      select: { lines: { select: { storeId: true } } },
+    });
+    if (!order) throw new NotFoundException('Commande introuvable.');
+    await this.assertStoreAccess(
+      this.prisma,
+      [...new Set(order.lines.map((line) => line.storeId))],
+      actorId,
+    );
     return this.prisma.payment.findMany({
-      where: {
-        orderId,
-        order: {
-          lines: {
-            some: {},
-            every: { store: { userAccess: { some: { userId: actorId } } } },
-          },
-        },
-      },
+      where: { orderId },
       orderBy: { installmentNumber: 'asc' },
     });
   }
