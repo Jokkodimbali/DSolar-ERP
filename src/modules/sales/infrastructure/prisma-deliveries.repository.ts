@@ -74,7 +74,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         for (const line of input.lines) {
           const key = `${line.storeId}:${line.productId}`;
           const quantity = new Prisma.Decimal(line.quantity);
-          if (!quantity.greaterThan(0) || quantity.decimalPlaces() > 3) {
+          if (!quantity.isFinite() || !quantity.greaterThan(0) || quantity.decimalPlaces() > 3) {
             throw new ConflictException('Quantité invalide.');
           }
           requested.set(key, (requested.get(key) ?? new Prisma.Decimal(0)).plus(quantity));
