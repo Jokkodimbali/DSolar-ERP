@@ -8,6 +8,8 @@ describe('ProformasService', () => {
     find: jest.fn(),
     create: jest.fn(),
     issue: jest.fn(),
+    update: jest.fn(),
+    transition: jest.fn(),
   } as jest.Mocked<ProformasRepository>;
   const service = new ProformasService(repository);
   const base = {
