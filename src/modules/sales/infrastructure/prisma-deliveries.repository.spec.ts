@@ -108,6 +108,37 @@ describe('PrismaDeliveriesRepository', () => {
     });
   });
 
+  it('regroupe les lignes identiques en un seul mouvement de stock', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('5', [
+        { id: deliveryId, status: 'DRAFT', lines: [line('1'), line('2')] },
+      ]),
+    );
+    await repository.confirm(orderId, deliveryId, actorId);
+    expect(tx.storeStock.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
+    expect(tx.storeStock.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          quantity: { decrement: new Prisma.Decimal('3') },
+          reserved: { decrement: new Prisma.Decimal('3') },
+        },
+      }),
+    );
+  });
+
+  it('refuse une double confirmation du même bon', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('5', [
+        { id: deliveryId, status: 'CONFIRMED', lines: [line('2')] },
+      ]),
+    );
+    await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+  });
+
   it('ne débite pas le stock en cas de réservation insuffisante', async () => {
     tx.salesOrder.findUnique.mockResolvedValue(
       order('5', [{ id: deliveryId, status: 'DRAFT', lines: [line('2')] }]),
