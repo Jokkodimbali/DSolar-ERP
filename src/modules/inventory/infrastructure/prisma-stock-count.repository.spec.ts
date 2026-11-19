@@ -191,4 +191,68 @@ describe('PrismaStockCountRepository', () => {
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
   });
+  it('refuse une session dans un magasin inactif', async () => {
+    tx.store.findUnique.mockResolvedValue({ status: 'INACTIVE' });
+    await expect(repository.start('store-id', 'actor-id')).rejects.toThrow(ConflictException);
+    expect(tx.inventorySession.create).not.toHaveBeenCalled();
+  });
+
+  it('refuse une session à un utilisateur inactif', async () => {
+    tx.user.findUnique.mockResolvedValue({
+      status: 'INACTIVE',
+      roles: [{ roleId: 'admin' }],
+    });
+    await expect(repository.start('store-id', 'actor-id')).rejects.toThrow(ForbiddenException);
+    expect(tx.inventorySession.create).not.toHaveBeenCalled();
+  });
+
+  it('autorise le magasinier affecté au magasin', async () => {
+    tx.user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [] });
+    tx.userStoreAccess.findFirst.mockResolvedValue({ id: 'access-id' });
+    tx.inventorySession.findFirst.mockResolvedValue(null);
+    tx.storeStock.findMany.mockResolvedValue([
+      { productId: 'product-id', quantity: new Prisma.Decimal('5') },
+    ]);
+    tx.inventorySession.create.mockResolvedValue({ id: 'session-id', status: 'DRAFT' });
+    await expect(repository.start('store-id', 'actor-id')).resolves.toMatchObject({
+      status: 'DRAFT',
+    });
+    expect(tx.inventorySession.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuse de modifier le comptage après validation', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'VALIDATED',
+      lines: [{ productId: 'product-id' }],
+    });
+    await expect(
+      repository.record('session-id', 'actor-id', [{ productId: 'product-id', counted: '3' }]),
+    ).rejects.toThrow(ConflictException);
+    expect(tx.inventoryLine.update).not.toHaveBeenCalled();
+  });
+
+  it('refuse une validation concurrente lorsque le statut a changé', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [
+        {
+          productId: 'product-id',
+          counted: new Prisma.Decimal('5'),
+          expected: new Prisma.Decimal('5'),
+        },
+      ],
+    });
+    tx.storeStock.findUnique.mockResolvedValue({
+      quantity: new Prisma.Decimal('5'),
+      reserved: new Prisma.Decimal('0'),
+    });
+    tx.inventorySession.updateMany.mockResolvedValue({ count: 0 });
+    await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+  });
+
 });
