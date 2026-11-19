@@ -39,6 +39,17 @@ export class PaymentsController {
   ) {
     return this.payments.reverse(orderId, paymentId, actorId, input.reason);
   }
+  @Post(':paymentId/allocations/:allocationId/cancel')
+  @RequirePermissions('sales.manage')
+  cancelAllocation(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('paymentId', ParseUUIDPipe) paymentId: string,
+    @Param('allocationId', ParseUUIDPipe) allocationId: string,
+    @CurrentUserId() actorId: string,
+    @Body() input: ReversePaymentDto,
+  ) {
+    return this.payments.cancelAllocation(orderId, paymentId, allocationId, actorId, input.reason);
+  }
   @Post(':paymentId/allocations')
   @RequirePermissions('sales.manage')
   allocate(
