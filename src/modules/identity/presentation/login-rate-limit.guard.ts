@@ -20,7 +20,7 @@ export class LoginRateLimitGuard implements CanActivate {
       ? { count: 0, resetAt: now + this.windowMs }
       : existing;
     if (entry.count >= this.maxAttempts) {
-      throw new TooManyRequestsException('Trop de tentatives de connexion. Réessayez dans 15 minutes.');
+      throw new HttpException('Trop de tentatives de connexion. Réessayez dans 15 minutes.', HttpStatus.TOO_MANY_REQUESTS);
     }
     entry.count += 1;
     this.attempts.set(key, entry);
