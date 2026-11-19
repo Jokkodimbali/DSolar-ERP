@@ -45,8 +45,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
         if (!order) throw new NotFoundException('Commande introuvable.');
         if (order.status !== 'DRAFT')
           throw new ConflictException('Seule une commande brouillon peut être confirmée.');
-        if (!order.lines.length)
-          throw new ConflictException('La commande ne contient aucune ligne.');
+        if (!order.lines.length) throw new ConflictException('La commande ne contient aucune ligne.');
         const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
         const authorized = await tx.userStoreAccess.count({
           where: { userId: actorId, storeId: { in: storeIds } },
@@ -54,10 +53,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
         if (authorized !== storeIds.length)
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
 
-        const totals = new Map<
-          string,
-          { storeId: string; productId: string; quantity: Prisma.Decimal }
-        >();
+        const totals = new Map<string, { storeId: string; productId: string; quantity: Prisma.Decimal }>();
         for (const line of order.lines) {
           const key = `${line.storeId}:${line.productId}`;
           const current = totals.get(key);
@@ -76,8 +72,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
           return left.localeCompare(right);
         });
         for (const item of sortedTotals) {
-          if (!item.quantity.greaterThan(0))
-            throw new ConflictException('Quantité de commande invalide.');
+          if (!item.quantity.greaterThan(0)) throw new ConflictException('Quantité de commande invalide.');
           const changed = await tx.$executeRaw`
             UPDATE "StoreStock"
             SET "reserved" = "reserved" + ${item.quantity}
@@ -183,8 +178,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
           if (!proforma) throw new NotFoundException('Devis proforma introuvable.');
           if (proforma.status !== DocumentStatus.ACCEPTED)
             throw new ConflictException('Seul un devis accepté peut être converti.');
-          if (proforma.lines.length === 0)
-            throw new ConflictException('Le devis ne contient aucune ligne.');
+          if (proforma.lines.length === 0) throw new ConflictException('Le devis ne contient aucune ligne.');
           const existing = await tx.salesOrder.findFirst({ where: { proformaId } });
           if (existing) throw new ConflictException('Ce devis a déjà été converti.');
           const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
