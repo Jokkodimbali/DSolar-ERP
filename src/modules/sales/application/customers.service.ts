@@ -4,7 +4,9 @@ import { CUSTOMERS_REPOSITORY, CustomerInput, CustomersRepository } from './cust
 @Injectable()
 export class CustomersService {
   constructor(@Inject(CUSTOMERS_REPOSITORY) private readonly customers: CustomersRepository) {}
-  list() { return this.customers.list(); }
+  list() {
+    return this.customers.list();
+  }
   async get(id: string) {
     const customer = await this.customers.find(id);
     if (!customer) throw new NotFoundException('Client introuvable.');

@@ -6,9 +6,15 @@ import { CustomerInput, CustomersRepository } from '../application/customers.por
 @Injectable()
 export class PrismaCustomersRepository implements CustomersRepository {
   constructor(private readonly prisma: PrismaService) {}
-  list() { return this.prisma.customer.findMany({ orderBy: { name: 'asc' } }); }
-  find(id: string) { return this.prisma.customer.findUnique({ where: { id } }); }
-  create(input: CustomerInput) { return this.prisma.customer.create({ data: input }); }
+  list() {
+    return this.prisma.customer.findMany({ orderBy: { name: 'asc' } });
+  }
+  find(id: string) {
+    return this.prisma.customer.findUnique({ where: { id } });
+  }
+  create(input: CustomerInput) {
+    return this.prisma.customer.create({ data: input });
+  }
   async update(id: string, input: Partial<CustomerInput>) {
     try {
       return await this.prisma.customer.update({ where: { id }, data: input });

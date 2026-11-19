@@ -24,12 +24,21 @@ export class UpdateCustomerDto {
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customers: CustomersService) {}
-  @Get() @RequirePermissions('products.read') list() { return this.customers.list(); }
-  @Get(':id') @RequirePermissions('products.read')
-  get(@Param('id', ParseUUIDPipe) id: string) { return this.customers.get(id); }
-  @Post() @RequirePermissions('products.manage')
-  create(@Body() dto: CreateCustomerDto) { return this.customers.create(dto); }
-  @Patch(':id') @RequirePermissions('products.manage')
+  @Get() @RequirePermissions('products.read') list() {
+    return this.customers.list();
+  }
+  @Get(':id')
+  @RequirePermissions('products.read')
+  get(@Param('id', ParseUUIDPipe) id: string) {
+    return this.customers.get(id);
+  }
+  @Post()
+  @RequirePermissions('products.manage')
+  create(@Body() dto: CreateCustomerDto) {
+    return this.customers.create(dto);
+  }
+  @Patch(':id')
+  @RequirePermissions('products.manage')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCustomerDto) {
     return this.customers.update(id, dto);
   }
