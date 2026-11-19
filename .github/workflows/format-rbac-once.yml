@@ -21,7 +21,7 @@ jobs:
       - run: |
           git fetch origin dev
           git reset --hard origin/dev
-          npx prettier --write src/modules/sales/application/payments.port.ts src/modules/sales/application/payments.service.ts src/modules/sales/infrastructure/prisma-payments.repository.ts src/modules/sales/presentation/payments.controller.ts src/modules/identity/application/user-management.service.ts src/modules/inventory/infrastructure/prisma-inventory.repository.ts src/modules/sales/application/payments.service.spec.ts
+          npx prettier --write src/modules/sales/application/payments.port.ts src/modules/sales/application/payments.service.ts src/modules/sales/infrastructure/prisma-payments.repository.ts src/modules/sales/presentation/payments.controller.ts src/modules/identity/application/user-management.service.ts src/modules/inventory/infrastructure/prisma-inventory.repository.ts src/modules/sales/application/payments.service.spec.ts src/modules/identity/presentation/login-rate-limit.guard.ts src/modules/identity/presentation/auth.controller.ts src/modules/identity/identity.module.ts
       - name: Commit formatting
         run: |
           if ! git diff --quiet; then
