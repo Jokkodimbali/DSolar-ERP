@@ -107,4 +107,89 @@ describe('PrismaStockCountRepository', () => {
     await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
   });
+  it('régularise un écart positif et journalise le mouvement', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [
+        {
+          productId: 'product-id',
+          counted: new Prisma.Decimal('8.500'),
+          expected: new Prisma.Decimal('5.000'),
+          reason: 'Recomptage',
+        },
+      ],
+    });
+    tx.storeStock.findUnique.mockResolvedValue({
+      quantity: new Prisma.Decimal('5.000'),
+      reserved: new Prisma.Decimal('2.000'),
+    });
+    tx.storeStock.updateMany.mockResolvedValue({ count: 1 });
+    tx.inventorySession.updateMany.mockResolvedValue({ count: 1 });
+    tx.inventorySession.findUniqueOrThrow.mockResolvedValue({ status: 'VALIDATED' });
+    await expect(repository.validate('session-id', 'actor-id')).resolves.toMatchObject({
+      status: 'VALIDATED',
+    });
+    expect(tx.storeStock.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { quantity: { increment: new Prisma.Decimal('3.500') } },
+      }),
+    );
+    expect(tx.stockMovement.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        operationKey: 'inventory:session-id:product-id',
+        referenceType: 'INVENTORY_SESSION',
+        actorId: 'actor-id',
+        quantity: new Prisma.Decimal('3.500'),
+      }),
+    });
+  });
+
+  it('refuse une régularisation inférieure aux réservations', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [
+        {
+          productId: 'product-id',
+          counted: new Prisma.Decimal('1'),
+          expected: new Prisma.Decimal('5'),
+        },
+      ],
+    });
+    tx.storeStock.findUnique.mockResolvedValue({
+      quantity: new Prisma.Decimal('5'),
+      reserved: new Prisma.Decimal('2'),
+    });
+    await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+  });
+
+  it('ne crée pas de mouvement lorsque le stock compté est exact', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [
+        {
+          productId: 'product-id',
+          counted: new Prisma.Decimal('5'),
+          expected: new Prisma.Decimal('5'),
+        },
+      ],
+    });
+    tx.storeStock.findUnique.mockResolvedValue({
+      quantity: new Prisma.Decimal('5'),
+      reserved: new Prisma.Decimal('0'),
+    });
+    tx.inventorySession.updateMany.mockResolvedValue({ count: 1 });
+    tx.inventorySession.findUniqueOrThrow.mockResolvedValue({ status: 'VALIDATED' });
+    await repository.validate('session-id', 'actor-id');
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+  });
+
 });
