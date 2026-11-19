@@ -46,8 +46,16 @@ describe('ProformasService', () => {
     repository.find.mockResolvedValue(null);
     await expect(service.get('absent')).rejects.toBeInstanceOf(NotFoundException);
   });
+  it('refuse une date d’expiration passée', async () => {
+    await expect(service.create({ ...base, expiresAt: '2020-01-01T00:00:00.000Z' }))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse l’acceptation d’un devis expiré', async () => {
+    repository.find.mockResolvedValue({ status: 'ISSUED', expiresAt: new Date('2020-01-01') });
+    await expect(service.accept('id')).rejects.toBeInstanceOf(ConflictException);
+  });
   it('refuse la réémission', async () => {
-    repository.find.mockResolvedValue({ status: 'ISSUED' });
+    repository.find.mockResolvedValue({ status: 'ISSUED', expiresAt: null });
     await expect(service.issue('id')).rejects.toBeInstanceOf(ConflictException);
   });
 });
