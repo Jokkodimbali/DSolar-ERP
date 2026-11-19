@@ -171,13 +171,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     );
   }
 
-  async allocate(
-    orderId: string,
-    paymentId: string,
-    invoiceId: string,
-    actorId: string,
-    amountText: string,
-  ) {
+  async allocate(orderId: string, paymentId: string, invoiceId: string, actorId: string, amountText: string) {
     const amount = new Prisma.Decimal(amountText);
     if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
       throw new ConflictException('Montant affecté invalide.');
