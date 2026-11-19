@@ -43,6 +43,22 @@ export class PrismaBootstrapRepository implements BootstrapRepository {
           data: permissions.map((permission) => ({ roleId: role.id, permissionId: permission.id })),
           skipDuplicates: true,
         });
+        const storekeeper = await tx.role.upsert({
+          where: { code: 'MAGASINIER' },
+          create: { code: 'MAGASINIER', name: 'Magasinier' },
+          update: {},
+        });
+        const storekeeperPermissions = await tx.permission.findMany({
+          where: { code: { in: ['stores.read', 'products.read', 'inventory.read', 'inventory.manage'] } },
+          select: { id: true },
+        });
+        await tx.rolePermission.createMany({
+          data: storekeeperPermissions.map((permission) => ({
+            roleId: storekeeper.id,
+            permissionId: permission.id,
+          })),
+          skipDuplicates: true,
+        });
         await tx.user.create({
           data: { email, fullName, passwordHash, roles: { create: [{ roleId: role.id }] } },
         });
