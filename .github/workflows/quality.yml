@@ -30,6 +30,10 @@ jobs:
           DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
       - run: npm run typecheck
       - run: npm run lint
+      - name: Diagnostic formatage des rapports
+        run: |
+          npx prettier --write src/modules/sales/infrastructure/prisma-sales-report.repository.ts src/modules/sales/infrastructure/prisma-sales-report.repository.spec.ts
+          git diff -- src/modules/sales/infrastructure/prisma-sales-report.repository.ts src/modules/sales/infrastructure/prisma-sales-report.repository.spec.ts
       - run: npm run format:check
       - run: npm test -- --passWithNoTests
 
