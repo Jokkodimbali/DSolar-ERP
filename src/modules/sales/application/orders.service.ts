@@ -15,6 +15,10 @@ export class OrdersService {
     return order;
   }
 
+  confirm(id: string, actorId: string) {
+    return this.orders.confirm(id, actorId);
+  }
+
   convert(proformaId: string, actorId: string) {
     return this.orders.convert(proformaId, actorId);
   }
