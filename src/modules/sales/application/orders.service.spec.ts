@@ -7,6 +7,7 @@ describe('OrdersService', () => {
     list: jest.fn(),
     find: jest.fn(),
     convert: jest.fn(),
+    confirm: jest.fn(),
   } as jest.Mocked<OrdersRepository>;
   const service = new OrdersService(repository);
 
@@ -27,6 +28,12 @@ describe('OrdersService', () => {
     const order = { id: 'order-id' };
     repository.find.mockResolvedValue(order);
     await expect(service.get('order-id', 'actor-id')).resolves.toEqual(order);
+  });
+
+  it('transmet la commande et l’identité à la confirmation', async () => {
+    repository.confirm.mockResolvedValue({ status: 'CONFIRMED' });
+    await service.confirm('order-id', 'actor-id');
+    expect(repository.confirm).toHaveBeenCalledWith('order-id', 'actor-id');
   });
 
   it('transmet le devis et l’identité à la conversion', async () => {
