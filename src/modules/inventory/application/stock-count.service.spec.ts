@@ -8,6 +8,7 @@ describe('StockCountService', () => {
     get: jest.fn(),
     record: jest.fn(),
     validate: jest.fn(),
+    cancel: jest.fn(),
   };
   const service = new StockCountService(repository);
   const line = { productId: 'product-id', counted: '12.500', reason: 'Inventaire physique' };
@@ -37,6 +38,11 @@ describe('StockCountService', () => {
     const lines = [{ ...line, counted: '0' }];
     await service.record('id', 'actor', lines);
     expect(repository.record).toHaveBeenCalledWith('id', 'actor', lines);
+  });
+
+  it('délègue l’annulation', async () => {
+    await service.cancel('id', 'actor');
+    expect(repository.cancel).toHaveBeenCalledWith('id', 'actor');
   });
 
   it('délègue la validation', async () => {
