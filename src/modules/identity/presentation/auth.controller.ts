@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthUseCases } from '../application/auth.use-cases';
 import { AccessGuard } from './access.guard';
+import { LoginRateLimitGuard } from './login-rate-limit.guard';
 import { CurrentUserId } from './current-user.decorator';
 import { LoginDto, RefreshDto } from './dto/auth.dto';
 
@@ -9,7 +10,7 @@ import { LoginDto, RefreshDto } from './dto/auth.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly useCases: AuthUseCases) {}
-  @Post('login') login(@Body() dto: LoginDto) {
+  @Post('login') @UseGuards(LoginRateLimitGuard) login(@Body() dto: LoginDto) {
     return this.useCases.login(dto.email, dto.password);
   }
   @Post('refresh') refresh(@Body() dto: RefreshDto) {
