@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AccessGuard, REQUIRED_PERMISSIONS } from './access.guard';
