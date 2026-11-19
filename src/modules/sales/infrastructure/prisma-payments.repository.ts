@@ -197,6 +197,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         });
         if (!payment) throw new NotFoundException('Encaissement introuvable.');
         if (payment.reversals.length) throw new ConflictException('Encaissement contrepassé.');
+        // Serialize allocations and credit notes on the same invoice row.
+        await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId}::uuid FOR UPDATE`;
         const invoice = await tx.invoice.findFirst({
           where: { id: invoiceId, orderId, status: 'ISSUED' },
           include: { allocations: true, creditNotes: true },
