@@ -8,7 +8,6 @@ describe('PaymentsService', () => {
     reverse: jest.fn(),
     allocate: jest.fn(),
     cancelAllocation: jest.fn(),
-    cancelAllocation: jest.fn(),
   };
   const service = new PaymentsService(repository);
 
