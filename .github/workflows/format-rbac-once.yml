@@ -1,4 +1,4 @@
-name: Format RBAC once
+name: Format backend fixes once
 on:
   push:
     branches: [dev]
