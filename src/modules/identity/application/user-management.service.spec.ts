@@ -22,7 +22,7 @@ describe('UserManagementService', () => {
         email: 'A@EXAMPLE.COM',
         fullName: 'Test',
         password: 'MotDePasseTresLong',
-        roleCodes: ['COMMERCIAL'],
+        roleCodes: ['MAGASINIER'],
         storeIds: [],
       }),
     ).rejects.toBeInstanceOf(ConflictException);
@@ -41,6 +41,18 @@ describe('UserManagementService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('refuse un ancien rôle même s’il existe encore en base', async () => {
+    users.emailExists.mockResolvedValue(false);
+    users.rolesExist.mockResolvedValue(true);
+    await expect(service.create({
+      email: 'ancien@example.com',
+      fullName: 'Test',
+      password: 'MotDePasseTresLong',
+      roleCodes: ['COMMERCIAL'],
+      storeIds: [],
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(users.create).not.toHaveBeenCalled();
+  });
   it('interdit de désactiver le dernier administrateur', async () => {
     users.disableUnlessLastAdmin.mockResolvedValue('last_admin');
     await expect(service.disable('id')).rejects.toBeInstanceOf(ForbiddenException);
@@ -49,7 +61,7 @@ describe('UserManagementService', () => {
     users.rolesExist.mockResolvedValue(true);
     users.activeStoresExist.mockResolvedValue(true);
     users.replaceAccessUnlessLastAdmin.mockResolvedValue('last_admin');
-    await expect(service.replaceAccess('id', ['COMMERCIAL'], [])).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.replaceAccess('id', ['MAGASINIER'], [])).rejects.toBeInstanceOf(ForbiddenException);
   });
   it('normalise le mail et délègue au repository', async () => {
     users.emailExists.mockResolvedValue(false);
@@ -67,14 +79,14 @@ describe('UserManagementService', () => {
       email: ' A@EXAMPLE.COM ',
       fullName: ' Awa ',
       password: 'MotDePasseTresLong',
-      roleCodes: ['COMMERCIAL'],
+      roleCodes: ['MAGASINIER'],
       storeIds: [],
     });
     expect(users.create).toHaveBeenCalledWith({
       email: 'a@example.com',
       fullName: 'Awa',
       passwordHash: 'hash',
-      roleCodes: ['COMMERCIAL'],
+      roleCodes: ['MAGASINIER'],
       storeIds: [],
     });
   });
