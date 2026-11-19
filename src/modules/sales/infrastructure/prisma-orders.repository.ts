@@ -10,7 +10,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
 
   list(actorId: string) {
     return this.prisma.salesOrder.findMany({
-      where: { lines: { every: { store: { userAccess: { some: { userId: actorId } } } } } },
+      where: { lines: { some: {}, every: { store: { userAccess: { some: { userId: actorId } } } } } },
       include: { lines: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -20,7 +20,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
     return this.prisma.salesOrder.findFirst({
       where: {
         id,
-        lines: { every: { store: { userAccess: { some: { userId: actorId } } } } },
+        lines: { some: {}, every: { store: { userAccess: { some: { userId: actorId } } } } },
       },
       include: { lines: true },
     });
