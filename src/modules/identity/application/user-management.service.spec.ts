@@ -44,13 +44,15 @@ describe('UserManagementService', () => {
   it('refuse un ancien rôle même s’il existe encore en base', async () => {
     users.emailExists.mockResolvedValue(false);
     users.rolesExist.mockResolvedValue(true);
-    await expect(service.create({
-      email: 'ancien@example.com',
-      fullName: 'Test',
-      password: 'MotDePasseTresLong',
-      roleCodes: ['COMMERCIAL'],
-      storeIds: [],
-    })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.create({
+        email: 'ancien@example.com',
+        fullName: 'Test',
+        password: 'MotDePasseTresLong',
+        roleCodes: ['COMMERCIAL'],
+        storeIds: [],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(users.create).not.toHaveBeenCalled();
   });
   it('interdit de désactiver le dernier administrateur', async () => {
