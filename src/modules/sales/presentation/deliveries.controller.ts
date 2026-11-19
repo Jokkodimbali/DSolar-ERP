@@ -44,10 +44,7 @@ export class DeliveriesController {
 
   @Get()
   @RequirePermissions('sales.read')
-  list(
-    @Param('orderId', ParseUUIDPipe) orderId: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  list(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
     return this.deliveries.list(orderId, actorId);
   }
 

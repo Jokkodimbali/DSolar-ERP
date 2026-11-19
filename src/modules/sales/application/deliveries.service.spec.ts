@@ -48,8 +48,6 @@ describe('DeliveriesService', () => {
 
   it('masque les livraisons absentes ou non autorisées', async () => {
     repository.find.mockResolvedValue(null);
-    await expect(service.get('order-id', 'delivery-id', 'actor-id')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.get('order-id', 'delivery-id', 'actor-id')).rejects.toThrow(NotFoundException);
   });
 });

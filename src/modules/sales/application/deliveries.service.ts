@@ -4,9 +4,7 @@ import { DELIVERIES_REPOSITORY, DeliveriesRepository } from './deliveries.port';
 
 @Injectable()
 export class DeliveriesService {
-  constructor(
-    @Inject(DELIVERIES_REPOSITORY) private readonly deliveries: DeliveriesRepository,
-  ) {}
+  constructor(@Inject(DELIVERIES_REPOSITORY) private readonly deliveries: DeliveriesRepository) {}
 
   create(orderId: string, actorId: string, input: CreateDeliveryDto) {
     return this.deliveries.create(orderId, actorId, input);
