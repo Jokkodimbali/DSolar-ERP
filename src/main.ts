@@ -16,12 +16,14 @@ async function bootstrap(): Promise<void> {
   );
   const origins = (process.env.CORS_ORIGINS ?? '').split(',').filter(Boolean);
   app.enableCors({ origin: origins });
-  const config = new DocumentBuilder()
-    .setTitle('DSolar ERP — API')
-    .setDescription('API de gestion interne D-Solar and Agri SARL')
-    .setVersion('1.0')
-    .build();
-  SwaggerModule.setup('documentation', app, SwaggerModule.createDocument(app, config));
+  if (process.env.NODE_ENV === 'development' && process.env.ENABLE_SWAGGER === 'true') {
+    const config = new DocumentBuilder()
+      .setTitle('DSolar ERP — API')
+      .setDescription('API de gestion interne D-Solar and Agri SARL')
+      .setVersion('1.0')
+      .build();
+    SwaggerModule.setup('documentation', app, SwaggerModule.createDocument(app, config));
+  }
   await app.listen(Number(process.env.PORT ?? 3000));
 }
 void bootstrap();
