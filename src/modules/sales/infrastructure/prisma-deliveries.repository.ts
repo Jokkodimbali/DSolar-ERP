@@ -86,7 +86,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           throw new ConflictException('Quantité supérieure au reliquat de commande.');
         }
       }
-      return tx.deliveryNote.create({
+      const note = await tx.deliveryNote.create({
         data: {
           number: `BL-${randomUUID().slice(0, 12).toUpperCase()}`,
           orderId,
@@ -100,6 +100,16 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         },
         include: { lines: true },
       });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'DELIVERY_CREATED',
+          entityType: 'DeliveryNote',
+          entityId: note.id,
+          payload: { orderId },
+        },
+      });
+      return note;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
