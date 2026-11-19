@@ -2,7 +2,11 @@ import { BadRequestException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { InventoryRepository } from './inventory.port';
 describe('InventoryService', () => {
-  const repository: InventoryRepository = { getBalance: jest.fn(), adjust: jest.fn() };
+  const repository: InventoryRepository = {
+    listStoreStock: jest.fn(),
+    getBalance: jest.fn(),
+    adjust: jest.fn(),
+  };
   const service = new InventoryService(repository);
   const valid = {
     storeId: 's',
@@ -13,6 +17,10 @@ describe('InventoryService', () => {
     reason: 'Correction inventaire',
     operationKey: 'k',
   };
+  it('délègue la consultation du stock du magasin', async () => {
+    await service.listStoreStock('store-id', 'actor-id');
+    expect(repository.listStoreStock).toHaveBeenCalledWith('store-id', 'actor-id');
+  });
   it('refuse les quantités négatives', async () => {
     expect(() => service.adjust({ ...valid, quantity: '-1' })).toThrow(BadRequestException);
   });
