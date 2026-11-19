@@ -14,11 +14,11 @@ describe('CreateDeliveryDto', () => {
       }),
     );
 
-  it.each(['1', '0.001', '12.345'])('accepte la quantité %s', async (quantity) => {
+  it.each(['1', '0.001', '12.345', '999999.999'])('accepte la quantité %s', async (quantity) => {
     await expect(validateQuantity(quantity)).resolves.toHaveLength(0);
   });
 
-  it.each(['0', '0.000', '-1', '1.1234', '1e3', 'NaN', '1,5', ''])(
+  it.each(['0', '0.000', '-1', '1.1234', '1e3', 'NaN', '1,5', '', '00.5', ' 1', '1.'])(
     'rejette la quantité %s',
     async (quantity) => {
       expect((await validateQuantity(quantity)).length).toBeGreaterThan(0);
