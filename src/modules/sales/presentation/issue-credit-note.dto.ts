@@ -1,7 +1,7 @@
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class IssueCreditNoteDto {
-  @Matches(/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/)
+  @Matches(/^(?!(?:0)(?:\.0{1,2})?$)(?:0|[1-9]\d*)(?:\.\d{1,2})?$/)
   amount!: string;
 
   @IsString()
