@@ -8,6 +8,7 @@ describe('OrdersService', () => {
     find: jest.fn(),
     convert: jest.fn(),
     confirm: jest.fn(),
+    cancel: jest.fn(),
   } as jest.Mocked<OrdersRepository>;
   const service = new OrdersService(repository);
 
@@ -28,6 +29,12 @@ describe('OrdersService', () => {
     const order = { id: 'order-id' };
     repository.find.mockResolvedValue(order);
     await expect(service.get('order-id', 'actor-id')).resolves.toEqual(order);
+  });
+
+  it('transmet la commande et l’identité à l’annulation', async () => {
+    repository.cancel.mockResolvedValue({ status: 'CANCELLED' });
+    await service.cancel('order-id', 'actor-id');
+    expect(repository.cancel).toHaveBeenCalledWith('order-id', 'actor-id');
   });
 
   it('transmet la commande et l’identité à la confirmation', async () => {
