@@ -77,7 +77,7 @@ export class PrismaTransfersRepository implements TransferRepository {
       if (new Set(productIds).size !== productIds.length) {
         throw new ConflictException('Un produit ne peut apparaître qu’une fois par transfert.');
       }
-      if (input.lines.some((line) => !D(line.quantity).isFinite() || D(line.quantity).lessThanOrEqualTo(0))) {
+      if (input.lines.some((line) => !D(line.quantity).isFinite() || D(line.quantity).lte(0))) {
         throw new ConflictException('Les quantités transférées doivent être strictement positives.');
       }
       const products = await tx.product.count({
