@@ -1,0 +1,20 @@
+export interface ProformaInput {
+  number: string;
+  customerId: string;
+  expiresAt?: string;
+  lines: Array<{
+    productId: string;
+    storeId: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    taxRate: number;
+  }>;
+}
+export const PROFORMAS_REPOSITORY = Symbol('PROFORMAS_REPOSITORY');
+export interface ProformasRepository {
+  list(): Promise<unknown[]>;
+  find(id: string): Promise<{ status: string } | null>;
+  create(input: ProformaInput): Promise<unknown>;
+  issue(id: string): Promise<unknown>;
+}
