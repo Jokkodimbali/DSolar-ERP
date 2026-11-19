@@ -131,14 +131,20 @@ export class PrismaOrdersRepository implements OrdersRepository {
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
         }
         if (order.status === 'CONFIRMED') {
+          const releases = new Map<string, Prisma.Decimal>();
           for (const line of order.lines) {
+            const key = `${line.storeId}:${line.productId}`;
+            releases.set(key, (releases.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
+          }
+          for (const [key, quantity] of releases) {
+            const [storeId, productId] = key.split(':');
             const changed = await tx.storeStock.updateMany({
               where: {
-                storeId: line.storeId,
-                productId: line.productId,
-                reserved: { gte: line.quantity },
+                storeId,
+                productId,
+                reserved: { gte: quantity },
               },
-              data: { reserved: { decrement: line.quantity } },
+              data: { reserved: { decrement: quantity } },
             });
             if (changed.count !== 1) {
               throw new ConflictException('Réservation de stock incohérente.');
