@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min, Max, ValidateNested } from 'class-validator';
@@ -33,4 +33,15 @@ export class ProformasController {
   create(@Body() dto: CreateProformaDto) { return this.proformas.create(dto); }
   @Post(':id/issue') @RequirePermissions('products.manage')
   issue(@Param('id', ParseUUIDPipe) id: string) { return this.proformas.issue(id); }
+
+  @Put(':id') @RequirePermissions('products.manage')
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateProformaDto) {
+    return this.proformas.update(id, dto);
+  }
+  @Post(':id/accept') @RequirePermissions('products.manage')
+  accept(@Param('id', ParseUUIDPipe) id: string) { return this.proformas.accept(id); }
+  @Post(':id/cancel') @RequirePermissions('products.manage')
+  cancel(@Param('id', ParseUUIDPipe) id: string) { return this.proformas.cancel(id); }
+  @Post(':id/expire') @RequirePermissions('products.manage')
+  expire(@Param('id', ParseUUIDPipe) id: string) { return this.proformas.expire(id); }
 }
