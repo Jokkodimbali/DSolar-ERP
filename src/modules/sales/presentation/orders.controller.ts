@@ -23,6 +23,12 @@ export class OrdersController {
     return this.orders.get(id, actorId);
   }
 
+  @Post(':id/cancel')
+  @RequirePermissions('sales.manage')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.orders.cancel(id, actorId);
+  }
+
   @Post(':id/confirm')
   @RequirePermissions('sales.manage')
   confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
