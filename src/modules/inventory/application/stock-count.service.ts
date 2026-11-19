@@ -35,6 +35,10 @@ export class StockCountService {
     return this.repository.record(id, actorId, lines);
   }
 
+  cancel(id: string, actorId: string) {
+    return this.repository.cancel(id, actorId);
+  }
+
   validate(id: string, actorId: string) {
     return this.repository.validate(id, actorId);
   }
