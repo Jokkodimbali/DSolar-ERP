@@ -15,6 +15,10 @@ export class OrdersService {
     return order;
   }
 
+  cancel(id: string, actorId: string) {
+    return this.orders.cancel(id, actorId);
+  }
+
   confirm(id: string, actorId: string) {
     return this.orders.confirm(id, actorId);
   }
