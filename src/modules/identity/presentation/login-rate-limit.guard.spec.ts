@@ -11,6 +11,20 @@ describe('LoginRateLimitGuard', () => {
     }),
   } as unknown as ExecutionContext;
 
+  it('tracks different email accounts separately', () => {
+    const guard = new LoginRateLimitGuard();
+    for (let i = 0; i < 10; i += 1) expect(guard.canActivate(context)).toBe(true);
+    const otherContext = {
+      switchToHttp: () => ({
+        getRequest: () => ({
+          ip: '192.0.2.42',
+          body: { email: 'other@example.com' },
+        }),
+      }),
+    } as unknown as ExecutionContext;
+    expect(guard.canActivate(otherContext)).toBe(true);
+  });
+
   it('rejects excessive attempts with HTTP 429', () => {
     const guard = new LoginRateLimitGuard();
     for (let i = 0; i < 10; i += 1) {
