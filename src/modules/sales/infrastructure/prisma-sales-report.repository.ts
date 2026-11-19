@@ -15,7 +15,11 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
         roles: { select: { role: { select: { code: true } } } },
       },
     });
-    if (!user || user.status !== 'ACTIVE' || !user.roles.some(({ role }) => role.code === 'ADMIN')) {
+    if (
+      !user ||
+      user.status !== 'ACTIVE' ||
+      !user.roles.some(({ role }) => role.code === 'ADMIN')
+    ) {
       throw new ForbiddenException('Rapport financier réservé au super administrateur.');
     }
     // Une seule photographie cohérente des commandes, factures et avoirs.
@@ -43,8 +47,14 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
     );
     const grossInvoiced = invoices._sum.totalTtc ?? new Prisma.Decimal(0);
     const creditNotesTotal = credits._sum.amount ?? new Prisma.Decimal(0);
-    const total = orders.reduce((sum, group) => sum.plus(group._sum.total ?? 0), new Prisma.Decimal(0));
-    const collected = orders.reduce((sum, group) => sum.plus(group._sum.amountPaid ?? 0), new Prisma.Decimal(0));
+    const total = orders.reduce(
+      (sum, group) => sum.plus(group._sum.total ?? 0),
+      new Prisma.Decimal(0),
+    );
+    const collected = orders.reduce(
+      (sum, group) => sum.plus(group._sum.amountPaid ?? 0),
+      new Prisma.Decimal(0),
+    );
     const count = (status: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID') =>
       orders.find((group) => group.paymentStatus === status)?._count._all ?? 0;
     return {
