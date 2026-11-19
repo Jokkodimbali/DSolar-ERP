@@ -17,7 +17,11 @@ export class PrismaProformasRepository implements ProformasRepository {
   }
   private async expireOverdue(id?: string): Promise<void> {
     await this.prisma.proforma.updateMany({
-      where: { ...(id ? { id } : {}), status: DocumentStatus.ISSUED, expiresAt: { lte: new Date() } },
+      where: {
+        ...(id ? { id } : {}),
+        status: DocumentStatus.ISSUED,
+        expiresAt: { lte: new Date() },
+      },
       data: { status: DocumentStatus.EXPIRED },
     });
   }
