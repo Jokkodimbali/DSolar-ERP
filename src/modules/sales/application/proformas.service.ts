@@ -40,11 +40,13 @@ export class ProformasService {
       if (new Prisma.Decimal(line.discount).gt(gross))
         throw new BadRequestException('La remise dépasse le montant de la ligne.');
     }
+    this.validateExpiry(input.expiresAt);
     return this.proformas.create({ ...input, number });
   }
   async issue(id: string) {
     const proforma = await this.get(id);
     if (proforma.status !== 'DRAFT') throw new ConflictException('Seul un devis brouillon peut être émis.');
+    this.ensureNotExpired(proforma.expiresAt);
     return this.proformas.issue(id);
   }
 
@@ -69,11 +71,13 @@ export class ProformasService {
       if (seen.has(key)) throw new BadRequestException('Ligne en double.');
       seen.add(key);
     }
+    this.validateExpiry(input.expiresAt);
     return this.proformas.update(id, { ...input, number });
   }
   async accept(id: string) {
     const current = await this.get(id);
     if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
+    this.ensureNotExpired(current.expiresAt);
     return this.proformas.transition(id, 'ISSUED', 'ACCEPTED');
   }
   async cancel(id: string) {
@@ -86,5 +90,16 @@ export class ProformasService {
     const current = await this.get(id);
     if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
     return this.proformas.transition(id, 'ISSUED', 'EXPIRED');
+  }
+
+  private validateExpiry(expiresAt?: string) {
+    if (expiresAt === undefined) return;
+    const date = new Date(expiresAt);
+    if (!Number.isFinite(date.getTime()) || date.getTime() <= Date.now())
+      throw new BadRequestException('La date d’expiration doit être future.');
+  }
+  private ensureNotExpired(expiresAt: Date | null) {
+    if (expiresAt && expiresAt.getTime() <= Date.now())
+      throw new ConflictException('Ce devis a expiré.');
   }
 }
