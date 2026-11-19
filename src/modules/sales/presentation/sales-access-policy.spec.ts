@@ -37,7 +37,7 @@ describe('Sales financial API authorization', () => {
     }
     for (const method of policy.manage) {
       it(`${policy.controller.name}.${method} requires sales.manage`, () => {
-        const handler = policy.controller.prototype[method] as () => unknown;
+        const handler = (policy.controller.prototype as unknown as Record<string, () => unknown>)[method];
         expect(Reflect.getMetadata(REQUIRED_PERMISSIONS, handler)).toEqual(['sales.manage']);
       });
     }
