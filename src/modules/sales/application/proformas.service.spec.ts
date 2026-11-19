@@ -31,6 +31,12 @@ describe('ProformasService', () => {
     await service.create(base);
     expect(repository.create).toHaveBeenCalledWith({ ...base, number: 'PF-001' });
   });
+  it('conserve le numéro existant lors d’une modification sans numéro', async () => {
+    repository.find.mockResolvedValue({ status: 'DRAFT', expiresAt: null });
+    const withoutNumber = { customerId: base.customerId, lines: base.lines };
+    await service.update('id', withoutNumber);
+    expect(repository.update).toHaveBeenCalledWith('id', withoutNumber);
+  });
   it('refuse un devis sans lignes', async () => {
     await expect(service.create({ ...base, lines: [] })).rejects.toBeInstanceOf(BadRequestException);
   });
