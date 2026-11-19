@@ -9,11 +9,11 @@ export class PrismaTransfersRepository implements TransferRepository {
   constructor(private readonly prisma: PrismaService) {}
   private async access(tx: Prisma.TransactionClient, storeId: string, userId: string) {
     const [user, store, access] = await Promise.all([
-      tx.user.findUnique({ where: { id: userId }, select: { status: true } }),
+      tx.user.findUnique({ where: { id: userId }, select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } } }),
       tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
       tx.userStoreAccess.findUnique({ where: { userId_storeId: { userId, storeId } } }),
     ]);
-    if (!user || user.status !== 'ACTIVE' || !access)
+    if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
       throw new ForbiddenException('Accès au magasin interdit.');
     if (!store || store.status !== 'ACTIVE') throw new ConflictException('Magasin inexistant ou inactif.');
   }
