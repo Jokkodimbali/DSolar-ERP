@@ -45,13 +45,30 @@ describe('PrismaSalesReportRepository', () => {
       roles: [{ role: { code: 'ADMIN' } }],
     });
     prisma.salesOrder.groupBy.mockResolvedValue([
-      { paymentStatus: 'PARTIALLY_PAID', _count: { _all: 2 },
-        _sum: { total: new Prisma.Decimal('300.30'), amountPaid: new Prisma.Decimal('100.10') } },
-      { paymentStatus: 'PAID', _count: { _all: 1 },
-        _sum: { total: new Prisma.Decimal('50.20'), amountPaid: new Prisma.Decimal('50.20') } },
+      {
+        paymentStatus: 'PARTIALLY_PAID',
+        _count: { _all: 2 },
+        _sum: {
+          total: new Prisma.Decimal('300.30'),
+          amountPaid: new Prisma.Decimal('100.10'),
+        },
+      },
+      {
+        paymentStatus: 'PAID',
+        _count: { _all: 1 },
+        _sum: {
+          total: new Prisma.Decimal('50.20'),
+          amountPaid: new Prisma.Decimal('50.20'),
+        },
+      },
     ]);
-    prisma.invoice.aggregate.mockResolvedValue({ _count: { _all: 2 }, _sum: { totalTtc: new Prisma.Decimal('350.50') } });
-    prisma.creditNote.aggregate.mockResolvedValue({ _sum: { amount: new Prisma.Decimal('20.10') } });
+    prisma.invoice.aggregate.mockResolvedValue({
+      _count: { _all: 2 },
+      _sum: { totalTtc: new Prisma.Decimal('350.50') },
+    });
+    prisma.creditNote.aggregate.mockResolvedValue({
+      _sum: { amount: new Prisma.Decimal('20.10') },
+    });
     await expect(repository.summary('admin-id')).resolves.toEqual({
       orders: 3,
       totalOrders: '350.50',
@@ -71,13 +88,27 @@ describe('PrismaSalesReportRepository', () => {
   });
 
   it('renvoie des montants nuls en absence de factures et avoirs', async () => {
-    prisma.user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ role: { code: 'ADMIN' } }] });
+    prisma.user.findUnique.mockResolvedValue({
+      status: 'ACTIVE',
+      roles: [{ role: { code: 'ADMIN' } }],
+    });
     prisma.salesOrder.groupBy.mockResolvedValue([]);
-    prisma.invoice.aggregate.mockResolvedValue({ _count: { _all: 0 }, _sum: { totalTtc: null } });
-    prisma.creditNote.aggregate.mockResolvedValue({ _sum: { amount: null } });
+    prisma.invoice.aggregate.mockResolvedValue({
+      _count: { _all: 0 },
+      _sum: { totalTtc: null },
+    });
+    prisma.creditNote.aggregate.mockResolvedValue({
+      _sum: { amount: null },
+    });
     await expect(repository.summary('admin-id')).resolves.toMatchObject({
-      orders: 0, totalOrders: '0.00', collected: '0.00', outstanding: '0.00',
-      issuedInvoices: 0, grossInvoiced: '0.00', creditNotesTotal: '0.00', netInvoiced: '0.00',
+      orders: 0,
+      totalOrders: '0.00',
+      collected: '0.00',
+      outstanding: '0.00',
+      issuedInvoices: 0,
+      grossInvoiced: '0.00',
+      creditNotesTotal: '0.00',
+      netInvoiced: '0.00',
     });
   });
 });
