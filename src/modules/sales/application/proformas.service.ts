@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -20,7 +21,7 @@ export class ProformasService {
     return result;
   }
   async create(input: ProformaInput) {
-    const number = input.number.trim().toUpperCase();
+    const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
     if (!number || !input.lines.length) throw new BadRequestException('Numéro et lignes obligatoires.');
     const seen = new Set<string>();
     for (const line of input.lines) {
@@ -53,7 +54,7 @@ export class ProformasService {
   async update(id: string, input: ProformaInput) {
     const current = await this.get(id);
     if (current.status !== 'DRAFT') throw new ConflictException('Seul un brouillon est modifiable.');
-    const number = input.number.trim().toUpperCase();
+    const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
     if (!number || !input.lines.length) throw new BadRequestException('Numéro et lignes obligatoires.');
     const seen = new Set<string>();
     for (const line of input.lines) {
