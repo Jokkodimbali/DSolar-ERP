@@ -14,6 +14,25 @@ describe('DeliveriesService', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
+  it('transmet la création du bon de livraison', async () => {
+    const input = { lines: [{ storeId: 'store', productId: 'product', quantity: '2' }] };
+    repository.create.mockResolvedValue({ id: 'delivery' });
+    await service.create('order', 'actor', input);
+    expect(repository.create).toHaveBeenCalledWith('order', 'actor', input);
+  });
+
+  it('transmet la confirmation', async () => {
+    repository.confirm.mockResolvedValue({ status: 'CONFIRMED' });
+    await service.confirm('order', 'delivery', 'actor');
+    expect(repository.confirm).toHaveBeenCalledWith('order', 'delivery', 'actor');
+  });
+
+  it('transmet l’annulation du brouillon', async () => {
+    repository.cancel.mockResolvedValue({ status: 'CANCELLED' });
+    await service.cancel('order', 'delivery', 'actor');
+    expect(repository.cancel).toHaveBeenCalledWith('order', 'delivery', 'actor');
+  });
+
   it('filtre les livraisons par commande et utilisateur', async () => {
     repository.list.mockResolvedValue([]);
     await expect(service.list('order-id', 'actor-id')).resolves.toEqual([]);
