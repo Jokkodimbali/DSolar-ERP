@@ -30,11 +30,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       select: { lines: { select: { storeId: true } } },
     });
     if (!order) throw new NotFoundException('Commande introuvable.');
-    await this.assertStoreAccess(
-      this.prisma,
-      [...new Set(order.lines.map((line) => line.storeId))],
-      actorId,
-    );
+    await this.assertStoreAccess(this.prisma, [...new Set(order.lines.map((line) => line.storeId))], actorId);
     return this.prisma.payment.findMany({
       where: { orderId },
       orderBy: { installmentNumber: 'asc' },
