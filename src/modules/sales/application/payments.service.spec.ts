@@ -6,6 +6,7 @@ describe('PaymentsService', () => {
     list: jest.fn(),
     record: jest.fn(),
     reverse: jest.fn(),
+    allocate: jest.fn(),
   };
   const service = new PaymentsService(repository);
 
