@@ -67,6 +67,19 @@ export class PrismaTransfersRepository implements TransferRepository {
     return this.atomic(async (tx) => {
       await this.access(tx, input.originId, input.actorId);
       await this.access(tx, input.destinationId, input.actorId);
+      if (input.originId === input.destinationId) {
+        throw new ConflictException('Les magasins source et destination doivent être différents.');
+      }
+      if (input.lines.length === 0) {
+        throw new ConflictException('Un transfert doit contenir au moins une ligne.');
+      }
+      const productIds = input.lines.map((line) => line.productId);
+      if (new Set(productIds).size !== productIds.length) {
+        throw new ConflictException('Un produit ne peut apparaître qu’une fois par transfert.');
+      }
+      if (input.lines.some((line) => !D(line.quantity).isFinite() || D(line.quantity).lessThanOrEqualTo(0))) {
+        throw new ConflictException('Les quantités transférées doivent être strictement positives.');
+      }
       const products = await tx.product.count({
         where: { id: { in: input.lines.map((l) => l.productId) }, active: true },
       });
