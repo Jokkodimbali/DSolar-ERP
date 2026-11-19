@@ -22,7 +22,7 @@ export class ProformasService {
   }
   async create(input: ProformaInput) {
     const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
-    if (!number || !input.lines.length) throw new BadRequestException('Numéro et lignes obligatoires.');
+    if (!input.lines.length) throw new BadRequestException('Au moins une ligne est obligatoire.');
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
