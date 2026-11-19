@@ -487,7 +487,7 @@ model Invoice {
   id String @id @default(uuid()) @db.Uuid
   number String @unique
   customerId String @db.Uuid
-  orderId String? @db.Uuid
+  orderId String? @unique @db.Uuid
   customer Customer @relation(fields:[customerId],references:[id],onDelete:Restrict)
   order SalesOrder? @relation(fields:[orderId],references:[id],onDelete:Restrict)
   status InvoiceStatus @default(DRAFT)
