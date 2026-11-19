@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { PAYMENTS_REPOSITORY } from './application/payments.port';
+import { PaymentsService } from './application/payments.service';
+import { PrismaPaymentsRepository } from './infrastructure/prisma-payments.repository';
+import { PaymentsController } from './presentation/payments.controller';
 import { INVOICES_REPOSITORY } from './application/invoices.port';
 import { InvoicesService } from './application/invoices.service';
 import { PrismaInvoicesRepository } from './infrastructure/prisma-invoices.repository';
@@ -30,12 +34,15 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
     OrdersController,
     DeliveriesController,
     InvoicesController,
+    PaymentsController,
   ],
   providers: [
     CustomersService,
     OrdersService,
     DeliveriesService,
     InvoicesService,
+    PaymentsService,
+    { provide: PAYMENTS_REPOSITORY, useClass: PrismaPaymentsRepository },
     { provide: INVOICES_REPOSITORY, useClass: PrismaInvoicesRepository },
     { provide: DELIVERIES_REPOSITORY, useClass: PrismaDeliveriesRepository },
     { provide: ORDERS_REPOSITORY, useClass: PrismaOrdersRepository },
