@@ -30,10 +30,6 @@ jobs:
           DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
       - run: npm run typecheck
       - run: npm run lint
-      - name: Diagnostic formatage des tests inventaire
-        run: |
-          npx prettier --write src/modules/inventory/infrastructure/prisma-stock-count.repository.spec.ts
-          git diff -- src/modules/inventory/infrastructure/prisma-stock-count.repository.spec.ts
       - run: npm run format:check
       - run: npm test -- --passWithNoTests
 
