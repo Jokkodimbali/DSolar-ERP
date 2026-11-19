@@ -4,6 +4,9 @@ import { INVENTORY_REPOSITORY, InventoryRepository, StockAdjustment } from './in
 @Injectable()
 export class InventoryService {
   constructor(@Inject(INVENTORY_REPOSITORY) private readonly repository: InventoryRepository) {}
+  listStoreStock(storeId: string, actorId: string) {
+    return this.repository.listStoreStock(storeId, actorId);
+  }
   balance(storeId: string, productId: string, actorId: string) {
     return this.repository.getBalance(storeId, productId, actorId);
   }
