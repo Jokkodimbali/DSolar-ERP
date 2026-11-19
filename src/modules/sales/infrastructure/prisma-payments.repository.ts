@@ -258,4 +258,61 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
+  async cancelAllocation(
+    orderId: string,
+    paymentId: string,
+    allocationId: string,
+    actorId: string,
+    reason: string,
+  ) {
+    const normalizedReason = reason.trim();
+    if (normalizedReason.length < 10 || normalizedReason.length > 500) {
+      throw new ConflictException('Un motif détaillé de désaffectation est obligatoire.');
+    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          include: { lines: true },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        const stores = [...new Set(order.lines.map((line) => line.storeId))];
+        const allowed = await tx.userStoreAccess.count({
+          where: { userId: actorId, storeId: { in: stores } },
+        });
+        if (!stores.length || allowed !== stores.length) {
+          throw new ForbiddenException('Accès magasin refusé.');
+        }
+        const allocation = await tx.paymentAllocation.findFirst({
+          where: { id: allocationId, paymentId, payment: { orderId } },
+          select: { id: true, invoiceId: true, amount: true },
+        });
+        if (!allocation) throw new NotFoundException('Affectation introuvable.');
+        await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${allocation.invoiceId}::uuid FOR UPDATE`;
+        const deleted = await tx.paymentAllocation.deleteMany({
+          where: { id: allocationId, paymentId },
+        });
+        if (deleted.count !== 1) throw new ConflictException('Affectation déjà annulée.');
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PAYMENT_ALLOCATION_CANCELLED',
+            entityType: 'PaymentAllocation',
+            entityId: allocation.id,
+            payload: {
+              orderId,
+              paymentId,
+              invoiceId: allocation.invoiceId,
+              amount: allocation.amount.toString(),
+              reason: normalizedReason,
+            },
+          },
+        });
+        return { id: allocation.id, cancelled: true };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
 }
