@@ -8,6 +8,10 @@ export interface SalesReport {
   unpaidOrders: number;
   partiallyPaidOrders: number;
   paidOrders: number;
+  issuedInvoices: number;
+  grossInvoiced: string;
+  creditNotesTotal: string;
+  netInvoiced: string;
 }
 
 export interface SalesReportRepository {
