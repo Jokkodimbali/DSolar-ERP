@@ -28,7 +28,10 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
         const order = await tx.salesOrder.findUnique({
           where: { id: orderId },
-          include: { lines: true, payments: { include: { reversals: true }, orderBy: { installmentNumber: 'asc' } } },
+          include: {
+            lines: true,
+            payments: { include: { reversals: true }, orderBy: { installmentNumber: 'asc' } },
+          },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
         if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.status)) {
@@ -64,9 +67,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           throw new ConflictException('Montant invalide.');
         }
         // Reversed installments retain their unique installment number: do not reuse slots silently.
-        const activePayments = order.payments.filter(
-          (payment) => !payment.reversals?.length,
-        );
+        const activePayments = order.payments.filter((payment) => !payment.reversals?.length);
         if (activePayments.length >= 2) {
           throw new ConflictException('Deux encaissements actifs maximum par commande.');
         }
