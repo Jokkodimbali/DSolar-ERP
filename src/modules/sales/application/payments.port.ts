@@ -1,0 +1,15 @@
+import { PaymentMethod } from '@prisma/client';
+
+export const PAYMENTS_REPOSITORY = Symbol('PAYMENTS_REPOSITORY');
+
+export interface RecordPaymentInput {
+  amount: string;
+  method: PaymentMethod;
+  idempotencyKey: string;
+  externalReference?: string;
+}
+
+export interface PaymentsRepository {
+  list(orderId: string, actorId: string): Promise<unknown[]>;
+  record(orderId: string, actorId: string, input: RecordPaymentInput): Promise<unknown>;
+}
