@@ -42,42 +42,42 @@ class CreateProformaDto {
 @Controller('proformas')
 export class ProformasController {
   constructor(private readonly proformas: ProformasService) {}
-  @Get() @RequirePermissions('products.read') list() {
+  @Get() @RequirePermissions('sales.read') list() {
     return this.proformas.list();
   }
   @Get(':id')
-  @RequirePermissions('products.read')
+  @RequirePermissions('sales.read')
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.proformas.get(id);
   }
   @Post()
-  @RequirePermissions('products.manage')
+  @RequirePermissions('sales.manage')
   create(@Body() dto: CreateProformaDto) {
     return this.proformas.create(dto);
   }
   @Post(':id/issue')
-  @RequirePermissions('products.manage')
+  @RequirePermissions('sales.manage')
   issue(@Param('id', ParseUUIDPipe) id: string) {
     return this.proformas.issue(id);
   }
 
   @Put(':id')
-  @RequirePermissions('products.manage')
+  @RequirePermissions('sales.manage')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateProformaDto) {
     return this.proformas.update(id, dto);
   }
   @Post(':id/accept')
-  @RequirePermissions('products.manage')
+  @RequirePermissions('sales.manage')
   accept(@Param('id', ParseUUIDPipe) id: string) {
     return this.proformas.accept(id);
   }
   @Post(':id/cancel')
-  @RequirePermissions('products.manage')
+  @RequirePermissions('sales.manage')
   cancel(@Param('id', ParseUUIDPipe) id: string) {
     return this.proformas.cancel(id);
   }
   @Post(':id/expire')
-  @RequirePermissions('products.manage')
+  @RequirePermissions('sales.manage')
   expire(@Param('id', ParseUUIDPipe) id: string) {
     return this.proformas.expire(id);
   }
