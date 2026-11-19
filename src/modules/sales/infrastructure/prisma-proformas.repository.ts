@@ -90,7 +90,8 @@ export class PrismaProformasRepository implements ProformasRepository {
   }
 
   async update(id: string, input: ProformaInput) {
-    return this.prisma.$transaction(async (tx) => {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
       const existing = await tx.proforma.findUnique({ where: { id } });
       if (!existing) throw new NotFoundException('Devis introuvable.');
@@ -136,7 +137,12 @@ export class PrismaProformasRepository implements ProformasRepository {
         },
         include: { lines: true },
       });
-    });
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        throw new ConflictException('Numéro de devis déjà utilisé.');
+      throw error;
+    }
   }
   async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED') {
     const result = await this.prisma.proforma.updateMany({
