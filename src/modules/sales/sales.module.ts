@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { CREDIT_NOTES_REPOSITORY } from './application/credit-notes.port';
+import { CreditNotesService } from './application/credit-notes.service';
+import { PrismaCreditNotesRepository } from './infrastructure/prisma-credit-notes.repository';
+import { CreditNotesController } from './presentation/credit-notes.controller';
 import { PAYMENTS_REPOSITORY } from './application/payments.port';
 import { PaymentsService } from './application/payments.service';
 import { PrismaPaymentsRepository } from './infrastructure/prisma-payments.repository';
@@ -35,6 +39,7 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
     DeliveriesController,
     InvoicesController,
     PaymentsController,
+    CreditNotesController,
   ],
   providers: [
     CustomersService,
@@ -42,6 +47,8 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
     DeliveriesService,
     InvoicesService,
     PaymentsService,
+    CreditNotesService,
+    { provide: CREDIT_NOTES_REPOSITORY, useClass: PrismaCreditNotesRepository },
     { provide: PAYMENTS_REPOSITORY, useClass: PrismaPaymentsRepository },
     { provide: INVOICES_REPOSITORY, useClass: PrismaInvoicesRepository },
     { provide: DELIVERIES_REPOSITORY, useClass: PrismaDeliveriesRepository },
