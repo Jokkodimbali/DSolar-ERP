@@ -35,4 +35,39 @@ export class ProformasService {
       throw new ConflictException('Seul un devis brouillon peut être émis.');
     return this.proformas.issue(id);
   }
+
+  async update(id: string, input: ProformaInput) {
+    const current = await this.get(id);
+    if (current.status !== 'DRAFT') throw new ConflictException('Seul un brouillon est modifiable.');
+    const number = input.number.trim().toUpperCase();
+    if (!number || !input.lines.length) throw new BadRequestException('Numéro et lignes obligatoires.');
+    const seen = new Set<string>();
+    for (const line of input.lines) {
+      if (![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite) ||
+          line.quantity <= 0 || line.unitPrice < 0 || line.discount < 0 ||
+          line.taxRate < 0 || line.taxRate > 100 ||
+          new Prisma.Decimal(line.discount).gt(new Prisma.Decimal(line.quantity).mul(line.unitPrice)))
+        throw new BadRequestException('Montants, remise ou taux invalides.');
+      const key = line.storeId + ':' + line.productId;
+      if (seen.has(key)) throw new BadRequestException('Ligne en double.');
+      seen.add(key);
+    }
+    return this.proformas.update(id, { ...input, number });
+  }
+  async accept(id: string) {
+    const current = await this.get(id);
+    if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
+    return this.proformas.transition(id, 'ISSUED', 'ACCEPTED');
+  }
+  async cancel(id: string) {
+    const current = await this.get(id);
+    if (current.status !== 'DRAFT' && current.status !== 'ISSUED')
+      throw new ConflictException('Devis non annulable.');
+    return this.proformas.transition(id, current.status, 'CANCELLED');
+  }
+  async expire(id: string) {
+    const current = await this.get(id);
+    if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
+    return this.proformas.transition(id, 'ISSUED', 'EXPIRED');
+  }
 }
