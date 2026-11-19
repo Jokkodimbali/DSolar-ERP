@@ -117,7 +117,9 @@ export class PrismaStockCountRepository implements StockCountRepository {
           where: { storeId_productId: { storeId: session.storeId, productId: line.productId } },
         });
         if (!stock || !stock.quantity.equals(line.expected)) {
-          throw new ConflictException('Stock modifié depuis le début de l’inventaire : recommencez le comptage.');
+          throw new ConflictException(
+            'Stock modifié depuis le début de l’inventaire : recommencez le comptage.',
+          );
         }
         const counted = line.counted!;
         if (counted.lessThan(stock.reserved)) {
