@@ -24,7 +24,7 @@ export class AccessGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const header = request.headers.authorization;
-    if (typeof header !== 'string' || !/^Bearer [^\\s]+$/.test(header)) {
+    if (typeof header !== 'string' || !/^Bearer [^\s]+$/.test(header)) {
       throw new UnauthorizedException('Authentification requise.');
     }
     let claims;
