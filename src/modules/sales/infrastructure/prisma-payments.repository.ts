@@ -63,6 +63,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
           throw new ConflictException('Montant invalide.');
         }
+        // Reversed installments retain their unique installment number: do not reuse slots silently.
         if (order.payments.length >= 2) {
           throw new ConflictException('Deux encaissements maximum par commande.');
         }
@@ -137,6 +138,16 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         }
         if (payment.reversals.length) {
           throw new ConflictException('Encaissement déjà contrepassé.');
+        }
+        const laterActivePayments = await tx.payment.count({
+          where: {
+            orderId,
+            installmentNumber: { gt: payment.installmentNumber },
+            reversals: { none: {} },
+          },
+        });
+        if (laterActivePayments) {
+          throw new ConflictException('Contrepasser les versements ultérieurs avant celui-ci.');
         }
         if (order.amountPaid.lessThan(payment.amount)) {
           throw new ConflictException('Solde encaissé incohérent.');
