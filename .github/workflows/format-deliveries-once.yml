@@ -18,7 +18,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npx prettier --write "src/modules/sales/**/*.ts"
+      - run: |
+          git fetch origin dev
+          git reset --hard origin/dev
+          npx prettier --write "src/modules/sales/**/*.ts"
       - name: Commit formatted source
         run: |
           if ! git diff --quiet -- src/modules/sales; then
