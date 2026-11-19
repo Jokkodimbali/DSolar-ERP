@@ -15,8 +15,8 @@ describe('PrismaSalesReportRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    prisma.$transaction.mockImplementation(
-      (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma),
+    prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => Promise<unknown>) =>
+      callback(prisma),
     );
   });
 
