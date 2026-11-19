@@ -23,6 +23,8 @@ export class PrismaBootstrapRepository implements BootstrapRepository {
           'products.manage',
           'inventory.read',
           'inventory.manage',
+          'sales.read',
+          'sales.manage',
         ];
         await tx.permission.createMany({
           data: permissionCodes.map((code) => ({ code, description: code })),
