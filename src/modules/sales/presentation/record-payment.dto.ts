@@ -2,7 +2,7 @@ import { IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'cla
 import { PaymentMethod } from '@prisma/client';
 
 export class RecordPaymentDto {
-  @Matches(/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/)
+  @Matches(/^(?!(?:0)(?:\.0{1,2})?$)(?:0|[1-9]\d*)(?:\.\d{1,2})?$/)
   amount!: string;
 
   @IsEnum(PaymentMethod)
