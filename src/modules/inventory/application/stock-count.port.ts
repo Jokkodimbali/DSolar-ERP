@@ -11,4 +11,5 @@ export interface StockCountRepository {
   get(id: string, actorId: string): Promise<unknown>;
   record(id: string, actorId: string, lines: CountLineInput[]): Promise<unknown>;
   validate(id: string, actorId: string): Promise<unknown>;
+  cancel(id: string, actorId: string): Promise<unknown>;
 }
