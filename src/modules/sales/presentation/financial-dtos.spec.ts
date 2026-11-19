@@ -30,7 +30,7 @@ describe('Financial amount validation', () => {
 
   it.each(cases)('refuse les montants invalides pour $dto', async ({ dto, extra }) => {
     for (const amount of ['-1', '1.001', '1e3', '1,50', 'abc', '']) {
-      const errors = await validate(plainToInstance(dto, { ...extra, amount }));
+      const errors = await validate(plainToInstance(dto as typeof RecordPaymentDto, { ...extra, amount }));
       expect(errors.length).toBeGreaterThan(0);
     }
   });
