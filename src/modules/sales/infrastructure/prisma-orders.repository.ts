@@ -26,6 +26,68 @@ export class PrismaOrdersRepository implements OrdersRepository {
     });
   }
 
+  async confirm(id: string, actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${id}::uuid FOR UPDATE`;
+      const order = await tx.salesOrder.findUnique({
+        where: { id },
+        include: { lines: true },
+      });
+      if (!order) throw new NotFoundException('Commande introuvable.');
+      if (order.status !== 'DRAFT')
+        throw new ConflictException('Seule une commande brouillon peut être confirmée.');
+      if (!order.lines.length)
+        throw new ConflictException('La commande ne contient aucune ligne.');
+      const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
+      const authorized = await tx.userStoreAccess.count({
+        where: { userId: actorId, storeId: { in: storeIds } },
+      });
+      if (authorized !== storeIds.length)
+        throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
+
+      const totals = new Map<string, { storeId: string; productId: string; quantity: Prisma.Decimal }>();
+      for (const line of order.lines) {
+        const key = `${line.storeId}:${line.productId}`;
+        const current = totals.get(key);
+        if (current) current.quantity = current.quantity.plus(line.quantity);
+        else totals.set(key, {
+          storeId: line.storeId,
+          productId: line.productId,
+          quantity: line.quantity,
+        });
+      }
+      for (const item of [...totals.values()].sort((a, b) =>
+        `${a.storeId}:${a.productId}`.localeCompare(`${b.storeId}:${b.productId}`))) {
+        if (!item.quantity.greaterThan(0))
+          throw new ConflictException('Quantité de commande invalide.');
+        const changed = await tx.$executeRaw`
+          UPDATE "StoreStock"
+          SET "reserved" = "reserved" + ${item.quantity}
+          WHERE "storeId" = ${item.storeId}::uuid
+            AND "productId" = ${item.productId}::uuid
+            AND "quantity" - "reserved" >= ${item.quantity}
+        `;
+        if (changed !== 1)
+          throw new ConflictException('Stock disponible insuffisant pour confirmer la commande.');
+      }
+      const updated = await tx.salesOrder.update({
+        where: { id },
+        data: { status: 'CONFIRMED' },
+        include: { lines: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'SALES_ORDER_CONFIRMED',
+          entityType: 'SalesOrder',
+          entityId: id,
+          payload: { reservedLines: totals.size },
+        },
+      });
+      return updated;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
   async convert(proformaId: string, actorId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
