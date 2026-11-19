@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
@@ -56,7 +57,7 @@ export class PrismaProformasRepository implements ProformasRepository {
           throw new ConflictException('Magasin inexistant ou inactif.');
         return tx.proforma.create({
           data: {
-            number: input.number,
+            number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
             customerId: input.customerId,
             total,
             ...(input.expiresAt ? { expiresAt: new Date(input.expiresAt) } : {}),
@@ -122,7 +123,7 @@ export class PrismaProformasRepository implements ProformasRepository {
       return tx.proforma.update({
         where: { id },
         data: {
-          number: input.number,
+          number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
           customerId: input.customerId,
           expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
           total: lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0)),
