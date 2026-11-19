@@ -17,4 +17,6 @@ export interface ProformasRepository {
   find(id: string): Promise<{ status: string } | null>;
   create(input: ProformaInput): Promise<unknown>;
   issue(id: string): Promise<unknown>;
+  update(id: string, input: ProformaInput): Promise<unknown>;
+  transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED'): Promise<unknown>;
 }
