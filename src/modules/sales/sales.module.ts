@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { INVOICES_REPOSITORY } from './application/invoices.port';
+import { InvoicesService } from './application/invoices.service';
+import { PrismaInvoicesRepository } from './infrastructure/prisma-invoices.repository';
+import { InvoicesController } from './presentation/invoices.controller';
 import { DELIVERIES_REPOSITORY } from './application/deliveries.port';
 import { DeliveriesService } from './application/deliveries.service';
 import { PrismaDeliveriesRepository } from './infrastructure/prisma-deliveries.repository';
@@ -20,11 +24,13 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
 
 @Module({
   imports: [PrismaModule, IdentityModule],
-  controllers: [CustomersController, ProformasController, OrdersController, DeliveriesController],
+  controllers: [CustomersController, ProformasController, OrdersController, DeliveriesController, InvoicesController],
   providers: [
     CustomersService,
     OrdersService,
     DeliveriesService,
+    InvoicesService,
+    { provide: INVOICES_REPOSITORY, useClass: PrismaInvoicesRepository },
     { provide: DELIVERIES_REPOSITORY, useClass: PrismaDeliveriesRepository },
     { provide: ORDERS_REPOSITORY, useClass: PrismaOrdersRepository },
     ProformasService,
