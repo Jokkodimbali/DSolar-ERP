@@ -24,6 +24,21 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
       _count: { _all: true },
       _sum: { total: true, amountPaid: true },
     });
+    // Facturation et avoirs sont des indicateurs distincts des encaissements.
+    // Les factures annulées ou en brouillon ne contribuent pas au CA facturé.
+    const [invoices, credits] = await Promise.all([
+      this.prisma.invoice.aggregate({
+        where: { status: 'ISSUED' },
+        _count: { _all: true },
+        _sum: { totalTtc: true },
+      }),
+      this.prisma.creditNote.aggregate({
+        where: { invoice: { status: 'ISSUED' }, issuedAt: { not: null } },
+        _sum: { amount: true },
+      }),
+    ]);
+    const grossInvoiced = invoices._sum.totalTtc ?? new Prisma.Decimal(0);
+    const creditNotesTotal = credits._sum.amount ?? new Prisma.Decimal(0);
     const total = orders.reduce((sum, group) => sum.plus(group._sum.total ?? 0), new Prisma.Decimal(0));
     const collected = orders.reduce((sum, group) => sum.plus(group._sum.amountPaid ?? 0), new Prisma.Decimal(0));
     const count = (status: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID') =>
@@ -36,6 +51,10 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
       unpaidOrders: count('UNPAID'),
       partiallyPaidOrders: count('PARTIALLY_PAID'),
       paidOrders: count('PAID'),
+      issuedInvoices: invoices._count._all,
+      grossInvoiced: grossInvoiced.toFixed(2),
+      creditNotesTotal: creditNotesTotal.toFixed(2),
+      netInvoiced: grossInvoiced.minus(creditNotesTotal).toFixed(2),
     };
   }
 }
