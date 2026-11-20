@@ -17,9 +17,13 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       },
     });
     if (!user || user.status !== 'ACTIVE') throw new ForbiddenException('Utilisateur inactif.');
+    const activeStores = await tx.store.count({
+      where: { id: { in: stores }, status: 'ACTIVE' },
+    });
+    if (activeStores !== stores.length) throw new ForbiddenException('Magasin inactif.');
     if (user.roles.length > 0) return;
     const allowed = await tx.userStoreAccess.count({
-      where: { userId: actorId, storeId: { in: stores } },
+      where: { userId: actorId, storeId: { in: stores }, store: { status: 'ACTIVE' } },
     });
     if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
   }
