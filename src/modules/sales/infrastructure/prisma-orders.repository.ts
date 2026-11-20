@@ -8,6 +8,7 @@ import { OrdersRepository } from '../application/orders.port';
 export class PrismaOrdersRepository implements OrdersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // prettier-ignore
   list(actorId: string) {
     return this.prisma.salesOrder.findMany({
       where: {
@@ -26,6 +27,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
     });
   }
 
+  // prettier-ignore
   find(id: string, actorId: string) {
     return this.prisma.salesOrder.findFirst({
       where: {
@@ -44,6 +46,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
     });
   }
 
+  // prettier-ignore
   async confirm(id: string, actorId: string) {
     return this.prisma.$transaction(
       async (tx) => {
@@ -118,6 +121,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
     );
   }
 
+  // prettier-ignore
   async cancel(id: string, actorId: string) {
     return this.prisma.$transaction(
       async (tx) => {
@@ -186,6 +190,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
     );
   }
 
+  // prettier-ignore
   async convert(proformaId: string, actorId: string) {
     try {
       return await this.prisma.$transaction(
