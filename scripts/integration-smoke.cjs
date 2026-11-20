@@ -23,6 +23,9 @@ async function main() {
   let storeId;
   let productId;
   let inventoryId;
+  let supplierId;
+  let purchaseOrderId;
+  let receiptId;
   try {
     const store = await prisma.store.create({
       data: { code: storeCode, name: 'Magasin integration CI' },
@@ -149,8 +152,67 @@ async function main() {
       data: { status: 'VALIDATED' },
     });
     assert.equal(repeated.count, 0, 'A validated count cannot be validated twice');
+    const supplier = await prisma.supplier.create({
+      data: { name: 'Fournisseur integration ' + suffix },
+    });
+    supplierId = supplier.id;
+    const order = await prisma.purchaseOrder.create({
+      data: {
+        number: 'PO-' + suffix,
+        supplierId,
+        lines: { create: [{ productId, quantity: new Prisma.Decimal(5), unitCost: new Prisma.Decimal(10) }] },
+      },
+    });
+    purchaseOrderId = order.id;
+    assert.equal(order.status, 'DRAFT', 'Purchase orders must start as drafts');
+    const [confirmed, duplicateConfirmation] = await Promise.all([
+      prisma.purchaseOrder.updateMany({
+        where: { id: purchaseOrderId, status: 'DRAFT' },
+        data: { status: 'CONFIRMED' },
+      }),
+      prisma.purchaseOrder.updateMany({
+        where: { id: purchaseOrderId, status: 'DRAFT' },
+        data: { status: 'CONFIRMED' },
+      }),
+    ]);
+    assert.equal(confirmed.count + duplicateConfirmation.count, 1, 'Order confirmation must be atomic');
+    const receipt = await prisma.goodsReceipt.create({
+      data: {
+        number: 'GR-' + suffix,
+        purchaseOrderId,
+        storeId,
+        lines: { create: [{ productId, quantity: new Prisma.Decimal(2), unitCost: new Prisma.Decimal(10) }] },
+      },
+    });
+    receiptId = receipt.id;
+    assert.equal(receipt.status, 'DRAFT', 'Goods receipts must start as drafts');
+    const transitioned = await prisma.goodsReceipt.updateMany({
+      where: { id: receiptId, status: 'DRAFT' },
+      data: { status: 'CANCELLED' },
+    });
+    assert.equal(transitioned.count, 1, 'Draft receipt cancellation must succeed');
+    const duplicateCancellation = await prisma.goodsReceipt.updateMany({
+      where: { id: receiptId, status: 'DRAFT' },
+      data: { status: 'CANCELLED' },
+    });
+    assert.equal(duplicateCancellation.count, 0, 'Cancelled receipts cannot be cancelled twice');
+    assert.equal(
+      await prisma.stockMovement.count({ where: { referenceId: receiptId } }),
+      0,
+      'Cancelling a draft receipt must not create stock movements',
+    );
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
+    console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
+    if (receiptId) {
+      await prisma.goodsReceiptLine.deleteMany({ where: { receiptId } });
+      await prisma.goodsReceipt.delete({ where: { id: receiptId } });
+    }
+    if (purchaseOrderId) {
+      await prisma.purchaseOrderLine.deleteMany({ where: { orderId: purchaseOrderId } });
+      await prisma.purchaseOrder.delete({ where: { id: purchaseOrderId } });
+    }
+    if (supplierId) await prisma.supplier.delete({ where: { id: supplierId } });
     if (inventoryId) {
       await prisma.stockMovement.deleteMany({ where: { referenceId: inventoryId } });
       await prisma.inventoryLine.deleteMany({ where: { sessionId: inventoryId } });
