@@ -171,6 +171,57 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.create).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { previousQuantity: '0', expectedStatus: 'PARTIALLY_DELIVERED' },
+    { previousQuantity: '3', expectedStatus: 'DELIVERED' },
+  ])('met à jour le statut de commande après réception ($expectedStatus)', async ({
+    previousQuantity,
+    expectedStatus,
+  }) => {
+    const receipt = {
+      id: 'receipt-id',
+      storeId: 'store-id',
+      purchaseOrderId: 'order-id',
+      status: 'DRAFT',
+      lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2) }],
+    };
+    const tx = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue(receipt),
+        findMany: jest.fn().mockResolvedValue(
+          previousQuantity === '0'
+            ? []
+            : [{ lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(previousQuantity) }] }],
+        ),
+        update: jest.fn().mockResolvedValue({ ...receipt, status: 'CONFIRMED' }),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'order-id',
+          status: 'CONFIRMED',
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(5) }],
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      storeStock: { upsert: jest.fn().mockResolvedValue({}) },
+      stockMovement: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await repository.confirm('receipt-id', 'actor-id');
+    expect(tx.purchaseOrder.update).toHaveBeenCalledWith({
+      where: { id: 'order-id' },
+      data: { status: expectedStatus },
+    });
+    expect(tx.storeStock.upsert).toHaveBeenCalledTimes(1);
+    expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
