@@ -3,10 +3,18 @@ import { PurchaseOrdersService } from './purchase-orders.service';
 import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
 describe('PurchaseOrdersService', () => {
-  let repository: jest.Mocked<Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list'>>;
+  let repository: jest.Mocked<
+    Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list'>
+  >;
   let service: PurchaseOrdersService;
   beforeEach(() => {
-    repository = { create: jest.fn(), find: jest.fn(), confirm: jest.fn(), cancel: jest.fn(), list: jest.fn() };
+    repository = {
+      create: jest.fn(),
+      find: jest.fn(),
+      confirm: jest.fn(),
+      cancel: jest.fn(),
+      list: jest.fn(),
+    };
     service = new PurchaseOrdersService(repository as unknown as PurchaseOrdersRepository);
   });
   const input = {
