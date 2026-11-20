@@ -81,9 +81,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     const repository = new PrismaGoodsReceiptsRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService);
-    await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
   });
 
   const serializationConflict = () =>
