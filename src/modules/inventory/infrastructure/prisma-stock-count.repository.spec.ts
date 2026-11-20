@@ -220,6 +220,19 @@ describe('PrismaStockCountRepository', () => {
     expect(tx.inventorySession.create).toHaveBeenCalledTimes(1);
   });
 
+  it('refuse une quantité négative avant de modifier une ligne', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [{ productId: 'product-id' }],
+    });
+    await expect(
+      repository.record('session-id', 'actor-id', [{ productId: 'product-id', counted: '-1' }]),
+    ).rejects.toThrow(ConflictException);
+    expect(tx.inventoryLine.update).not.toHaveBeenCalled();
+  });
+
   it('refuse de modifier le comptage après validation', async () => {
     tx.inventorySession.findUnique.mockResolvedValue({
       id: 'session-id',

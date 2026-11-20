@@ -88,14 +88,22 @@ export class PrismaStockCountRepository implements StockCountRepository {
       if (session.status !== 'DRAFT') {
         throw new ConflictException('Cet inventaire est déjà validé.');
       }
+      const productIds = lines.map((line) => line.productId);
+      if (new Set(productIds).size !== productIds.length) {
+        throw new ConflictException('Un produit ne peut être compté plusieurs fois.');
+      }
       const products = new Set(session.lines.map((line) => line.productId));
       for (const line of lines) {
         if (!products.has(line.productId)) {
           throw new NotFoundException('Produit absent de la session d’inventaire.');
         }
+        const counted = new Prisma.Decimal(line.counted);
+        if (!counted.isFinite() || counted.isNegative()) {
+          throw new ConflictException('La quantité comptée doit être positive ou nulle.');
+        }
         await tx.inventoryLine.update({
           where: { sessionId_productId: { sessionId: id, productId: line.productId } },
-          data: { counted: new Prisma.Decimal(line.counted), reason: line.reason?.trim() || null },
+          data: { counted, reason: line.reason?.trim() || null },
         });
       }
       return tx.inventorySession.findUniqueOrThrow({
@@ -142,6 +150,9 @@ export class PrismaStockCountRepository implements StockCountRepository {
           );
         }
         const counted = line.counted!;
+        if (!counted.isFinite() || counted.isNegative()) {
+          throw new ConflictException('Quantité inventoriée invalide.');
+        }
         if (counted.lessThan(stock.reserved)) {
           throw new ConflictException('Le stock compté ne peut pas être inférieur au stock réservé.');
         }
