@@ -48,6 +48,27 @@ describe('PrismaInvoicesRepository', () => {
     tx.auditLog.create.mockResolvedValue({});
   });
 
+
+  // prettier-ignore
+  it('filtre les factures sur les magasins et utilisateurs actifs', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const scoped = new PrismaInvoicesRepository({ invoice: { findMany } } as unknown as PrismaService);
+    await scoped.list(actorId);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { order: { lines: { some: {}, every: { store: {
+        status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+      } } } } },
+    }));
+  });
+
+  // prettier-ignore
+  it('exige un accès à un magasin actif pour créer une facture', async () => {
+    await repository.createFromOrder(orderId, actorId);
+    expect(tx.userStoreAccess.count).toHaveBeenCalledWith({
+      where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: [storeId] }, store: { status: 'ACTIVE' } },
+    });
+  });
+
   it('calcule HT, TVA et TTC sans arrondi flottant', async () => {
     await repository.createFromOrder(orderId, actorId);
     const call = tx.invoice.create.mock.calls[0][0];
