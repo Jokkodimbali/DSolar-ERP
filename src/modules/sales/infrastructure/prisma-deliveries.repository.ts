@@ -72,7 +72,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             store: { status: 'ACTIVE' },
           },
         });
-        if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
+        if (!stores.length || allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
         const ordered = new Map<string, Prisma.Decimal>();
         for (const line of order.lines) {
           const key = `${line.storeId}:${line.productId}`;
@@ -155,7 +155,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             store: { status: 'ACTIVE' },
           },
         });
-        if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
+        if (!stores.length || allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
         const ordered = new Map<string, Prisma.Decimal>();
         for (const line of order.lines) {
           const key = `${line.storeId}:${line.productId}`;
@@ -243,7 +243,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             store: { status: 'ACTIVE' },
           },
         });
-        if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
+        if (!stores.length || allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
         const updated = await tx.deliveryNote.update({
           where: { id: deliveryId },
           data: { status: 'CANCELLED' },
