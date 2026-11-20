@@ -412,6 +412,42 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
   });
 
+  // prettier-ignore
+  it.each([
+    { lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(10) }, { productId: 'product-id', quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(10) }] },
+    { lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(-1), unitCost: new Prisma.Decimal(10) }] },
+    { lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(-10) }] },
+  ])('refuse une réception historique invalide sans mouvement de stock %#', async ({ lines }) => {
+    const tx = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'receipt-id',
+          storeId: 'store-id',
+          status: 'DRAFT',
+          purchaseOrderId: 'order-id',
+          lines,
+        }),
+        findMany: jest.fn(),
+        update: jest.fn(),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: { findUnique: jest.fn(), update: jest.fn() },
+      storeStock: { upsert: jest.fn() },
+      stockMovement: { create: jest.fn() },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.storeStock.upsert).not.toHaveBeenCalled();
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+    expect(tx.purchaseOrder.update).not.toHaveBeenCalled();
+    expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
