@@ -21,9 +21,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async topProducts(limit: number) {
     const rows = await this.prisma.salesOrderLine.groupBy({
       by: ['productId'],
-      where: {
-        order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
-      },
+      where: { order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } } },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: 'desc' } },
       take: limit,
@@ -39,6 +37,14 @@ export class PrismaDashboardRepository implements DashboardRepository {
       name: names.get(row.productId)?.name ?? '',
       quantity: (row._sum.quantity ?? new Prisma.Decimal(0)).toFixed(3),
     }));
+  }
+
+  async recentActivity(limit: number) {
+    return this.prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: { id: true, action: true, entityType: true, entityId: true, createdAt: true },
+    });
   }
 
   async receivables() {
@@ -64,7 +70,9 @@ export class PrismaDashboardRepository implements DashboardRepository {
       select: { issuedAt: true, totalTtc: true },
     });
     return invoices
-      .filter((invoice): invoice is typeof invoice & { issuedAt: Date } => invoice.issuedAt !== null)
+      .filter(
+        (invoice): invoice is typeof invoice & { issuedAt: Date } => invoice.issuedAt !== null,
+      )
       .map((invoice) => ({
         issuedAt: invoice.issuedAt,
         total: invoice.totalTtc.toFixed(2),

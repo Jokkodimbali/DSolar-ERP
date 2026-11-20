@@ -25,6 +25,16 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async recentActivity(actorId: string, limit = '20') {
+    if (!/^(?:[1-9]|[1-4][0-9]|50)$/.test(limit)) {
+      throw new BadRequestException('La limite doit être comprise entre 1 et 50.');
+    }
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Journal réservé au super administrateur.');
+    }
+    return { items: await this.repository.recentActivity(Number(limit)) };
+  }
+
   async receivables(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Créances réservées au super administrateur.');

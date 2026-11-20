@@ -25,8 +25,11 @@ export interface DashboardRepository {
   isAdmin(actorId: string): Promise<boolean>;
   snapshot(): Promise<DashboardSnapshot>;
   monthlyInvoices(year: number): Promise<Array<{ issuedAt: Date; total: string }>>;
-  receivables(): Promise<Array<{ status: string; total: string; paid: string; count: number }>>;
+  receivables(): Promise<
+    Array<{ status: string; total: string; paid: string; count: number }>
+  >;
   topProducts(limit: number): Promise<
     Array<{ productId: string; sku: string; name: string; quantity: string }>
   >;
+  recentActivity(limit: number): Promise<Array<{ id: string; action: string; entityType: string; entityId: string; createdAt: Date }>>;
 }
