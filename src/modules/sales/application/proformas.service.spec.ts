@@ -61,7 +61,7 @@ describe('ProformasService', () => {
   });
   it('refuse les quantités dépassant trois décimales', async () => {
     const lines = [{ ...base.lines[0], quantity: 1.0001 }];
-    await expect(service.create({ ...base, lines })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('retourne 404 pour un devis absent', async () => {
     repository.find.mockResolvedValue(null);
