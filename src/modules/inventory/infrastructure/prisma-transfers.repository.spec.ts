@@ -5,8 +5,20 @@ import { PrismaTransfersRepository } from './prisma-transfers.repository';
 
 describe('PrismaTransfersRepository receipt validation', () => {
   const transfer = {
-    id: 'transfer-id', originId: 'origin', destinationId: 'destination', status: 'SHIPPED',
-    lines: [{ id: 'line-id', productId: 'product-id', quantity: new Prisma.Decimal(5), receivedQuantity: new Prisma.Decimal(0), damagedQuantity: new Prisma.Decimal(0), missingQuantity: new Prisma.Decimal(0) }],
+    id: 'transfer-id',
+    originId: 'origin',
+    destinationId: 'destination',
+    status: 'SHIPPED',
+    lines: [
+      {
+        id: 'line-id',
+        productId: 'product-id',
+        quantity: new Prisma.Decimal(5),
+        receivedQuantity: new Prisma.Decimal(0),
+        damagedQuantity: new Prisma.Decimal(0),
+        missingQuantity: new Prisma.Decimal(0),
+      },
+    ],
   };
 
   it.each([
@@ -28,7 +40,15 @@ describe('PrismaTransfersRepository receipt validation', () => {
     const repository = new PrismaTransfersRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService);
-    await expect(repository.receive({ id: 'transfer-id', actorId: 'actor', operationKey: 'unique-key', finalize: false, lines: [{ lineId: 'line-id', ...quantities }] })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      repository.receive({
+        id: 'transfer-id',
+        actorId: 'actor',
+        operationKey: 'unique-key',
+        finalize: false,
+        lines: [{ lineId: 'line-id', ...quantities }],
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(tx.storeStock.upsert).not.toHaveBeenCalled();
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
     expect(tx.stockTransferLine.update).not.toHaveBeenCalled();
