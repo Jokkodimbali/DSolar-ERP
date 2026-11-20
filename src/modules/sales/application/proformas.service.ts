@@ -27,6 +27,7 @@ export class ProformasService {
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
+        ![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite) ||
         line.quantity <= 0 ||
         new Prisma.Decimal(line.quantity).decimalPlaces() > 3 ||
         new Prisma.Decimal(line.unitPrice).decimalPlaces() > 2 ||
@@ -35,8 +36,7 @@ export class ProformasService {
         line.unitPrice < 0 ||
         line.discount < 0 ||
         line.taxRate < 0 ||
-        line.taxRate > 100 ||
-        ![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite)
+        line.taxRate > 100
       )
         throw new BadRequestException('Montants ou taux invalides.');
       const key = line.storeId + ':' + line.productId;

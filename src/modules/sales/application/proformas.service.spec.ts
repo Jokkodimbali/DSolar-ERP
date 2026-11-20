@@ -50,6 +50,7 @@ describe('ProformasService', () => {
       service.create({ ...base, lines: [{ ...base.lines[0], taxRate: 101 }] }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  // prettier-ignore
   it('refuse plus de cent lignes', async () => {
     await expect(service.create({ ...base, lines: Array.from({ length: 101 }, (_, i) => ({ ...base.lines[0], productId: String(i) })) })).rejects.toBeInstanceOf(BadRequestException);
   });
