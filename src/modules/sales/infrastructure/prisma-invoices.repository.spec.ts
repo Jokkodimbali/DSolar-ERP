@@ -91,6 +91,12 @@ describe('PrismaInvoicesRepository', () => {
     await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
   });
 
+  it('refuse une commande sans magasin avant de créer la facture', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue({ ...order, lines: [] });
+    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
+    expect(tx.invoice.create).not.toHaveBeenCalled();
+  });
+
   it('refuse la facturation sans accès au magasin', async () => {
     tx.userStoreAccess.count.mockResolvedValue(0);
     await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ForbiddenException);

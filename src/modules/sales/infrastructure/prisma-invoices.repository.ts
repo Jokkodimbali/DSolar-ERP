@@ -50,7 +50,7 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         const authorized = await tx.userStoreAccess.count({
           where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
         });
-        if (authorized !== stores.length) {
+        if (!stores.length || authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
         }
         const lines = order.lines.map((line) => {
