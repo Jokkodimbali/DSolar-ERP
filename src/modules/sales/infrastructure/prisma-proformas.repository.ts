@@ -194,6 +194,6 @@ export class PrismaProformasRepository implements ProformasRepository {
       data: { status: to },
     });
     if (!result.count) throw new ConflictException('Transition de statut impossible.');
-    return this.find(id);
+    return this.find(id, actorId);
   }
 }
