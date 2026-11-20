@@ -24,5 +24,7 @@ export interface DashboardSnapshot {
 export interface DashboardRepository {
   isAdmin(actorId: string): Promise<boolean>;
   snapshot(): Promise<DashboardSnapshot>;
-  topProducts(limit: number): Promise<Array<{ productId: string; sku: string; name: string; quantity: string }>>;
+  topProducts(limit: number): Promise<
+    Array<{ productId: string; sku: string; name: string; quantity: string }>
+  >;
 }

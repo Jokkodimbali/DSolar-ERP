@@ -21,7 +21,9 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async topProducts(limit: number) {
     const rows = await this.prisma.salesOrderLine.groupBy({
       by: ['productId'],
-      where: { order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } } },
+      where: {
+        order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+      },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: 'desc' } },
       take: limit,
