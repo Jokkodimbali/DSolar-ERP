@@ -50,4 +50,32 @@ describe('InventoryService', () => {
     await expect(service.stockAlerts('s', 'u', '-1')).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.stockAlerts('s', 'u', '1.0001')).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('agrège les quantités, réservations et ruptures pour le tableau de bord', async () => {
+    const stock = repository.listStoreStock as jest.Mock;
+    stock.mockResolvedValueOnce([
+      { quantity: '12.500', reserved: '2.250', available: '10.250' },
+      { quantity: '0.000', reserved: '0.000', available: '0.000' },
+      { quantity: '3.125', reserved: '1.125', available: '2.000' },
+    ]);
+    await expect(service.stockSummary('s', 'u')).resolves.toEqual({
+      storeId: 's',
+      products: 3,
+      outOfStock: 1,
+      totalQuantity: '15.625',
+      totalReserved: '3.375',
+      totalAvailable: '12.250',
+    });
+    expect(stock).toHaveBeenCalledWith('s', 'u');
+  });
+  it('renvoie des totaux nuls pour un magasin sans stock', async () => {
+    (repository.listStoreStock as jest.Mock).mockResolvedValueOnce([]);
+    await expect(service.stockSummary('s', 'u')).resolves.toEqual({
+      storeId: 's',
+      products: 0,
+      outOfStock: 0,
+      totalQuantity: '0.000',
+      totalReserved: '0.000',
+      totalAvailable: '0.000',
+    });
+  });
 });
