@@ -152,7 +152,12 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     const repository = new PrismaGoodsReceiptsRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService);
-    await expect(repository.create({ number: 'REC-EMPTY', storeId: 'store-id', purchaseOrderId: 'order-id', lines: [] }, 'actor-id')).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      repository.create(
+        { number: 'REC-EMPTY', storeId: 'store-id', purchaseOrderId: 'order-id', lines: [] },
+        'actor-id',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(tx.goodsReceipt.create).not.toHaveBeenCalled();
   });
 

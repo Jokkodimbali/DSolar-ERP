@@ -52,8 +52,17 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PARTIALLY_DELIVERED)
           )
             throw new ConflictException('Commande fournisseur non confirmée.');
-          if (!input.lines.length) throw new ConflictException('Une réception doit contenir au moins une ligne.');
-          if (input.lines.some((line) => !Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isFinite(line.unitCost) || line.unitCost < 0))
+          if (!input.lines.length)
+            throw new ConflictException('Une réception doit contenir au moins une ligne.');
+          if (
+            input.lines.some(
+              (line) =>
+                !Number.isFinite(line.quantity) ||
+                line.quantity <= 0 ||
+                !Number.isFinite(line.unitCost) ||
+                line.unitCost < 0,
+            )
+          )
             throw new ConflictException('Quantité ou coût unitaire invalide.');
           const products = new Set(order.lines.map((line) => line.productId));
           if (input.lines.some((line) => !products.has(line.productId)))

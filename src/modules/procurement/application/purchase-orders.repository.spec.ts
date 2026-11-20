@@ -64,7 +64,9 @@ describe('PurchaseOrdersRepository status transitions', () => {
     const transactional = new PurchaseOrdersRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService);
-    await expect(transactional.create({ number: 'CMD-EMPTY', supplierId: 'supplier-1', lines: [] })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      transactional.create({ number: 'CMD-EMPTY', supplierId: 'supplier-1', lines: [] }),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(tx.purchaseOrder.create).not.toHaveBeenCalled();
   });
 
@@ -77,10 +79,16 @@ describe('PurchaseOrdersRepository status transitions', () => {
     const transactional = new PurchaseOrdersRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService);
-    await expect(transactional.create({ number: 'CMD-DUP', supplierId: 'supplier-1', lines: [
-      { productId: 'product-1', quantity: 1, unitCost: 10 },
-      { productId: 'product-1', quantity: 2, unitCost: 10 },
-    ] })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      transactional.create({
+        number: 'CMD-DUP',
+        supplierId: 'supplier-1',
+        lines: [
+          { productId: 'product-1', quantity: 1, unitCost: 10 },
+          { productId: 'product-1', quantity: 2, unitCost: 10 },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(tx.purchaseOrder.create).not.toHaveBeenCalled();
   });
 

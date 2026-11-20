@@ -33,7 +33,15 @@ export class PurchaseOrdersRepository {
         if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
         if (!supplier.active) throw new ConflictException('Fournisseur désactivé.');
         if (!input.lines.length) throw new ConflictException('Commande fournisseur sans lignes interdite.');
-        if (input.lines.some((line) => !Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isFinite(line.unitCost) || line.unitCost < 0))
+        if (
+          input.lines.some(
+            (line) =>
+              !Number.isFinite(line.quantity) ||
+              line.quantity <= 0 ||
+              !Number.isFinite(line.unitCost) ||
+              line.unitCost < 0,
+          )
+        )
           throw new ConflictException('Quantité ou coût unitaire invalide.');
         const productIds = input.lines.map((line) => line.productId);
         if (new Set(productIds).size !== productIds.length)
