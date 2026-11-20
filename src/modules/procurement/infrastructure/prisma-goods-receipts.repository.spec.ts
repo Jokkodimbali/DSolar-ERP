@@ -84,6 +84,38 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('refuse une annulation sans accès au magasin', async () => {
+    const tx = {
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'receipt-id', storeId: 'store-id' }),
+        updateMany: jest.fn(),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue(null) },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(tx.goodsReceipt.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('ne modifie pas une réception introuvable', async () => {
+    const tx = {
+      goodsReceipt: { findUnique: jest.fn().mockResolvedValue(null), updateMany: jest.fn() },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(tx.goodsReceipt.updateMany).not.toHaveBeenCalled();
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
