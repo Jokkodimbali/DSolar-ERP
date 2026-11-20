@@ -22,11 +22,16 @@ export class ProformasService {
   }
   async create(input: ProformaInput) {
     const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
-    if (!input.lines.length) throw new BadRequestException('Au moins une ligne est obligatoire.');
+    if (!input.lines.length || input.lines.length > 100)
+      throw new BadRequestException('Le devis doit contenir entre 1 et 100 lignes.');
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
         line.quantity <= 0 ||
+        new Prisma.Decimal(line.quantity).decimalPlaces() > 3 ||
+        new Prisma.Decimal(line.unitPrice).decimalPlaces() > 2 ||
+        new Prisma.Decimal(line.discount).decimalPlaces() > 2 ||
+        new Prisma.Decimal(line.taxRate).decimalPlaces() > 4 ||
         line.unitPrice < 0 ||
         line.discount < 0 ||
         line.taxRate < 0 ||
@@ -55,12 +60,17 @@ export class ProformasService {
     const current = await this.get(id);
     if (current.status !== 'DRAFT') throw new ConflictException('Seul un brouillon est modifiable.');
     const number = input.number?.trim().toUpperCase();
-    if (!input.lines.length) throw new BadRequestException('Lignes obligatoires.');
+    if (!input.lines.length || input.lines.length > 100)
+      throw new BadRequestException('Le devis doit contenir entre 1 et 100 lignes.');
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
         ![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite) ||
         line.quantity <= 0 ||
+        new Prisma.Decimal(line.quantity).decimalPlaces() > 3 ||
+        new Prisma.Decimal(line.unitPrice).decimalPlaces() > 2 ||
+        new Prisma.Decimal(line.discount).decimalPlaces() > 2 ||
+        new Prisma.Decimal(line.taxRate).decimalPlaces() > 4 ||
         line.unitPrice < 0 ||
         line.discount < 0 ||
         line.taxRate < 0 ||

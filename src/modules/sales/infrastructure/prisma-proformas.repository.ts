@@ -47,6 +47,8 @@ export class PrismaProformasRepository implements ProformasRepository {
       return await this.prisma.$transaction(async (tx) => {
         const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
         if (!customer) throw new NotFoundException('Client introuvable.');
+        if (input.expiresAt && new Date(input.expiresAt).getTime() <= Date.now())
+          throw new ConflictException('La date d’expiration doit être future.');
         const products = await tx.product.findMany({
           where: { id: { in: lines.map((line) => line.productId) }, active: true },
           select: { id: true },

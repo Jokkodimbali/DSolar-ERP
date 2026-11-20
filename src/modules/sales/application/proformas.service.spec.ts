@@ -50,6 +50,15 @@ describe('ProformasService', () => {
       service.create({ ...base, lines: [{ ...base.lines[0], taxRate: 101 }] }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('refuse plus de cent lignes', async () => {
+    await expect(service.create({ ...base, lines: Array.from({ length: 101 }, (_, i) => ({ ...base.lines[0], productId: String(i) })) })).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse les montants dépassant la précision autorisée', async () => {
+    await expect(service.create({ ...base, lines: [{ ...base.lines[0], unitPrice: 10.001 }] })).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse les quantités dépassant trois décimales', async () => {
+    await expect(service.create({ ...base, lines: [{ ...base.lines[0], quantity: 1.0001 }] })).rejects.toBeInstanceOf(BadRequestException);
+  });
   it('retourne 404 pour un devis absent', async () => {
     repository.find.mockResolvedValue(null);
     await expect(service.get('absent')).rejects.toBeInstanceOf(NotFoundException);
