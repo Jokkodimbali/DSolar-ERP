@@ -31,6 +31,13 @@ export class PurchaseOrdersService {
     }
     return this.orders.create({ ...input, number });
   }
+  async cancel(id: string) {
+    const order = await this.get(id);
+    if (order.status !== 'DRAFT')
+      throw new ConflictException('Seule une commande brouillon peut être annulée.');
+    return this.orders.cancel(id);
+  }
+
   async confirm(id: string) {
     const order = await this.get(id);
     if (order.status !== 'DRAFT')
