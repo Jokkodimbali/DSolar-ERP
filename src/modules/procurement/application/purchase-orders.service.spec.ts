@@ -94,5 +94,4 @@ describe('PurchaseOrdersService', () => {
     await expect(service.confirm('missing')).rejects.toMatchObject({ status: 404 });
     expect(repository.confirm).not.toHaveBeenCalled();
   });
-
 });

@@ -87,5 +87,4 @@ describe('GoodsReceiptsService', () => {
     await service.confirm('receipt-id', 'actor');
     expect(repository.confirm).toHaveBeenCalledWith('receipt-id', 'actor');
   });
-
 });
