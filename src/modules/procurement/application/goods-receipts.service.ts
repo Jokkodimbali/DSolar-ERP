@@ -16,14 +16,17 @@ export class GoodsReceiptsService {
   }
   async create(input: CreateReceiptInput, actorId: string) {
     const number = input.number.trim().toUpperCase();
-    if (!number || !input.lines.length) throw new BadRequestException('Numéro et lignes obligatoires.');
+    if (!number || !input.lines.length || input.lines.length > 100)
+      throw new BadRequestException('Numéro obligatoire et entre 1 et 100 lignes requises.');
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
         !Number.isFinite(line.quantity) ||
         line.quantity <= 0 ||
         !Number.isFinite(line.unitCost) ||
-        line.unitCost < 0
+        line.unitCost < 0 ||
+        !/^\d+(?:\.\d{1,3})?$/.test(String(line.quantity)) ||
+        !/^\d+(?:\.\d{1,2})?$/.test(String(line.unitCost))
       )
         throw new BadRequestException('Quantité ou coût unitaire invalide.');
       if (seen.has(line.productId)) throw new BadRequestException('Produit en double.');

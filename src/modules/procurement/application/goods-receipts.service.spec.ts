@@ -29,6 +29,26 @@ describe('GoodsReceiptsService', () => {
       service.create({ ...base, lines: [base.lines[0], base.lines[0]] }, 'actor'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('refuse une quantité avec plus de trois décimales', async () => {
+    await expect(
+      service.create({ ...base, lines: [{ ...base.lines[0], quantity: 1.0001 }] }, 'actor'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse un coût avec plus de deux décimales', async () => {
+    await expect(
+      service.create({ ...base, lines: [{ ...base.lines[0], unitCost: 1.001 }] }, 'actor'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse une réception avec plus de cent lignes', async () => {
+    const lines = Array.from({ length: 101 }, (_, index) => ({
+      productId: String(index),
+      quantity: 1,
+      unitCost: 1,
+    }));
+    await expect(service.create({ ...base, lines }, 'actor')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
   it('refuse une quantité négative', async () => {
     await expect(
       service.create(
