@@ -8,6 +8,7 @@ describe('GoodsReceiptsService', () => {
     get: jest.fn(),
     create: jest.fn(),
     confirm: jest.fn(),
+    cancel: jest.fn(),
   } as jest.Mocked<GoodsReceiptsRepository>;
   const service = new GoodsReceiptsService(repository);
   const base = {
@@ -17,6 +18,10 @@ describe('GoodsReceiptsService', () => {
     lines: [{ productId: 'product-id', quantity: 2, unitCost: 100 }],
   };
   beforeEach(() => jest.clearAllMocks());
+  it('délègue l’annulation avec l’identité de l’acteur', async () => {
+    await service.cancel('receipt-id', 'actor');
+    expect(repository.cancel).toHaveBeenCalledWith('receipt-id', 'actor');
+  });
   it('normalise le numéro de réception', async () => {
     await service.create(base, 'actor');
     expect(repository.create).toHaveBeenCalledWith({ ...base, number: 'REC-001' }, 'actor');

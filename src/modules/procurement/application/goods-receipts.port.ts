@@ -15,4 +15,5 @@ export interface GoodsReceiptsRepository {
   get(id: string, actorId: string): Promise<unknown>;
   create(input: CreateReceiptInput, actorId: string): Promise<unknown>;
   confirm(id: string, actorId: string): Promise<unknown>;
+  cancel(id: string, actorId: string): Promise<unknown>;
 }

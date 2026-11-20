@@ -54,6 +54,11 @@ export class GoodsReceiptsController {
   create(@Body() dto: CreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
     return this.receipts.create(dto, actorId);
   }
+  @Post(':id/cancel')
+  @RequirePermissions('inventory.manage')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.receipts.cancel(id, actorId);
+  }
   @Post(':id/confirm')
   @RequirePermissions('inventory.manage')
   confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {

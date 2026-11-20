@@ -34,6 +34,9 @@ export class GoodsReceiptsService {
     }
     return this.receipts.create({ ...input, number }, actorId);
   }
+  cancel(id: string, actorId: string) {
+    return this.receipts.cancel(id, actorId);
+  }
   confirm(id: string, actorId: string) {
     return this.receipts.confirm(id, actorId);
   }

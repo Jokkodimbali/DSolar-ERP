@@ -13,7 +13,7 @@ describe('Procurement endpoint authorization', () => {
   }> = [
     { controller: SuppliersController, read: ['list', 'get'], manage: ['create', 'update', 'deactivate'] },
     { controller: PurchaseOrdersController, read: ['list', 'get'], manage: ['create', 'confirm', 'cancel'] },
-    { controller: GoodsReceiptsController, read: ['list', 'get'], manage: ['create', 'confirm'] },
+    { controller: GoodsReceiptsController, read: ['list', 'get'], manage: ['create', 'confirm', 'cancel'] },
   ];
 
   for (const { controller, read, manage } of policies) {

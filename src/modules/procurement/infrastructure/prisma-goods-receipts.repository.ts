@@ -74,6 +74,21 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
       throw error;
     }
   }
+  async cancel(id: string, actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const receipt = await tx.goodsReceipt.findUnique({ where: { id } });
+      if (!receipt) throw new NotFoundException('Réception introuvable.');
+      await this.authorize(tx, receipt.storeId, actorId);
+      const updated = await tx.goodsReceipt.updateMany({
+        where: { id, status: ReceiptStatus.DRAFT },
+        data: { status: ReceiptStatus.CANCELLED },
+      });
+      if (updated.count !== 1)
+        throw new ConflictException('Seule une réception brouillon peut être annulée.');
+      return tx.goodsReceipt.findUnique({ where: { id }, include: { lines: true } });
+    });
+  }
+
   async confirm(id: string, actorId: string) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
