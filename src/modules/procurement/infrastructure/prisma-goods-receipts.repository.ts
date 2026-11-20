@@ -20,14 +20,19 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
 
   list(actorId: string) {
     return this.prisma.goodsReceipt.findMany({
-      where: { store: { userAccess: { some: { userId: actorId } } } },
+      where: {
+        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId } } },
+      },
       include: { lines: true },
       orderBy: { number: 'desc' },
     });
   }
   async get(id: string, actorId: string) {
     const receipt = await this.prisma.goodsReceipt.findFirst({
-      where: { id, store: { userAccess: { some: { userId: actorId } } } },
+      where: {
+        id,
+        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId } } },
+      },
       include: { lines: true },
     });
     if (!receipt) throw new NotFoundException('Réception introuvable.');

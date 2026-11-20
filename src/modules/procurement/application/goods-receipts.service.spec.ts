@@ -50,9 +50,7 @@ describe('GoodsReceiptsService', () => {
       quantity: 1,
       unitCost: 1,
     }));
-    await expect(service.create({ ...base, lines }, 'actor')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ ...base, lines }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse une quantité négative', async () => {
     await expect(

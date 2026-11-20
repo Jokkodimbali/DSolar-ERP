@@ -39,18 +39,18 @@ export class PurchaseOrdersRepository {
         if (products.length !== input.lines.length)
           throw new ConflictException('Produit introuvable ou inactif.');
         return tx.purchaseOrder.create({
-        data: {
-          number: input.number,
-          supplierId: input.supplierId,
-          lines: {
-            create: input.lines.map((line) => ({
-              productId: line.productId,
-              quantity: new Prisma.Decimal(line.quantity),
-              unitCost: new Prisma.Decimal(line.unitCost),
-            })),
+          data: {
+            number: input.number,
+            supplierId: input.supplierId,
+            lines: {
+              create: input.lines.map((line) => ({
+                productId: line.productId,
+                quantity: new Prisma.Decimal(line.quantity),
+                unitCost: new Prisma.Decimal(line.unitCost),
+              })),
+            },
           },
-        },
-        include: { supplier: true, lines: true },
+          include: { supplier: true, lines: true },
         });
       });
     } catch (error: unknown) {
