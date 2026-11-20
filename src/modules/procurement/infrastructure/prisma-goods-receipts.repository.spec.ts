@@ -321,6 +321,44 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
   });
 
+  // prettier-ignore
+  it('propage une erreur de mouvement pour permettre le rollback transactionnel', async () => {
+    const tx = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'receipt-id',
+          storeId: 'store-id',
+          status: 'DRAFT',
+          purchaseOrderId: 'order-id',
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2) }],
+        }),
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn(),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'order-id',
+          status: 'CONFIRMED',
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(5) }],
+        }),
+        update: jest.fn(),
+      },
+      storeStock: { upsert: jest.fn().mockResolvedValue({}) },
+      stockMovement: { create: jest.fn().mockRejectedValue(new Error('movement failure')) },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toThrow('movement failure');
+    expect(tx.storeStock.upsert).toHaveBeenCalledTimes(1);
+    expect(tx.purchaseOrder.update).not.toHaveBeenCalled();
+    expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
