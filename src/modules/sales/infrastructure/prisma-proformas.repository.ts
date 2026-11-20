@@ -103,7 +103,11 @@ export class PrismaProformasRepository implements ProformasRepository {
         });
         if (stores.length !== new Set(lines.map((line) => line.storeId)).size)
           throw new ConflictException('Magasin inexistant ou inactif.');
-        await this.assertAccess(tx, lines.map((line) => line.storeId), actorId);
+        await this.assertAccess(
+          tx,
+          lines.map((line) => line.storeId),
+          actorId,
+        );
         return tx.proforma.create({
           data: {
             number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
@@ -146,8 +150,16 @@ export class PrismaProformasRepository implements ProformasRepository {
           where: { proformaId: id },
           select: { storeId: true },
         });
-        await this.assertAccess(tx, currentLines.map((line) => line.storeId), actorId);
-        await this.assertAccess(tx, input.lines.map((line) => line.storeId), actorId);
+        await this.assertAccess(
+          tx,
+          currentLines.map((line) => line.storeId),
+          actorId,
+        );
+        await this.assertAccess(
+          tx,
+          input.lines.map((line) => line.storeId),
+          actorId,
+        );
         if (existing.status !== DocumentStatus.DRAFT)
           throw new ConflictException('Seul un brouillon est modifiable.');
         const customer = await tx.customer.findUnique({ where: { id: input.customerId } });

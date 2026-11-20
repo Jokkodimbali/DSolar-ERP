@@ -56,30 +56,24 @@ describe('ProformasService', () => {
       ...base.lines[0],
       productId: String(i),
     }));
-    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse les montants dépassant la précision autorisée', async () => {
     const lines = [{ ...base.lines[0], unitPrice: 10.001 }];
-    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse les quantités dépassant trois décimales', async () => {
     const lines = [{ ...base.lines[0], quantity: 1.0001 }];
-    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('retourne 404 pour un devis absent', async () => {
     repository.find.mockResolvedValue(null);
     await expect(service.get('absent', actorId)).rejects.toBeInstanceOf(NotFoundException);
   });
   it('refuse une date d’expiration passée', async () => {
-    await expect(service.create({ ...base, expiresAt: '2020-01-01T00:00:00.000Z' }, actorId)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.create({ ...base, expiresAt: '2020-01-01T00:00:00.000Z' }, actorId),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse l’acceptation d’un devis expiré', async () => {
     repository.find.mockResolvedValue({ status: 'ISSUED', expiresAt: new Date('2020-01-01') });
