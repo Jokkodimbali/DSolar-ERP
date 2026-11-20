@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -10,6 +10,12 @@ import { DashboardService } from '../application/dashboard.service';
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
+
+  @Get('top-products')
+  @RequirePermissions('sales.read')
+  topProducts(@CurrentUserId() actorId: string, @Query('limit') limit?: string) {
+    return this.dashboard.topProducts(actorId, limit);
+  }
 
   @Get('overview')
   @RequirePermissions('sales.read')

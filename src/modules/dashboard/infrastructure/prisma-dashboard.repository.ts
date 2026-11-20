@@ -18,6 +18,27 @@ export class PrismaDashboardRepository implements DashboardRepository {
     return Boolean(user && user.status === 'ACTIVE' && user.roles.length > 0);
   }
 
+  async topProducts(limit: number) {
+    const rows = await this.prisma.salesOrderLine.groupBy({
+      by: ['productId'],
+      where: { order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } } },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: limit,
+    });
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: rows.map((row) => row.productId) } },
+      select: { id: true, sku: true, name: true },
+    });
+    const names = new Map(products.map((product) => [product.id, product]));
+    return rows.map((row) => ({
+      productId: row.productId,
+      sku: names.get(row.productId)?.sku ?? '',
+      name: names.get(row.productId)?.name ?? '',
+      quantity: (row._sum.quantity ?? new Prisma.Decimal(0)).toFixed(3),
+    }));
+  }
+
   async snapshot(): Promise<DashboardSnapshot> {
     return this.prisma.$transaction(
       async (tx) => {
@@ -33,37 +54,37 @@ export class PrismaDashboardRepository implements DashboardRepository {
           payments,
           stock,
         ] = await Promise.all([
-            tx.store.count({ where: { status: 'ACTIVE' } }),
-            tx.product.count({ where: { active: true } }),
-            tx.customer.count(),
-            tx.supplier.count({ where: { active: true } }),
-            tx.salesOrder.count({
-              where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
-            }),
-            tx.purchaseOrder.count({ where: { status: { in: ['DRAFT', 'CONFIRMED'] } } }),
-            tx.invoice.aggregate({
-              where: { status: 'ISSUED' },
-              _count: { _all: true },
-              _sum: { totalTtc: true },
-            }),
-            tx.creditNote.aggregate({
-              where: { issuedAt: { not: null }, invoice: { status: 'ISSUED' } },
-              _sum: { amount: true },
-            }),
-            tx.payment.aggregate({ _sum: { amount: true } }),
-            tx.store.findMany({
-              where: { status: 'ACTIVE' },
-              select: {
-                id: true,
-                name: true,
-                stocks: {
-                  where: { product: { active: true } },
-                  select: { quantity: true, reserved: true },
-                },
+          tx.store.count({ where: { status: 'ACTIVE' } }),
+          tx.product.count({ where: { active: true } }),
+          tx.customer.count(),
+          tx.supplier.count({ where: { active: true } }),
+          tx.salesOrder.count({
+            where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+          }),
+          tx.purchaseOrder.count({ where: { status: { in: ['DRAFT', 'CONFIRMED'] } } }),
+          tx.invoice.aggregate({
+            where: { status: 'ISSUED' },
+            _count: { _all: true },
+            _sum: { totalTtc: true },
+          }),
+          tx.creditNote.aggregate({
+            where: { issuedAt: { not: null }, invoice: { status: 'ISSUED' } },
+            _sum: { amount: true },
+          }),
+          tx.payment.aggregate({ _sum: { amount: true } }),
+          tx.store.findMany({
+            where: { status: 'ACTIVE' },
+            select: {
+              id: true,
+              name: true,
+              stocks: {
+                where: { product: { active: true } },
+                select: { quantity: true, reserved: true },
               },
-              orderBy: { name: 'asc' },
-            }),
-          ]);
+            },
+            orderBy: { name: 'asc' },
+          }),
+        ]);
         return {
           stores,
           activeProducts,

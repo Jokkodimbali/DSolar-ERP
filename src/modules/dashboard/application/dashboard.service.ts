@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { DASHBOARD_REPOSITORY, DashboardRepository } from './dashboard.port';
 
 const cents = (value: string): bigint => {
@@ -14,6 +14,16 @@ const money = (value: bigint): string => {
 @Injectable()
 export class DashboardService {
   constructor(@Inject(DASHBOARD_REPOSITORY) private readonly repository: DashboardRepository) {}
+
+  async topProducts(actorId: string, limit = '10') {
+    if (!/^(?:[1-9]|[1-4][0-9]|50)$/.test(limit)) {
+      throw new BadRequestException('La limite doit être comprise entre 1 et 50.');
+    }
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Classement réservé au super administrateur.');
+    }
+    return { items: await this.repository.topProducts(Number(limit)) };
+  }
 
   async overview(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
