@@ -24,8 +24,8 @@ export class PurchaseOrdersService {
         line.quantity <= 0 ||
         !Number.isFinite(line.unitCost) ||
         line.unitCost < 0 ||
-        !Number.isInteger(line.quantity * 1000) ||
-        !Number.isInteger(line.unitCost * 100)
+        !/^\d+(?:\.\d{1,3})?$/.test(String(line.quantity)) ||
+        !/^\d+(?:\.\d{1,2})?$/.test(String(line.unitCost))
       )
         throw new BadRequestException('Quantité ou coût unitaire invalide.');
       if (products.has(line.productId))
