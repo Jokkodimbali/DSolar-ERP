@@ -1,4 +1,4 @@
-name: Format delivery files once
+name: Format procurement files once
 on:
   push:
     branches: [dev]
@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: delivery-format-dev
+  group: procurement-format-dev
   cancel-in-progress: false
 jobs:
   format:
@@ -22,17 +22,17 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Apply Prettier only to failing delivery files
+      - name: Apply Prettier only to failing procurement files
         run: |
           git fetch origin dev
           git reset --hard origin/dev
-          npx prettier --write src/modules/sales/infrastructure/prisma-deliveries.repository.spec.ts src/modules/sales/infrastructure/prisma-deliveries.repository.ts
+          npx prettier --write src/modules/procurement/infrastructure/prisma-goods-receipts.repository.spec.ts src/modules/procurement/infrastructure/prisma-goods-receipts.repository.ts src/modules/procurement/application/purchase-orders.repository.spec.ts src/modules/procurement/application/purchase-orders.repository.ts
       - name: Commit formatting only if changed
         run: |
-          if ! git diff --quiet -- src/modules/sales/infrastructure/prisma-deliveries.repository.spec.ts src/modules/sales/infrastructure/prisma-deliveries.repository.ts; then
+          if ! git diff --quiet -- src/modules/procurement/infrastructure/prisma-goods-receipts.repository.spec.ts src/modules/procurement/infrastructure/prisma-goods-receipts.repository.ts src/modules/procurement/application/purchase-orders.repository.spec.ts src/modules/procurement/application/purchase-orders.repository.ts; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/modules/sales/infrastructure/prisma-deliveries.repository.spec.ts src/modules/sales/infrastructure/prisma-deliveries.repository.ts
-            git commit -m "style(sales): apply Prettier to delivery repository and tests"
+            git add src/modules/procurement/infrastructure/prisma-goods-receipts.repository.spec.ts src/modules/procurement/infrastructure/prisma-goods-receipts.repository.ts src/modules/procurement/application/purchase-orders.repository.spec.ts src/modules/procurement/application/purchase-orders.repository.ts
+            git commit -m "style(sales): apply Prettier to procurement repository and tests"
             git push origin HEAD:dev
           fi
