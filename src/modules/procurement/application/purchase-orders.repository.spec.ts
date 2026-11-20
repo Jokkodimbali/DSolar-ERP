@@ -17,6 +17,44 @@ describe('PurchaseOrdersRepository status transitions', () => {
     repository = new PurchaseOrdersRepository(prisma as unknown as PrismaService);
   });
 
+  it('refuse la création avec un fournisseur désactivé', async () => {
+    const tx = {
+      supplier: { findUnique: jest.fn().mockResolvedValue({ active: false }) },
+      product: { findMany: jest.fn() },
+      purchaseOrder: { create: jest.fn() },
+    };
+    const transactional = new PurchaseOrdersRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(
+      transactional.create({
+        number: 'CMD-1',
+        supplierId: 'supplier-1',
+        lines: [{ productId: 'product-1', quantity: 1, unitCost: 10 }],
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.purchaseOrder.create).not.toHaveBeenCalled();
+  });
+
+  it('refuse la création si un produit est inactif ou introuvable', async () => {
+    const tx = {
+      supplier: { findUnique: jest.fn().mockResolvedValue({ active: true }) },
+      product: { findMany: jest.fn().mockResolvedValue([]) },
+      purchaseOrder: { create: jest.fn() },
+    };
+    const transactional = new PurchaseOrdersRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(
+      transactional.create({
+        number: 'CMD-2',
+        supplierId: 'supplier-1',
+        lines: [{ productId: 'product-1', quantity: 1, unitCost: 10 }],
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.purchaseOrder.create).not.toHaveBeenCalled();
+  });
+
   it('annule atomiquement une commande brouillon', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
     prisma.purchaseOrder.findUnique.mockResolvedValue({
