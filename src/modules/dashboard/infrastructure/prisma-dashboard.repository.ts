@@ -21,16 +21,35 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async snapshot(): Promise<DashboardSnapshot> {
     return this.prisma.$transaction(
       async (tx) => {
-        const [stores, activeProducts, customers, suppliers, confirmedOrders, pendingPurchaseOrders, invoices, credits, payments, stock] =
-          await Promise.all([
+        const [
+          stores,
+          activeProducts,
+          customers,
+          suppliers,
+          confirmedOrders,
+          pendingPurchaseOrders,
+          invoices,
+          credits,
+          payments,
+          stock,
+        ] = await Promise.all([
             tx.store.count({ where: { status: 'ACTIVE' } }),
             tx.product.count({ where: { active: true } }),
             tx.customer.count(),
             tx.supplier.count({ where: { active: true } }),
-            tx.salesOrder.count({ where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } } }),
+            tx.salesOrder.count({
+              where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+            }),
             tx.purchaseOrder.count({ where: { status: { in: ['DRAFT', 'CONFIRMED'] } } }),
-            tx.invoice.aggregate({ where: { status: 'ISSUED' }, _count: { _all: true }, _sum: { totalTtc: true } }),
-            tx.creditNote.aggregate({ where: { issuedAt: { not: null }, invoice: { status: 'ISSUED' } }, _sum: { amount: true } }),
+            tx.invoice.aggregate({
+              where: { status: 'ISSUED' },
+              _count: { _all: true },
+              _sum: { totalTtc: true },
+            }),
+            tx.creditNote.aggregate({
+              where: { issuedAt: { not: null }, invoice: { status: 'ISSUED' } },
+              _sum: { amount: true },
+            }),
             tx.payment.aggregate({ _sum: { amount: true } }),
             tx.store.findMany({
               where: { status: 'ACTIVE' },
@@ -60,9 +79,14 @@ export class PrismaDashboardRepository implements DashboardRepository {
             storeId: store.id,
             storeName: store.name,
             products: store.stocks.length,
-            outOfStock: store.stocks.filter((item) => item.quantity.minus(item.reserved).lte(0)).length,
-            quantity: store.stocks.reduce((sum, item) => sum.plus(item.quantity), new Prisma.Decimal(0)).toFixed(3),
-            reserved: store.stocks.reduce((sum, item) => sum.plus(item.reserved), new Prisma.Decimal(0)).toFixed(3),
+            outOfStock: store.stocks.filter((item) => item.quantity.minus(item.reserved).lte(0))
+              .length,
+            quantity: store.stocks
+              .reduce((sum, item) => sum.plus(item.quantity), new Prisma.Decimal(0))
+              .toFixed(3),
+            reserved: store.stocks
+              .reduce((sum, item) => sum.plus(item.reserved), new Prisma.Decimal(0))
+              .toFixed(3),
           })),
         };
       },

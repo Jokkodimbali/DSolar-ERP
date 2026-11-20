@@ -11,7 +11,14 @@ export interface DashboardSnapshot {
   invoiced: string;
   creditNotes: string;
   collected: string;
-  stock: Array<{ storeId: string; storeName: string; products: number; outOfStock: number; quantity: string; reserved: string }>;
+  stock: Array<{
+    storeId: string;
+    storeName: string;
+    products: number;
+    outOfStock: number;
+    quantity: string;
+    reserved: string;
+  }>;
 }
 
 export interface DashboardRepository {
