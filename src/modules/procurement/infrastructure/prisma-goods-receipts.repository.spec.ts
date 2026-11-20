@@ -4,6 +4,43 @@ import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PrismaGoodsReceiptsRepository } from './prisma-goods-receipts.repository';
 
 describe('PrismaGoodsReceiptsRepository.confirm', () => {
+  it('restreint la liste aux utilisateurs actifs et aux magasins actifs autorisés', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const repository = new PrismaGoodsReceiptsRepository({
+      goodsReceipt: { findMany },
+    } as unknown as PrismaService);
+    await repository.list('actor-id');
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          store: {
+            status: 'ACTIVE',
+            userAccess: { some: { userId: 'actor-id', user: { status: 'ACTIVE' } } },
+          },
+        },
+      }),
+    );
+  });
+
+  it('restreint la consultation individuelle aux mêmes autorisations', async () => {
+    const findFirst = jest.fn().mockResolvedValue({ id: 'receipt-id' });
+    const repository = new PrismaGoodsReceiptsRepository({
+      goodsReceipt: { findFirst },
+    } as unknown as PrismaService);
+    await repository.get('receipt-id', 'actor-id');
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'receipt-id',
+          store: {
+            status: 'ACTIVE',
+            userAccess: { some: { userId: 'actor-id', user: { status: 'ACTIVE' } } },
+          },
+        },
+      }),
+    );
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',

@@ -21,7 +21,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
   list(actorId: string) {
     return this.prisma.goodsReceipt.findMany({
       where: {
-        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId } } },
+        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } },
       },
       include: { lines: true },
       orderBy: { number: 'desc' },
@@ -31,7 +31,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
     const receipt = await this.prisma.goodsReceipt.findFirst({
       where: {
         id,
-        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId } } },
+        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } },
       },
       include: { lines: true },
     });
