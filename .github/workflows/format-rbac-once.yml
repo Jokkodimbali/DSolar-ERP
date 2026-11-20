@@ -1,4 +1,4 @@
-name: Format proforma files once
+name: Format delivery files once
 on:
   push:
     branches: [dev]
@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: proforma-format-dev
+  group: delivery-format-dev
   cancel-in-progress: false
 jobs:
   format:
@@ -22,17 +22,17 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Apply Prettier only to failing proforma files
+      - name: Apply Prettier only to failing delivery files
         run: |
           git fetch origin dev
           git reset --hard origin/dev
-          npx prettier --write src/modules/sales/application/proformas.service.spec.ts src/modules/sales/infrastructure/prisma-proformas.repository.ts
+          npx prettier --write src/modules/sales/infrastructure/prisma-deliveries.repository.spec.ts src/modules/sales/infrastructure/prisma-deliveries.repository.ts
       - name: Commit formatting only if changed
         run: |
-          if ! git diff --quiet -- src/modules/sales/application/proformas.service.spec.ts src/modules/sales/infrastructure/prisma-proformas.repository.ts; then
+          if ! git diff --quiet -- src/modules/sales/infrastructure/prisma-deliveries.repository.spec.ts src/modules/sales/infrastructure/prisma-deliveries.repository.ts; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/modules/sales/application/proformas.service.spec.ts src/modules/sales/infrastructure/prisma-proformas.repository.ts
-            git commit -m "style(sales): apply Prettier to proforma repository and tests"
+            git add src/modules/sales/infrastructure/prisma-deliveries.repository.spec.ts src/modules/sales/infrastructure/prisma-deliveries.repository.ts
+            git commit -m "style(sales): apply Prettier to delivery repository and tests"
             git push origin HEAD:dev
           fi
