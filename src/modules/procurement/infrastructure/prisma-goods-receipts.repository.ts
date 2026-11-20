@@ -64,6 +64,9 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             )
           )
             throw new ConflictException('Quantité ou coût unitaire invalide.');
+          const receiptProducts = input.lines.map((line) => line.productId);
+          if (new Set(receiptProducts).size !== receiptProducts.length)
+            throw new ConflictException('Produit présent plusieurs fois dans la réception.');
           const products = new Set(order.lines.map((line) => line.productId));
           if (input.lines.some((line) => !products.has(line.productId)))
             throw new ConflictException('Produit absent de la commande.');
@@ -133,6 +136,18 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
         if (receipt.status !== ReceiptStatus.DRAFT) throw new ConflictException('Réception déjà traitée.');
         if (!receipt.purchaseOrderId) throw new ConflictException('Commande fournisseur obligatoire.');
         if (!receipt.lines.length) throw new ConflictException('Réception sans lignes interdite.');
+        if (new Set(receipt.lines.map((line) => line.productId)).size !== receipt.lines.length)
+          throw new ConflictException('Réception contenant des produits en double.');
+        if (
+          receipt.lines.some(
+            (line) =>
+              !line.quantity.isFinite() ||
+              line.quantity.lte(0) ||
+              !line.unitCost.isFinite() ||
+              line.unitCost.isNegative(),
+          )
+        )
+          throw new ConflictException('Quantité ou coût de réception invalide.');
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${receipt.purchaseOrderId}))`;
         const order = await tx.purchaseOrder.findUnique({
           where: { id: receipt.purchaseOrderId },

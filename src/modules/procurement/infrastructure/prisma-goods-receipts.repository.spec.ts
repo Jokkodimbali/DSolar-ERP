@@ -191,6 +191,39 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.create).not.toHaveBeenCalled();
   });
 
+  it('refuse les produits dupliqués à la création avant toute écriture', async () => {
+    const tx = {
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          status: 'CONFIRMED',
+          lines: [{ productId: 'product-id' }],
+        }),
+      },
+      goodsReceipt: { create: jest.fn() },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(
+      repository.create(
+        {
+          number: 'REC-DUP',
+          storeId: 'store-id',
+          purchaseOrderId: 'order-id',
+          lines: [
+            { productId: 'product-id', quantity: 1, unitCost: 10 },
+            { productId: 'product-id', quantity: 2, unitCost: 10 },
+          ],
+        },
+        'actor-id',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.goodsReceipt.create).not.toHaveBeenCalled();
+  });
+
   // prettier-ignore
   it.each([
     { previousQuantity: '0', expectedStatus: 'PARTIALLY_DELIVERED' },
