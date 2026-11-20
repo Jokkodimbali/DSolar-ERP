@@ -15,9 +15,7 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
         roles: { select: { role: { select: { code: true } } } },
       },
     });
-    return Boolean(
-      user && user.status === 'ACTIVE' && user.roles.some(({ role }) => role.code === 'ADMIN'),
-    );
+    return Boolean(user && user.status === 'ACTIVE' && user.roles.some(({ role }) => role.code === 'ADMIN'));
   }
 
   async snapshot(): Promise<SalesReportSnapshot> {
