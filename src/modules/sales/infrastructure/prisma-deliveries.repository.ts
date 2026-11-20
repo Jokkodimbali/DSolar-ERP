@@ -16,7 +16,12 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         order: {
           lines: {
             some: {},
-            every: { store: { userAccess: { some: { userId: actorId } } } },
+            every: {
+              store: {
+                status: 'ACTIVE',
+                userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+              },
+            },
           },
         },
       },
@@ -33,7 +38,12 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         order: {
           lines: {
             some: {},
-            every: { store: { userAccess: { some: { userId: actorId } } } },
+            every: {
+              store: {
+                status: 'ACTIVE',
+                userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+              },
+            },
           },
         },
       },
@@ -55,7 +65,12 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         }
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: stores },
+            store: { status: 'ACTIVE' },
+          },
         });
         if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
         const ordered = new Map<string, Prisma.Decimal>();
@@ -133,7 +148,12 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         if (note.status !== 'DRAFT') throw new ConflictException('Bon déjà traité.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: stores },
+            store: { status: 'ACTIVE' },
+          },
         });
         if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
         const ordered = new Map<string, Prisma.Decimal>();
@@ -216,7 +236,12 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         if (note.status !== 'DRAFT') throw new ConflictException('Seul un brouillon peut être annulé.');
         const stores = [...new Set(note.order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: stores },
+            store: { status: 'ACTIVE' },
+          },
         });
         if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
         const updated = await tx.deliveryNote.update({
