@@ -71,4 +71,24 @@ describe('PurchaseOrdersService', () => {
     await expect(service.cancel('1')).rejects.toBeInstanceOf(ConflictException);
     expect(repository.cancel).not.toHaveBeenCalled();
   });
+  it('refuse une commande sans numéro exploitable', async () => {
+    await expect(service.create({ ...input, number: '   ' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+  it('refuse la confirmation d’une commande annulée', async () => {
+    repository.find.mockResolvedValue({ id: '1', status: 'CANCELLED' } as never);
+    await expect(service.confirm('1')).rejects.toBeInstanceOf(ConflictException);
+    expect(repository.confirm).not.toHaveBeenCalled();
+  });
+  it('confirme une commande brouillon', async () => {
+    repository.find.mockResolvedValue({ id: '1', status: 'DRAFT' } as never);
+    await service.confirm('1');
+    expect(repository.confirm).toHaveBeenCalledWith('1');
+  });
+  it('refuse la confirmation d’une commande absente', async () => {
+    repository.find.mockResolvedValue(null);
+    await expect(service.confirm('missing')).rejects.toMatchObject({ status: 404 });
+    expect(repository.confirm).not.toHaveBeenCalled();
+  });
+
 });

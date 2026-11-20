@@ -63,4 +63,25 @@ describe('GoodsReceiptsService', () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('refuse un numéro de réception vide après normalisation', async () => {
+    await expect(service.create({ ...base, number: '   ' }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+  it('refuse un coût négatif sans appeler le dépôt', async () => {
+    await expect(
+      service.create({ ...base, lines: [{ ...base.lines[0], unitCost: -1 }] }, 'actor'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+  it('refuse une quantité nulle sans appeler le dépôt', async () => {
+    await expect(
+      service.create({ ...base, lines: [{ ...base.lines[0], quantity: 0 }] }, 'actor'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+  it('transmet l’identité de l’acteur lors de la confirmation', async () => {
+    await service.confirm('receipt-id', 'actor');
+    expect(repository.confirm).toHaveBeenCalledWith('receipt-id', 'actor');
+  });
+
 });
