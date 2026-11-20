@@ -174,10 +174,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
   it.each([
     { previousQuantity: '0', expectedStatus: 'PARTIALLY_DELIVERED' },
     { previousQuantity: '3', expectedStatus: 'DELIVERED' },
-  ])('met à jour le statut de commande après réception ($expectedStatus)', async ({
-    previousQuantity,
-    expectedStatus,
-  }) => {
+  ])('met à jour le statut de commande après réception ($expectedStatus)', async ({ previousQuantity, expectedStatus }) => {
     const receipt = {
       id: 'receipt-id',
       storeId: 'store-id',
@@ -255,9 +252,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     const repository = new PrismaGoodsReceiptsRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService);
-    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
     expect(tx.storeStock.upsert).not.toHaveBeenCalled();
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
     expect(tx.purchaseOrder.update).not.toHaveBeenCalled();
