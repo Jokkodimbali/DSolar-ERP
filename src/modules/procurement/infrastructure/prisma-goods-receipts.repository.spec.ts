@@ -41,6 +41,51 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     );
   });
 
+  it('annule atomiquement une réception brouillon autorisée', async () => {
+    const tx = {
+      goodsReceipt: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({ id: 'receipt-id', storeId: 'store-id' })
+          .mockResolvedValueOnce({ id: 'receipt-id', status: 'CANCELLED' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+    };
+    const prisma = {
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService;
+    const repository = new PrismaGoodsReceiptsRepository(prisma);
+    await expect(repository.cancel('receipt-id', 'actor-id')).resolves.toEqual({
+      id: 'receipt-id',
+      status: 'CANCELLED',
+    });
+    expect(tx.goodsReceipt.updateMany).toHaveBeenCalledWith({
+      where: { id: 'receipt-id', status: 'DRAFT' },
+      data: { status: 'CANCELLED' },
+    });
+  });
+
+  it('refuse l’annulation d’une réception déjà traitée', async () => {
+    const tx = {
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'receipt-id', storeId: 'store-id' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
