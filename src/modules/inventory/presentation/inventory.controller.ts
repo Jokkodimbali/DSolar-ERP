@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -15,6 +15,15 @@ export class InventoryController {
   @RequirePermissions('inventory.read')
   listStoreStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.inventory.listStoreStock(storeId, actorId);
+  }
+  @Get('stores/:storeId/alerts')
+  @RequirePermissions('inventory.read')
+  alerts(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @CurrentUserId() actorId: string,
+    @Query('threshold') threshold?: string,
+  ) {
+    return this.inventory.stockAlerts(storeId, actorId, threshold);
   }
   @Get('stores/:storeId/products/:productId')
   @RequirePermissions('inventory.read')
