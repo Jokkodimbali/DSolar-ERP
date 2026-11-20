@@ -38,7 +38,9 @@ export class PrismaProformasRepository implements ProformasRepository {
     if (!ids.length) return [];
     await this.expireOverdue();
     return this.prisma.proforma.findMany({
-      where: { lines: { some: {}, every: { storeId: { in: ids } } } },
+      where: {
+        lines: { some: {}, every: { storeId: { in: ids } } },
+      },
       include: { lines: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -48,7 +50,10 @@ export class PrismaProformasRepository implements ProformasRepository {
     if (!ids.length) return null;
     await this.expireOverdue(id);
     return this.prisma.proforma.findFirst({
-      where: { id, lines: { some: {}, every: { storeId: { in: ids } } } },
+      where: {
+        id,
+        lines: { some: {}, every: { storeId: { in: ids } } },
+      },
       include: { lines: true },
     });
   }
@@ -194,12 +199,7 @@ export class PrismaProformasRepository implements ProformasRepository {
       throw error;
     }
   }
-  async transition(
-    id: string,
-    from: string,
-    to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED',
-    actorId: string,
-  ) {
+  async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', actorId: string) {
     const visible = await this.find(id, actorId);
     if (!visible) throw new NotFoundException('Devis introuvable.');
     const result = await this.prisma.proforma.updateMany({

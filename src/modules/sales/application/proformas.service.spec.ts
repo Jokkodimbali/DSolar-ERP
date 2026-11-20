@@ -39,9 +39,7 @@ describe('ProformasService', () => {
     expect(repository.update).toHaveBeenCalledWith('id', withoutNumber, actorId);
   });
   it('refuse un devis sans lignes', async () => {
-    await expect(service.create({ ...base, lines: [] }, actorId)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ ...base, lines: [] }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse une remise supérieure au montant brut', async () => {
     await expect(
@@ -54,16 +52,25 @@ describe('ProformasService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse plus de cent lignes', async () => {
-    const lines = Array.from({ length: 101 }, (_, i) => ({ ...base.lines[0], productId: String(i) }));
-    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
+    const lines = Array.from({ length: 101 }, (_, i) => ({
+      ...base.lines[0],
+      productId: String(i),
+    }));
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
   it('refuse les montants dépassant la précision autorisée', async () => {
     const lines = [{ ...base.lines[0], unitPrice: 10.001 }];
-    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
   it('refuse les quantités dépassant trois décimales', async () => {
     const lines = [{ ...base.lines[0], quantity: 1.0001 }];
-    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
   it('retourne 404 pour un devis absent', async () => {
     repository.find.mockResolvedValue(null);
