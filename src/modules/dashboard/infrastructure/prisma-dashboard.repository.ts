@@ -41,6 +41,21 @@ export class PrismaDashboardRepository implements DashboardRepository {
     }));
   }
 
+  async monthlyInvoices(year: number) {
+    const start = new Date(Date.UTC(year, 0, 1));
+    const end = new Date(Date.UTC(year + 1, 0, 1));
+    const invoices = await this.prisma.invoice.findMany({
+      where: { status: 'ISSUED', issuedAt: { gte: start, lt: end } },
+      select: { issuedAt: true, totalTtc: true },
+    });
+    return invoices
+      .filter((invoice): invoice is typeof invoice & { issuedAt: Date } => invoice.issuedAt !== null)
+      .map((invoice) => ({
+        issuedAt: invoice.issuedAt,
+        total: invoice.totalTtc.toFixed(2),
+      }));
+  }
+
   async snapshot(): Promise<DashboardSnapshot> {
     return this.prisma.$transaction(
       async (tx) => {

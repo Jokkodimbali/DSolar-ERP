@@ -25,6 +25,29 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async monthlyRevenue(actorId: string, year: string) {
+    if (!/^(20[0-9]{2}|2100)$/.test(year)) {
+      throw new BadRequestException('Année invalide.');
+    }
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Statistiques financières réservées au super administrateur.');
+    }
+    const invoices = await this.repository.monthlyInvoices(Number(year));
+    const totals = Array.from({ length: 12 }, () => 0n);
+    for (const invoice of invoices) {
+      totals[invoice.issuedAt.getUTCMonth()] += cents(invoice.total);
+    }
+    return {
+      year: Number(year),
+      currency: 'XOF',
+      basis: 'ISSUED_INVOICES',
+      months: totals.map((total, index) => ({
+        month: index + 1,
+        revenue: money(total),
+      })),
+    };
+  }
+
   async overview(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Tableau de bord global réservé au super administrateur.');
