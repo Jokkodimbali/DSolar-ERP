@@ -190,6 +190,8 @@ export class PrismaTransfersRepository implements TransferRepository {
         const good = D(line.received),
           damaged = D(line.damaged),
           missing = D(line.missing);
+        if ([good, damaged, missing].some((quantity) => !quantity.isFinite() || quantity.isNegative()))
+          throw new ConflictException('Les quantités reçues, endommagées ou manquantes doivent être positives ou nulles.');
         const total = good.plus(damaged).plus(missing);
         const remaining = current.quantity
           .minus(current.receivedQuantity)
