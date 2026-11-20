@@ -35,6 +35,24 @@ describe('PurchaseOrdersService', () => {
       service.create({ ...input, lines: [{ ...input.lines[0], quantity: -1 }] }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('refuse les quantités avec plus de trois décimales', async () => {
+    await expect(
+      service.create({ ...input, lines: [{ ...input.lines[0], quantity: 1.0001 }] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse les coûts avec plus de deux décimales', async () => {
+    await expect(
+      service.create({ ...input, lines: [{ ...input.lines[0], unitCost: 10.001 }] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('refuse plus de cent lignes', async () => {
+    const lines = Array.from({ length: 101 }, (_, index) => ({
+      productId: String(index),
+      quantity: 1,
+      unitCost: 10,
+    }));
+    await expect(service.create({ ...input, lines })).rejects.toBeInstanceOf(BadRequestException);
+  });
   it('normalise le numéro', async () => {
     await service.create({ ...input, number: ' cmd-001 ' });
     expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'CMD-001' });
