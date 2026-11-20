@@ -110,8 +110,6 @@ export class PrismaProformasRepository implements ProformasRepository {
   async issue(id: string, actorId: string) {
     const visible = await this.find(id, actorId);
     if (!visible) throw new NotFoundException('Devis introuvable.');
-    const visible = await this.find(id, actorId);
-    if (!visible) throw new NotFoundException('Devis introuvable.');
     const result = await this.prisma.proforma.updateMany({
       where: {
         id,
@@ -185,8 +183,6 @@ export class PrismaProformasRepository implements ProformasRepository {
     }
   }
   async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', actorId: string) {
-    const visible = await this.find(id, actorId);
-    if (!visible) throw new NotFoundException('Devis introuvable.');
     const visible = await this.find(id, actorId);
     if (!visible) throw new NotFoundException('Devis introuvable.');
     const result = await this.prisma.proforma.updateMany({
