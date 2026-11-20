@@ -31,10 +31,6 @@ jobs:
           DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
       - run: npm run typecheck
       - run: npm run lint
-      - name: Diagnostic formatage achats
-        run: |
-          npx prettier --write src/modules/procurement/application/purchase-orders.service.spec.ts src/modules/procurement/presentation/purchase-orders.controller.ts
-          git diff -- src/modules/procurement/application/purchase-orders.service.spec.ts src/modules/procurement/presentation/purchase-orders.controller.ts
       - run: npm run format:check
       - run: npm test -- --passWithNoTests
 
