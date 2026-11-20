@@ -19,7 +19,10 @@ describe('PurchaseOrdersRepository status transitions', () => {
 
   it('annule atomiquement une commande brouillon', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
-    prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CANCELLED });
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      id: 'order-1',
+      status: OrderStatus.CANCELLED,
+    });
 
     await expect(repository.cancel('order-1')).resolves.toMatchObject({
       status: OrderStatus.CANCELLED,
@@ -32,7 +35,10 @@ describe('PurchaseOrdersRepository status transitions', () => {
 
   it('refuse une seconde annulation sans modifier la commande', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 0 });
-    prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CANCELLED });
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      id: 'order-1',
+      status: OrderStatus.CANCELLED,
+    });
 
     await expect(repository.cancel('order-1')).rejects.toBeInstanceOf(ConflictException);
   });
@@ -46,7 +52,10 @@ describe('PurchaseOrdersRepository status transitions', () => {
 
   it('confirme uniquement une commande encore brouillon', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
-    prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CONFIRMED });
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      id: 'order-1',
+      status: OrderStatus.CONFIRMED,
+    });
 
     await repository.confirm('order-1');
     expect(prisma.purchaseOrder.updateMany).toHaveBeenCalledWith({
@@ -57,7 +66,10 @@ describe('PurchaseOrdersRepository status transitions', () => {
 
   it('refuse une confirmation concurrente après changement de statut', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 0 });
-    prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CANCELLED });
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      id: 'order-1',
+      status: OrderStatus.CANCELLED,
+    });
 
     await expect(repository.confirm('order-1')).rejects.toBeInstanceOf(ConflictException);
   });
