@@ -21,11 +21,13 @@ export class JwtTokenService implements TokenService {
     return this.jwt.signAsync(claims, { secret: this.secret('JWT_ACCESS_SECRET'), expiresIn: '15m' });
   }
   signRefresh(claims: RefreshClaims): Promise<string> {
-    return this.jwt.signAsync(claims, {
-      secret: this.secret('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
-      jwtid: randomUUID(),
-    });
+    return this.jwt.signAsync(
+      { ...claims, jti: claims.jti ?? randomUUID() },
+      {
+        secret: this.secret('JWT_REFRESH_SECRET'),
+        expiresIn: '7d',
+      },
+    );
   }
   async verifyAccess(token: string): Promise<AccessClaims> {
     const claims = await this.jwt.verifyAsync<AccessClaims>(token, {

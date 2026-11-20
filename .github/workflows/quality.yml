@@ -5,19 +5,20 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - name: Installer les dépendances
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Générer le client Prisma
         run: npm run prisma:generate
         env:

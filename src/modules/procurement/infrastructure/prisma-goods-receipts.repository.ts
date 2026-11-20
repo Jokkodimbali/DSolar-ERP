@@ -44,7 +44,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           });
           if (
             !order ||
-            !(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PARTIALLY_DELIVERED)
+            (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PARTIALLY_DELIVERED)
           )
             throw new ConflictException('Commande fournisseur non confirmée.');
           const products = new Set(order.lines.map((line) => line.productId));
@@ -75,6 +75,23 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
     }
   }
   async confirm(id: string, actorId: string) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await this.confirmOnce(id, actorId);
+      } catch (error: unknown) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+          if (attempt < 2) continue;
+          throw new ConflictException('Conflit concurrent lors de la confirmation. Réessayez.');
+        }
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+          throw new ConflictException('Réception ou mouvement déjà enregistré.');
+        throw error;
+      }
+    }
+    throw new ConflictException('Conflit concurrent lors de la confirmation. Réessayez.');
+  }
+
+  private confirmOnce(id: string, actorId: string) {
     return this.prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))`;
@@ -90,7 +107,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
         });
         if (
           !order ||
-          !(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PARTIALLY_DELIVERED)
+          (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PARTIALLY_DELIVERED)
         )
           throw new ConflictException('Commande fournisseur non confirmée.');
         const prior = await tx.goodsReceipt.findMany({
