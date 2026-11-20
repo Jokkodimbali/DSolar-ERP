@@ -58,6 +58,10 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         }
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         await this.assertStoreAccess(tx, stores, actorId);
+        const amount = new Prisma.Decimal(input.amount);
+        if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
+          throw new ConflictException('Montant invalide.');
+        }
         const previous = await tx.payment.findUnique({
           where: { idempotencyKey: input.idempotencyKey },
         });
@@ -70,15 +74,11 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             previous.receivedById !== actorId ||
             previous.method !== input.method ||
             previous.externalReference !== (input.externalReference ?? null) ||
-            !previous.amount.equals(new Prisma.Decimal(input.amount))
+            !previous.amount.equals(amount)
           ) {
             throw new ConflictException('Clé idempotente déjà utilisée pour une autre opération.');
           }
           return previous;
-        }
-        const amount = new Prisma.Decimal(input.amount);
-        if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
-          throw new ConflictException('Montant invalide.');
         }
         // Reversed installments retain their unique installment number: do not reuse slots silently.
         const activePayments = order.payments.filter((payment) => !payment.reversals?.length);

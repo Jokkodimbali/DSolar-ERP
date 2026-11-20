@@ -16,7 +16,12 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           order: {
             lines: {
               some: {},
-              every: { store: { userAccess: { some: { userId: actorId } } } },
+              every: {
+                store: {
+                  status: 'ACTIVE',
+                  userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+                },
+              },
             },
           },
         },
@@ -52,7 +57,12 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
         if (!invoice.order) throw new ConflictException('Facture sans commande associée.');
         const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: stores },
+            store: { status: 'ACTIVE' },
+          },
         });
         if (!stores.length || allowed !== stores.length) {
           throw new ForbiddenException('Accès magasin refusé.');

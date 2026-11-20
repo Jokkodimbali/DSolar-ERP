@@ -48,7 +48,6 @@ describe('PrismaInvoicesRepository', () => {
     tx.auditLog.create.mockResolvedValue({});
   });
 
-
   // prettier-ignore
   it('filtre les factures sur les magasins et utilisateurs actifs', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
