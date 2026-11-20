@@ -16,6 +16,11 @@ export class InventoryController {
   listStoreStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.inventory.listStoreStock(storeId, actorId);
   }
+  @Get('stores/:storeId/summary')
+  @RequirePermissions('inventory.read')
+  summary(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
+    return this.inventory.stockSummary(storeId, actorId);
+  }
   @Get('stores/:storeId/alerts')
   @RequirePermissions('inventory.read')
   alerts(
