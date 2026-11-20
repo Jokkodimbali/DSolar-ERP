@@ -15,14 +15,17 @@ export class PurchaseOrdersService {
   async create(input: PurchaseOrderInput) {
     const number = input.number.trim().toUpperCase();
     if (!number) throw new BadRequestException('Numéro de commande obligatoire.');
-    if (input.lines.length === 0) throw new BadRequestException('Au moins une ligne est obligatoire.');
+    if (input.lines.length === 0 || input.lines.length > 100)
+      throw new BadRequestException('La commande doit contenir entre 1 et 100 lignes.');
     const products = new Set<string>();
     for (const line of input.lines) {
       if (
         !Number.isFinite(line.quantity) ||
         line.quantity <= 0 ||
         !Number.isFinite(line.unitCost) ||
-        line.unitCost < 0
+        line.unitCost < 0 ||
+        !Number.isInteger(line.quantity * 1000) ||
+        !Number.isInteger(line.unitCost * 100)
       )
         throw new BadRequestException('Quantité ou coût unitaire invalide.');
       if (products.has(line.productId))
