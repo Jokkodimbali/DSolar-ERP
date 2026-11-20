@@ -8,10 +8,11 @@ import { InvoicesRepository } from '../application/invoices.port';
 export class PrismaInvoicesRepository implements InvoicesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // prettier-ignore
   private readonly visibleOrder = (actorId: string) => ({
     lines: {
       some: {},
-      every: { store: { userAccess: { some: { userId: actorId } } } },
+      every: { store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
     },
   });
 
@@ -45,8 +46,9 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         if (!order.lines.length) throw new ConflictException('Commande sans ligne.');
         if (order.invoices.length) throw new ConflictException('Commande déjà facturée.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
+        // prettier-ignore
         const authorized = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
         });
         if (authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
@@ -113,8 +115,9 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         if (invoice.status !== 'DRAFT') throw new ConflictException('Facture déjà traitée.');
         if (!invoice.order) throw new ConflictException('Facture sans commande.');
         const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
+        // prettier-ignore
         const authorized = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
         });
         if (!stores.length || authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins.');
@@ -150,8 +153,9 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         }
         if (!invoice.order) throw new ConflictException('Facture sans commande.');
         const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
+        // prettier-ignore
         const authorized = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: stores } },
+          where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
         });
         if (!stores.length || authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins.');
