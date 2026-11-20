@@ -47,6 +47,19 @@ export class PurchaseOrdersRepository {
       throw error;
     }
   }
+  async cancel(id: string) {
+    const updated = await this.prisma.purchaseOrder.updateMany({
+      where: { id, status: OrderStatus.DRAFT },
+      data: { status: OrderStatus.CANCELLED },
+    });
+    if (updated.count === 0) {
+      const existing = await this.prisma.purchaseOrder.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundException('Commande fournisseur introuvable.');
+      throw new ConflictException('Seule une commande brouillon peut être annulée.');
+    }
+    return this.find(id);
+  }
+
   async confirm(id: string) {
     const updated = await this.prisma.purchaseOrder.updateMany({
       where: { id, status: OrderStatus.DRAFT },
