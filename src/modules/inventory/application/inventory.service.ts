@@ -8,7 +8,7 @@ export class InventoryService {
     return this.repository.listStoreStock(storeId, actorId);
   }
   async stockAlerts(storeId: string, actorId: string, threshold = '5') {
-    if (!/^(?:0|[1-9]\d{0,12})(?:\.\\d{1,3})?$/.test(threshold)) {
+    if (!/^(?:0|[1-9]\d{0,12})(?:\.\d{1,3})?$/.test(threshold)) {
       throw new BadRequestException('Seuil de stock invalide : trois décimales maximum.');
     }
     const toMilliunits = (value: string): bigint => {
