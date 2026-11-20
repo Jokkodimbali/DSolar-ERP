@@ -14,6 +14,19 @@ export interface SalesReport {
   netInvoiced: string;
 }
 
+export interface SalesReportSnapshot {
+  orders: Array<{
+    paymentStatus: string;
+    count: number;
+    total: string;
+    amountPaid: string;
+  }>;
+  issuedInvoices: number;
+  grossInvoiced: string;
+  creditNotesTotal: string;
+}
+
 export interface SalesReportRepository {
-  summary(actorId: string): Promise<SalesReport>;
+  isActiveAdmin(actorId: string): Promise<boolean>;
+  snapshot(): Promise<SalesReportSnapshot>;
 }
