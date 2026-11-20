@@ -13,7 +13,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
       where: {
         lines: {
           some: {},
-          every: { store: { userAccess: { some: { userId: actorId } } } },
+          every: {
+            store: {
+              status: 'ACTIVE',
+              userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+            },
+          },
         },
       },
       include: { lines: true },
@@ -27,7 +32,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
         id,
         lines: {
           some: {},
-          every: { store: { userAccess: { some: { userId: actorId } } } },
+          every: {
+            store: {
+              status: 'ACTIVE',
+              userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+            },
+          },
         },
       },
       include: { lines: true },
@@ -48,7 +58,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
         if (!order.lines.length) throw new ConflictException('La commande ne contient aucune ligne.');
         const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
         const authorized = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: storeIds } },
+          where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: storeIds },
+            store: { status: 'ACTIVE' },
+          },
         });
         if (authorized !== storeIds.length)
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
@@ -120,7 +135,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
         }
         const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
         const authorized = await tx.userStoreAccess.count({
-          where: { userId: actorId, storeId: { in: storeIds } },
+          where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: storeIds },
+            store: { status: 'ACTIVE' },
+          },
         });
         if (authorized !== storeIds.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
@@ -183,7 +203,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
           if (existing) throw new ConflictException('Ce devis a déjà été converti.');
           const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
           const authorized = await tx.userStoreAccess.count({
-            where: { userId: actorId, storeId: { in: storeIds } },
+            where: {
+            userId: actorId,
+            user: { status: 'ACTIVE' },
+            storeId: { in: storeIds },
+            store: { status: 'ACTIVE' },
+          },
           });
           if (authorized !== storeIds.length)
             throw new ForbiddenException('Accès insuffisant aux magasins du devis.');
