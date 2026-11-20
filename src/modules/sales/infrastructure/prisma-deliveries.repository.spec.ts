@@ -38,6 +38,7 @@ describe('PrismaDeliveriesRepository', () => {
     auditLog: { create: jest.fn() },
   };
   const prisma = {
+    deliveryNote: { findMany: jest.fn(), findFirst: jest.fn() },
     $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
   };
   const repository = new PrismaDeliveriesRepository(prisma as unknown as PrismaService);
@@ -50,6 +51,53 @@ describe('PrismaDeliveriesRepository', () => {
     tx.auditLog.create.mockResolvedValue({});
     tx.deliveryNote.update.mockResolvedValue({ id: deliveryId, status: 'CONFIRMED' });
     tx.salesOrder.update.mockResolvedValue({});
+  });
+
+  it('filtre les bons consultables par utilisateur et magasin actifs', async () => {
+    prisma.deliveryNote.findMany.mockResolvedValue([]);
+    await repository.list(orderId, actorId);
+    expect(prisma.deliveryNote.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          orderId,
+          order: {
+            lines: {
+              some: {},
+              every: {
+                store: {
+                  status: 'ACTIVE',
+                  userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+                },
+              },
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('filtre la lecture d’un bon par utilisateur et magasin actifs', async () => {
+    prisma.deliveryNote.findFirst.mockResolvedValue(null);
+    await repository.find(orderId, deliveryId, actorId);
+    expect(prisma.deliveryNote.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: deliveryId,
+          orderId,
+          order: {
+            lines: {
+              some: {},
+              every: {
+                store: {
+                  status: 'ACTIVE',
+                  userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+                },
+              },
+            },
+          },
+        },
+      }),
+    );
   });
 
   it('refuse de créer une livraison supérieure au reliquat', async () => {
