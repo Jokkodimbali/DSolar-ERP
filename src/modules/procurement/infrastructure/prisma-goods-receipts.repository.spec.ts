@@ -171,6 +171,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.create).not.toHaveBeenCalled();
   });
 
+  // prettier-ignore
   it.each([
     { previousQuantity: '0', expectedStatus: 'PARTIALLY_DELIVERED' },
     { previousQuantity: '3', expectedStatus: 'DELIVERED' },
@@ -219,6 +220,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
   });
 
+  // prettier-ignore
   it('refuse une réception dépassant la quantité commandée sans mouvement de stock', async () => {
     const tx = {
       $executeRaw: jest.fn().mockResolvedValue(1),
