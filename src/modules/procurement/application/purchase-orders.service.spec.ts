@@ -71,6 +71,7 @@ describe('PurchaseOrdersService', () => {
     await expect(service.cancel('1')).rejects.toBeInstanceOf(ConflictException);
     expect(repository.cancel).not.toHaveBeenCalled();
   });
+  // prettier-ignore
   it('refuse une commande sans numéro exploitable', async () => {
     await expect(service.create({ ...input, number: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();

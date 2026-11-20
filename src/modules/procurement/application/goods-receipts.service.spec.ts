@@ -63,6 +63,7 @@ describe('GoodsReceiptsService', () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  // prettier-ignore
   it('refuse un numéro de réception vide après normalisation', async () => {
     await expect(service.create({ ...base, number: '   ' }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
