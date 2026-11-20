@@ -13,10 +13,10 @@ export interface ProformaInput {
 }
 export const PROFORMAS_REPOSITORY = Symbol('PROFORMAS_REPOSITORY');
 export interface ProformasRepository {
-  list(): Promise<unknown[]>;
-  find(id: string): Promise<{ status: string; expiresAt: Date | null } | null>;
-  create(input: ProformaInput): Promise<unknown>;
-  issue(id: string): Promise<unknown>;
-  update(id: string, input: ProformaInput): Promise<unknown>;
-  transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED'): Promise<unknown>;
+  list(actorId: string): Promise<unknown[]>;
+  find(id: string, actorId: string): Promise<{ status: string; expiresAt: Date | null } | null>;
+  create(input: ProformaInput, actorId: string): Promise<unknown>;
+  issue(id: string, actorId: string): Promise<unknown>;
+  update(id: string, input: ProformaInput, actorId: string): Promise<unknown>;
+  transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', actorId: string): Promise<unknown>;
 }

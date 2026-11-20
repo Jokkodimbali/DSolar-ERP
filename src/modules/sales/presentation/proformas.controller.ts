@@ -16,6 +16,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
+import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { ProformasService } from '../application/proformas.service';
 
 class ProformaLineDto {
@@ -42,43 +43,43 @@ class CreateProformaDto {
 @Controller('proformas')
 export class ProformasController {
   constructor(private readonly proformas: ProformasService) {}
-  @Get() @RequirePermissions('sales.read') list() {
-    return this.proformas.list();
+  @Get() @RequirePermissions('sales.read') list(@CurrentUserId() actorId: string) {
+    return this.proformas.list(actorId);
   }
   @Get(':id')
   @RequirePermissions('sales.read')
-  get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.proformas.get(id);
+  get(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.proformas.get(id, actorId);
   }
   @Post()
   @RequirePermissions('sales.manage')
-  create(@Body() dto: CreateProformaDto) {
-    return this.proformas.create(dto);
+  create(@Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
+    return this.proformas.create(dto, actorId);
   }
   @Post(':id/issue')
   @RequirePermissions('sales.manage')
-  issue(@Param('id', ParseUUIDPipe) id: string) {
-    return this.proformas.issue(id);
+  issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.proformas.issue(id, actorId);
   }
 
   @Put(':id')
   @RequirePermissions('sales.manage')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateProformaDto) {
-    return this.proformas.update(id, dto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
+    return this.proformas.update(id, dto, actorId);
   }
   @Post(':id/accept')
   @RequirePermissions('sales.manage')
-  accept(@Param('id', ParseUUIDPipe) id: string) {
-    return this.proformas.accept(id);
+  accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.proformas.accept(id, actorId);
   }
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string) {
-    return this.proformas.cancel(id);
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.proformas.cancel(id, actorId);
   }
   @Post(':id/expire')
   @RequirePermissions('sales.manage')
-  expire(@Param('id', ParseUUIDPipe) id: string) {
-    return this.proformas.expire(id);
+  expire(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.proformas.expire(id, actorId);
   }
 }

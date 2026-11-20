@@ -12,15 +12,15 @@ import { PROFORMAS_REPOSITORY, ProformaInput, ProformasRepository } from './prof
 @Injectable()
 export class ProformasService {
   constructor(@Inject(PROFORMAS_REPOSITORY) private readonly proformas: ProformasRepository) {}
-  list() {
-    return this.proformas.list();
+  list(actorId: string) {
+    return this.proformas.list(actorId);
   }
-  async get(id: string) {
-    const result = await this.proformas.find(id);
+  async get(id: string, actorId: string) {
+    const result = await this.proformas.find(id, actorId);
     if (!result) throw new NotFoundException('Devis proforma introuvable.');
     return result;
   }
-  async create(input: ProformaInput) {
+  async create(input: ProformaInput, actorId: string) {
     const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
     if (!input.lines.length || input.lines.length > 100)
       throw new BadRequestException('Le devis doit contenir entre 1 et 100 lignes.');
@@ -47,17 +47,17 @@ export class ProformasService {
         throw new BadRequestException('La remise dépasse le montant de la ligne.');
     }
     this.validateExpiry(input.expiresAt);
-    return this.proformas.create({ ...input, number });
+    return this.proformas.create({ ...input, number }, actorId);
   }
-  async issue(id: string) {
-    const proforma = await this.get(id);
+  async issue(id: string, actorId: string) {
+    const proforma = await this.get(id, actorId);
     if (proforma.status !== 'DRAFT') throw new ConflictException('Seul un devis brouillon peut être émis.');
     this.ensureNotExpired(proforma.expiresAt);
-    return this.proformas.issue(id);
+    return this.proformas.issue(id, actorId);
   }
 
-  async update(id: string, input: ProformaInput) {
-    const current = await this.get(id);
+  async update(id: string, input: ProformaInput, actorId: string) {
+    const current = await this.get(id, actorId);
     if (current.status !== 'DRAFT') throw new ConflictException('Seul un brouillon est modifiable.');
     const number = input.number?.trim().toUpperCase();
     if (!input.lines.length || input.lines.length > 100)
@@ -83,24 +83,24 @@ export class ProformasService {
       seen.add(key);
     }
     this.validateExpiry(input.expiresAt);
-    return this.proformas.update(id, { ...input, ...(number ? { number } : {}) });
+    return this.proformas.update(id, { ...input, ...(number ? { number } : {}) }, actorId);
   }
-  async accept(id: string) {
-    const current = await this.get(id);
+  async accept(id: string, actorId: string) {
+    const current = await this.get(id, actorId);
     if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
     this.ensureNotExpired(current.expiresAt);
-    return this.proformas.transition(id, 'ISSUED', 'ACCEPTED');
+    return this.proformas.transition(id, 'ISSUED', 'ACCEPTED', actorId);
   }
-  async cancel(id: string) {
-    const current = await this.get(id);
+  async cancel(id: string, actorId: string) {
+    const current = await this.get(id, actorId);
     if (current.status !== 'DRAFT' && current.status !== 'ISSUED')
       throw new ConflictException('Devis non annulable.');
-    return this.proformas.transition(id, current.status, 'CANCELLED');
+    return this.proformas.transition(id, current.status, 'CANCELLED', actorId);
   }
-  async expire(id: string) {
-    const current = await this.get(id);
+  async expire(id: string, actorId: string) {
+    const current = await this.get(id, actorId);
     if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
-    return this.proformas.transition(id, 'ISSUED', 'EXPIRED');
+    return this.proformas.transition(id, 'ISSUED', 'EXPIRED', actorId);
   }
 
   private validateExpiry(expiresAt?: string) {

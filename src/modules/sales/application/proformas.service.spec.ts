@@ -12,6 +12,7 @@ describe('ProformasService', () => {
     transition: jest.fn(),
   } as jest.Mocked<ProformasRepository>;
   const service = new ProformasService(repository);
+  const actorId = 'active-user';
   const base = {
     number: ' PF-001 ',
     customerId: 'customer-id',
@@ -28,17 +29,17 @@ describe('ProformasService', () => {
   };
   beforeEach(() => jest.clearAllMocks());
   it('normalise le numéro', async () => {
-    await service.create(base);
-    expect(repository.create).toHaveBeenCalledWith({ ...base, number: 'PF-001' });
+    await service.create(base, actorId);
+    expect(repository.create).toHaveBeenCalledWith({ ...base, number: 'PF-001' }, actorId);
   });
   it('conserve le numéro existant lors d’une modification sans numéro', async () => {
     repository.find.mockResolvedValue({ status: 'DRAFT', expiresAt: null });
     const withoutNumber = { customerId: base.customerId, lines: base.lines };
-    await service.update('id', withoutNumber);
-    expect(repository.update).toHaveBeenCalledWith('id', withoutNumber);
+    await service.update('id', withoutNumber, actorId);
+    expect(repository.update).toHaveBeenCalledWith('id', withoutNumber, actorId);
   });
   it('refuse un devis sans lignes', async () => {
-    await expect(service.create({ ...base, lines: [] })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines: [] }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse une remise supérieure au montant brut', async () => {
     await expect(
@@ -52,7 +53,7 @@ describe('ProformasService', () => {
   });
   it('refuse plus de cent lignes', async () => {
     const lines = Array.from({ length: 101 }, (_, i) => ({ ...base.lines[0], productId: String(i) }));
-    await expect(service.create({ ...base, lines })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse les montants dépassant la précision autorisée', async () => {
     const lines = [{ ...base.lines[0], unitPrice: 10.001 }];
@@ -64,7 +65,7 @@ describe('ProformasService', () => {
   });
   it('retourne 404 pour un devis absent', async () => {
     repository.find.mockResolvedValue(null);
-    await expect(service.get('absent')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.get('absent', actorId)).rejects.toBeInstanceOf(NotFoundException);
   });
   it('refuse une date d’expiration passée', async () => {
     await expect(service.create({ ...base, expiresAt: '2020-01-01T00:00:00.000Z' })).rejects.toBeInstanceOf(
@@ -73,10 +74,10 @@ describe('ProformasService', () => {
   });
   it('refuse l’acceptation d’un devis expiré', async () => {
     repository.find.mockResolvedValue({ status: 'ISSUED', expiresAt: new Date('2020-01-01') });
-    await expect(service.accept('id')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.accept('id', actorId)).rejects.toBeInstanceOf(ConflictException);
   });
   it('refuse la réémission', async () => {
     repository.find.mockResolvedValue({ status: 'ISSUED', expiresAt: null });
-    await expect(service.issue('id')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.issue('id', actorId)).rejects.toBeInstanceOf(ConflictException);
   });
 });
