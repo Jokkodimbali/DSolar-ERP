@@ -3,10 +3,10 @@ import { PurchaseOrdersService } from './purchase-orders.service';
 import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
 describe('PurchaseOrdersService', () => {
-  let repository: jest.Mocked<Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'list'>>;
+  let repository: jest.Mocked<Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list'>>;
   let service: PurchaseOrdersService;
   beforeEach(() => {
-    repository = { create: jest.fn(), find: jest.fn(), confirm: jest.fn(), list: jest.fn() };
+    repository = { create: jest.fn(), find: jest.fn(), confirm: jest.fn(), cancel: jest.fn(), list: jest.fn() };
     service = new PurchaseOrdersService(repository as unknown as PurchaseOrdersRepository);
   });
   const input = {
@@ -34,5 +34,15 @@ describe('PurchaseOrdersService', () => {
   it('refuse la confirmation d’une commande déjà confirmée', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'CONFIRMED' } as never);
     await expect(service.confirm('1')).rejects.toBeInstanceOf(ConflictException);
+  });
+  it('autorise l’annulation d’une commande brouillon', async () => {
+    repository.find.mockResolvedValue({ id: '1', status: 'DRAFT' } as never);
+    await service.cancel('1');
+    expect(repository.cancel).toHaveBeenCalledWith('1');
+  });
+  it('refuse l’annulation d’une commande confirmée', async () => {
+    repository.find.mockResolvedValue({ id: '1', status: 'CONFIRMED' } as never);
+    await expect(service.cancel('1')).rejects.toBeInstanceOf(ConflictException);
+    expect(repository.cancel).not.toHaveBeenCalled();
   });
 });
