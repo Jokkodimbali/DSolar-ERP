@@ -234,7 +234,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
       storeId: 'store-id',
       purchaseOrderId: 'order-id',
       status: 'DRAFT',
-      lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2) }],
+      lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2), unitCost: new Prisma.Decimal(10) }],
     };
     const previousReceipts =
       previousQuantity === '0'
@@ -283,7 +283,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
           storeId: 'store-id',
           purchaseOrderId: 'order-id',
           status: 'DRAFT',
-          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(3) }],
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(3), unitCost: new Prisma.Decimal(10) }],
         }),
         findMany: jest.fn().mockResolvedValue([
           { lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(4) }] },
@@ -384,7 +384,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
           storeId: 'store-id',
           status: 'DRAFT',
           purchaseOrderId: 'order-id',
-          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2) }],
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2), unitCost: new Prisma.Decimal(10) }],
         }),
         findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
