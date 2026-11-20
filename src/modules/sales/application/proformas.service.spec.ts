@@ -43,12 +43,12 @@ describe('ProformasService', () => {
   });
   it('refuse une remise supérieure au montant brut', async () => {
     await expect(
-      service.create({ ...base, lines: [{ ...base.lines[0], discount: 201 }] }),
+      service.create({ ...base, lines: [{ ...base.lines[0], discount: 201 }] }, actorId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse un taux supérieur à 100 %', async () => {
     await expect(
-      service.create({ ...base, lines: [{ ...base.lines[0], taxRate: 101 }] }),
+      service.create({ ...base, lines: [{ ...base.lines[0], taxRate: 101 }] }, actorId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse plus de cent lignes', async () => {
@@ -57,7 +57,7 @@ describe('ProformasService', () => {
   });
   it('refuse les montants dépassant la précision autorisée', async () => {
     const lines = [{ ...base.lines[0], unitPrice: 10.001 }];
-    await expect(service.create({ ...base, lines })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines }, actorId)).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse les quantités dépassant trois décimales', async () => {
     const lines = [{ ...base.lines[0], quantity: 1.0001 }];
@@ -68,7 +68,7 @@ describe('ProformasService', () => {
     await expect(service.get('absent', actorId)).rejects.toBeInstanceOf(NotFoundException);
   });
   it('refuse une date d’expiration passée', async () => {
-    await expect(service.create({ ...base, expiresAt: '2020-01-01T00:00:00.000Z' })).rejects.toBeInstanceOf(
+    await expect(service.create({ ...base, expiresAt: '2020-01-01T00:00:00.000Z' }, actorId)).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
