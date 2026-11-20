@@ -52,6 +52,9 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PARTIALLY_DELIVERED)
           )
             throw new ConflictException('Commande fournisseur non confirmée.');
+          if (!input.lines.length) throw new ConflictException('Une réception doit contenir au moins une ligne.');
+          if (input.lines.some((line) => !Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isFinite(line.unitCost) || line.unitCost < 0))
+            throw new ConflictException('Quantité ou coût unitaire invalide.');
           const products = new Set(order.lines.map((line) => line.productId));
           if (input.lines.some((line) => !products.has(line.productId)))
             throw new ConflictException('Produit absent de la commande.');
@@ -120,6 +123,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
         await this.authorize(tx, receipt.storeId, actorId);
         if (receipt.status !== ReceiptStatus.DRAFT) throw new ConflictException('Réception déjà traitée.');
         if (!receipt.purchaseOrderId) throw new ConflictException('Commande fournisseur obligatoire.');
+        if (!receipt.lines.length) throw new ConflictException('Réception sans lignes interdite.');
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${receipt.purchaseOrderId}))`;
         const order = await tx.purchaseOrder.findUnique({
           where: { id: receipt.purchaseOrderId },
