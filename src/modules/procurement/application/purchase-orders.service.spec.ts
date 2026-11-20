@@ -76,16 +76,19 @@ describe('PurchaseOrdersService', () => {
     await expect(service.create({ ...input, number: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
   });
+  // prettier-ignore
   it('refuse la confirmation d’une commande annulée', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'CANCELLED' } as never);
     await expect(service.confirm('1')).rejects.toBeInstanceOf(ConflictException);
     expect(repository.confirm).not.toHaveBeenCalled();
   });
+  // prettier-ignore
   it('confirme une commande brouillon', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'DRAFT' } as never);
     await service.confirm('1');
     expect(repository.confirm).toHaveBeenCalledWith('1');
   });
+  // prettier-ignore
   it('refuse la confirmation d’une commande absente', async () => {
     repository.find.mockResolvedValue(null);
     await expect(service.confirm('missing')).rejects.toMatchObject({ status: 404 });
