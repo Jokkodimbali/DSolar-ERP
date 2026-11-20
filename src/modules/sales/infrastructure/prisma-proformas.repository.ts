@@ -11,14 +11,23 @@ export class PrismaProformasRepository implements ProformasRepository {
     const ids = [...new Set(storeIds)];
     if (!ids.length) throw new ForbiddenException('Devis sans magasin autorisé.');
     const count = await tx.userStoreAccess.count({
-      where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: ids }, store: { status: 'ACTIVE' } },
+      where: {
+        userId: actorId,
+        user: { status: 'ACTIVE' },
+        storeId: { in: ids },
+        store: { status: 'ACTIVE' },
+      },
     });
     if (count !== ids.length) throw new ForbiddenException('Accès magasin refusé.');
   }
 
   private async accessibleStores(actorId: string): Promise<string[]> {
     const access = await this.prisma.userStoreAccess.findMany({
-      where: { userId: actorId, user: { status: 'ACTIVE' }, store: { status: 'ACTIVE' } },
+      where: {
+        userId: actorId,
+        user: { status: 'ACTIVE' },
+        store: { status: 'ACTIVE' },
+      },
       select: { storeId: true },
     });
     return access.map((item) => item.storeId);
@@ -128,7 +137,10 @@ export class PrismaProformasRepository implements ProformasRepository {
         await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
         const existing = await tx.proforma.findUnique({ where: { id } });
         if (!existing) throw new NotFoundException('Devis introuvable.');
-        const currentLines = await tx.proformaLine.findMany({ where: { proformaId: id }, select: { storeId: true } });
+        const currentLines = await tx.proformaLine.findMany({
+          where: { proformaId: id },
+          select: { storeId: true },
+        });
         await this.assertAccess(tx, currentLines.map((line) => line.storeId), actorId);
         await this.assertAccess(tx, input.lines.map((line) => line.storeId), actorId);
         if (existing.status !== DocumentStatus.DRAFT)
@@ -182,7 +194,12 @@ export class PrismaProformasRepository implements ProformasRepository {
       throw error;
     }
   }
-  async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', actorId: string) {
+  async transition(
+    id: string,
+    from: string,
+    to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED',
+    actorId: string,
+  ) {
     const visible = await this.find(id, actorId);
     if (!visible) throw new NotFoundException('Devis introuvable.');
     const result = await this.prisma.proforma.updateMany({

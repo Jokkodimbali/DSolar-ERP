@@ -43,7 +43,9 @@ class CreateProformaDto {
 @Controller('proformas')
 export class ProformasController {
   constructor(private readonly proformas: ProformasService) {}
-  @Get() @RequirePermissions('sales.read') list(@CurrentUserId() actorId: string) {
+  @Get()
+  @RequirePermissions('sales.read')
+  list(@CurrentUserId() actorId: string) {
     return this.proformas.list(actorId);
   }
   @Get(':id')
@@ -64,7 +66,11 @@ export class ProformasController {
 
   @Put(':id')
   @RequirePermissions('sales.manage')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateProformaDto,
+    @CurrentUserId() actorId: string,
+  ) {
     return this.proformas.update(id, dto, actorId);
   }
   @Post(':id/accept')

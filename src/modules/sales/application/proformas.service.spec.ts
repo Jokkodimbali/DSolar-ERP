@@ -39,7 +39,9 @@ describe('ProformasService', () => {
     expect(repository.update).toHaveBeenCalledWith('id', withoutNumber, actorId);
   });
   it('refuse un devis sans lignes', async () => {
-    await expect(service.create({ ...base, lines: [] }, actorId)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ ...base, lines: [] }, actorId)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
   it('refuse une remise supérieure au montant brut', async () => {
     await expect(
