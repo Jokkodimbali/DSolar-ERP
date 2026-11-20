@@ -41,6 +41,21 @@ export class PrismaDashboardRepository implements DashboardRepository {
     }));
   }
 
+  async receivables() {
+    const groups = await this.prisma.salesOrder.groupBy({
+      by: ['paymentStatus'],
+      where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+      _count: { _all: true },
+      _sum: { total: true, amountPaid: true },
+    });
+    return groups.map((group) => ({
+      status: group.paymentStatus,
+      count: group._count._all,
+      total: (group._sum.total ?? new Prisma.Decimal(0)).toFixed(2),
+      paid: (group._sum.amountPaid ?? new Prisma.Decimal(0)).toFixed(2),
+    }));
+  }
+
   async monthlyInvoices(year: number) {
     const start = new Date(Date.UTC(year, 0, 1));
     const end = new Date(Date.UTC(year + 1, 0, 1));

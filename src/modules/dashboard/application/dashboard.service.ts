@@ -25,6 +25,26 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async receivables(actorId: string) {
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Créances réservées au super administrateur.');
+    }
+    const groups = await this.repository.receivables();
+    const total = groups.reduce((sum, group) => sum + cents(group.total), 0n);
+    const paid = groups.reduce((sum, group) => sum + cents(group.paid), 0n);
+    return {
+      currency: 'XOF',
+      basis: 'ACTIVE_SALES_ORDERS',
+      orders: groups.reduce((sum, group) => sum + group.count, 0),
+      unpaidOrders: groups.find((group) => group.status === 'UNPAID')?.count ?? 0,
+      partiallyPaidOrders: groups.find((group) => group.status === 'PARTIALLY_PAID')?.count ?? 0,
+      paidOrders: groups.find((group) => group.status === 'PAID')?.count ?? 0,
+      total: money(total),
+      paid: money(paid),
+      outstanding: money(total - paid),
+    };
+  }
+
   async monthlyRevenue(actorId: string, year: string) {
     if (!/^(20[0-9]{2}|2100)$/.test(year)) {
       throw new BadRequestException('Année invalide.');
