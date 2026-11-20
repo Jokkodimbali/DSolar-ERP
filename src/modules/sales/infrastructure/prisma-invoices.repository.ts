@@ -9,7 +9,7 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   // prettier-ignore
-  private readonly visibleOrder = (actorId: string) => ({
+  private readonly visibleOrder = (actorId: string): Prisma.SalesOrderWhereInput => ({
     lines: {
       some: {},
       every: { store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
