@@ -146,6 +146,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         const note = order.deliveries.find((item) => item.id === deliveryId);
         if (!note) throw new NotFoundException('Bon de livraison introuvable.');
         if (note.status !== 'DRAFT') throw new ConflictException('Bon déjà traité.');
+        if (!note.lines.length) throw new ConflictException('Bon de livraison sans lignes.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
           where: {

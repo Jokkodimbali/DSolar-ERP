@@ -123,6 +123,15 @@ describe('PrismaDeliveriesRepository', () => {
     );
   });
 
+  it('refuse la confirmation d’un bon sans lignes et ne touche pas au stock', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue(
+      order('5', [{ id: deliveryId, status: 'DRAFT', lines: [] }]),
+    );
+    await expect(repository.confirm(orderId, deliveryId, actorId)).rejects.toThrow(ConflictException);
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+    expect(tx.deliveryNote.update).not.toHaveBeenCalled();
+  });
+
   it('refuse une double confirmation du même bon', async () => {
     tx.salesOrder.findUnique.mockResolvedValue(
       order('5', [{ id: deliveryId, status: 'CONFIRMED', lines: [line('2')] }]),
