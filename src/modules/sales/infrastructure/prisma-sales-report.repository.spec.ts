@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaSalesReportRepository } from './prisma-sales-report.repository';
+import { SalesReportService } from '../application/sales-report.service';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 
 describe('PrismaSalesReportRepository', () => {
@@ -12,6 +13,7 @@ describe('PrismaSalesReportRepository', () => {
     $transaction: jest.fn(),
   };
   const repository = new PrismaSalesReportRepository(prisma as unknown as PrismaService);
+  const service = new SalesReportService(repository);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -25,7 +27,7 @@ describe('PrismaSalesReportRepository', () => {
       status: 'ACTIVE',
       roles: [{ role: { code: 'MAGASINIER' } }],
     });
-    await expect(repository.summary('user-id')).rejects.toThrow(ForbiddenException);
+    await expect(service.summary('user-id')).rejects.toThrow(ForbiddenException);
     expect(prisma.salesOrder.groupBy).not.toHaveBeenCalled();
     expect(prisma.invoice.aggregate).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -36,7 +38,7 @@ describe('PrismaSalesReportRepository', () => {
       status: 'DISABLED',
       roles: [{ role: { code: 'ADMIN' } }],
     });
-    await expect(repository.summary('user-id')).rejects.toThrow(ForbiddenException);
+    await expect(service.summary('user-id')).rejects.toThrow(ForbiddenException);
   });
 
   it('calcule les soldes en décimal sans erreurs de flottants', async () => {
@@ -69,7 +71,7 @@ describe('PrismaSalesReportRepository', () => {
     prisma.creditNote.aggregate.mockResolvedValue({
       _sum: { amount: new Prisma.Decimal('20.10') },
     });
-    await expect(repository.summary('admin-id')).resolves.toEqual({
+    await expect(service.summary('admin-id')).resolves.toEqual({
       orders: 3,
       totalOrders: '350.50',
       collected: '150.30',
@@ -100,7 +102,7 @@ describe('PrismaSalesReportRepository', () => {
     prisma.creditNote.aggregate.mockResolvedValue({
       _sum: { amount: null },
     });
-    await expect(repository.summary('admin-id')).resolves.toMatchObject({
+    await expect(service.summary('admin-id')).resolves.toMatchObject({
       orders: 0,
       totalOrders: '0.00',
       collected: '0.00',
