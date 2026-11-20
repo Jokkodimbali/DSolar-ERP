@@ -185,15 +185,15 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
       status: 'DRAFT',
       lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2) }],
     };
+    const previousReceipts =
+      previousQuantity === '0'
+        ? []
+        : [{ lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(previousQuantity) }] }];
     const tx = {
       $executeRaw: jest.fn().mockResolvedValue(1),
       goodsReceipt: {
         findUnique: jest.fn().mockResolvedValue(receipt),
-        findMany: jest.fn().mockResolvedValue(
-          previousQuantity === '0'
-            ? []
-            : [{ lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(previousQuantity) }] }],
-        ),
+        findMany: jest.fn().mockResolvedValue(previousReceipts),
         update: jest.fn().mockResolvedValue({ ...receipt, status: 'CONFIRMED' }),
       },
       store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
