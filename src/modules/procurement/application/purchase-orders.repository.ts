@@ -183,7 +183,12 @@ export class PurchaseOrdersRepository {
       });
       if (result.count && actorId) {
         await tx.auditLog.create({
-          data: { actorId, action: 'PURCHASE_ORDER_CANCELLED', entityType: 'PurchaseOrder', entityId: id },
+          data: {
+            actorId,
+            action: 'PURCHASE_ORDER_CANCELLED',
+            entityType: 'PurchaseOrder',
+            entityId: id,
+          },
         });
       }
       return result;
@@ -196,16 +201,29 @@ export class PurchaseOrdersRepository {
     return this.find(id);
   }
 
-  async confirm(id: string) {
-    const order = await this.prisma.purchaseOrder.findUnique({
-      where: { id },
-      select: { supplier: { select: { active: true } } },
-    });
-    if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
-    if (!order.supplier.active) throw new ConflictException('Fournisseur désactivé.');
-    const updated = await this.prisma.purchaseOrder.updateMany({
-      where: { id, status: OrderStatus.DRAFT },
-      data: { status: OrderStatus.CONFIRMED },
+  async confirm(id: string, actorId?: string) {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.purchaseOrder.findUnique({
+        where: { id },
+        select: { supplier: { select: { active: true } } },
+      });
+      if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
+      if (!order.supplier.active) throw new ConflictException('Fournisseur désactivé.');
+      const result = await tx.purchaseOrder.updateMany({
+        where: { id, status: OrderStatus.DRAFT },
+        data: { status: OrderStatus.CONFIRMED },
+      });
+      if (result.count && actorId) {
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PURCHASE_ORDER_CONFIRMED',
+            entityType: 'PurchaseOrder',
+            entityId: id,
+          },
+        });
+      }
+      return result;
     });
     if (updated.count === 0) {
       const existing = await this.prisma.purchaseOrder.findUnique({ where: { id } });
