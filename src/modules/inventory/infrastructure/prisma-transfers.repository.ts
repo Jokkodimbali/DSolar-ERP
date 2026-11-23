@@ -131,16 +131,21 @@ export class PrismaTransfersRepository implements TransferRepository {
           update: {},
         });
         // The update and reservation check are in one serializable transaction; rollback is atomic.
-        const changed = await tx.storeStock.updateMany({
-          where: { storeId: transfer.originId, productId: line.productId, quantity: { gte: line.quantity } },
-          data: { quantity: { decrement: line.quantity } },
-        });
-        if (changed.count !== 1) throw new ConflictException('Stock source insuffisant.');
         const current = await tx.storeStock.findUniqueOrThrow({
           where: { storeId_productId: { storeId: transfer.originId, productId: line.productId } },
         });
-        if (current.quantity.lessThan(current.reserved))
+        if (current.quantity.minus(current.reserved).lessThan(line.quantity))
           throw new ConflictException('Stock libre insuffisant : réservation existante.');
+        const changed = await tx.storeStock.updateMany({
+          where: {
+            storeId: transfer.originId,
+            productId: line.productId,
+            quantity: current.quantity,
+            reserved: current.reserved,
+          },
+          data: { quantity: { decrement: line.quantity } },
+        });
+        if (changed.count !== 1) throw new ConflictException('Conflit concurrent sur le stock source.');
         await tx.stockMovement.create({
           data: {
             storeId: transfer.originId,
