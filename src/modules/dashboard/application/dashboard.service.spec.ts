@@ -112,7 +112,7 @@ describe('DashboardService', () => {
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv).toContain('Valeur stock XOF');
     expect(csv).toContain('"\'=HYPERLINK(""https://example.test"");Test"');
-    expect(csv).toContain('"125.50";1');
+    expect(csv).toContain('"125.50";"1"');
   });
 
   it('calcule le suivi des commandes fournisseurs par statut', async () => {
