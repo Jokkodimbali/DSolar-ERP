@@ -32,14 +32,17 @@ export class PurchaseOrdersRepository {
         });
         if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
         if (!supplier.active) throw new ConflictException('Fournisseur désactivé.');
-        if (!input.lines.length) throw new ConflictException('Commande fournisseur sans lignes interdite.');
+        if (!input.lines.length || input.lines.length > 100)
+          throw new ConflictException('La commande doit contenir entre 1 et 100 lignes.');
         if (
           input.lines.some(
             (line) =>
               !Number.isFinite(line.quantity) ||
               line.quantity <= 0 ||
               !Number.isFinite(line.unitCost) ||
-              line.unitCost < 0,
+              line.unitCost < 0 ||
+              !/^\\d+(?:\\.\\d{1,3})?$/.test(String(line.quantity)) ||
+              !/^\\d+(?:\\.\\d{1,2})?$/.test(String(line.unitCost)),
           )
         )
           throw new ConflictException('Quantité ou coût unitaire invalide.');
@@ -71,6 +74,8 @@ export class PurchaseOrdersRepository {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') throw new ConflictException('Numéro de commande déjà utilisé.');
         if (error.code === 'P2003') throw new ConflictException('Fournisseur ou produit introuvable.');
+        if (error.code === 'P2034')
+          throw new ConflictException('Conflit concurrent lors de la création de commande. Réessayez.');
       }
       throw error;
     }
