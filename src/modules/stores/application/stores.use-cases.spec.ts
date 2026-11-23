@@ -28,7 +28,10 @@ describe('StoresUseCases', () => {
     repo.findByCode.mockResolvedValue(null);
     repo.create.mockResolvedValue(store);
     await service.create({ code: ' mag-001 ', name: ' Principal ' });
-    expect(repo.create).toHaveBeenCalledWith({ code: 'MAG-001', name: 'Principal', address: undefined }, undefined);
+    expect(repo.create).toHaveBeenCalledWith(
+      { code: 'MAG-001', name: 'Principal', address: undefined },
+      undefined,
+    );
   });
   it('refuse un doublon', async () => {
     repo.findByCode.mockResolvedValue(store);

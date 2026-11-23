@@ -84,13 +84,16 @@ describe('UserManagementService', () => {
       roleCodes: ['MAGASINIER'],
       storeIds: [],
     });
-    expect(users.create).toHaveBeenCalledWith({
-      email: 'a@example.com',
-      fullName: 'Awa',
-      passwordHash: 'hash',
-      roleCodes: ['MAGASINIER'],
-      storeIds: [],
-    }, undefined);
+    expect(users.create).toHaveBeenCalledWith(
+      {
+        email: 'a@example.com',
+        fullName: 'Awa',
+        passwordHash: 'hash',
+        roleCodes: ['MAGASINIER'],
+        storeIds: [],
+      },
+      undefined,
+    );
   });
 
   it('transmet l’identité de l’administrateur lors de la désactivation', async () => {
@@ -102,7 +105,13 @@ describe('UserManagementService', () => {
   it('transmet l’identité de l’administrateur lors du changement des accès', async () => {
     users.rolesExist.mockResolvedValue(true);
     users.activeStoresExist.mockResolvedValue(true);
-    users.replaceAccessUnlessLastAdmin.mockResolvedValue({ id: 'user-1', email: 'a@b.sn', nomComplet: 'A', permissions: [], magasinsAutorises: [] });
+    users.replaceAccessUnlessLastAdmin.mockResolvedValue({
+      id: 'user-1',
+      email: 'a@b.sn',
+      nomComplet: 'A',
+      permissions: [],
+      magasinsAutorises: [],
+    });
     await service.replaceAccess('user-1', ['MAGASINIER'], [], 'admin-1');
     expect(users.replaceAccessUnlessLastAdmin).toHaveBeenCalledWith('user-1', ['MAGASINIER'], [], 'admin-1');
   });

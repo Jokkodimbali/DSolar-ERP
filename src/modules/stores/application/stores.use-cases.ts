@@ -25,15 +25,23 @@ export class StoresUseCases {
     if (await this.stores.findByCode(code)) throw new ConflictException('Ce code magasin existe déjà.');
     return this.stores.create({ code, name, address: input.address?.trim() }, actorId);
   }
-  async update(id: string, input: { name?: string; address?: string | null }, actorId?: string): Promise<Store> {
+  async update(
+    id: string,
+    input: { name?: string; address?: string | null },
+    actorId?: string,
+  ): Promise<Store> {
     await this.get(id);
     const name = input.name?.trim();
     if (input.name !== undefined && !name) throw new BadRequestException('Le nom est obligatoire.');
     const address = input.address === null ? null : input.address?.trim();
-    return this.stores.update(id, {
-      ...(name !== undefined ? { name } : {}),
-      ...(input.address !== undefined ? { address } : {}),
-    }, actorId);
+    return this.stores.update(
+      id,
+      {
+        ...(name !== undefined ? { name } : {}),
+        ...(input.address !== undefined ? { address } : {}),
+      },
+      actorId,
+    );
   }
   async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE', actorId?: string): Promise<Store> {
     const store = await this.get(id);

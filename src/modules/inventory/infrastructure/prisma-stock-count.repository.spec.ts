@@ -60,7 +60,9 @@ describe('PrismaStockCountRepository', () => {
     });
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({ action: 'INVENTORY_CANCELLED' }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: 'INVENTORY_CANCELLED' }),
+    });
   });
 
   it('refuse d’annuler un inventaire validé', async () => {
@@ -216,12 +218,18 @@ describe('PrismaStockCountRepository', () => {
     tx.storeStock.findMany.mockResolvedValue([
       { productId: 'product-id', quantity: new Prisma.Decimal('5') },
     ]);
-    tx.inventorySession.create.mockResolvedValue({ id: 'session-id', status: 'DRAFT', lines: [{ productId: 'product-id' }] });
+    tx.inventorySession.create.mockResolvedValue({
+      id: 'session-id',
+      status: 'DRAFT',
+      lines: [{ productId: 'product-id' }],
+    });
     await expect(repository.start('store-id', 'actor-id')).resolves.toMatchObject({
       status: 'DRAFT',
     });
     expect(tx.inventorySession.create).toHaveBeenCalledTimes(1);
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({ action: 'INVENTORY_STARTED', actorId: 'actor-id' }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: 'INVENTORY_STARTED', actorId: 'actor-id' }),
+    });
   });
 
   it('refuse une quantité négative avant de modifier une ligne', async () => {

@@ -32,13 +32,16 @@ export class UserManagementService {
       throw new ConflictException('Cette adresse e-mail est déjà utilisée.');
     await this.validateAccess(command.roleCodes, command.storeIds);
     const passwordHash = await this.passwords.hash(command.password);
-    return this.users.create({
-      email,
-      fullName: command.fullName.trim(),
-      passwordHash,
-      roleCodes: [...new Set(command.roleCodes)],
-      storeIds: [...new Set(command.storeIds)],
-    }, actorId);
+    return this.users.create(
+      {
+        email,
+        fullName: command.fullName.trim(),
+        passwordHash,
+        roleCodes: [...new Set(command.roleCodes)],
+        storeIds: [...new Set(command.storeIds)],
+      },
+      actorId,
+    );
   }
   async disable(id: string, actorId?: string): Promise<void> {
     const result = await this.users.disableUnlessLastAdmin(id, actorId);
@@ -46,7 +49,12 @@ export class UserManagementService {
     if (result === 'last_admin')
       throw new ForbiddenException('Impossible de désactiver le dernier administrateur actif.');
   }
-  async replaceAccess(id: string, roleCodes: string[], storeIds: string[], actorId?: string): Promise<PublicIdentity> {
+  async replaceAccess(
+    id: string,
+    roleCodes: string[],
+    storeIds: string[],
+    actorId?: string,
+  ): Promise<PublicIdentity> {
     await this.validateAccess(roleCodes, storeIds);
     const result = await this.users.replaceAccessUnlessLastAdmin(
       id,

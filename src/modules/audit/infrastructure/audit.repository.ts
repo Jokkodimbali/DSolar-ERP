@@ -28,7 +28,6 @@ export class AuditRepository {
     });
     if (!user || user.status !== 'ACTIVE' || user.roles.length === 0)
       throw new ForbiddenException('Journal réservé aux administrateurs.');
-
   }
 
   private where(query: AuditQuery): Prisma.AuditLogWhereInput {
@@ -39,7 +38,12 @@ export class AuditRepository {
       ...(query.action ? { action: query.action } : {}),
       ...(query.storeId ? { storeId: query.storeId } : {}),
       ...(query.from || query.to
-        ? { createdAt: { ...(query.from ? { gte: query.from } : {}), ...(query.to ? { lt: new Date(query.to.getTime() + 86400000) } : {}) } }
+        ? {
+            createdAt: {
+              ...(query.from ? { gte: query.from } : {}),
+              ...(query.to ? { lt: new Date(query.to.getTime() + 86400000) } : {}),
+            },
+          }
         : {}),
     };
   }
@@ -82,8 +86,18 @@ export class AuditRepository {
     const where = this.where(query);
     const [total, byAction, byEntityType] = await Promise.all([
       this.prisma.auditLog.count({ where }),
-      this.prisma.auditLog.groupBy({ by: ['action'], where, _count: { _all: true }, orderBy: { action: 'asc' } }),
-      this.prisma.auditLog.groupBy({ by: ['entityType'], where, _count: { _all: true }, orderBy: { entityType: 'asc' } }),
+      this.prisma.auditLog.groupBy({
+        by: ['action'],
+        where,
+        _count: { _all: true },
+        orderBy: { action: 'asc' },
+      }),
+      this.prisma.auditLog.groupBy({
+        by: ['entityType'],
+        where,
+        _count: { _all: true },
+        orderBy: { entityType: 'asc' },
+      }),
     ]);
     return {
       total,

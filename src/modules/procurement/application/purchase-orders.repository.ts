@@ -52,29 +52,31 @@ export class PurchaseOrdersRepository {
         received.set(key, (received.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
       }
     }
-    return orders.map((order) => {
-      const lines = order.lines.map((line) => {
-        const quantityReceived = received.get(`${order.id}:${line.productId}`) ?? new Prisma.Decimal(0);
-        const remaining = Prisma.Decimal.max(0, line.quantity.minus(quantityReceived));
+    return orders
+      .map((order) => {
+        const lines = order.lines.map((line) => {
+          const quantityReceived = received.get(`${order.id}:${line.productId}`) ?? new Prisma.Decimal(0);
+          const remaining = Prisma.Decimal.max(0, line.quantity.minus(quantityReceived));
+          return {
+            productId: line.productId,
+            orderedQuantity: line.quantity.toString(),
+            receivedQuantity: quantityReceived.toString(),
+            remainingQuantity: remaining.toString(),
+            complete: remaining.isZero(),
+          };
+        });
         return {
-          productId: line.productId,
-          orderedQuantity: line.quantity.toString(),
-          receivedQuantity: quantityReceived.toString(),
-          remainingQuantity: remaining.toString(),
-          complete: remaining.isZero(),
+          orderId: order.id,
+          number: order.number,
+          supplierId: order.supplierId,
+          orderedAt: order.orderedAt,
+          status: order.status,
+          totalLines: lines.length,
+          pendingLines: lines.filter((line) => !line.complete).length,
+          lines,
         };
-      });
-      return {
-        orderId: order.id,
-        number: order.number,
-        supplierId: order.supplierId,
-        orderedAt: order.orderedAt,
-        status: order.status,
-        totalLines: lines.length,
-        pendingLines: lines.filter((line) => !line.complete).length,
-        lines,
-      };
-    }).filter((order) => order.pendingLines > 0);
+      })
+      .filter((order) => order.pendingLines > 0);
   }
 
   async progress(id: string) {

@@ -4,7 +4,10 @@ import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
 describe('PurchaseOrdersService', () => {
   let repository: jest.Mocked<
-    Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list' | 'progress' | 'outstanding'>
+    Pick<
+      PurchaseOrdersRepository,
+      'create' | 'find' | 'confirm' | 'cancel' | 'list' | 'progress' | 'outstanding'
+    >
   >;
   let service: PurchaseOrdersService;
   beforeEach(() => {
@@ -30,7 +33,16 @@ describe('PurchaseOrdersService', () => {
     expect(repository.outstanding).toHaveBeenCalledTimes(1);
   });
   it('délègue la consultation des quantités restantes au dépôt', async () => {
-    repository.progress.mockResolvedValue({ orderId: '1', number: 'CMD-001', status: 'CONFIRMED', lines: [], totalLines: 0, completedLines: 0, pendingLines: 0, complete: false });
+    repository.progress.mockResolvedValue({
+      orderId: '1',
+      number: 'CMD-001',
+      status: 'CONFIRMED',
+      lines: [],
+      totalLines: 0,
+      completedLines: 0,
+      pendingLines: 0,
+      complete: false,
+    });
     await expect(service.progress('1')).resolves.toEqual({
       orderId: '1',
       number: 'CMD-001',

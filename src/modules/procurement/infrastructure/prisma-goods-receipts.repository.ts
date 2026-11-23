@@ -37,7 +37,12 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
     return this.prisma.goodsReceipt.findMany({
       where: isAdmin
         ? { store: { status: 'ACTIVE' } }
-        : { store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
+        : {
+            store: {
+              status: 'ACTIVE',
+              userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+            },
+          },
       include: { lines: true },
       orderBy: { number: 'desc' },
     });
@@ -48,7 +53,13 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
     const receipt = await this.prisma.goodsReceipt.findFirst({
       where: isAdmin
         ? { id, store: { status: 'ACTIVE' } }
-        : { id, store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
+        : {
+            id,
+            store: {
+              status: 'ACTIVE',
+              userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+            },
+          },
       include: { lines: true },
     });
     if (!receipt) throw new NotFoundException('Réception introuvable.');
@@ -103,23 +114,26 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             },
             include: { lines: true },
           });
-          await tx.auditLog.create({ data: {
-            actorId, action: 'GOODS_RECEIPT_CREATED', entityType: 'GoodsReceipt',
-            entityId: created.id, storeId: input.storeId,
-            payload: { purchaseOrderId: input.purchaseOrderId, lineCount: created.lines.length },
-          } });
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              action: 'GOODS_RECEIPT_CREATED',
+              entityType: 'GoodsReceipt',
+              entityId: created.id,
+              storeId: input.storeId,
+              payload: { purchaseOrderId: input.purchaseOrderId, lineCount: created.lines.length },
+            },
+          });
           return created;
         },
         { maxWait: 10000, timeout: 30000 },
       );
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002')
-          throw new ConflictException('Numéro de réception déjà utilisé.');
+        if (error.code === 'P2002') throw new ConflictException('Numéro de réception déjà utilisé.');
         if (error.code === 'P2034')
           throw new ConflictException('Conflit concurrent lors de la création de la réception. Réessayez.');
-        if (error.code === 'P2003')
-          throw new ConflictException('Commande, magasin ou produit introuvable.');
+        if (error.code === 'P2003') throw new ConflictException('Commande, magasin ou produit introuvable.');
       }
       throw error;
     }
@@ -135,11 +149,16 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
       });
       if (updated.count !== 1)
         throw new ConflictException('Seule une réception brouillon peut être annulée.');
-      await tx.auditLog.create({ data: {
-        actorId, action: 'GOODS_RECEIPT_CANCELLED', entityType: 'GoodsReceipt',
-        entityId: id, storeId: receipt.storeId,
-        payload: { purchaseOrderId: receipt.purchaseOrderId },
-      } });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'GOODS_RECEIPT_CANCELLED',
+          entityType: 'GoodsReceipt',
+          entityId: id,
+          storeId: receipt.storeId,
+          payload: { purchaseOrderId: receipt.purchaseOrderId },
+        },
+      });
       return tx.goodsReceipt.findUnique({ where: { id }, include: { lines: true } });
     });
   }
@@ -250,15 +269,23 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           data: { status: ReceiptStatus.CONFIRMED, receivedAt: new Date() },
           include: { lines: true },
         });
-        await tx.auditLog.create({ data: {
-          actorId, action: 'GOODS_RECEIPT_CONFIRMED', entityType: 'GoodsReceipt',
-          entityId: id, storeId: receipt.storeId,
-          payload: {
-            purchaseOrderId: order.id,
-            purchaseOrderStatus: complete ? OrderStatus.DELIVERED : OrderStatus.PARTIALLY_DELIVERED,
-            lines: receipt.lines.map((line) => ({ productId: line.productId, quantity: line.quantity.toString() })),
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'GOODS_RECEIPT_CONFIRMED',
+            entityType: 'GoodsReceipt',
+            entityId: id,
+            storeId: receipt.storeId,
+            payload: {
+              purchaseOrderId: order.id,
+              purchaseOrderStatus: complete ? OrderStatus.DELIVERED : OrderStatus.PARTIALLY_DELIVERED,
+              lines: receipt.lines.map((line) => ({
+                productId: line.productId,
+                quantity: line.quantity.toString(),
+              })),
+            },
           },
-        } });
+        });
         return confirmed;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },

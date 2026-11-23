@@ -116,8 +116,20 @@ describe('PurchaseOrdersRepository status transitions', () => {
       select: { lines: { select: { productId: true, quantity: true } } },
     });
     expect(progress.lines).toEqual([
-      { productId: 'p1', orderedQuantity: '10.5', receivedQuantity: '10.5', remainingQuantity: '0', complete: true },
-      { productId: 'p2', orderedQuantity: '2', receivedQuantity: '0', remainingQuantity: '2', complete: false },
+      {
+        productId: 'p1',
+        orderedQuantity: '10.5',
+        receivedQuantity: '10.5',
+        remainingQuantity: '0',
+        complete: true,
+      },
+      {
+        productId: 'p2',
+        orderedQuantity: '2',
+        receivedQuantity: '0',
+        remainingQuantity: '2',
+        complete: false,
+      },
     ]);
     expect(progress).toMatchObject({ totalLines: 2, completedLines: 1, pendingLines: 1, complete: false });
   });
@@ -137,12 +149,18 @@ describe('PurchaseOrdersRepository status transitions', () => {
   it('agrège les quantités reçues par commande sans mélanger les produits identiques', async () => {
     prisma.purchaseOrder.findMany.mockResolvedValue([
       {
-        id: 'o1', number: 'CMD-1', supplierId: 's1', orderedAt: new Date('2026-01-01'),
+        id: 'o1',
+        number: 'CMD-1',
+        supplierId: 's1',
+        orderedAt: new Date('2026-01-01'),
         status: OrderStatus.PARTIALLY_DELIVERED,
         lines: [{ productId: 'p1', quantity: new Prisma.Decimal('10') }],
       },
       {
-        id: 'o2', number: 'CMD-2', supplierId: 's2', orderedAt: new Date('2026-01-02'),
+        id: 'o2',
+        number: 'CMD-2',
+        supplierId: 's2',
+        orderedAt: new Date('2026-01-02'),
         status: OrderStatus.CONFIRMED,
         lines: [{ productId: 'p1', quantity: new Prisma.Decimal('3') }],
       },
@@ -155,8 +173,17 @@ describe('PurchaseOrdersRepository status transitions', () => {
     expect(prisma.goodsReceipt.findMany).toHaveBeenCalledTimes(1);
     expect(outstanding).toHaveLength(1);
     expect(outstanding[0]).toMatchObject({
-      orderId: 'o1', pendingLines: 1,
-      lines: [{ productId: 'p1', orderedQuantity: '10', receivedQuantity: '4.5', remainingQuantity: '5.5', complete: false }],
+      orderId: 'o1',
+      pendingLines: 1,
+      lines: [
+        {
+          productId: 'p1',
+          orderedQuantity: '10',
+          receivedQuantity: '4.5',
+          remainingQuantity: '5.5',
+          complete: false,
+        },
+      ],
     });
   });
 

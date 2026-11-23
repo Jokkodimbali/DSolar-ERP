@@ -29,9 +29,7 @@ describe('SuppliersService', () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse un nom de fournisseur dépassant 180 caractères', async () => {
-    await expect(service.create({ name: 'F'.repeat(181) })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ name: 'F'.repeat(181) })).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse une adresse trop longue lors de la modification', async () => {

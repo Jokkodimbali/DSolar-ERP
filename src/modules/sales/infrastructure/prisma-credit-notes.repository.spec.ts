@@ -37,10 +37,13 @@ describe('PrismaCreditNotesRepository', () => {
   it('accepte un avoir égal au solde restant', async () => {
     await repository.issue(invoiceId, actorId, '50.00', 'Correction de prix');
     expect(tx.creditNote.create).toHaveBeenCalledTimes(1);
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      action: 'CREDIT_NOTE_ISSUED', storeId: 'store-1',
-      payload: expect.objectContaining({ storeIds: ['store-1'], invoiceId }),
-    }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'CREDIT_NOTE_ISSUED',
+        storeId: 'store-1',
+        payload: expect.objectContaining({ storeIds: ['store-1'], invoiceId }),
+      }),
+    });
   });
 
   it('conserve les magasins dans le journal pour une facture multi-magasins', async () => {

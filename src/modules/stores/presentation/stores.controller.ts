@@ -39,7 +39,10 @@ export class StoresController {
   ) {
     return this.access.getAccessible(id, userId);
   }
-  @Post() @RequirePermissions('stores.manage') create(@Body() dto: CreateStoreDto, @CurrentUserId() actorId: string) {
+  @Post() @RequirePermissions('stores.manage') create(
+    @Body() dto: CreateStoreDto,
+    @CurrentUserId() actorId: string,
+  ) {
     return this.useCases.create(dto, actorId);
   }
   @Patch(':id') @RequirePermissions('stores.manage') update(

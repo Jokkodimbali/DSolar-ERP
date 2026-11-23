@@ -23,7 +23,15 @@ export class AuditController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.audit.summary(actorId, { actorId: filterActorId, entityType, entityId, action, storeId, from, to });
+    return this.audit.summary(actorId, {
+      actorId: filterActorId,
+      entityType,
+      entityId,
+      action,
+      storeId,
+      from,
+      to,
+    });
   }
 
   @Get()
@@ -40,6 +48,16 @@ export class AuditController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.audit.list(actorId, { limit, actorId: filterActorId, cursor, entityType, entityId, action, storeId, from, to });
+    return this.audit.list(actorId, {
+      limit,
+      actorId: filterActorId,
+      cursor,
+      entityType,
+      entityId,
+      action,
+      storeId,
+      from,
+      to,
+    });
   }
 }

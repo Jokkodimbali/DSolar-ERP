@@ -19,10 +19,17 @@ export class PrismaStoreRepository implements StoreRepository {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const store = await tx.store.create({ data: input });
-        if (actorId) await tx.auditLog.create({ data: {
-          actorId, action: 'STORE_CREATED', entityType: 'Store', entityId: store.id, storeId: store.id,
-          payload: { code: store.code, name: store.name },
-        } });
+        if (actorId)
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              action: 'STORE_CREATED',
+              entityType: 'Store',
+              entityId: store.id,
+              storeId: store.id,
+              payload: { code: store.code, name: store.name },
+            },
+          });
         return store;
       });
     } catch (error: unknown) {
@@ -30,20 +37,32 @@ export class PrismaStoreRepository implements StoreRepository {
       throw error;
     }
   }
-  async update(id: string, input: { name?: string; address?: string | null }, actorId?: string): Promise<Store> {
+  async update(
+    id: string,
+    input: { name?: string; address?: string | null },
+    actorId?: string,
+  ): Promise<Store> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const before = await tx.store.findUnique({ where: { id } });
         if (!before) throw new NotFoundException('Magasin introuvable.');
         const store = await tx.store.update({ where: { id }, data: input });
         if (actorId && (before.name !== store.name || before.address !== store.address))
-          await tx.auditLog.create({ data: {
-            actorId, action: 'STORE_UPDATED', entityType: 'Store', entityId: id, storeId: id,
-            payload: { changedFields: [
-              ...(before.name !== store.name ? ['name'] : []),
-              ...(before.address !== store.address ? ['address'] : []),
-            ] },
-          } });
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              action: 'STORE_UPDATED',
+              entityType: 'Store',
+              entityId: id,
+              storeId: id,
+              payload: {
+                changedFields: [
+                  ...(before.name !== store.name ? ['name'] : []),
+                  ...(before.address !== store.address ? ['address'] : []),
+                ],
+              },
+            },
+          });
         return store;
       });
     } catch (error: unknown) {
@@ -85,11 +104,17 @@ export class PrismaStoreRepository implements StoreRepository {
               );
           }
           const updated = await tx.store.update({ where: { id }, data: { status } });
-          if (actorId) await tx.auditLog.create({ data: {
-            actorId, action: status === 'ACTIVE' ? 'STORE_ACTIVATED' : 'STORE_DEACTIVATED',
-            entityType: 'Store', entityId: id, storeId: id,
-            payload: { previousStatus: store.status, newStatus: status },
-          } });
+          if (actorId)
+            await tx.auditLog.create({
+              data: {
+                actorId,
+                action: status === 'ACTIVE' ? 'STORE_ACTIVATED' : 'STORE_DEACTIVATED',
+                entityType: 'Store',
+                entityId: id,
+                storeId: id,
+                payload: { previousStatus: store.status, newStatus: status },
+              },
+            });
           return updated;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },

@@ -4,8 +4,11 @@ import { PrismaTransfersRepository } from './prisma-transfers.repository';
 
 describe('PrismaTransfersRepository audit', () => {
   const transfer = {
-    id: 'transfer-id', originId: 'origin-id', destinationId: 'destination-id',
-    status: 'DRAFT', lines: [],
+    id: 'transfer-id',
+    originId: 'origin-id',
+    destinationId: 'destination-id',
+    status: 'DRAFT',
+    lines: [],
   };
   const tx = {
     user: { findUnique: jest.fn() },
@@ -33,10 +36,14 @@ describe('PrismaTransfersRepository audit', () => {
   it('journalise une approbation avec acteur et magasins', async () => {
     tx.stockTransfer.update.mockResolvedValue({ ...transfer, status: 'APPROVED' });
     await repository.approve('transfer-id', 'admin-id');
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      action: 'TRANSFER_APPROVED', actorId: 'admin-id', storeId: 'origin-id',
-      payload: { originId: 'origin-id', destinationId: 'destination-id' },
-    }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'TRANSFER_APPROVED',
+        actorId: 'admin-id',
+        storeId: 'origin-id',
+        payload: { originId: 'origin-id', destinationId: 'destination-id' },
+      }),
+    });
   });
 
   it('ne journalise pas une approbation déjà effectuée', async () => {
@@ -48,16 +55,22 @@ describe('PrismaTransfersRepository audit', () => {
   it('journalise une annulation autorisée', async () => {
     tx.stockTransfer.update.mockResolvedValue({ ...transfer, status: 'CANCELLED' });
     await repository.cancel('transfer-id', 'admin-id');
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      action: 'TRANSFER_CANCELLED', entityId: 'transfer-id',
-    }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'TRANSFER_CANCELLED',
+        entityId: 'transfer-id',
+      }),
+    });
   });
 
   it('conserve la transaction sérialisable pour les événements', async () => {
     tx.stockTransfer.update.mockResolvedValue({ ...transfer, status: 'APPROVED' });
     await repository.approve('transfer-id', 'admin-id');
-    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    }));
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      }),
+    );
   });
 });

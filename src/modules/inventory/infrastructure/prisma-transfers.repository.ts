@@ -190,7 +190,12 @@ export class PrismaTransfersRepository implements TransferRepository {
         data: { status: TransferStatus.SHIPPED, shippedAt: new Date(), shippedById: actorId },
       });
       await this.event(tx, id, actorId, 'SHIPPED', 'TRANSFER_SHIP:' + id);
-      await this.audit(tx, transfer, actorId, 'SHIPPED', { lines: transfer.lines.map((line) => ({ productId: line.productId, quantity: line.quantity.toString() })) });
+      await this.audit(tx, transfer, actorId, 'SHIPPED', {
+        lines: transfer.lines.map((line) => ({
+          productId: line.productId,
+          quantity: line.quantity.toString(),
+        })),
+      });
       return updated;
     });
   }

@@ -12,9 +12,8 @@ const money = (value: bigint): string => {
 };
 
 const csvCell = (value: string): string => {
-  const needsEscape = ['=', '+', '-', '@'].includes(value.charAt(0)) ||
-    value.charCodeAt(0) === 9 ||
-    value.charCodeAt(0) === 13;
+  const needsEscape =
+    ['=', '+', '-', '@'].includes(value.charAt(0)) || value.charCodeAt(0) === 9 || value.charCodeAt(0) === 13;
   const safe = needsEscape ? "'" + value : value;
   return '"' + safe.replace(/"/g, '""') + '"';
 };

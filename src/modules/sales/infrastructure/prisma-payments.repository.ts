@@ -188,7 +188,13 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             entityType: 'PaymentReversal',
             entityId: reversal.id,
             ...(stores.length === 1 ? { storeId: stores[0] } : {}),
-            payload: { orderId, storeIds: stores, paymentId, amount: payment.amount.toString(), reason: normalizedReason },
+            payload: {
+              orderId,
+              storeIds: stores,
+              paymentId,
+              amount: payment.amount.toString(),
+              reason: normalizedReason,
+            },
           },
         });
         return reversal;

@@ -85,9 +85,7 @@ describe('InventoryService', () => {
       { productId: 'p2', quantity: '1.000', reserved: '0.000', available: '1.000' },
     ]);
     const result = await service.stockAlerts('s', 'u', '0');
-    expect(result.items.map((item) => [item.productId, item.severity])).toEqual([
-      ['p1', 'OUT_OF_STOCK'],
-    ]);
+    expect(result.items.map((item) => [item.productId, item.severity])).toEqual([['p1', 'OUT_OF_STOCK']]);
   });
 
   it('renvoie des totaux nuls pour un magasin sans stock', async () => {

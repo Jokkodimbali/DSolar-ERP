@@ -47,9 +47,7 @@ describe('StockCountService', () => {
   });
 
   it('refuse les quantités avec notation scientifique', () => {
-    expect(() => service.record('id', 'actor', [{ ...line, counted: '1e3' }])).toThrow(
-      BadRequestException,
-    );
+    expect(() => service.record('id', 'actor', [{ ...line, counted: '1e3' }])).toThrow(BadRequestException);
   });
 
   it('délègue l’annulation', async () => {

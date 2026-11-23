@@ -17,8 +17,9 @@ describe('AuditRepository', () => {
   it('rejette un curseur inexistant dans les filtres courants', async () => {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
     auditLog.findFirst.mockResolvedValue(null);
-    await expect(repository.list('actor', { limit: 10, cursor: 'missing', action: 'CREATE' }))
-      .rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      repository.list('actor', { limit: 10, cursor: 'missing', action: 'CREATE' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(auditLog.findMany).not.toHaveBeenCalled();
   });
 
@@ -26,9 +27,11 @@ describe('AuditRepository', () => {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
     auditLog.findMany.mockResolvedValue([]);
     await repository.list('actor', { limit: 10, from: new Date('2026-01-01'), to: new Date('2026-01-31') });
-    expect(auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { createdAt: { gte: new Date('2026-01-01'), lt: new Date('2026-02-01') } },
-    }));
+    expect(auditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { createdAt: { gte: new Date('2026-01-01'), lt: new Date('2026-02-01') } },
+      }),
+    );
   });
 
   it('agrège la synthèse des événements avec les filtres appliqués', async () => {
@@ -39,7 +42,8 @@ describe('AuditRepository', () => {
       .mockResolvedValueOnce([{ entityType: 'Store', _count: { _all: 3 } }]);
     const result = await repository.summary('admin', { limit: 1, actorId: 'user' });
     expect(result).toEqual({
-      total: 3, byAction: [{ action: 'CREATE', count: 3 }],
+      total: 3,
+      byAction: [{ action: 'CREATE', count: 3 }],
       byEntityType: [{ entityType: 'Store', count: 3 }],
     });
     expect(auditLog.count).toHaveBeenCalledWith({ where: { actorId: 'user' } });
@@ -48,16 +52,23 @@ describe('AuditRepository', () => {
   it('retourne une pagination stable sans exposer le payload', async () => {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
     auditLog.findMany.mockResolvedValue([
-      { id: '3', action: 'A' }, { id: '2', action: 'B' }, { id: '1', action: 'C' },
+      { id: '3', action: 'A' },
+      { id: '2', action: 'B' },
+      { id: '1', action: 'C' },
     ]);
     const page = await repository.list('actor', { limit: 2 });
     expect(page).toEqual({
-      items: [{ id: '3', action: 'A' }, { id: '2', action: 'B' }],
+      items: [
+        { id: '3', action: 'A' },
+        { id: '2', action: 'B' },
+      ],
       nextCursor: '2',
     });
-    expect(auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      take: 3,
-      select: expect.not.objectContaining({ payload: true }),
-    }));
+    expect(auditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 3,
+        select: expect.not.objectContaining({ payload: true }),
+      }),
+    );
   });
 });

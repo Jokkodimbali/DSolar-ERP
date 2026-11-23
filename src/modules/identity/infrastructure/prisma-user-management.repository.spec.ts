@@ -11,10 +11,13 @@ describe('PrismaUserManagementRepository audit transactionnel', () => {
     userStoreAccess: { findMany: jest.fn(), deleteMany: jest.fn(), createMany: jest.fn() },
     auditLog: { create: jest.fn() },
   };
-  const prisma = { $transaction: jest.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)) };
+  const prisma = {
+    $transaction: jest.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+  };
   const identity = { findById: jest.fn() };
   const repository = new PrismaUserManagementRepository(
-    prisma as unknown as PrismaService, identity as unknown as PrismaUserRepository,
+    prisma as unknown as PrismaService,
+    identity as unknown as PrismaUserRepository,
   );
   beforeEach(() => {
     jest.clearAllMocks();
@@ -23,11 +26,23 @@ describe('PrismaUserManagementRepository audit transactionnel', () => {
 
   it('journalise une création sans enregistrer le mot de passe', async () => {
     tx.user.create.mockResolvedValue({ id: 'user-1' });
-    identity.findById.mockResolvedValue({ id: 'user-1', email: 'a@b.sn', fullName: 'A', permissions: [], storeIds: [] });
-    await repository.create({
-      email: 'a@b.sn', fullName: 'A', passwordHash: 'secret-hash',
-      roleCodes: ['MAGASINIER'], storeIds: [],
-    }, 'admin-1');
+    identity.findById.mockResolvedValue({
+      id: 'user-1',
+      email: 'a@b.sn',
+      fullName: 'A',
+      permissions: [],
+      storeIds: [],
+    });
+    await repository.create(
+      {
+        email: 'a@b.sn',
+        fullName: 'A',
+        passwordHash: 'secret-hash',
+        roleCodes: ['MAGASINIER'],
+        storeIds: [],
+      },
+      'admin-1',
+    );
     const log = tx.auditLog.create.mock.calls[0][0].data;
     expect(log).toMatchObject({ actorId: 'admin-1', action: 'USER_CREATED', entityId: 'user-1' });
     expect(JSON.stringify(log)).not.toContain('secret-hash');
@@ -44,19 +59,29 @@ describe('PrismaUserManagementRepository audit transactionnel', () => {
     tx.user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [] });
     tx.user.update.mockResolvedValue({});
     await repository.disableUnlessLastAdmin('user-1', 'admin-1');
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      action: 'USER_DISABLED', actorId: 'admin-1',
-    }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'USER_DISABLED',
+        actorId: 'admin-1',
+      }),
+    });
   });
 
   it('ne révoque pas les sessions lorsque les accès restent identiques', async () => {
     tx.user.findUnique.mockResolvedValue({
-      status: 'ACTIVE', roles: [{ role: { code: 'MAGASINIER' } }],
+      status: 'ACTIVE',
+      roles: [{ role: { code: 'MAGASINIER' } }],
     });
     tx.role.findMany.mockResolvedValue([{ id: 'role-1' }]);
     tx.store.count.mockResolvedValue(0);
     tx.userStoreAccess.findMany.mockResolvedValue([]);
-    identity.findById.mockResolvedValue({ id: 'user-1', email: 'a@b.sn', fullName: 'A', permissions: [], storeIds: [] });
+    identity.findById.mockResolvedValue({
+      id: 'user-1',
+      email: 'a@b.sn',
+      fullName: 'A',
+      permissions: [],
+      storeIds: [],
+    });
     await repository.replaceAccessUnlessLastAdmin('user-1', ['MAGASINIER'], [], 'admin-1');
     expect(tx.user.update).not.toHaveBeenCalled();
     expect(tx.auditLog.create).not.toHaveBeenCalled();
