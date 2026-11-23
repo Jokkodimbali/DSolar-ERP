@@ -51,6 +51,29 @@ export class PrismaTransfersRepository implements TransferRepository {
     }
     throw new ConflictException('Conflit concurrent.');
   }
+  private audit(
+    tx: Prisma.TransactionClient,
+    transfer: { id: string; originId: string; destinationId: string },
+    actorId: string,
+    action: string,
+    payload?: Prisma.InputJsonValue,
+  ) {
+    return tx.auditLog.create({
+      data: {
+        actorId,
+        action: 'TRANSFER_' + action,
+        entityType: 'StockTransfer',
+        entityId: transfer.id,
+        storeId: transfer.originId,
+        payload: {
+          originId: transfer.originId,
+          destinationId: transfer.destinationId,
+          ...(payload ? { details: payload } : {}),
+        },
+      },
+    });
+  }
+
   private event(
     tx: Prisma.TransactionClient,
     transferId: string,
@@ -95,6 +118,7 @@ export class PrismaTransfersRepository implements TransferRepository {
         include: { lines: true },
       });
       await this.event(tx, transfer.id, input.actorId, 'CREATED', 'TRANSFER_CREATE:' + transfer.id);
+      await this.audit(tx, transfer, input.actorId, 'CREATED', { lineCount: transfer.lines.length });
       return transfer;
     });
   }
@@ -111,6 +135,7 @@ export class PrismaTransfersRepository implements TransferRepository {
         data: { status: TransferStatus.APPROVED, approvedAt: new Date(), approvedById: actorId },
       });
       await this.event(tx, id, actorId, 'APPROVED', 'TRANSFER_APPROVE:' + id);
+      await this.audit(tx, transfer, actorId, 'APPROVED');
       return updated;
     });
   }
@@ -165,6 +190,7 @@ export class PrismaTransfersRepository implements TransferRepository {
         data: { status: TransferStatus.SHIPPED, shippedAt: new Date(), shippedById: actorId },
       });
       await this.event(tx, id, actorId, 'SHIPPED', 'TRANSFER_SHIP:' + id);
+      await this.audit(tx, transfer, actorId, 'SHIPPED', { lines: transfer.lines.map((line) => ({ productId: line.productId, quantity: line.quantity.toString() })) });
       return updated;
     });
   }
@@ -248,6 +274,11 @@ export class PrismaTransfersRepository implements TransferRepository {
         operationKey,
         JSON.parse(payload) as Prisma.InputJsonValue,
       );
+      await this.audit(tx, transfer, actorId, 'RECEIPT', {
+        operationKey,
+        lineCount: input.lines.length,
+        finalize: input.finalize,
+      });
       const lines = await tx.stockTransferLine.findMany({ where: { transferId: id } });
       const accounted = lines.every((l) =>
         l.receivedQuantity.plus(l.damagedQuantity).plus(l.missingQuantity).equals(l.quantity),
@@ -275,6 +306,7 @@ export class PrismaTransfersRepository implements TransferRepository {
           discrepancy ? 'CLOSED_WITH_DISCREPANCY' : 'RECEIVED',
           'TRANSFER_CLOSE:' + id,
         );
+        await this.audit(tx, transfer, actorId, discrepancy ? 'CLOSED_WITH_DISCREPANCY' : 'RECEIVED');
       }
       return tx.stockTransfer.findUniqueOrThrow({
         where: { id },
@@ -293,6 +325,7 @@ export class PrismaTransfersRepository implements TransferRepository {
         data: { status: TransferStatus.CANCELLED, cancelledAt: new Date(), cancelledById: actorId },
       });
       await this.event(tx, id, actorId, 'CANCELLED', 'TRANSFER_CANCEL:' + id);
+      await this.audit(tx, transfer, actorId, 'CANCELLED');
       return updated;
     });
   }
