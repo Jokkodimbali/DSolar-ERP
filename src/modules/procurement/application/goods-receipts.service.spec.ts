@@ -93,12 +93,14 @@ describe('GoodsReceiptsService', () => {
     await service.confirm('receipt-id', 'actor');
     expect(repository.confirm).toHaveBeenCalledWith('receipt-id', 'actor');
   });
+  // prettier-ignore
   it('délègue la consultation et la liste avec l’identité de l’acteur', async () => {
     await service.list('actor');
     await service.get('receipt-id', 'actor');
     expect(repository.list).toHaveBeenCalledWith('actor');
     expect(repository.get).toHaveBeenCalledWith('receipt-id', 'actor');
   });
+  // prettier-ignore
   it('accepte la précision maximale des quantités et des coûts', async () => {
     const input = {
       ...base,
@@ -107,6 +109,7 @@ describe('GoodsReceiptsService', () => {
     await service.create(input, 'actor');
     expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'REC-001' }, 'actor');
   });
+  // prettier-ignore
   it.each([NaN, Infinity, -Infinity])(
     'refuse une quantité non finie (%s)',
     async (quantity) => {
@@ -125,6 +128,7 @@ describe('GoodsReceiptsService', () => {
       expect(repository.create).not.toHaveBeenCalled();
     },
   );
+  // prettier-ignore
   it('accepte exactement cent lignes distinctes', async () => {
     const input = {
       ...base,
