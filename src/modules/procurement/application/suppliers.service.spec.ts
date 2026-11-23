@@ -28,6 +28,19 @@ describe('SuppliersService', () => {
     await expect(service.create({ name: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
   });
+  it('refuse un nom de fournisseur dépassant 180 caractères', async () => {
+    await expect(service.create({ name: 'F'.repeat(181) })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+  it('refuse une adresse trop longue lors de la modification', async () => {
+    repository.find.mockResolvedValue(supplier);
+    await expect(service.update(supplier.id, { address: 'A'.repeat(501) })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(repository.update).not.toHaveBeenCalled();
+  });
   it('retourne 404 si le fournisseur est absent', async () => {
     repository.find.mockResolvedValue(null);
     await expect(service.get('absent')).rejects.toBeInstanceOf(NotFoundException);
