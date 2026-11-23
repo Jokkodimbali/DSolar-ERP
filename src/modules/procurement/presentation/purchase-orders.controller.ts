@@ -13,6 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { PurchaseOrdersService } from '../application/purchase-orders.service';
 
@@ -54,12 +55,13 @@ export class PurchaseOrdersController {
   @Post() @RequirePermissions('inventory.manage') create(@Body() dto: CreatePurchaseOrderDto) {
     return this.orders.create(dto);
   }
-  @Post(':id/cancel') @RequirePermissions('inventory.manage') cancel(@Param('id', ParseUUIDPipe) id: string) {
-    return this.orders.cancel(id);
+  @Post(':id/cancel') @RequirePermissions('inventory.manage') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return this.orders.cancel(id, actorId);
   }
   @Post(':id/confirm') @RequirePermissions('inventory.manage') confirm(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.orders.confirm(id);
+    return this.orders.confirm(id, actorId);
   }
 }

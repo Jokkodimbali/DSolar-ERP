@@ -175,10 +175,18 @@ export class PurchaseOrdersRepository {
       throw error;
     }
   }
-  async cancel(id: string) {
-    const updated = await this.prisma.purchaseOrder.updateMany({
-      where: { id, status: OrderStatus.DRAFT },
-      data: { status: OrderStatus.CANCELLED },
+  async cancel(id: string, actorId?: string) {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.purchaseOrder.updateMany({
+        where: { id, status: OrderStatus.DRAFT },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      if (result.count && actorId) {
+        await tx.auditLog.create({
+          data: { actorId, action: 'PURCHASE_ORDER_CANCELLED', entityType: 'PurchaseOrder', entityId: id },
+        });
+      }
+      return result;
     });
     if (updated.count === 0) {
       const existing = await this.prisma.purchaseOrder.findUnique({ where: { id } });
