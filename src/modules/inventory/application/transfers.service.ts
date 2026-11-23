@@ -10,6 +10,8 @@ const quantityPattern = /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/;
 export class TransfersService {
   constructor(@Inject(TRANSFER_REPOSITORY) private readonly repository: TransferRepository) {}
   create(input: CreateTransferInput) {
+    if (!input.number.trim())
+      throw new BadRequestException('La référence du transfert est obligatoire.');
     if (input.originId === input.destinationId)
       throw new BadRequestException('Les magasins doivent être différents.');
     if (!input.lines.length || input.lines.length > 100)
