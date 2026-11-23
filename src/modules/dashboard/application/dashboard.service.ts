@@ -39,10 +39,7 @@ export class DashboardService {
         String(store.unvaluedProducts),
       ].join(';'),
     );
-    return '\uFEFF' + [
-      'Magasin ID;Magasin;Valeur stock XOF;Produits sans cout',
-      ...rows,
-    ].join('\n');
+    return '\uFEFF' + ['Magasin ID;Magasin;Valeur stock XOF;Produits sans cout', ...rows].join('\n');
   }
 
   async stockValuation(actorId: string) {

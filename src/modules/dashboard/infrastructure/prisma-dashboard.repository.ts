@@ -172,6 +172,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
           invoices,
           credits,
           payments,
+          reversals,
           stock,
         ] = await Promise.all([
           tx.store.count({ where: { status: 'ACTIVE' } }),
@@ -192,6 +193,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
             _sum: { amount: true },
           }),
           tx.payment.aggregate({ _sum: { amount: true } }),
+          tx.paymentReversal.aggregate({ _sum: { amount: true } }),
           tx.store.findMany({
             where: { status: 'ACTIVE' },
             select: {
@@ -215,7 +217,9 @@ export class PrismaDashboardRepository implements DashboardRepository {
           issuedInvoices: invoices._count._all,
           invoiced: (invoices._sum.totalTtc ?? new Prisma.Decimal(0)).toFixed(2),
           creditNotes: (credits._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
-          collected: (payments._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+          collected: (payments._sum.amount ?? new Prisma.Decimal(0))
+            .minus(reversals._sum.amount ?? new Prisma.Decimal(0))
+            .toFixed(2),
           stock: stock.map((store) => ({
             storeId: store.id,
             storeName: store.name,
