@@ -93,4 +93,49 @@ describe('GoodsReceiptsService', () => {
     await service.confirm('receipt-id', 'actor');
     expect(repository.confirm).toHaveBeenCalledWith('receipt-id', 'actor');
   });
+  it('délègue la consultation et la liste avec l’identité de l’acteur', async () => {
+    await service.list('actor');
+    await service.get('receipt-id', 'actor');
+    expect(repository.list).toHaveBeenCalledWith('actor');
+    expect(repository.get).toHaveBeenCalledWith('receipt-id', 'actor');
+  });
+  it('accepte la précision maximale des quantités et des coûts', async () => {
+    const input = {
+      ...base,
+      lines: [{ ...base.lines[0], quantity: 0.001, unitCost: 0.01 }],
+    };
+    await service.create(input, 'actor');
+    expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'REC-001' }, 'actor');
+  });
+  it.each([NaN, Infinity, -Infinity])(
+    'refuse une quantité non finie (%s)',
+    async (quantity) => {
+      await expect(
+        service.create({ ...base, lines: [{ ...base.lines[0], quantity }] }, 'actor'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repository.create).not.toHaveBeenCalled();
+    },
+  );
+  it.each([NaN, Infinity, -Infinity])(
+    'refuse un coût non fini (%s)',
+    async (unitCost) => {
+      await expect(
+        service.create({ ...base, lines: [{ ...base.lines[0], unitCost }] }, 'actor'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repository.create).not.toHaveBeenCalled();
+    },
+  );
+  it('accepte exactement cent lignes distinctes', async () => {
+    const input = {
+      ...base,
+      lines: Array.from({ length: 100 }, (_, index) => ({
+        productId: String(index),
+        quantity: 1,
+        unitCost: 1,
+      })),
+    };
+    await service.create(input, 'actor');
+    expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'REC-001' }, 'actor');
+  });
+
 });
