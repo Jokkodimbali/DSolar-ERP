@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SuppliersRepository } from './suppliers.repository';
 import { SuppliersService } from './suppliers.service';
 
+// prettier-ignore
 describe('SuppliersService', () => {
   let repository: jest.Mocked<SuppliersRepository>;
   let service: SuppliersService;
