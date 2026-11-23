@@ -9,6 +9,9 @@ import { DashboardController } from './presentation/dashboard.controller';
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [DashboardController],
-  providers: [DashboardService, { provide: DASHBOARD_REPOSITORY, useClass: PrismaDashboardRepository }],
+  providers: [
+    DashboardService,
+    { provide: DASHBOARD_REPOSITORY, useClass: PrismaDashboardRepository },
+  ],
 })
 export class DashboardModule {}
