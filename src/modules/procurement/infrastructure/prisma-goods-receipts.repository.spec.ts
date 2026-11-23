@@ -636,6 +636,34 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
       clientVersion: '6.19.3',
     });
 
+  it('convertit un doublon de mouvement en conflit sans nouvelle tentative', async () => {
+    const duplicate = new Prisma.PrismaClientKnownRequestError('Duplicate operation key', {
+      code: 'P2002',
+      clientVersion: '6.19.3',
+    });
+    const prisma = {
+      $transaction: jest.fn().mockRejectedValue(duplicate),
+    } as unknown as PrismaService;
+    const repository = new PrismaGoodsReceiptsRepository(prisma);
+
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('ne réessaie pas une erreur Prisma non récupérable', async () => {
+    const invalidReference = new Prisma.PrismaClientKnownRequestError('Invalid reference', {
+      code: 'P2003',
+      clientVersion: '6.19.3',
+    });
+    const prisma = {
+      $transaction: jest.fn().mockRejectedValue(invalidReference),
+    } as unknown as PrismaService;
+    const repository = new PrismaGoodsReceiptsRepository(prisma);
+
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBe(invalidReference);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
   it('réessaie une transaction après un conflit sérialisable', async () => {
     const result = { id: 'receipt-id', status: 'CONFIRMED' };
     const prisma = {
