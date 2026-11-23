@@ -105,8 +105,14 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
         { maxWait: 10000, timeout: 30000 },
       );
     } catch (error: unknown) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
-        throw new ConflictException('Numéro de réception déjà utilisé.');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002')
+          throw new ConflictException('Numéro de réception déjà utilisé.');
+        if (error.code === 'P2034')
+          throw new ConflictException('Conflit concurrent lors de la création de la réception. Réessayez.');
+        if (error.code === 'P2003')
+          throw new ConflictException('Commande, magasin ou produit introuvable.');
+      }
       throw error;
     }
   }
