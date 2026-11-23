@@ -12,22 +12,34 @@ export class PrismaSuppliersRepository implements SuppliersRepository {
   find(id: string) {
     return this.prisma.supplier.findUnique({ where: { id } });
   }
-  create(input: SupplierInput) {
-    return this.prisma.supplier.create({ data: input });
+  create(input: SupplierInput, actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.supplier.create({ data: input });
+      await tx.auditLog.create({
+        data: { actorId, action: 'SUPPLIER_CREATED', entityType: 'Supplier', entityId: created.id },
+      });
+      return created;
+    });
   }
-  async update(id: string, input: Partial<SupplierInput>) {
+  async update(id: string, input: Partial<SupplierInput>, actorId: string) {
     try {
-      return await this.prisma.supplier.update({ where: { id }, data: input });
+      return await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.supplier.update({ where: { id }, data: input });
+        await tx.auditLog.create({
+          data: { actorId, action: 'SUPPLIER_UPDATED', entityType: 'Supplier', entityId: id },
+        });
+        return updated;
+      });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025')
         throw new NotFoundException('Fournisseur introuvable.');
       throw error;
     }
   }
-  async activate(id: string) {
-    return this.update(id, { active: true } as Partial<SupplierInput>);
+  async activate(id: string, actorId: string) {
+    return this.update(id, { active: true } as Partial<SupplierInput>, actorId);
   }
-  async deactivate(id: string) {
-    return this.update(id, { active: false } as Partial<SupplierInput>);
+  async deactivate(id: string, actorId: string) {
+    return this.update(id, { active: false } as Partial<SupplierInput>, actorId);
   }
 }

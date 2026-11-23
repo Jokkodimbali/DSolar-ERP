@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { SuppliersService } from '../application/suppliers.service';
 
@@ -30,23 +31,26 @@ export class SuppliersController {
   @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) {
     return this.suppliers.get(id);
   }
-  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: SupplierDto) {
-    return this.suppliers.create(dto);
+  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: SupplierDto, @CurrentUserId() actorId: string) {
+    return this.suppliers.create(dto, actorId);
   }
   @Patch(':id') @RequirePermissions('inventory.manage') update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSupplierDto,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.suppliers.update(id, dto);
+    return this.suppliers.update(id, dto, actorId);
   }
   @Post(':id/activate') @RequirePermissions('inventory.manage') activate(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.suppliers.activate(id);
+    return this.suppliers.activate(id, actorId);
   }
   @Post(':id/deactivate') @RequirePermissions('inventory.manage') deactivate(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.suppliers.deactivate(id);
+    return this.suppliers.deactivate(id, actorId);
   }
 }

@@ -12,29 +12,29 @@ export class SuppliersService {
     if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
     return supplier;
   }
-  async create(input: SupplierInput) {
+  async create(input: SupplierInput, actorId: string) {
     const cleaned = this.normalize(input);
     this.validate(cleaned);
     if (!cleaned.name) throw new BadRequestException('Le nom du fournisseur est obligatoire.');
-    return this.suppliers.create(cleaned as SupplierInput);
+    return this.suppliers.create(cleaned as SupplierInput, actorId);
   }
-  async update(id: string, input: Partial<SupplierInput>) {
+  async update(id: string, input: Partial<SupplierInput>, actorId: string) {
     await this.get(id);
     const cleaned = this.normalize(input);
     this.validate(cleaned);
     if (input.name !== undefined && !cleaned.name)
       throw new BadRequestException('Le nom du fournisseur est obligatoire.');
-    return this.suppliers.update(id, cleaned);
+    return this.suppliers.update(id, cleaned, actorId);
   }
-  async deactivate(id: string) {
+  async deactivate(id: string, actorId: string) {
     const supplier = await this.get(id);
     if (!supplier.active) return supplier;
-    return this.suppliers.deactivate(id);
+    return this.suppliers.deactivate(id, actorId);
   }
-  async activate(id: string) {
+  async activate(id: string, actorId: string) {
     const supplier = await this.get(id);
     if (supplier.active) return supplier;
-    return this.suppliers.activate(id);
+    return this.suppliers.activate(id, actorId);
   }
   private validate(input: Partial<SupplierInput>): void {
     const limits: Array<[keyof SupplierInput, number]> = [
