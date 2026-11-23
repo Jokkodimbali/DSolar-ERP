@@ -8,6 +8,9 @@ describe('DashboardService', () => {
     monthlyInvoices: jest.fn(),
     receivables: jest.fn(),
     stockValuation: jest.fn(),
+    snapshot: jest.fn(),
+    topProducts: jest.fn(),
+    recentActivity: jest.fn(),
   };
   const service = new DashboardService(repository as unknown as DashboardRepository);
 
@@ -106,4 +109,46 @@ describe('DashboardService', () => {
       ],
     });
   });
+  it('déduit les avoirs du montant brut facturé', async () => {
+    repository.snapshot.mockResolvedValue({
+      stores: 2,
+      activeProducts: 5,
+      customers: 4,
+      suppliers: 3,
+      confirmedOrders: 2,
+      pendingPurchaseOrders: 1,
+      issuedInvoices: 2,
+      invoiced: '1000.25',
+      creditNotes: '200.10',
+      collected: '500.15',
+      stock: [],
+    });
+    const result = await service.overview('admin');
+    expect(result).toMatchObject({
+      grossInvoiced: '1000.25',
+      creditNotes: '200.10',
+      netInvoiced: '800.15',
+      collected: '500.15',
+    });
+  });
+
+  it('interdit le tableau de bord global aux non-administrateurs', async () => {
+    repository.isAdmin.mockResolvedValue(false);
+    await expect(service.overview('magasinier')).rejects.toThrow(ForbiddenException);
+    expect(repository.snapshot).not.toHaveBeenCalled();
+  });
+
+  it('valide les limites du classement avant de consulter la base', async () => {
+    await expect(service.topProducts('admin', '51')).rejects.toThrow(BadRequestException);
+    await expect(service.recentActivity('admin', '0')).rejects.toThrow(BadRequestException);
+    expect(repository.topProducts).not.toHaveBeenCalled();
+    expect(repository.recentActivity).not.toHaveBeenCalled();
+  });
+
+  it('accepte la limite maximale autorisée pour les produits', async () => {
+    repository.topProducts.mockResolvedValue([]);
+    await expect(service.topProducts('admin', '50')).resolves.toEqual({ items: [] });
+    expect(repository.topProducts).toHaveBeenCalledWith(50);
+  });
+
 });
