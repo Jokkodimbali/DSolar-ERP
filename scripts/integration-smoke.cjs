@@ -460,6 +460,59 @@ async function main() {
       await prisma.goodsReceiptLine.deleteMany({ where: { receiptId: { in: duplicateReceiptIds } } });
       await prisma.goodsReceipt.deleteMany({ where: { id: { in: duplicateReceiptIds } } });
     }
+    const auditEntityId = 'ci-receipt-audit:' + receiptId;
+    await assert.rejects(
+      prisma.$transaction(async (tx) => {
+        await tx.auditLog.create({
+          data: {
+            action: 'GOODS_RECEIPT_CONFIRMED',
+            entityType: 'GoodsReceipt',
+            entityId: auditEntityId,
+            storeId,
+            payload: { purchaseOrderId },
+          },
+        });
+        await tx.goodsReceipt.update({
+          where: { id: receiptId },
+          data: { status: 'CONFIRMED' },
+        });
+        throw new Error('audit transaction aborted');
+      }),
+      /audit transaction aborted/,
+    );
+    assert.equal(
+      await prisma.auditLog.count({ where: { entityType: 'GoodsReceipt', entityId: auditEntityId } }),
+      0,
+      'Aborted confirmation must not persist an audit record',
+    );
+    assert.equal(
+      (await prisma.goodsReceipt.findUniqueOrThrow({ where: { id: receiptId } })).status,
+      'CANCELLED',
+      'Aborted audit transaction must restore receipt status',
+    );
+    await prisma.$transaction(async (tx) => {
+      await tx.auditLog.create({
+        data: {
+          action: 'GOODS_RECEIPT_CANCELLED',
+          entityType: 'GoodsReceipt',
+          entityId: auditEntityId,
+          storeId,
+          payload: { purchaseOrderId },
+        },
+      });
+      await tx.goodsReceipt.update({
+        where: { id: receiptId },
+        data: { status: 'CANCELLED' },
+      });
+    });
+    assert.equal(
+      await prisma.auditLog.count({ where: { entityType: 'GoodsReceipt', entityId: auditEntityId } }),
+      1,
+      'Successful receipt transaction must persist exactly one audit event',
+    );
+    await prisma.auditLog.deleteMany({
+      where: { entityType: 'GoodsReceipt', entityId: auditEntityId },
+    });
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
