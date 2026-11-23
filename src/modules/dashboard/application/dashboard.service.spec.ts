@@ -21,9 +21,7 @@ describe('DashboardService', () => {
   });
 
   it('exporte les créances en CSV avec un BOM UTF-8', async () => {
-    repository.receivables.mockResolvedValue([
-      { status: 'UNPAID', count: 2, total: '100.10', paid: '0.00' },
-    ]);
+    repository.receivables.mockResolvedValue([{ status: 'UNPAID', count: 2, total: '100.10', paid: '0.00' }]);
     const csv = await service.exportReceivablesCsv('admin');
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv).toContain('"Reste a encaisser";"100.10"');

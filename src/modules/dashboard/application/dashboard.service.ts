@@ -41,12 +41,7 @@ export class DashboardService {
     const report = await this.storeSales(actorId);
     return csvDocument(
       'Magasin ID;Magasin;Quantite vendue;Montant XOF',
-      report.stores.map((store) => [
-        store.storeId,
-        store.storeName,
-        store.quantity,
-        store.amount,
-      ]),
+      report.stores.map((store) => [store.storeId, store.storeName, store.quantity, store.amount]),
     );
   }
 
