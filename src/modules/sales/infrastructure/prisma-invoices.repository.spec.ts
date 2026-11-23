@@ -77,6 +77,33 @@ describe('PrismaInvoicesRepository', () => {
     expect(call.data.lines.create[0].taxAmount.equals(decimal('18'))).toBe(true);
   });
 
+  it('associe le magasin au journal de création de facture', async () => {
+    await repository.createFromOrder(orderId, actorId);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'INVOICE_CREATED',
+        storeId,
+        payload: { orderId, storeIds: [storeId] },
+      }),
+    });
+  });
+
+  it('journalise une facture multi-magasins sans attribuer un magasin arbitraire', async () => {
+    const secondStoreId = '00000000-0000-4000-8000-000000000006';
+    tx.salesOrder.findUnique.mockResolvedValue({
+      ...order,
+      lines: [
+        { ...order.lines[0], quantity: decimal('1') },
+        { ...order.lines[0], storeId: secondStoreId, quantity: decimal('1') },
+      ],
+    });
+    tx.userStoreAccess.count.mockResolvedValue(2);
+    await repository.createFromOrder(orderId, actorId);
+    const audit = tx.auditLog.create.mock.calls[0][0].data;
+    expect(audit.storeId).toBeUndefined();
+    expect(audit.payload.storeIds).toEqual([storeId, secondStoreId]);
+  });
+
   it('refuse une seconde facture pour la même commande', async () => {
     tx.salesOrder.findUnique.mockResolvedValue({
       ...order,

@@ -94,7 +94,8 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
             action: 'INVOICE_CREATED',
             entityType: 'Invoice',
             entityId: invoice.id,
-            payload: { orderId },
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores },
           },
         });
         return invoice;
@@ -128,7 +129,14 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           include: { lines: true },
         });
         await tx.auditLog.create({
-          data: { actorId, action: 'INVOICE_ISSUED', entityType: 'Invoice', entityId: id },
+          data: {
+            actorId,
+            action: 'INVOICE_ISSUED',
+            entityType: 'Invoice',
+            entityId: id,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId: invoice.orderId, storeIds: stores },
+          },
         });
         return updated;
       },
@@ -166,7 +174,14 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           include: { lines: true },
         });
         await tx.auditLog.create({
-          data: { actorId, action: 'INVOICE_CANCELLED', entityType: 'Invoice', entityId: id },
+          data: {
+            actorId,
+            action: 'INVOICE_CANCELLED',
+            entityType: 'Invoice',
+            entityId: id,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId: invoice.orderId, storeIds: stores },
+          },
         });
         return updated;
       },
