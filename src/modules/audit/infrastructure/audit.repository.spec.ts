@@ -45,7 +45,7 @@ describe('AuditRepository', () => {
     expect(auditLog.count).toHaveBeenCalledWith({ where: { actorId: 'user' } });
   });
 
-  it('retourne une pagination stable sans exposer le payload', async () {
+  it('retourne une pagination stable sans exposer le payload', async () => {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
     auditLog.findMany.mockResolvedValue([
       { id: '3', action: 'A' }, { id: '2', action: 'B' }, { id: '1', action: 'C' },
