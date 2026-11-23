@@ -23,6 +23,41 @@ describe('PurchaseOrdersRepository status transitions', () => {
     repository = new PurchaseOrdersRepository(prisma as unknown as PrismaService);
   });
 
+  it('journalise la création avec son auteur dans la transaction', async () => {
+    const created = { id: 'order-created', number: 'CMD-AUDIT' };
+    const tx = {
+      supplier: { findUnique: jest.fn().mockResolvedValue({ active: true }) },
+      product: { findMany: jest.fn().mockResolvedValue([{ id: 'product-1' }]) },
+      purchaseOrder: { create: jest.fn().mockResolvedValue(created) },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const transaction = jest.fn((callback: (client: typeof tx) => Promise<unknown>) =>
+      callback(tx),
+    );
+    const repositoryWithAudit = new PurchaseOrdersRepository({
+      $transaction: transaction,
+    } as unknown as PrismaService);
+    await expect(
+      repositoryWithAudit.create(
+        {
+          number: 'CMD-AUDIT',
+          supplierId: 'supplier-1',
+          lines: [{ productId: 'product-1', quantity: 1, unitCost: 10 }],
+        },
+        'actor-1',
+      ),
+    ).resolves.toBe(created);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        actorId: 'actor-1',
+        action: 'PURCHASE_ORDER_CREATED',
+        entityType: 'PurchaseOrder',
+        entityId: 'order-created',
+      },
+    });
+  });
+
   it('refuse la création avec un fournisseur désactivé', async () => {
     const tx = {
       supplier: { findUnique: jest.fn().mockResolvedValue({ active: false }) },
