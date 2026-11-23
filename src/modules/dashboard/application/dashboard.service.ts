@@ -12,7 +12,10 @@ const money = (value: bigint): string => {
 };
 
 const csvCell = (value: string): string => {
-  const safe = ['=', '+', '-', '@'].includes(value.charAt(0)) || value.charCodeAt(0) === 9 || value.charCodeAt(0) === 13 ? "'" + value : value;
+  const needsEscape = ['=', '+', '-', '@'].includes(value.charAt(0)) ||
+    value.charCodeAt(0) === 9 ||
+    value.charCodeAt(0) === 13;
+  const safe = needsEscape ? "'" + value : value;
   return '"' + safe.replace(/"/g, '""') + '"';
 };
 
@@ -58,7 +61,10 @@ export class DashboardService {
   async exportStockValuationCsv(actorId: string): Promise<string> {
     const report = await this.stockValuation(actorId);
     const escapeCell = (value: string): string => {
-  const safe = ['=', '+', '-', '@'].includes(value.charAt(0)) || value.charCodeAt(0) === 9 || value.charCodeAt(0) === 13 ? "'" + value : value;
+  const needsEscape = ['=', '+', '-', '@'].includes(value.charAt(0)) ||
+    value.charCodeAt(0) === 9 ||
+    value.charCodeAt(0) === 13;
+  const safe = needsEscape ? "'" + value : value;
       return '"' + safe.replace(/"/g, '""') + '"';
     };
     const rows = report.stores.map((store) =>
