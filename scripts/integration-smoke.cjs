@@ -397,6 +397,69 @@ async function main() {
         data: { status: 'CONFIRMED' },
       });
     }
+    const duplicateReceiptIds = [];
+    try {
+      const duplicateDraft = await prisma.goodsReceipt.create({
+        data: {
+          number: 'GR-IDEMP-' + suffix,
+          purchaseOrderId,
+          storeId,
+          lines: {
+            create: [{ productId, quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(10) }],
+          },
+        },
+      });
+      duplicateReceiptIds.push(duplicateDraft.id);
+      const stockBeforeIdempotency = await prisma.storeStock.findUniqueOrThrow({
+        where: { storeId_productId: { storeId, productId } },
+      });
+      const confirmOnce = () =>
+        prisma.$transaction(async (tx) => {
+          const updated = await tx.goodsReceipt.updateMany({
+            where: { id: duplicateDraft.id, status: 'DRAFT' },
+            data: { status: 'CONFIRMED' },
+          });
+          if (updated.count === 0) return false;
+          await tx.storeStock.update({
+            where: { storeId_productId: { storeId, productId } },
+            data: { quantity: { increment: new Prisma.Decimal(1) } },
+          });
+          await tx.stockMovement.create({
+            data: {
+              storeId,
+              productId,
+              type: 'RECEIPT',
+              quantity: new Prisma.Decimal(1),
+              referenceType: 'GOODS_RECEIPT',
+              referenceId: duplicateDraft.id,
+              operationKey: 'ci-idempotent:' + duplicateDraft.id,
+            },
+          });
+          return true;
+        });
+      const confirmations = await Promise.all([confirmOnce(), confirmOnce()]);
+      assert.equal(
+        confirmations.filter(Boolean).length,
+        1,
+        'The same receipt must not be confirmed twice',
+      );
+      assert.equal(
+        (await prisma.storeStock.findUniqueOrThrow({
+          where: { storeId_productId: { storeId, productId } },
+        })).quantity.minus(stockBeforeIdempotency.quantity).toString(),
+        '1',
+        'Repeated confirmation must increase stock only once',
+      );
+      assert.equal(
+        await prisma.stockMovement.count({ where: { referenceId: duplicateDraft.id } }),
+        1,
+        'Repeated confirmation must create exactly one stock movement',
+      );
+    } finally {
+      await prisma.stockMovement.deleteMany({ where: { referenceId: { in: duplicateReceiptIds } } });
+      await prisma.goodsReceiptLine.deleteMany({ where: { receiptId: { in: duplicateReceiptIds } } });
+      await prisma.goodsReceipt.deleteMany({ where: { id: { in: duplicateReceiptIds } } });
+    }
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
