@@ -53,6 +53,12 @@ describe('PurchaseOrdersService', () => {
     }));
     await expect(service.create({ ...input, lines })).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('refuse un numéro de commande dépassant cent caractères', async () => {
+    await expect(service.create({ ...input, number: 'A'.repeat(101) })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(repository.create).not.toHaveBeenCalled();
+  });
   it('normalise le numéro', async () => {
     await service.create({ ...input, number: ' cmd-001 ' });
     expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'CMD-001' });
