@@ -18,6 +18,12 @@ describe('TransfersService', () => {
     finalize: false,
     lines: [{ lineId: 'l', received: '1.000', damaged: '0', missing: '0' }],
   };
+  it('refuse une référence de transfert vide', () =>
+    expect(() => service.create({ ...valid, number: '   ' })).toThrow(BadRequestException));
+  it('normalise la référence avant persistance', async () => {
+    await service.create({ ...valid, number: '  TR-001  ' });
+    expect(repo.create).toHaveBeenCalledWith({ ...valid, number: 'TR-001' });
+  });
   it('refuse les magasins identiques', () =>
     expect(() => service.create({ ...valid, destinationId: 'a' })).toThrow(BadRequestException));
   it('refuse les produits dupliqués', () =>
