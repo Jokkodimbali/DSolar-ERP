@@ -256,6 +256,43 @@ async function main() {
       'CANCELLED',
       'Failed receipt audit must restore receipt status',
     );
+    const beforeDuplicateMovement = await prisma.storeStock.findUniqueOrThrow({
+      where: { storeId_productId: { storeId, productId } },
+    });
+    const duplicateOperationKey = 'ci-receipt-unique:' + receiptId;
+    await assert.rejects(
+      prisma.$transaction(async (tx) => {
+        await tx.storeStock.update({
+          where: { storeId_productId: { storeId, productId } },
+          data: { quantity: { increment: new Prisma.Decimal(4) } },
+        });
+        const movement = {
+          storeId,
+          productId,
+          type: 'RECEIPT',
+          quantity: new Prisma.Decimal(2),
+          referenceType: 'GOODS_RECEIPT',
+          referenceId: receiptId,
+          operationKey: duplicateOperationKey,
+        };
+        await tx.stockMovement.create({ data: movement });
+        await tx.stockMovement.create({ data: movement });
+      }),
+      (error) => error.code === 'P2002',
+      'Duplicate operation keys must be rejected by PostgreSQL',
+    );
+    assert.equal(
+      (await prisma.storeStock.findUniqueOrThrow({
+        where: { storeId_productId: { storeId, productId } },
+      })).quantity.toString(),
+      beforeDuplicateMovement.quantity.toString(),
+      'Duplicate movement must roll back stock increment',
+    );
+    assert.equal(
+      await prisma.stockMovement.count({ where: { operationKey: duplicateOperationKey } }),
+      0,
+      'Duplicate movement must not leave an orphaned stock trace',
+    );
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
