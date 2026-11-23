@@ -22,6 +22,12 @@ describe('GoodsReceiptsService', () => {
     await service.cancel('receipt-id', 'actor');
     expect(repository.cancel).toHaveBeenCalledWith('receipt-id', 'actor');
   });
+  it('refuse un numéro de réception dépassant cent caractères', async () => {
+    await expect(service.create({ ...base, number: 'R'.repeat(101) }, 'actor')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(repository.create).not.toHaveBeenCalled();
+  });
   it('normalise le numéro de réception', async () => {
     await service.create(base, 'actor');
     expect(repository.create).toHaveBeenCalledWith({ ...base, number: 'REC-001' }, 'actor');
