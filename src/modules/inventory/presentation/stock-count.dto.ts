@@ -16,7 +16,7 @@ export class CountLineDto {
   productId!: string;
 
   @IsString()
-  @Matches(/^(?:0|[1-9]\\d{0,14})(?:\\.\\d{1,3})?$/)
+  @Matches(/^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/)
   counted!: string;
 
   @IsOptional()
