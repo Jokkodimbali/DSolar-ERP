@@ -41,6 +41,18 @@ export class PrismaDashboardRepository implements DashboardRepository {
     }));
   }
 
+  async procurement() {
+    const groups = await this.prisma.purchaseOrder.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+      orderBy: { status: 'asc' },
+    });
+    return groups.map((group) => ({
+      status: group.status,
+      count: group._count._all,
+    }));
+  }
+
   async storeSales() {
     const rows = await this.prisma.salesOrderLine.groupBy({
       by: ['storeId'],

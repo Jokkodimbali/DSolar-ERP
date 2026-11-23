@@ -25,6 +25,17 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async procurement(actorId: string) {
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Suivi des achats réservé au super administrateur.');
+    }
+    const statuses = await this.repository.procurement();
+    return {
+      total: statuses.reduce((sum, status) => sum + status.count, 0),
+      statuses,
+    };
+  }
+
   async storeSales(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Comparaison des magasins réservée au super administrateur.');

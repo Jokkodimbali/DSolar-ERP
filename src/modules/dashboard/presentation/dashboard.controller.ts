@@ -11,6 +11,12 @@ import { DashboardService } from '../application/dashboard.service';
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
+  @Get('procurement')
+  @RequirePermissions('sales.read')
+  procurement(@CurrentUserId() actorId: string) {
+    return this.dashboard.procurement(actorId);
+  }
+
   @Get('store-sales')
   @RequirePermissions('sales.read')
   storeSales(@CurrentUserId() actorId: string) {

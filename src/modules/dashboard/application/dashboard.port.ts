@@ -34,5 +34,8 @@ export interface DashboardRepository {
   recentActivity(limit: number): Promise<
     Array<{ id: string; action: string; entityType: string; entityId: string; createdAt: Date }>
   >;
-  storeSales(): Promise<Array<{ storeId: string; storeName: string; quantity: string; amount: string }>>;
+  storeSales(): Promise<
+    Array<{ storeId: string; storeName: string; quantity: string; amount: string }>
+  >;
+  procurement(): Promise<Array<{ status: string; count: number }>>;
 }
