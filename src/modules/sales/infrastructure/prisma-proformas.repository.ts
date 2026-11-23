@@ -108,7 +108,7 @@ export class PrismaProformasRepository implements ProformasRepository {
           lines.map((line) => line.storeId),
           actorId,
         );
-        return tx.proforma.create({
+        const created = await tx.proforma.create({
           data: {
             number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
             customerId: input.customerId,
@@ -118,6 +118,18 @@ export class PrismaProformasRepository implements ProformasRepository {
           },
           include: { lines: true },
         });
+        const storeIds = [...new Set(lines.map((line) => line.storeId))];
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PROFORMA_CREATED',
+            entityType: 'Proforma',
+            entityId: created.id,
+            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+            payload: { storeIds, customerId: input.customerId, lineCount: lines.length },
+          },
+        });
+        return created;
       });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
@@ -193,7 +205,7 @@ export class PrismaProformasRepository implements ProformasRepository {
           };
         });
         await tx.proformaLine.deleteMany({ where: { proformaId: id } });
-        return tx.proforma.update({
+        const updated = await tx.proforma.update({
           where: { id },
           data: {
             number: input.number ?? existing.number,
@@ -204,6 +216,18 @@ export class PrismaProformasRepository implements ProformasRepository {
           },
           include: { lines: true },
         });
+        const storeIds = [...new Set([...currentLines.map((line) => line.storeId), ...lines.map((line) => line.storeId)])];
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PROFORMA_UPDATED',
+            entityType: 'Proforma',
+            entityId: id,
+            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+            payload: { storeIds, customerId: input.customerId, lineCount: lines.length },
+          },
+        });
+        return updated;
       });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
