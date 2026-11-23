@@ -113,6 +113,26 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
   });
 
+  // prettier-ignore
+  it('réessaie une annulation après un conflit de sérialisation', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Serialization conflict', { code: 'P2034', clientVersion: '6.19.3' });
+    const cancelled = { id: 'receipt-id', status: 'CANCELLED' };
+    const prisma = { $transaction: jest.fn().mockRejectedValueOnce(conflict).mockResolvedValueOnce(cancelled) } as unknown as PrismaService;
+    const repository = new PrismaGoodsReceiptsRepository(prisma);
+    await expect(repository.cancel('receipt-id', 'actor-id')).resolves.toBe(cancelled);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
+  });
+
+  // prettier-ignore
+  it('limite à trois les tentatives d’annulation concurrente', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Serialization conflict', { code: 'P2034', clientVersion: '6.19.3' });
+    const prisma = { $transaction: jest.fn().mockRejectedValue(conflict) } as unknown as PrismaService;
+    const repository = new PrismaGoodsReceiptsRepository(prisma);
+    await expect(repository.cancel('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+  });
+
   it('refuse une annulation sans accès au magasin', async () => {
     const tx = {
       goodsReceipt: {

@@ -143,26 +143,26 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
       try {
         return await this.prisma.$transaction(
           async (tx) => {
-          const receipt = await tx.goodsReceipt.findUnique({ where: { id } });
-          if (!receipt) throw new NotFoundException('Réception introuvable.');
-          await this.authorize(tx, receipt.storeId, actorId);
-          const updated = await tx.goodsReceipt.updateMany({
-            where: { id, status: ReceiptStatus.DRAFT },
-            data: { status: ReceiptStatus.CANCELLED },
-          });
-          if (updated.count !== 1)
-            throw new ConflictException('Seule une réception brouillon peut être annulée.');
-          await tx.auditLog.create({
-            data: {
-              actorId,
-              action: 'GOODS_RECEIPT_CANCELLED',
-              entityType: 'GoodsReceipt',
-              entityId: id,
-              storeId: receipt.storeId,
-              payload: { purchaseOrderId: receipt.purchaseOrderId },
-            },
-          });
-          return tx.goodsReceipt.findUnique({ where: { id }, include: { lines: true } });
+            const receipt = await tx.goodsReceipt.findUnique({ where: { id } });
+            if (!receipt) throw new NotFoundException('Réception introuvable.');
+            await this.authorize(tx, receipt.storeId, actorId);
+            const updated = await tx.goodsReceipt.updateMany({
+              where: { id, status: ReceiptStatus.DRAFT },
+              data: { status: ReceiptStatus.CANCELLED },
+            });
+            if (updated.count !== 1)
+              throw new ConflictException('Seule une réception brouillon peut être annulée.');
+            await tx.auditLog.create({
+              data: {
+                actorId,
+                action: 'GOODS_RECEIPT_CANCELLED',
+                entityType: 'GoodsReceipt',
+                entityId: id,
+                storeId: receipt.storeId,
+                payload: { purchaseOrderId: receipt.purchaseOrderId },
+              },
+            });
+            return tx.goodsReceipt.findUnique({ where: { id }, include: { lines: true } });
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
         );
