@@ -25,6 +25,26 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async exportStockValuationCsv(actorId: string): Promise<string> {
+    const report = await this.stockValuation(actorId);
+    const escapeCell = (value: string): string => {
+      const safe = /^[=+@\-\t\r]/.test(value) ? "'" + value : value;
+      return '"' + safe.replace(/"/g, '""') + '"';
+    };
+    const rows = report.stores.map((store) =>
+      [
+        escapeCell(store.storeId),
+        escapeCell(store.storeName),
+        escapeCell(store.valued),
+        String(store.unvaluedProducts),
+      ].join(';'),
+    );
+    return '\uFEFF' + [
+      'Magasin ID;Magasin;Valeur stock XOF;Produits sans cout',
+      ...rows,
+    ].join('\n');
+  }
+
   async stockValuation(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Valorisation réservée au super administrateur.');

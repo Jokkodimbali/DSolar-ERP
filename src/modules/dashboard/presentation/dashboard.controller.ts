@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -10,6 +10,14 @@ import { DashboardService } from '../application/dashboard.service';
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
+
+  @Get('exports/stock-valuation.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="stock-valuation.csv"')
+  @RequirePermissions('sales.read')
+  exportStockValuationCsv(@CurrentUserId() actorId: string) {
+    return this.dashboard.exportStockValuationCsv(actorId);
+  }
 
   @Get('stock-valuation')
   @RequirePermissions('sales.read')
