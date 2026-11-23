@@ -153,9 +153,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       select: { issuedAt: true, totalTtc: true },
     });
     return invoices.flatMap((invoice) =>
-      invoice.issuedAt
-        ? [{ issuedAt: invoice.issuedAt, total: invoice.totalTtc.toFixed(2) }]
-        : [],
+      invoice.issuedAt ? [{ issuedAt: invoice.issuedAt, total: invoice.totalTtc.toFixed(2) }] : [],
     );
   }
 

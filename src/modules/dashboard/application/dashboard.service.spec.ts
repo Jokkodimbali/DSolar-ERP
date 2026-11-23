@@ -18,16 +18,12 @@ describe('DashboardService', () => {
 
   it('refuse les statistiques financières à un magasinier', async () => {
     repository.isAdmin.mockResolvedValue(false);
-    await expect(service.monthlyRevenue('magasinier', '2026')).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(service.monthlyRevenue('magasinier', '2026')).rejects.toThrow(ForbiddenException);
     expect(repository.monthlyInvoices).not.toHaveBeenCalled();
   });
 
   it('rejette une année invalide', async () => {
-    await expect(service.monthlyRevenue('admin', '2026-01')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(service.monthlyRevenue('admin', '2026-01')).rejects.toThrow(BadRequestException);
   });
 
   it('consolide les factures émises par mois sans arrondi flottant', async () => {
