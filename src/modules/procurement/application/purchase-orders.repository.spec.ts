@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
@@ -9,6 +9,7 @@ describe('PurchaseOrdersRepository status transitions', () => {
       updateMany: jest.fn(),
       findUnique: jest.fn(),
     },
+    goodsReceipt: { findMany: jest.fn() },
   };
   let repository: PurchaseOrdersRepository;
 
@@ -90,6 +91,40 @@ describe('PurchaseOrdersRepository status transitions', () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(tx.purchaseOrder.create).not.toHaveBeenCalled();
+  });
+
+  it('calcule les livraisons partielles avec des décimales exactes', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      id: 'order-1',
+      number: 'CMD-001',
+      status: OrderStatus.PARTIALLY_DELIVERED,
+      lines: [
+        { productId: 'p1', quantity: new Prisma.Decimal('10.500') },
+        { productId: 'p2', quantity: new Prisma.Decimal('2') },
+      ],
+    });
+    prisma.goodsReceipt.findMany.mockResolvedValue([
+      { lines: [{ productId: 'p1', quantity: new Prisma.Decimal('4.250') }] },
+      { lines: [{ productId: 'p1', quantity: new Prisma.Decimal('6.250') }] },
+    ]);
+
+    const progress = await repository.progress('order-1');
+
+    expect(prisma.goodsReceipt.findMany).toHaveBeenCalledWith({
+      where: { purchaseOrderId: 'order-1', status: 'CONFIRMED' },
+      select: { lines: { select: { productId: true, quantity: true } } },
+    });
+    expect(progress.lines).toEqual([
+      { productId: 'p1', orderedQuantity: '10.5', receivedQuantity: '10.5', remainingQuantity: '0', complete: true },
+      { productId: 'p2', orderedQuantity: '2', receivedQuantity: '0', remainingQuantity: '2', complete: false },
+    ]);
+    expect(progress).toMatchObject({ totalLines: 2, completedLines: 1, pendingLines: 1, complete: false });
+  });
+
+  it('retourne 404 si le suivi concerne une commande inexistante', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue(null);
+    await expect(repository.progress('missing')).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.goodsReceipt.findMany).not.toHaveBeenCalled();
   });
 
   it('annule atomiquement une commande brouillon', async () => {
