@@ -110,24 +110,19 @@ describe('GoodsReceiptsService', () => {
     expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'REC-001' }, 'actor');
   });
   // prettier-ignore
-  it.each([NaN, Infinity, -Infinity])(
-    'refuse une quantité non finie (%s)',
-    async (quantity) => {
-      await expect(
-        service.create({ ...base, lines: [{ ...base.lines[0], quantity }] }, 'actor'),
-      ).rejects.toBeInstanceOf(BadRequestException);
+  it('refuse les quantités non finies', async () => {
+    for (const quantity of [NaN, Infinity, -Infinity]) {
+      await expect(service.create({ ...base, lines: [{ ...base.lines[0], quantity }] }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
       expect(repository.create).not.toHaveBeenCalled();
-    },
-  );
-  it.each([NaN, Infinity, -Infinity])(
-    'refuse un coût non fini (%s)',
-    async (unitCost) => {
-      await expect(
-        service.create({ ...base, lines: [{ ...base.lines[0], unitCost }] }, 'actor'),
-      ).rejects.toBeInstanceOf(BadRequestException);
+    }
+  });
+  // prettier-ignore
+  it('refuse les coûts non finis', async () => {
+    for (const unitCost of [NaN, Infinity, -Infinity]) {
+      await expect(service.create({ ...base, lines: [{ ...base.lines[0], unitCost }] }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
       expect(repository.create).not.toHaveBeenCalled();
-    },
-  );
+    }
+  });
   // prettier-ignore
   it('accepte exactement cent lignes distinctes', async () => {
     const input = {
@@ -141,5 +136,4 @@ describe('GoodsReceiptsService', () => {
     await service.create(input, 'actor');
     expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'REC-001' }, 'actor');
   });
-
 });
