@@ -293,6 +293,110 @@ async function main() {
       0,
       'Duplicate movement must not leave an orphaned stock trace',
     );
+    const concurrentReceiptIds = [];
+    try {
+      for (const index of [1, 2]) {
+        const draft = await prisma.goodsReceipt.create({
+          data: {
+            number: 'GR-RACE-' + index + '-' + suffix,
+            purchaseOrderId,
+            storeId,
+            lines: {
+              create: [{ productId, quantity: new Prisma.Decimal(3), unitCost: new Prisma.Decimal(10) }],
+            },
+          },
+        });
+        concurrentReceiptIds.push(draft.id);
+      }
+      const confirmConcurrent = async (id) => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            return await prisma.$transaction(
+              async (tx) => {
+                await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${purchaseOrderId}))`;
+                const orderState = await tx.purchaseOrder.findUniqueOrThrow({
+                  where: { id: purchaseOrderId },
+                  include: { lines: true },
+                });
+                assert.ok(['CONFIRMED', 'PARTIALLY_DELIVERED'].includes(orderState.status));
+                const previous = await tx.goodsReceipt.findMany({
+                  where: { purchaseOrderId, status: 'CONFIRMED' },
+                  include: { lines: true },
+                });
+                const received = previous.reduce(
+                  (sum, entry) => sum.plus(
+                    entry.lines.filter((line) => line.productId === productId).reduce(
+                      (subtotal, line) => subtotal.plus(line.quantity),
+                      new Prisma.Decimal(0),
+                    ),
+                  ),
+                  new Prisma.Decimal(0),
+                );
+                const ordered = orderState.lines.find((line) => line.productId === productId).quantity;
+                if (received.plus(3).greaterThan(ordered)) return false;
+                await tx.goodsReceipt.update({
+                  where: { id },
+                  data: { status: 'CONFIRMED' },
+                });
+                await tx.storeStock.update({
+                  where: { storeId_productId: { storeId, productId } },
+                  data: { quantity: { increment: new Prisma.Decimal(3) } },
+                });
+                await tx.stockMovement.create({
+                  data: {
+                    storeId,
+                    productId,
+                    type: 'RECEIPT',
+                    quantity: new Prisma.Decimal(3),
+                    referenceType: 'GOODS_RECEIPT',
+                    referenceId: id,
+                    operationKey: 'ci-race:' + id + ':' + productId,
+                  },
+                });
+                await tx.purchaseOrder.update({
+                  where: { id: purchaseOrderId },
+                  data: { status: received.plus(3).equals(ordered) ? 'DELIVERED' : 'PARTIALLY_DELIVERED' },
+                });
+                return true;
+              },
+              { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+            );
+          } catch (error) {
+            if (error.code !== 'P2034' || attempt === 2) throw error;
+          }
+        }
+      };
+      const raceStockBefore = await prisma.storeStock.findUniqueOrThrow({
+        where: { storeId_productId: { storeId, productId } },
+      });
+      const outcomes = await Promise.all(concurrentReceiptIds.map(confirmConcurrent));
+      assert.equal(outcomes.filter(Boolean).length, 1, 'Only one competing receipt may be confirmed');
+      const raceStockAfter = await prisma.storeStock.findUniqueOrThrow({
+        where: { storeId_productId: { storeId, productId } },
+      });
+      assert.equal(
+        raceStockAfter.quantity.minus(raceStockBefore.quantity).toString(),
+        '3',
+        'Concurrent receipts must increase stock exactly once',
+      );
+      assert.equal(
+        await prisma.stockMovement.count({ where: { referenceId: { in: concurrentReceiptIds } } }),
+        1,
+        'Concurrent receipts must create only one stock movement',
+      );
+      assert.equal(
+        (await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } })).status,
+        'PARTIALLY_DELIVERED',
+      );
+    } finally {
+      await prisma.stockMovement.deleteMany({ where: { referenceId: { in: concurrentReceiptIds } } });
+      await prisma.goodsReceiptLine.deleteMany({ where: { receiptId: { in: concurrentReceiptIds } } });
+      await prisma.goodsReceipt.deleteMany({ where: { id: { in: concurrentReceiptIds } } });
+      await prisma.purchaseOrder.update({
+        where: { id: purchaseOrderId },
+        data: { status: 'CONFIRMED' },
+      });
+    }
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
