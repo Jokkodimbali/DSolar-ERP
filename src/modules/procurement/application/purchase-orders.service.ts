@@ -12,6 +12,9 @@ export class PurchaseOrdersService {
     if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
     return order;
   }
+  outstanding() {
+    return this.orders.outstanding();
+  }
   progress(id: string) {
     return this.orders.progress(id);
   }
