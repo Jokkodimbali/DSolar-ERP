@@ -103,7 +103,7 @@ describe('PurchaseOrdersService', () => {
   it('autorise l’annulation d’une commande brouillon', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'DRAFT' } as never);
     await service.cancel('1');
-    expect(repository.cancel).toHaveBeenCalledWith('1');
+    expect(repository.cancel).toHaveBeenCalledWith('1', undefined);
   });
   it('refuse l’annulation d’une commande confirmée', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'CONFIRMED' } as never);
@@ -125,7 +125,7 @@ describe('PurchaseOrdersService', () => {
   it('confirme une commande brouillon', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'DRAFT' } as never);
     await service.confirm('1');
-    expect(repository.confirm).toHaveBeenCalledWith('1');
+    expect(repository.confirm).toHaveBeenCalledWith('1', undefined);
   });
   // prettier-ignore
   it('refuse la confirmation d’une commande absente', async () => {
