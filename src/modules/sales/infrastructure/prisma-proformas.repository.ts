@@ -138,32 +138,35 @@ export class PrismaProformasRepository implements ProformasRepository {
     }
   }
   async issue(id: string, actorId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
-      const proforma = await tx.proforma.findUnique({ where: { id }, include: { lines: true } });
-      if (!proforma) throw new NotFoundException('Devis introuvable.');
-      const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
-      await this.assertAccess(tx, storeIds, actorId);
-      if (proforma.status !== DocumentStatus.DRAFT) throw new ConflictException('Devis déjà traité.');
-      if (proforma.expiresAt && proforma.expiresAt <= new Date())
-        throw new ConflictException('Devis expiré.');
-      const updated = await tx.proforma.update({
-        where: { id },
-        data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
-        include: { lines: true },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorId,
-          action: 'PROFORMA_ISSUED',
-          entityType: 'Proforma',
-          entityId: id,
-          ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
-          payload: { storeIds, previousStatus: proforma.status },
-        },
-      });
-      return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
+        const proforma = await tx.proforma.findUnique({ where: { id }, include: { lines: true } });
+        if (!proforma) throw new NotFoundException('Devis introuvable.');
+        const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
+        await this.assertAccess(tx, storeIds, actorId);
+        if (proforma.status !== DocumentStatus.DRAFT) throw new ConflictException('Devis déjà traité.');
+        if (proforma.expiresAt && proforma.expiresAt <= new Date())
+          throw new ConflictException('Devis expiré.');
+        const updated = await tx.proforma.update({
+          where: { id },
+          data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
+          include: { lines: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'PROFORMA_ISSUED',
+            entityType: 'Proforma',
+            entityId: id,
+            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+            payload: { storeIds, previousStatus: proforma.status },
+          },
+        });
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   async update(id: string, input: ProformaInput, actorId: string) {
@@ -230,7 +233,9 @@ export class PrismaProformasRepository implements ProformasRepository {
           },
           include: { lines: true },
         });
-        const storeIds = [...new Set([...currentLines.map((line) => line.storeId), ...lines.map((line) => line.storeId)])];
+        const storeIds = [
+          ...new Set([...currentLines.map((line) => line.storeId), ...lines.map((line) => line.storeId)]),
+        ];
         await tx.auditLog.create({
           data: {
             actorId,
@@ -250,32 +255,34 @@ export class PrismaProformasRepository implements ProformasRepository {
     }
   }
   async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', actorId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
-      const proforma = await tx.proforma.findUnique({ where: { id }, include: { lines: true } });
-      if (!proforma) throw new NotFoundException('Devis introuvable.');
-      const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
-      await this.assertAccess(tx, storeIds, actorId);
-      if (proforma.status !== from) throw new ConflictException('Transition de statut impossible.');
-      if (to === 'ACCEPTED' && proforma.expiresAt && proforma.expiresAt <= new Date())
-        throw new ConflictException('Devis expiré.');
-      const updated = await tx.proforma.update({
-        where: { id },
-        data: { status: to },
-        include: { lines: true },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorId,
-          action: `PROFORMA_${to}`,
-          entityType: 'Proforma',
-          entityId: id,
-          ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
-          payload: { storeIds, previousStatus: from, newStatus: to },
-        },
-      });
-      return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
+        const proforma = await tx.proforma.findUnique({ where: { id }, include: { lines: true } });
+        if (!proforma) throw new NotFoundException('Devis introuvable.');
+        const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
+        await this.assertAccess(tx, storeIds, actorId);
+        if (proforma.status !== from) throw new ConflictException('Transition de statut impossible.');
+        if (to === 'ACCEPTED' && proforma.expiresAt && proforma.expiresAt <= new Date())
+          throw new ConflictException('Devis expiré.');
+        const updated = await tx.proforma.update({
+          where: { id },
+          data: { status: to },
+          include: { lines: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: `PROFORMA_${to}`,
+            entityType: 'Proforma',
+            entityId: id,
+            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+            payload: { storeIds, previousStatus: from, newStatus: to },
+          },
+        });
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
-
 }
