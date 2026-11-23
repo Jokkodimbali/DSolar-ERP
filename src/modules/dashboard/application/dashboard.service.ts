@@ -60,22 +60,15 @@ export class DashboardService {
 
   async exportStockValuationCsv(actorId: string): Promise<string> {
     const report = await this.stockValuation(actorId);
-    const escapeCell = (value: string): string => {
-  const needsEscape = ['=', '+', '-', '@'].includes(value.charAt(0)) ||
-    value.charCodeAt(0) === 9 ||
-    value.charCodeAt(0) === 13;
-  const safe = needsEscape ? "'" + value : value;
-      return '"' + safe.replace(/"/g, '""') + '"';
-    };
-    const rows = report.stores.map((store) =>
-      [
-        escapeCell(store.storeId),
-        escapeCell(store.storeName),
-        escapeCell(store.valued),
+    return csvDocument(
+      'Magasin ID;Magasin;Valeur stock XOF;Produits sans cout',
+      report.stores.map((store) => [
+        store.storeId,
+        store.storeName,
+        store.valued,
         String(store.unvaluedProducts),
-      ].join(';'),
+      ]),
     );
-    return '\uFEFF' + ['Magasin ID;Magasin;Valeur stock XOF;Produits sans cout', ...rows].join('\n');
   }
 
   async stockValuation(actorId: string) {
