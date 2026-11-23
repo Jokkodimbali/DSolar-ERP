@@ -8,6 +8,7 @@ describe('PurchaseOrdersRepository status transitions', () => {
     purchaseOrder: {
       updateMany: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     goodsReceipt: { findMany: jest.fn() },
   };
@@ -125,6 +126,38 @@ describe('PurchaseOrdersRepository status transitions', () => {
     prisma.purchaseOrder.findUnique.mockResolvedValue(null);
     await expect(repository.progress('missing')).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.goodsReceipt.findMany).not.toHaveBeenCalled();
+  });
+
+  it('ne charge aucune réception quand aucune commande est en attente', async () => {
+    prisma.purchaseOrder.findMany.mockResolvedValue([]);
+    await expect(repository.outstanding()).resolves.toEqual([]);
+    expect(prisma.goodsReceipt.findMany).not.toHaveBeenCalled();
+  });
+
+  it('agrège les quantités reçues par commande sans mélanger les produits identiques', async () => {
+    prisma.purchaseOrder.findMany.mockResolvedValue([
+      {
+        id: 'o1', number: 'CMD-1', supplierId: 's1', orderedAt: new Date('2026-01-01'),
+        status: OrderStatus.PARTIALLY_DELIVERED,
+        lines: [{ productId: 'p1', quantity: new Prisma.Decimal('10') }],
+      },
+      {
+        id: 'o2', number: 'CMD-2', supplierId: 's2', orderedAt: new Date('2026-01-02'),
+        status: OrderStatus.CONFIRMED,
+        lines: [{ productId: 'p1', quantity: new Prisma.Decimal('3') }],
+      },
+    ]);
+    prisma.goodsReceipt.findMany.mockResolvedValue([
+      { purchaseOrderId: 'o1', lines: [{ productId: 'p1', quantity: new Prisma.Decimal('4.5') }] },
+      { purchaseOrderId: 'o2', lines: [{ productId: 'p1', quantity: new Prisma.Decimal('3') }] },
+    ]);
+    const outstanding = await repository.outstanding();
+    expect(prisma.goodsReceipt.findMany).toHaveBeenCalledTimes(1);
+    expect(outstanding).toHaveLength(1);
+    expect(outstanding[0]).toMatchObject({
+      orderId: 'o1', pendingLines: 1,
+      lines: [{ productId: 'p1', orderedQuantity: '10', receivedQuantity: '4.5', remainingQuantity: '5.5', complete: false }],
+    });
   });
 
   it('annule atomiquement une commande brouillon', async () => {
