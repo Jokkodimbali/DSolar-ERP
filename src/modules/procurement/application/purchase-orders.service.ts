@@ -14,7 +14,8 @@ export class PurchaseOrdersService {
   }
   async create(input: PurchaseOrderInput) {
     const number = input.number.trim().toUpperCase();
-    if (!number) throw new BadRequestException('Numéro de commande obligatoire.');
+    if (!number || number.length > 100)
+      throw new BadRequestException('Le numéro de commande doit contenir entre 1 et 100 caractères.');
     if (input.lines.length === 0 || input.lines.length > 100)
       throw new BadRequestException('La commande doit contenir entre 1 et 100 lignes.');
     const products = new Set<string>();
