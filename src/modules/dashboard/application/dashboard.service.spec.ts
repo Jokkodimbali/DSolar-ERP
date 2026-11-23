@@ -66,6 +66,7 @@ describe('DashboardService', () => {
     expect(result.totalValued).toBe('130.35');
     expect(result.unvaluedProducts).toBe(3);
   });
+
   it('interdit l’export des stocks aux utilisateurs non administrateurs', async () => {
     repository.isAdmin.mockResolvedValue(false);
     await expect(service.exportStockValuationCsv('magasinier')).rejects.toThrow(ForbiddenException);
@@ -82,7 +83,7 @@ describe('DashboardService', () => {
       },
     ]);
     const csv = await service.exportStockValuationCsv('admin');
-    expect(csv.startsWith('\\uFEFF')).toBe(true);
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv).toContain('Valeur stock XOF');
     expect(csv).toContain('"\'=HYPERLINK(""https://example.test"");Test"');
     expect(csv).toContain('"125.50";1');
@@ -96,9 +97,7 @@ describe('DashboardService', () => {
         { status: 'CONFIRMED', count: 3 },
       ]),
     };
-    const procurementService = new DashboardService(
-      procurementRepository as unknown as DashboardRepository,
-    );
+    const procurementService = new DashboardService(procurementRepository as unknown as DashboardRepository);
     await expect(procurementService.procurement('admin')).resolves.toEqual({
       total: 5,
       statuses: [
