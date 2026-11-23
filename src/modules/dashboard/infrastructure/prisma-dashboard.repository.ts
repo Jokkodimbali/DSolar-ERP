@@ -21,9 +21,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async topProducts(limit: number) {
     const rows = await this.prisma.salesOrderLine.groupBy({
       by: ['productId'],
-      where: {
-        order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
-      },
+      where: { order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } } },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: 'desc' } },
       take: limit,
@@ -104,14 +102,11 @@ export class PrismaDashboardRepository implements DashboardRepository {
       where: { status: 'ISSUED', issuedAt: { gte: start, lt: end } },
       select: { issuedAt: true, totalTtc: true },
     });
-    return invoices
-      .filter(
-        (invoice): invoice is typeof invoice & { issuedAt: Date } => invoice.issuedAt !== null,
-      )
-      .map((invoice) => ({
-        issuedAt: invoice.issuedAt,
-        total: invoice.totalTtc.toFixed(2),
-      }));
+    return invoices.flatMap((invoice) =>
+      invoice.issuedAt
+        ? [{ issuedAt: invoice.issuedAt, total: invoice.totalTtc.toFixed(2) }]
+        : [],
+    );
   }
 
   async snapshot(): Promise<DashboardSnapshot> {
@@ -175,8 +170,10 @@ export class PrismaDashboardRepository implements DashboardRepository {
             storeId: store.id,
             storeName: store.name,
             products: store.stocks.length,
-            outOfStock: store.stocks.filter((item) => item.quantity.minus(item.reserved).lte(0))
-              .length,
+            outOfStock: store.stocks.reduce(
+              (count, item) => count + Number(item.quantity.lte(item.reserved)),
+              0,
+            ),
             quantity: store.stocks
               .reduce((sum, item) => sum.plus(item.quantity), new Prisma.Decimal(0))
               .toFixed(3),
