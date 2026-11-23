@@ -41,8 +41,8 @@ export class PurchaseOrdersRepository {
               line.quantity <= 0 ||
               !Number.isFinite(line.unitCost) ||
               line.unitCost < 0 ||
-              !/^\\d+(?:\\.\\d{1,3})?$/.test(String(line.quantity)) ||
-              !/^\\d+(?:\\.\\d{1,2})?$/.test(String(line.unitCost)),
+              !/^\d+(?:\.\d{1,3})?$/.test(String(line.quantity)) ||
+              !/^\d+(?:\.\d{1,2})?$/.test(String(line.unitCost)),
           )
         )
           throw new ConflictException('Quantité ou coût unitaire invalide.');
