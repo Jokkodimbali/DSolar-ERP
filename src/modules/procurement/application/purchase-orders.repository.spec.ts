@@ -191,6 +191,28 @@ describe('PurchaseOrdersRepository status transitions', () => {
     });
   });
 
+  it('ne journalise pas une annulation concurrente refusée', async () => {
+    prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 0 });
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CONFIRMED });
+    await expect(repository.cancel('order-1', 'actor-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('refuse la confirmation si le fournisseur est désactivé sans journaliser', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ supplier: { active: false } });
+    await expect(repository.confirm('order-1', 'actor-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.purchaseOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('ne journalise pas une confirmation concurrente refusée', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValueOnce({ supplier: { active: true } });
+    prisma.purchaseOrder.findUnique.mockResolvedValueOnce({ id: 'order-1', status: OrderStatus.CANCELLED });
+    prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 0 });
+    await expect(repository.confirm('order-1', 'actor-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
   it('journalise une annulation réussie avec son auteur', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
     prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CANCELLED });
