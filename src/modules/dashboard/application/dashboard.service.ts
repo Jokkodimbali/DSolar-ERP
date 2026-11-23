@@ -25,6 +25,17 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async storeSales(actorId: string) {
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Comparaison des magasins réservée au super administrateur.');
+    }
+    return {
+      basis: 'CONFIRMED_SALES_ORDER_LINES',
+      currency: 'XOF',
+      stores: await this.repository.storeSales(),
+    };
+  }
+
   async recentActivity(actorId: string, limit = '20') {
     if (!/^(?:[1-9]|[1-4][0-9]|50)$/.test(limit)) {
       throw new BadRequestException('La limite doit être comprise entre 1 et 50.');

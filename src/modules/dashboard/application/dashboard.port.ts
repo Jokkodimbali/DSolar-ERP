@@ -31,5 +31,8 @@ export interface DashboardRepository {
   topProducts(limit: number): Promise<
     Array<{ productId: string; sku: string; name: string; quantity: string }>
   >;
-  recentActivity(limit: number): Promise<Array<{ id: string; action: string; entityType: string; entityId: string; createdAt: Date }>>;
+  recentActivity(limit: number): Promise<
+    Array<{ id: string; action: string; entityType: string; entityId: string; createdAt: Date }>
+  >;
+  storeSales(): Promise<Array<{ storeId: string; storeName: string; quantity: string; amount: string }>>;
 }

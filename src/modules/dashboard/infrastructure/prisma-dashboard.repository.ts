@@ -21,7 +21,9 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async topProducts(limit: number) {
     const rows = await this.prisma.salesOrderLine.groupBy({
       by: ['productId'],
-      where: { order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } } },
+      where: {
+        order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+      },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: 'desc' } },
       take: limit,
@@ -36,6 +38,27 @@ export class PrismaDashboardRepository implements DashboardRepository {
       sku: names.get(row.productId)?.sku ?? '',
       name: names.get(row.productId)?.name ?? '',
       quantity: (row._sum.quantity ?? new Prisma.Decimal(0)).toFixed(3),
+    }));
+  }
+
+  async storeSales() {
+    const rows = await this.prisma.salesOrderLine.groupBy({
+      by: ['storeId'],
+      where: {
+        order: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+      },
+      _sum: { quantity: true, lineTotal: true },
+    });
+    const stores = await this.prisma.store.findMany({
+      where: { id: { in: rows.map((row) => row.storeId) } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(stores.map((store) => [store.id, store.name]));
+    return rows.map((row) => ({
+      storeId: row.storeId,
+      storeName: names.get(row.storeId) ?? '',
+      quantity: (row._sum.quantity ?? new Prisma.Decimal(0)).toFixed(3),
+      amount: (row._sum.lineTotal ?? new Prisma.Decimal(0)).toFixed(2),
     }));
   }
 
