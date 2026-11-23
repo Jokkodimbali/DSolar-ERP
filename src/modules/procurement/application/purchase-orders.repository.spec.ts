@@ -3,6 +3,7 @@ import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
+// prettier-ignore
 describe('PurchaseOrdersRepository status transitions', () => {
   const prisma = {
     purchaseOrder: {
