@@ -94,7 +94,7 @@ describe('PurchaseOrdersService', () => {
   });
   it('normalise le numéro', async () => {
     await service.create({ ...input, number: ' cmd-001 ' });
-    expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'CMD-001' });
+    expect(repository.create).toHaveBeenCalledWith({ ...input, number: 'CMD-001' }, undefined);
   });
   it('refuse la confirmation d’une commande déjà confirmée', async () => {
     repository.find.mockResolvedValue({ id: '1', status: 'CONFIRMED' } as never);
