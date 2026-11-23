@@ -109,6 +109,7 @@ describe('DashboardService', () => {
       ],
     });
   });
+
   it('déduit les avoirs du montant brut facturé', async () => {
     repository.snapshot.mockResolvedValue({
       stores: 2,
@@ -150,5 +151,4 @@ describe('DashboardService', () => {
     await expect(service.topProducts('admin', '50')).resolves.toEqual({ items: [] });
     expect(repository.topProducts).toHaveBeenCalledWith(50);
   });
-
 });
