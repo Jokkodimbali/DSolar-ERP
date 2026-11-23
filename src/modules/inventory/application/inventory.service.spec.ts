@@ -67,6 +67,29 @@ describe('InventoryService', () => {
     });
     expect(stock).toHaveBeenCalledWith('s', 'u');
   });
+  it('préserve les fractions négatives dans les agrégats de stock', async () => {
+    (repository.listStoreStock as jest.Mock).mockResolvedValueOnce([
+      { quantity: '2.000', reserved: '0.000', available: '2.000' },
+      { quantity: '-0.250', reserved: '0.000', available: '-0.250' },
+    ]);
+    await expect(service.stockSummary('s', 'u')).resolves.toMatchObject({
+      totalQuantity: '1.750',
+      totalAvailable: '1.750',
+      outOfStock: 1,
+    });
+  });
+
+  it('signale les disponibilités fractionnaires négatives comme ruptures', async () => {
+    (repository.listStoreStock as jest.Mock).mockResolvedValueOnce([
+      { productId: 'p1', quantity: '0.000', reserved: '0.250', available: '-0.250' },
+      { productId: 'p2', quantity: '1.000', reserved: '0.000', available: '1.000' },
+    ]);
+    const result = await service.stockAlerts('s', 'u', '0');
+    expect(result.items.map((item) => [item.productId, item.severity])).toEqual([
+      ['p1', 'OUT_OF_STOCK'],
+    ]);
+  });
+
   it('renvoie des totaux nuls pour un magasin sans stock', async () => {
     (repository.listStoreStock as jest.Mock).mockResolvedValueOnce([]);
     await expect(service.stockSummary('s', 'u')).resolves.toEqual({
