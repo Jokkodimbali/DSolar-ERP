@@ -119,9 +119,11 @@ describe('PrismaDeliveriesRepository', () => {
 
   it('refuse un produit absent de la commande', async () => {
     tx.salesOrder.findUnique.mockResolvedValue(order('3'));
-    await expect(repository.create(orderId, actorId, {
-      lines: [{ storeId, productId: '00000000-0000-4000-8000-000000000009', quantity: '1' }],
-    })).rejects.toThrow(ConflictException);
+    await expect(
+      repository.create(orderId, actorId, {
+        lines: [{ storeId, productId: '00000000-0000-4000-8000-000000000009', quantity: '1' }],
+      }),
+    ).rejects.toThrow(ConflictException);
     expect(tx.deliveryNote.create).not.toHaveBeenCalled();
   });
 

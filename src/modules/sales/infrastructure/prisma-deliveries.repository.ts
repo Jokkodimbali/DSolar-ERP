@@ -228,7 +228,11 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             entityType: 'DeliveryNote',
             entityId: deliveryId,
             ...(stores.length === 1 ? { storeId: stores[0] } : {}),
-            payload: { orderId, storeIds: stores, orderStatus: complete ? 'DELIVERED' : 'PARTIALLY_DELIVERED' },
+            payload: {
+              orderId,
+              storeIds: stores,
+              orderStatus: complete ? 'DELIVERED' : 'PARTIALLY_DELIVERED',
+            },
           },
         });
         return updated;
