@@ -553,6 +553,40 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     }));
   });
 
+  // prettier-ignore
+  it('ne produit aucun mouvement lorsque la réception a déjà été confirmée', async () => {
+    const tx = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'receipt-id',
+          storeId: 'store-id',
+          status: 'CONFIRMED',
+          purchaseOrderId: 'order-id',
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2), unitCost: new Prisma.Decimal(10) }],
+        }),
+        findMany: jest.fn(),
+        update: jest.fn(),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: { findUnique: jest.fn(), update: jest.fn() },
+      storeStock: { upsert: jest.fn() },
+      stockMovement: { create: jest.fn() },
+      auditLog: { create: jest.fn() },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.purchaseOrder.findUnique).not.toHaveBeenCalled();
+    expect(tx.storeStock.upsert).not.toHaveBeenCalled();
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+    expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
