@@ -10,29 +10,45 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
   private async authorize(tx: Prisma.TransactionClient, storeId: string, actorId: string) {
     const [store, user, access] = await Promise.all([
       tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
-      tx.user.findUnique({ where: { id: actorId }, select: { status: true } }),
+      tx.user.findUnique({
+        where: { id: actorId },
+        select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } },
+      }),
       tx.userStoreAccess.findUnique({ where: { userId_storeId: { userId: actorId, storeId } } }),
     ]);
-    if (!user || user.status !== 'ACTIVE' || !access)
+    if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
       throw new ForbiddenException('Accès au magasin interdit.');
     if (!store || store.status !== 'ACTIVE') throw new ConflictException('Magasin introuvable ou inactif.');
   }
 
-  list(actorId: string) {
-    return this.prisma.goodsReceipt.findMany({
-      where: {
-        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } },
+  private async isActiveAdmin(actorId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: {
+        status: true,
+        roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } },
       },
+    });
+    return user?.status === 'ACTIVE' && user.roles.length > 0;
+  }
+
+  async list(actorId: string) {
+    const isAdmin = await this.isActiveAdmin(actorId);
+    return this.prisma.goodsReceipt.findMany({
+      where: isAdmin
+        ? { store: { status: 'ACTIVE' } }
+        : { store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
       include: { lines: true },
       orderBy: { number: 'desc' },
     });
   }
+
   async get(id: string, actorId: string) {
+    const isAdmin = await this.isActiveAdmin(actorId);
     const receipt = await this.prisma.goodsReceipt.findFirst({
-      where: {
-        id,
-        store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } },
-      },
+      where: isAdmin
+        ? { id, store: { status: 'ACTIVE' } }
+        : { id, store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
       include: { lines: true },
     });
     if (!receipt) throw new NotFoundException('Réception introuvable.');
