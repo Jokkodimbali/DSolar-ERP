@@ -31,7 +31,10 @@ export class SuppliersController {
   @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) {
     return this.suppliers.get(id);
   }
-  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: SupplierDto, @CurrentUserId() actorId: string) {
+  @Post() @RequirePermissions('inventory.manage') create(
+    @Body() dto: SupplierDto,
+    @CurrentUserId() actorId: string,
+  ) {
     return this.suppliers.create(dto, actorId);
   }
   @Patch(':id') @RequirePermissions('inventory.manage') update(

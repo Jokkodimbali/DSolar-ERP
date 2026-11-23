@@ -20,13 +20,18 @@ describe('SuppliersService', () => {
   it('normalise les coordonnées à la création', async () => {
     repository.create.mockResolvedValue(supplier);
     await service.create({ name: ' Fournisseur A ', email: ' TEST@EXAMPLE.COM ' }, 'actor');
-    expect(repository.create).toHaveBeenCalledWith({
-      name: 'Fournisseur A',
-      email: 'test@example.com',
-    }, 'actor');
+    expect(repository.create).toHaveBeenCalledWith(
+      {
+        name: 'Fournisseur A',
+        email: 'test@example.com',
+      },
+      'actor',
+    );
   });
   it('refuse un nom vide', async () => {
-    await expect(service.create({ name: '   ' }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ name: '   ' }, 'actor')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse un nom de fournisseur dépassant 180 caractères', async () => {
@@ -37,9 +42,9 @@ describe('SuppliersService', () => {
   });
   it('refuse une adresse trop longue lors de la modification', async () => {
     repository.find.mockResolvedValue(supplier);
-    await expect(service.update(supplier.id, { address: 'A'.repeat(501) }, 'actor')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.update(supplier.id, { address: 'A'.repeat(501) }, 'actor'),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.update).not.toHaveBeenCalled();
   });
   it('retourne 404 si le fournisseur est absent', async () => {

@@ -26,11 +26,12 @@ export class PrismaSuppliersRepository implements SuppliersRepository {
       return await this.prisma.$transaction(async (tx) => {
         const updated = await tx.supplier.update({ where: { id }, data: input });
         const active = (input as Partial<SupplierInput> & { active?: boolean }).active;
-        const action = active === true
-          ? 'SUPPLIER_ACTIVATED'
-          : active === false
-            ? 'SUPPLIER_DEACTIVATED'
-            : 'SUPPLIER_UPDATED';
+        const action =
+          active === true
+            ? 'SUPPLIER_ACTIVATED'
+            : active === false
+              ? 'SUPPLIER_DEACTIVATED'
+              : 'SUPPLIER_UPDATED';
         await tx.auditLog.create({
           data: { actorId, action, entityType: 'Supplier', entityId: id },
         });
