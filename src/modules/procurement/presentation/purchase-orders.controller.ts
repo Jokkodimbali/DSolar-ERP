@@ -43,6 +43,9 @@ export class PurchaseOrdersController {
   @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) {
     return this.orders.get(id);
   }
+  @Get(':id/progress') @RequirePermissions('inventory.read') progress(@Param('id', ParseUUIDPipe) id: string) {
+    return this.orders.progress(id);
+  }
   @Post() @RequirePermissions('inventory.manage') create(@Body() dto: CreatePurchaseOrderDto) {
     return this.orders.create(dto);
   }
