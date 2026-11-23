@@ -94,7 +94,8 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
             action: 'CREDIT_NOTE_ISSUED',
             entityType: 'CreditNote',
             entityId: creditNote.id,
-            payload: { invoiceId, amount: amount.toString(), reason: normalizedReason },
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { invoiceId, storeIds: stores, amount: amount.toString(), reason: normalizedReason },
           },
         });
         return creditNote;

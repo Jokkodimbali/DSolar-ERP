@@ -37,6 +37,22 @@ describe('PrismaCreditNotesRepository', () => {
   it('accepte un avoir égal au solde restant', async () => {
     await repository.issue(invoiceId, actorId, '50.00', 'Correction de prix');
     expect(tx.creditNote.create).toHaveBeenCalledTimes(1);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      action: 'CREDIT_NOTE_ISSUED', storeId: 'store-1',
+      payload: expect.objectContaining({ storeIds: ['store-1'], invoiceId }),
+    }) });
+  });
+
+  it('conserve les magasins dans le journal pour une facture multi-magasins', async () => {
+    tx.invoice.findUnique.mockResolvedValue({
+      ...invoice,
+      order: { lines: [{ storeId: 'store-1' }, { storeId: 'store-2' }] },
+    });
+    tx.userStoreAccess.count.mockResolvedValue(2);
+    await repository.issue(invoiceId, actorId, '10.00', 'Correction de prix');
+    const data = tx.auditLog.create.mock.calls[0][0].data;
+    expect(data.storeId).toBeUndefined();
+    expect(data.payload.storeIds).toEqual(['store-1', 'store-2']);
   });
 
   it('refuse un avoir supérieur au solde net des affectations', async () => {

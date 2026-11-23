@@ -117,7 +117,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             action: 'PAYMENT_RECEIVED',
             entityType: 'Payment',
             entityId: payment.id,
-            payload: { orderId, amount: amount.toString(), method: input.method },
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores, amount: amount.toString(), method: input.method },
           },
         });
         return payment;
@@ -186,7 +187,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             action: 'PAYMENT_REVERSED',
             entityType: 'PaymentReversal',
             entityId: reversal.id,
-            payload: { orderId, paymentId, amount: payment.amount.toString(), reason: normalizedReason },
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores, paymentId, amount: payment.amount.toString(), reason: normalizedReason },
           },
         });
         return reversal;
@@ -258,7 +260,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             action: 'PAYMENT_ALLOCATED',
             entityType: 'PaymentAllocation',
             entityId: allocation.id,
-            payload: { orderId, paymentId, invoiceId, amount: amount.toString() },
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores, paymentId, invoiceId, amount: amount.toString() },
           },
         });
         return allocation;
@@ -303,8 +306,10 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             action: 'PAYMENT_ALLOCATION_CANCELLED',
             entityType: 'PaymentAllocation',
             entityId: allocation.id,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
             payload: {
               orderId,
+              storeIds: stores,
               paymentId,
               invoiceId: allocation.invoiceId,
               amount: allocation.amount.toString(),
