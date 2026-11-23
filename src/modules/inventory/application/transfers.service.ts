@@ -10,8 +10,9 @@ const quantityPattern = /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/;
 export class TransfersService {
   constructor(@Inject(TRANSFER_REPOSITORY) private readonly repository: TransferRepository) {}
   create(input: CreateTransferInput) {
-    if (!input.number.trim())
-      throw new BadRequestException('La référence du transfert est obligatoire.');
+    const number = input.number.trim();
+    if (number.length < 3 || number.length > 60)
+      throw new BadRequestException('La référence du transfert doit contenir entre 3 et 60 caractères.');
     if (input.originId === input.destinationId)
       throw new BadRequestException('Les magasins doivent être différents.');
     if (!input.lines.length || input.lines.length > 100)
@@ -23,7 +24,7 @@ export class TransfersService {
       if (!quantityPattern.test(line.quantity) || Number(line.quantity) <= 0)
         throw new BadRequestException('La quantité doit être positive (trois décimales maximum).');
     }
-    return this.repository.create({ ...input, number: input.number.trim() });
+    return this.repository.create({ ...input, number });
   }
   receive(input: ReceiveTransferInput) {
     if (!input.lines.length || input.lines.length > 100)
