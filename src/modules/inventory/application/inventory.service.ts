@@ -2,8 +2,11 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { INVENTORY_REPOSITORY, InventoryRepository, StockAdjustment } from './inventory.port';
 
 const toMilliunits = (value: string): bigint => {
-  const [integer, fraction = ''] = value.split('.');
-  return BigInt(integer) * 1000n + BigInt((fraction + '000').slice(0, 3));
+  const negative = value.startsWith('-');
+  const unsigned = negative ? value.slice(1) : value;
+  const [integer, fraction = ''] = unsigned.split('.');
+  const magnitude = BigInt(integer) * 1000n + BigInt((fraction + '000').slice(0, 3));
+  return negative ? -magnitude : magnitude;
 };
 
 const formatMilliunits = (value: bigint): string => {
