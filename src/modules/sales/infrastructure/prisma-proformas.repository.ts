@@ -138,18 +138,32 @@ export class PrismaProformasRepository implements ProformasRepository {
     }
   }
   async issue(id: string, actorId: string) {
-    const visible = await this.find(id, actorId);
-    if (!visible) throw new NotFoundException('Devis introuvable.');
-    const result = await this.prisma.proforma.updateMany({
-      where: {
-        id,
-        status: DocumentStatus.DRAFT,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-      data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
-    });
-    if (!result.count) throw new ConflictException('Devis déjà traité.');
-    return this.find(id, actorId);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
+      const proforma = await tx.proforma.findUnique({ where: { id }, include: { lines: true } });
+      if (!proforma) throw new NotFoundException('Devis introuvable.');
+      const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
+      await this.assertAccess(tx, storeIds, actorId);
+      if (proforma.status !== DocumentStatus.DRAFT) throw new ConflictException('Devis déjà traité.');
+      if (proforma.expiresAt && proforma.expiresAt <= new Date())
+        throw new ConflictException('Devis expiré.');
+      const updated = await tx.proforma.update({
+        where: { id },
+        data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
+        include: { lines: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'PROFORMA_ISSUED',
+          entityType: 'Proforma',
+          entityId: id,
+          ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+          payload: { storeIds, previousStatus: proforma.status },
+        },
+      });
+      return updated;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async update(id: string, input: ProformaInput, actorId: string) {
@@ -236,17 +250,32 @@ export class PrismaProformasRepository implements ProformasRepository {
     }
   }
   async transition(id: string, from: string, to: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', actorId: string) {
-    const visible = await this.find(id, actorId);
-    if (!visible) throw new NotFoundException('Devis introuvable.');
-    const result = await this.prisma.proforma.updateMany({
-      where: {
-        id,
-        status: from as DocumentStatus,
-        ...(to === 'ACCEPTED' ? { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } : {}),
-      },
-      data: { status: to },
-    });
-    if (!result.count) throw new ConflictException('Transition de statut impossible.');
-    return this.find(id, actorId);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
+      const proforma = await tx.proforma.findUnique({ where: { id }, include: { lines: true } });
+      if (!proforma) throw new NotFoundException('Devis introuvable.');
+      const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
+      await this.assertAccess(tx, storeIds, actorId);
+      if (proforma.status !== from) throw new ConflictException('Transition de statut impossible.');
+      if (to === 'ACCEPTED' && proforma.expiresAt && proforma.expiresAt <= new Date())
+        throw new ConflictException('Devis expiré.');
+      const updated = await tx.proforma.update({
+        where: { id },
+        data: { status: to },
+        include: { lines: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: `PROFORMA_${to}`,
+          entityType: 'Proforma',
+          entityId: id,
+          ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+          payload: { storeIds, previousStatus: from, newStatus: to },
+        },
+      });
+      return updated;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
+
 }
