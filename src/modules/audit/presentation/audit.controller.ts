@@ -21,7 +21,9 @@ export class AuditController {
     @Query('entityId') entityId?: string,
     @Query('action') action?: string,
     @Query('storeId', new ParseUUIDPipe({ optional: true })) storeId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
-    return this.audit.list(actorId, { limit, cursor, entityType, entityId, action, storeId });
+    return this.audit.list(actorId, { limit, cursor, entityType, entityId, action, storeId, from, to });
   }
 }

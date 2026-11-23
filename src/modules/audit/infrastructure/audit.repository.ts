@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 
@@ -9,6 +9,8 @@ export interface AuditQuery {
   entityId?: string;
   action?: string;
   storeId?: string;
+  from?: Date;
+  to?: Date;
 }
 
 @Injectable()
@@ -31,7 +33,17 @@ export class AuditRepository {
       ...(query.entityId ? { entityId: query.entityId } : {}),
       ...(query.action ? { action: query.action } : {}),
       ...(query.storeId ? { storeId: query.storeId } : {}),
+      ...(query.from || query.to
+        ? { createdAt: { ...(query.from ? { gte: query.from } : {}), ...(query.to ? { lt: new Date(query.to.getTime() + 86400000) } : {}) } }
+        : {}),
     };
+    if (query.cursor) {
+      const anchor = await this.prisma.auditLog.findFirst({
+        where: { ...where, id: query.cursor },
+        select: { id: true },
+      });
+      if (!anchor) throw new NotFoundException('Curseur de pagination invalide pour ces filtres.');
+    }
     const records = await this.prisma.auditLog.findMany({
       where,
       select: {

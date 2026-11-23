@@ -8,6 +8,8 @@ export interface AuditFilters {
   entityId?: string;
   action?: string;
   storeId?: string;
+  from?: string;
+  to?: string;
 }
 
 @Injectable()
@@ -22,6 +24,10 @@ export class AuditService {
       if (value !== undefined && (!value.trim() || value.length > 120))
         throw new BadRequestException('Filtre de journal invalide.');
     }
+    const from = this.parseDate(filters.from, 'from');
+    const to = this.parseDate(filters.to, 'to');
+    if (from && to && from > to)
+      throw new BadRequestException('La date de début doit précéder la date de fin.');
     return this.repository.list(actorId, {
       limit,
       cursor: filters.cursor,
@@ -29,6 +35,18 @@ export class AuditService {
       entityId: filters.entityId?.trim(),
       action: filters.action?.trim(),
       storeId: filters.storeId,
+      from,
+      to,
     });
+  }
+
+  private parseDate(value: string | undefined, field: string): Date | undefined {
+    if (value === undefined) return undefined;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
+      throw new BadRequestException(`Le filtre ${field} doit être au format AAAA-MM-JJ.`);
+    const date = new Date(`${value}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value)
+      throw new BadRequestException(`Le filtre ${field} contient une date invalide.`);
+    return date;
   }
 }

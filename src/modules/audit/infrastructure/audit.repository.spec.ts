@@ -1,10 +1,10 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AuditRepository } from './audit.repository';
 
 describe('AuditRepository', () => {
   const user = { findUnique: jest.fn() };
-  const auditLog = { findMany: jest.fn() };
+  const auditLog = { findMany: jest.fn(), findFirst: jest.fn() };
   const repository = new AuditRepository({ user, auditLog } as unknown as PrismaService);
   beforeEach(() => jest.clearAllMocks());
 
@@ -12,6 +12,23 @@ describe('AuditRepository', () => {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [] });
     await expect(repository.list('actor', { limit: 10 })).rejects.toBeInstanceOf(ForbiddenException);
     expect(auditLog.findMany).not.toHaveBeenCalled();
+  });
+
+  it('rejette un curseur inexistant dans les filtres courants', async () => {
+    user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
+    auditLog.findFirst.mockResolvedValue(null);
+    await expect(repository.list('actor', { limit: 10, cursor: 'missing', action: 'CREATE' }))
+      .rejects.toBeInstanceOf(NotFoundException);
+    expect(auditLog.findMany).not.toHaveBeenCalled();
+  });
+
+  it('filtre les dates avec une borne supérieure exclusive', async () => {
+    user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
+    auditLog.findMany.mockResolvedValue([]);
+    await repository.list('actor', { limit: 10, from: new Date('2026-01-01'), to: new Date('2026-01-31') });
+    expect(auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { createdAt: { gte: new Date('2026-01-01'), lt: new Date('2026-02-01') } },
+    }));
   });
 
   it('retourne une pagination stable sans exposer le payload', async () => {
