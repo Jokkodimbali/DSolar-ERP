@@ -201,6 +201,61 @@ async function main() {
       0,
       'Cancelling a draft receipt must not create stock movements',
     );
+    const beforeAuditFailure = await prisma.storeStock.findUniqueOrThrow({
+      where: { storeId_productId: { storeId, productId } },
+    });
+    await assert.rejects(
+      prisma.$transaction(async (tx) => {
+        await tx.storeStock.update({
+          where: { storeId_productId: { storeId, productId } },
+          data: { quantity: { increment: new Prisma.Decimal(2) } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            storeId,
+            productId,
+            type: 'RECEIPT',
+            quantity: new Prisma.Decimal(2),
+            referenceType: 'GOODS_RECEIPT',
+            referenceId: receiptId,
+            operationKey: 'ci-receipt-rollback:' + receiptId,
+          },
+        });
+        await tx.purchaseOrder.update({
+          where: { id: purchaseOrderId },
+          data: { status: 'PARTIALLY_DELIVERED' },
+        });
+        await tx.goodsReceipt.update({
+          where: { id: receiptId },
+          data: { status: 'CONFIRMED' },
+        });
+        throw new Error('simulated audit failure');
+      }),
+      /simulated audit failure/,
+    );
+    const afterAuditFailure = await prisma.storeStock.findUniqueOrThrow({
+      where: { storeId_productId: { storeId, productId } },
+    });
+    assert.equal(
+      afterAuditFailure.quantity.toString(),
+      beforeAuditFailure.quantity.toString(),
+      'Failed receipt audit must roll back stock quantity',
+    );
+    assert.equal(
+      await prisma.stockMovement.count({ where: { referenceId: receiptId } }),
+      0,
+      'Failed receipt audit must roll back stock movements',
+    );
+    assert.equal(
+      (await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } })).status,
+      'CONFIRMED',
+      'Failed receipt audit must restore purchase order status',
+    );
+    assert.equal(
+      (await prisma.goodsReceipt.findUniqueOrThrow({ where: { id: receiptId } })).status,
+      'CANCELLED',
+      'Failed receipt audit must restore receipt status',
+    );
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
