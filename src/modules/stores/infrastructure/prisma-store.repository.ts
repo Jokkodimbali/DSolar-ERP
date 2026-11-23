@@ -15,23 +15,43 @@ export class PrismaStoreRepository implements StoreRepository {
   findByCode(code: string): Promise<Store | null> {
     return this.prisma.store.findUnique({ where: { code } });
   }
-  async create(input: NewStore): Promise<Store> {
+  async create(input: NewStore, actorId?: string): Promise<Store> {
     try {
-      return await this.prisma.store.create({ data: input });
+      return await this.prisma.$transaction(async (tx) => {
+        const store = await tx.store.create({ data: input });
+        if (actorId) await tx.auditLog.create({ data: {
+          actorId, action: 'STORE_CREATED', entityType: 'Store', entityId: store.id, storeId: store.id,
+          payload: { code: store.code, name: store.name },
+        } });
+        return store;
+      });
     } catch (error: unknown) {
       this.handle(error);
       throw error;
     }
   }
-  async update(id: string, input: { name?: string; address?: string | null }): Promise<Store> {
+  async update(id: string, input: { name?: string; address?: string | null }, actorId?: string): Promise<Store> {
     try {
-      return await this.prisma.store.update({ where: { id }, data: input });
+      return await this.prisma.$transaction(async (tx) => {
+        const before = await tx.store.findUnique({ where: { id } });
+        if (!before) throw new NotFoundException('Magasin introuvable.');
+        const store = await tx.store.update({ where: { id }, data: input });
+        if (actorId && (before.name !== store.name || before.address !== store.address))
+          await tx.auditLog.create({ data: {
+            actorId, action: 'STORE_UPDATED', entityType: 'Store', entityId: id, storeId: id,
+            payload: { changedFields: [
+              ...(before.name !== store.name ? ['name'] : []),
+              ...(before.address !== store.address ? ['address'] : []),
+            ] },
+          } });
+        return store;
+      });
     } catch (error: unknown) {
       this.handle(error);
       throw error;
     }
   }
-  async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Store> {
+  async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE', actorId?: string) {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
@@ -64,7 +84,13 @@ export class PrismaStoreRepository implements StoreRepository {
                 'Impossible de désactiver un magasin avec des transferts en cours.',
               );
           }
-          return tx.store.update({ where: { id }, data: { status } });
+          const updated = await tx.store.update({ where: { id }, data: { status } });
+          if (actorId) await tx.auditLog.create({ data: {
+            actorId, action: status === 'ACTIVE' ? 'STORE_ACTIVATED' : 'STORE_DEACTIVATED',
+            entityType: 'Store', entityId: id, storeId: id,
+            payload: { previousStatus: store.status, newStatus: status },
+          } });
+          return updated;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
       );

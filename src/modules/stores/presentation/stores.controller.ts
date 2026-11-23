@@ -39,14 +39,15 @@ export class StoresController {
   ) {
     return this.access.getAccessible(id, userId);
   }
-  @Post() @RequirePermissions('stores.manage') create(@Body() dto: CreateStoreDto) {
-    return this.useCases.create(dto);
+  @Post() @RequirePermissions('stores.manage') create(@Body() dto: CreateStoreDto, @CurrentUserId() actorId: string) {
+    return this.useCases.create(dto, actorId);
   }
   @Patch(':id') @RequirePermissions('stores.manage') update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateStoreDto,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.useCases.update(id, dto);
+    return this.useCases.update(id, dto, actorId);
   }
   @Patch(':id/activate') @RequirePermissions('stores.manage') activate(
     @Param('id', new ParseUUIDPipe()) id: string,

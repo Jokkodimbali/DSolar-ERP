@@ -18,14 +18,14 @@ export class StoresUseCases {
     if (!store) throw new NotFoundException('Magasin introuvable.');
     return store;
   }
-  async create(input: NewStore): Promise<Store> {
+  async create(input: NewStore, actorId?: string): Promise<Store> {
     const code = input.code.trim().toUpperCase();
     const name = input.name.trim();
     if (!code || !name) throw new BadRequestException('Le code et le nom sont obligatoires.');
     if (await this.stores.findByCode(code)) throw new ConflictException('Ce code magasin existe déjà.');
-    return this.stores.create({ code, name, address: input.address?.trim() });
+    return this.stores.create({ code, name, address: input.address?.trim() }, actorId);
   }
-  async update(id: string, input: { name?: string; address?: string | null }): Promise<Store> {
+  async update(id: string, input: { name?: string; address?: string | null }, actorId?: string): Promise<Store> {
     await this.get(id);
     const name = input.name?.trim();
     if (input.name !== undefined && !name) throw new BadRequestException('Le nom est obligatoire.');
@@ -33,11 +33,11 @@ export class StoresUseCases {
     return this.stores.update(id, {
       ...(name !== undefined ? { name } : {}),
       ...(input.address !== undefined ? { address } : {}),
-    });
+    }, actorId);
   }
-  async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Store> {
+  async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE', actorId?: string): Promise<Store> {
     const store = await this.get(id);
     if (store.status === status) return store;
-    return this.stores.setStatus(id, status);
+    return this.stores.setStatus(id, status, actorId);
   }
 }

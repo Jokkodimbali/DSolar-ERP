@@ -28,7 +28,7 @@ describe('StoresUseCases', () => {
     repo.findByCode.mockResolvedValue(null);
     repo.create.mockResolvedValue(store);
     await service.create({ code: ' mag-001 ', name: ' Principal ' });
-    expect(repo.create).toHaveBeenCalledWith({ code: 'MAG-001', name: 'Principal', address: undefined });
+    expect(repo.create).toHaveBeenCalledWith({ code: 'MAG-001', name: 'Principal', address: undefined }, undefined);
   });
   it('refuse un doublon', async () => {
     repo.findByCode.mockResolvedValue(store);
@@ -54,8 +54,22 @@ describe('StoresUseCases', () => {
     repo.findById.mockResolvedValue(store);
     repo.setStatus.mockResolvedValue({ ...store, status: 'INACTIVE' });
     await service.setStatus('1', 'INACTIVE');
-    expect(repo.setStatus).toHaveBeenCalledWith('1', 'INACTIVE');
+    expect(repo.setStatus).toHaveBeenCalledWith('1', 'INACTIVE', undefined);
   });
+  it('transmet l’acteur authentifié à la création', async () => {
+    repo.findByCode.mockResolvedValue(null);
+    repo.create.mockResolvedValue(store);
+    await service.create({ code: 'MAG-002', name: 'Secondaire' }, 'admin-id');
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ code: 'MAG-002' }), 'admin-id');
+  });
+
+  it('transmet l’acteur authentifié à la désactivation', async () => {
+    repo.findById.mockResolvedValue(store);
+    repo.setStatus.mockResolvedValue({ ...store, status: 'INACTIVE' });
+    await service.setStatus('1', 'INACTIVE', 'admin-id');
+    expect(repo.setStatus).toHaveBeenCalledWith('1', 'INACTIVE', 'admin-id');
+  });
+
   it('refuse de vider le nom', async () => {
     repo.findById.mockResolvedValue(store);
     await expect(service.update('1', { name: '  ' })).rejects.toBeInstanceOf(BadRequestException);
