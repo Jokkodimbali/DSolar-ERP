@@ -11,9 +11,44 @@ const money = (value: bigint): string => {
   return `${sign}${absolute / 100n}.${String(absolute % 100n).padStart(2, '0')}`;
 };
 
+const csvCell = (value: string): string => {
+  const safe = /^[=+@\\-\\t\\r]/.test(value) ? "'" + value : value;
+  return '"' + safe.replace(/"/g, '""') + '"';
+};
+
+const csvDocument = (header: string, rows: string[][]): string =>
+  '\\uFEFF' + [header, ...rows.map((row) => row.map(csvCell).join(';'))].join('\\n');
+
 @Injectable()
 export class DashboardService {
   constructor(@Inject(DASHBOARD_REPOSITORY) private readonly repository: DashboardRepository) {}
+
+  async exportReceivablesCsv(actorId: string): Promise<string> {
+    const report = await this.receivables(actorId);
+    return csvDocument('Indicateur;Valeur', [
+      ['Devise', report.currency],
+      ['Commandes', String(report.orders)],
+      ['Impayees', String(report.unpaidOrders)],
+      ['Partiellement payees', String(report.partiallyPaidOrders)],
+      ['Payees', String(report.paidOrders)],
+      ['Total', report.total],
+      ['Encaisse', report.paid],
+      ['Reste a encaisser', report.outstanding],
+    ]);
+  }
+
+  async exportStoreSalesCsv(actorId: string): Promise<string> {
+    const report = await this.storeSales(actorId);
+    return csvDocument(
+      'Magasin ID;Magasin;Quantite vendue;Montant XOF',
+      report.stores.map((store) => [
+        store.storeId,
+        store.storeName,
+        store.quantity,
+        store.amount,
+      ]),
+    );
+  }
 
   async topProducts(actorId: string, limit = '10') {
     if (!/^(?:[1-9]|[1-4][0-9]|50)$/.test(limit)) {

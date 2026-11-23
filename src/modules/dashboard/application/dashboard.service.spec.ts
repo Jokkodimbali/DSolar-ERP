@@ -11,12 +11,37 @@ describe('DashboardService', () => {
     snapshot: jest.fn(),
     topProducts: jest.fn(),
     recentActivity: jest.fn(),
+    storeSales: jest.fn(),
   };
   const service = new DashboardService(repository as unknown as DashboardRepository);
 
   beforeEach(() => {
     jest.resetAllMocks();
     repository.isAdmin.mockResolvedValue(true);
+  });
+
+  it('exporte les créances en CSV avec un BOM UTF-8', async () => {
+    repository.receivables.mockResolvedValue([
+      { status: 'UNPAID', count: 2, total: '100.10', paid: '0.00' },
+    ]);
+    const csv = await service.exportReceivablesCsv('admin');
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv).toContain('"Reste a encaisser";"100.10"');
+  });
+
+  it('protège les noms de magasins dans l’export des ventes CSV', async () => {
+    repository.storeSales.mockResolvedValue([
+      { storeId: 's1', storeName: '=SUM(1+1)', quantity: '2.000', amount: '500.00' },
+    ]);
+    const csv = await service.exportStoreSalesCsv('admin');
+    expect(csv).toContain('"\\'=SUM(1+1)"');
+    expect(csv).toContain('"2.000";"500.00"');
+  });
+
+  it('refuse l’export des ventes aux magasiniers', async () => {
+    repository.isAdmin.mockResolvedValue(false);
+    await expect(service.exportStoreSalesCsv('magasinier')).rejects.toThrow(ForbiddenException);
+    expect(repository.storeSales).not.toHaveBeenCalled();
   });
 
   it('refuse les statistiques financières à un magasinier', async () => {

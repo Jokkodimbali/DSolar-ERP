@@ -11,6 +11,22 @@ import { DashboardService } from '../application/dashboard.service';
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
+  @Get('exports/receivables.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="receivables.csv"')
+  @RequirePermissions('sales.read')
+  exportReceivablesCsv(@CurrentUserId() actorId: string) {
+    return this.dashboard.exportReceivablesCsv(actorId);
+  }
+
+  @Get('exports/store-sales.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="store-sales.csv"')
+  @RequirePermissions('sales.read')
+  exportStoreSalesCsv(@CurrentUserId() actorId: string) {
+    return this.dashboard.exportStoreSalesCsv(actorId);
+  }
+
   @Get('exports/stock-valuation.csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="stock-valuation.csv"')
