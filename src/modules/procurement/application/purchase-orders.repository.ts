@@ -189,6 +189,12 @@ export class PurchaseOrdersRepository {
   }
 
   async confirm(id: string) {
+    const order = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+      select: { supplier: { select: { active: true } } },
+    });
+    if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
+    if (!order.supplier.active) throw new ConflictException('Fournisseur désactivé.');
     const updated = await this.prisma.purchaseOrder.updateMany({
       where: { id, status: OrderStatus.DRAFT },
       data: { status: OrderStatus.CONFIRMED },
