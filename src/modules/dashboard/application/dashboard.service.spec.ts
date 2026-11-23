@@ -66,4 +66,45 @@ describe('DashboardService', () => {
     expect(result.totalValued).toBe('130.35');
     expect(result.unvaluedProducts).toBe(3);
   });
+  it('interdit l’export des stocks aux utilisateurs non administrateurs', async () => {
+    repository.isAdmin.mockResolvedValue(false);
+    await expect(service.exportStockValuationCsv('magasinier')).rejects.toThrow(ForbiddenException);
+    expect(repository.stockValuation).not.toHaveBeenCalled();
+  });
+
+  it('protège les cellules CSV et conserve les séparateurs dans les noms', async () => {
+    repository.stockValuation.mockResolvedValue([
+      {
+        storeId: 'store-1',
+        storeName: '=HYPERLINK("https://example.test");Test',
+        valued: '125.50',
+        unvaluedProducts: 1,
+      },
+    ]);
+    const csv = await service.exportStockValuationCsv('admin');
+    expect(csv.startsWith('\\uFEFF')).toBe(true);
+    expect(csv).toContain('Valeur stock XOF');
+    expect(csv).toContain('"\'=HYPERLINK(""https://example.test"");Test"');
+    expect(csv).toContain('"125.50";1');
+  });
+
+  it('calcule le suivi des commandes fournisseurs par statut', async () => {
+    const procurementRepository = {
+      ...repository,
+      procurement: jest.fn().mockResolvedValue([
+        { status: 'DRAFT', count: 2 },
+        { status: 'CONFIRMED', count: 3 },
+      ]),
+    };
+    const procurementService = new DashboardService(
+      procurementRepository as unknown as DashboardRepository,
+    );
+    await expect(procurementService.procurement('admin')).resolves.toEqual({
+      total: 5,
+      statuses: [
+        { status: 'DRAFT', count: 2 },
+        { status: 'CONFIRMED', count: 3 },
+      ],
+    });
+  });
 });
