@@ -452,6 +452,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
   });
 
+  // prettier-ignore
   it('ne confirme pas une réception lorsque le cumul dépasse la commande', async () => {
     const tx = {
       $executeRaw: jest.fn().mockResolvedValue(1),
