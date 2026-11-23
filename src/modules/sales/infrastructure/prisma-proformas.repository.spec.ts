@@ -44,10 +44,9 @@ describe('PrismaProformasRepository status transitions', () => {
         entityId: id,
       }),
     });
-    expect(prisma.$transaction).toHaveBeenCalledWith(
-      expect.any(Function),
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
   });
 
   it('refuse une émission sans accès au magasin', async () => {
