@@ -20,6 +20,10 @@ describe('TransfersService', () => {
   };
   it('refuse une référence de transfert vide', () =>
     expect(() => service.create({ ...valid, number: '   ' })).toThrow(BadRequestException));
+  it('refuse une référence trop courte après suppression des espaces', () =>
+    expect(() => service.create({ ...valid, number: '  AB  ' })).toThrow(BadRequestException));
+  it('refuse une référence dépassant soixante caractères', () =>
+    expect(() => service.create({ ...valid, number: 'T'.repeat(61) })).toThrow(BadRequestException));
   it('normalise la référence avant persistance', async () => {
     await service.create({ ...valid, number: '  TR-001  ' });
     expect(repo.create).toHaveBeenCalledWith({ ...valid, number: 'TR-001' });
