@@ -14,12 +14,14 @@ export class SuppliersService {
   }
   async create(input: SupplierInput) {
     const cleaned = this.normalize(input);
+    this.validate(cleaned);
     if (!cleaned.name) throw new BadRequestException('Le nom du fournisseur est obligatoire.');
     return this.suppliers.create(cleaned as SupplierInput);
   }
   async update(id: string, input: Partial<SupplierInput>) {
     await this.get(id);
     const cleaned = this.normalize(input);
+    this.validate(cleaned);
     if (input.name !== undefined && !cleaned.name)
       throw new BadRequestException('Le nom du fournisseur est obligatoire.');
     return this.suppliers.update(id, cleaned);
@@ -29,6 +31,21 @@ export class SuppliersService {
     if (!supplier.active) return supplier;
     return this.suppliers.deactivate(id);
   }
+  private validate(input: Partial<SupplierInput>): void {
+    const limits: Array<[keyof SupplierInput, number]> = [
+      ['name', 180],
+      ['taxId', 100],
+      ['phone', 50],
+      ['email', 254],
+      ['address', 500],
+    ];
+    for (const [field, limit] of limits) {
+      const value = input[field];
+      if (typeof value === 'string' && value.length > limit)
+        throw new BadRequestException(`Le champ ${field} dépasse ${limit} caractères.`);
+    }
+  }
+
   private normalize<T extends Partial<SupplierInput>>(input: T): T {
     const result: Partial<SupplierInput> = {};
     for (const key of ['name', 'taxId', 'phone', 'email', 'address'] as const) {
