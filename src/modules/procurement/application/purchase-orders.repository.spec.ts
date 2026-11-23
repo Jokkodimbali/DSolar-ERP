@@ -11,11 +11,14 @@ describe('PurchaseOrdersRepository status transitions', () => {
       findMany: jest.fn(),
     },
     goodsReceipt: { findMany: jest.fn() },
+    auditLog: { create: jest.fn() },
+    $transaction: jest.fn(),
   };
   let repository: PurchaseOrdersRepository;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma));
     repository = new PurchaseOrdersRepository(prisma as unknown as PrismaService);
   });
 
@@ -187,6 +190,20 @@ describe('PurchaseOrdersRepository status transitions', () => {
     });
   });
 
+  it('journalise une annulation réussie avec son auteur', async () => {
+    prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ id: 'order-1', status: OrderStatus.CANCELLED });
+    await repository.cancel('order-1', 'actor-1');
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        actorId: 'actor-1',
+        action: 'PURCHASE_ORDER_CANCELLED',
+        entityType: 'PurchaseOrder',
+        entityId: 'order-1',
+      },
+    });
+  });
+
   it('annule atomiquement une commande brouillon', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
     prisma.purchaseOrder.findUnique.mockResolvedValue({
@@ -220,6 +237,21 @@ describe('PurchaseOrdersRepository status transitions', () => {
     await expect(repository.cancel('missing')).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('journalise la confirmation réussie avec son auteur', async () => {
+    prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
+    prisma.purchaseOrder.findUnique.mockResolvedValueOnce({ supplier: { active: true } });
+    prisma.purchaseOrder.findUnique.mockResolvedValueOnce({ id: 'order-1', status: OrderStatus.CONFIRMED });
+    await repository.confirm('order-1', 'actor-1');
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        actorId: 'actor-1',
+        action: 'PURCHASE_ORDER_CONFIRMED',
+        entityType: 'PurchaseOrder',
+        entityId: 'order-1',
+      },
+    });
+  });
+
   it('confirme uniquement une commande encore brouillon', async () => {
     prisma.purchaseOrder.updateMany.mockResolvedValue({ count: 1 });
     prisma.purchaseOrder.findUnique.mockResolvedValue({
@@ -227,6 +259,7 @@ describe('PurchaseOrdersRepository status transitions', () => {
       status: OrderStatus.CONFIRMED,
     });
 
+    prisma.purchaseOrder.findUnique.mockResolvedValueOnce({ supplier: { active: true } });
     await repository.confirm('order-1');
     expect(prisma.purchaseOrder.updateMany).toHaveBeenCalledWith({
       where: { id: 'order-1', status: OrderStatus.DRAFT },
@@ -241,6 +274,7 @@ describe('PurchaseOrdersRepository status transitions', () => {
       status: OrderStatus.CANCELLED,
     });
 
+    prisma.purchaseOrder.findUnique.mockResolvedValueOnce({ supplier: { active: true } });
     await expect(repository.confirm('order-1')).rejects.toBeInstanceOf(ConflictException);
   });
 });
