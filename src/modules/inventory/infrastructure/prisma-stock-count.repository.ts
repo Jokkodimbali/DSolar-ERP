@@ -63,7 +63,7 @@ export class PrismaStockCountRepository implements StockCountRepository {
         select: { productId: true, quantity: true },
       });
       if (!stocks.length) throw new ConflictException('Aucun stock à inventorier dans ce magasin.');
-      return tx.inventorySession.create({
+      const created = await tx.inventorySession.create({
         data: {
           storeId,
           lines: {
@@ -75,6 +75,11 @@ export class PrismaStockCountRepository implements StockCountRepository {
         },
         include: { lines: true },
       });
+      await tx.auditLog.create({ data: {
+        actorId, action: 'INVENTORY_STARTED', entityType: 'InventorySession',
+        entityId: created.id, storeId, payload: { lineCount: created.lines.length },
+      } });
+      return created;
     });
   }
 
@@ -126,6 +131,10 @@ export class PrismaStockCountRepository implements StockCountRepository {
       if (updated.count !== 1) {
         throw new ConflictException('Inventaire modifié simultanément.');
       }
+      await tx.auditLog.create({ data: {
+        actorId, action: 'INVENTORY_CANCELLED', entityType: 'InventorySession',
+        entityId: id, storeId: session.storeId,
+      } });
       return tx.inventorySession.findUniqueOrThrow({
         where: { id },
         include: { lines: true },
@@ -187,6 +196,11 @@ export class PrismaStockCountRepository implements StockCountRepository {
         data: { status: 'VALIDATED', validatedAt: new Date() },
       });
       if (updated.count !== 1) throw new ConflictException('Inventaire validé simultanément.');
+      await tx.auditLog.create({ data: {
+        actorId, action: 'INVENTORY_VALIDATED', entityType: 'InventorySession',
+        entityId: id, storeId: session.storeId,
+        payload: { adjustedProducts: session.lines.filter((line) => !line.counted!.equals(line.expected)).length },
+      } });
       return tx.inventorySession.findUniqueOrThrow({ where: { id }, include: { lines: true } });
     });
   }

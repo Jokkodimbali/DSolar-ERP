@@ -50,6 +50,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
           .mockResolvedValueOnce({ id: 'receipt-id', status: 'CANCELLED' }),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
       store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
       user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
@@ -260,6 +261,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
       },
       storeStock: { upsert: jest.fn().mockResolvedValue({}) },
       stockMovement: { create: jest.fn().mockResolvedValue({}) },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
     };
     const repository = new PrismaGoodsReceiptsRepository({
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),

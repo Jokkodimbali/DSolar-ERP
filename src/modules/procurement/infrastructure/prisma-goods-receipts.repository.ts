@@ -88,7 +88,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           const products = new Set(order.lines.map((line) => line.productId));
           if (input.lines.some((line) => !products.has(line.productId)))
             throw new ConflictException('Produit absent de la commande.');
-          return tx.goodsReceipt.create({
+          const created = await tx.goodsReceipt.create({
             data: {
               number: input.number,
               storeId: input.storeId,
@@ -103,6 +103,12 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             },
             include: { lines: true },
           });
+          await tx.auditLog.create({ data: {
+            actorId, action: 'GOODS_RECEIPT_CREATED', entityType: 'GoodsReceipt',
+            entityId: created.id, storeId: input.storeId,
+            payload: { purchaseOrderId: input.purchaseOrderId, lineCount: created.lines.length },
+          } });
+          return created;
         },
         { maxWait: 10000, timeout: 30000 },
       );
@@ -129,6 +135,11 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
       });
       if (updated.count !== 1)
         throw new ConflictException('Seule une réception brouillon peut être annulée.');
+      await tx.auditLog.create({ data: {
+        actorId, action: 'GOODS_RECEIPT_CANCELLED', entityType: 'GoodsReceipt',
+        entityId: id, storeId: receipt.storeId,
+        payload: { purchaseOrderId: receipt.purchaseOrderId },
+      } });
       return tx.goodsReceipt.findUnique({ where: { id }, include: { lines: true } });
     });
   }
@@ -234,11 +245,21 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           where: { id: order.id },
           data: { status: complete ? OrderStatus.DELIVERED : OrderStatus.PARTIALLY_DELIVERED },
         });
-        return tx.goodsReceipt.update({
+        const confirmed = await tx.goodsReceipt.update({
           where: { id },
           data: { status: ReceiptStatus.CONFIRMED, receivedAt: new Date() },
           include: { lines: true },
         });
+        await tx.auditLog.create({ data: {
+          actorId, action: 'GOODS_RECEIPT_CONFIRMED', entityType: 'GoodsReceipt',
+          entityId: id, storeId: receipt.storeId,
+          payload: {
+            purchaseOrderId: order.id,
+            purchaseOrderStatus: complete ? OrderStatus.DELIVERED : OrderStatus.PARTIALLY_DELIVERED,
+            lines: receipt.lines.map((line) => ({ productId: line.productId, quantity: line.quantity.toString() })),
+          },
+        } });
+        return confirmed;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
     );
