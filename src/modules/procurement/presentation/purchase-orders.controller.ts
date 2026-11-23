@@ -52,8 +52,8 @@ export class PurchaseOrdersController {
   ) {
     return this.orders.progress(id);
   }
-  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: CreatePurchaseOrderDto) {
-    return this.orders.create(dto);
+  @Post() @RequirePermissions('inventory.manage') create(@Body() dto: CreatePurchaseOrderDto, @CurrentUserId() actorId: string) {
+    return this.orders.create(dto, actorId);
   }
   @Post(':id/cancel') @RequirePermissions('inventory.manage') cancel(
     @Param('id', ParseUUIDPipe) id: string,

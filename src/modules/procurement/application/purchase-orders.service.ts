@@ -18,7 +18,7 @@ export class PurchaseOrdersService {
   progress(id: string) {
     return this.orders.progress(id);
   }
-  async create(input: PurchaseOrderInput) {
+  async create(input: PurchaseOrderInput, actorId?: string) {
     const number = input.number.trim().toUpperCase();
     if (!number || number.length > 100)
       throw new BadRequestException('Le numéro de commande doit contenir entre 1 et 100 caractères.');
@@ -39,7 +39,7 @@ export class PurchaseOrdersService {
         throw new BadRequestException('Un produit ne peut figurer qu’une fois par commande.');
       products.add(line.productId);
     }
-    return this.orders.create({ ...input, number });
+    return this.orders.create({ ...input, number }, actorId);
   }
   async cancel(id: string, actorId?: string) {
     const order = await this.get(id);

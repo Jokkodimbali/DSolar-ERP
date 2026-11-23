@@ -118,7 +118,7 @@ export class PurchaseOrdersRepository {
     };
   }
 
-  async create(input: PurchaseOrderInput) {
+  async create(input: PurchaseOrderInput, actorId?: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const supplier = await tx.supplier.findUnique({
@@ -150,7 +150,7 @@ export class PurchaseOrdersRepository {
         });
         if (products.length !== input.lines.length)
           throw new ConflictException('Produit introuvable ou inactif.');
-        return tx.purchaseOrder.create({
+        const created = await tx.purchaseOrder.create({
           data: {
             number: input.number,
             supplierId: input.supplierId,
@@ -164,6 +164,17 @@ export class PurchaseOrdersRepository {
           },
           include: { supplier: true, lines: true },
         });
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              action: 'PURCHASE_ORDER_CREATED',
+              entityType: 'PurchaseOrder',
+              entityId: created.id,
+            },
+          });
+        }
+        return created;
       });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
