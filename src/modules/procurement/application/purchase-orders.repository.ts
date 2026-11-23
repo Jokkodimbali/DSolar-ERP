@@ -55,7 +55,10 @@ export class PurchaseOrdersRepository {
       number: order.number,
       status: order.status,
       lines,
-      complete: lines.every((line) => line.complete),
+      totalLines: lines.length,
+      completedLines: lines.filter((line) => line.complete).length,
+      pendingLines: lines.filter((line) => !line.complete).length,
+      complete: lines.length > 0 && lines.every((line) => line.complete),
     };
   }
 
