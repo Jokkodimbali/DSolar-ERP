@@ -263,6 +263,10 @@ export class PrismaProformasRepository implements ProformasRepository {
         const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
         await this.assertAccess(tx, storeIds, actorId);
         if (proforma.status !== from) throw new ConflictException('Transition de statut impossible.');
+        const allowed =
+          (from === DocumentStatus.ISSUED && (to === 'ACCEPTED' || to === 'CANCELLED' || to === 'EXPIRED')) ||
+          (from === DocumentStatus.DRAFT && to === 'CANCELLED');
+        if (!allowed) throw new ConflictException('Transition de statut non autorisée.');
         if (to === 'ACCEPTED' && proforma.expiresAt && proforma.expiresAt <= new Date())
           throw new ConflictException('Devis expiré.');
         const updated = await tx.proforma.update({

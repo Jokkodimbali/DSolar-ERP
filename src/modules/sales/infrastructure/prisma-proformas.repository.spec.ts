@@ -101,6 +101,34 @@ describe('PrismaProformasRepository status transitions', () => {
     });
   });
 
+  it('refuse une acceptation directe depuis un brouillon', async () => {
+    await expect(repository.transition(id, DocumentStatus.DRAFT, 'ACCEPTED', actorId)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(tx.proforma.update).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('refuse de réactiver un devis annulé', async () => {
+    tx.proforma.findUnique.mockResolvedValue({
+      id,
+      status: DocumentStatus.CANCELLED,
+      expiresAt: null,
+      lines: [{ storeId }],
+    });
+    await expect(repository.transition(id, DocumentStatus.CANCELLED, 'ACCEPTED', actorId)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(tx.proforma.update).not.toHaveBeenCalled();
+  });
+
+  it('autorise l’annulation d’un brouillon avec audit', async () => {
+    await repository.transition(id, DocumentStatus.DRAFT, 'CANCELLED', actorId);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: 'PROFORMA_CANCELLED', entityId: id }),
+    });
+  });
+
   it('refuse une transition depuis un statut différent', async () => {
     await expect(repository.transition(id, DocumentStatus.ISSUED, 'ACCEPTED', actorId)).rejects.toThrow(
       ConflictException,
