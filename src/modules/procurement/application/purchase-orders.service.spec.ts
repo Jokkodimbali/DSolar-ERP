@@ -4,7 +4,7 @@ import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
 describe('PurchaseOrdersService', () => {
   let repository: jest.Mocked<
-    Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list' | 'progress'>
+    Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list' | 'progress' | 'outstanding'>
   >;
   let service: PurchaseOrdersService;
   beforeEach(() => {
@@ -15,6 +15,7 @@ describe('PurchaseOrdersService', () => {
       cancel: jest.fn(),
       list: jest.fn(),
       progress: jest.fn(),
+      outstanding: jest.fn(),
     };
     service = new PurchaseOrdersService(repository as unknown as PurchaseOrdersRepository);
   });
@@ -23,6 +24,11 @@ describe('PurchaseOrdersService', () => {
     supplierId: 'supplier-id',
     lines: [{ productId: 'product-id', quantity: 2, unitCost: 1000 }],
   };
+  it('délègue la consultation des commandes en attente au dépôt', async () => {
+    repository.outstanding.mockResolvedValue([]);
+    await expect(service.outstanding()).resolves.toEqual([]);
+    expect(repository.outstanding).toHaveBeenCalledTimes(1);
+  });
   it('délègue la consultation des quantités restantes au dépôt', async () => {
     repository.progress.mockResolvedValue({ orderId: '1', number: 'CMD-001', status: 'CONFIRMED', lines: [], totalLines: 0, completedLines: 0, pendingLines: 0, complete: false });
     await expect(service.progress('1')).resolves.toEqual({
