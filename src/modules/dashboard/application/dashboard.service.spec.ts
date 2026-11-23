@@ -34,7 +34,7 @@ describe('DashboardService', () => {
       { storeId: 's1', storeName: '=SUM(1+1)', quantity: '2.000', amount: '500.00' },
     ]);
     const csv = await service.exportStoreSalesCsv('admin');
-    expect(csv).toContain('"\\'=SUM(1+1)"');
+    expect(csv).toContain(String.fromCharCode(34, 39) + '=SUM(1+1)"');
     expect(csv).toContain('"2.000";"500.00"');
   });
 
