@@ -30,7 +30,9 @@ describe('SuppliersService', () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse un nom de fournisseur dépassant 180 caractères', async () => {
-    await expect(service.create({ name: 'F'.repeat(181) }, 'actor')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ name: 'F'.repeat(181) }, 'actor')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse une adresse trop longue lors de la modification', async () => {
@@ -57,13 +59,13 @@ describe('SuppliersService', () => {
   });
   it('évite une double activation', async () => {
     repository.find.mockResolvedValue(supplier);
-    await service.activate(supplier.id);
+    await service.activate(supplier.id, 'actor');
     expect(repository.activate).not.toHaveBeenCalled();
   });
   it('désactive un fournisseur actif', async () => {
     repository.find.mockResolvedValue(supplier);
     repository.deactivate.mockResolvedValue({ ...supplier, active: false });
-    await service.deactivate(supplier.id);
-    expect(repository.deactivate).toHaveBeenCalledWith(supplier.id);
+    await service.deactivate(supplier.id, 'actor');
+    expect(repository.deactivate).toHaveBeenCalledWith(supplier.id, 'actor');
   });
 });
