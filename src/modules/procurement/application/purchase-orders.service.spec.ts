@@ -4,7 +4,7 @@ import { PurchaseOrdersRepository } from './purchase-orders.repository';
 
 describe('PurchaseOrdersService', () => {
   let repository: jest.Mocked<
-    Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list'>
+    Pick<PurchaseOrdersRepository, 'create' | 'find' | 'confirm' | 'cancel' | 'list' | 'progress'>
   >;
   let service: PurchaseOrdersService;
   beforeEach(() => {
@@ -14,6 +14,7 @@ describe('PurchaseOrdersService', () => {
       confirm: jest.fn(),
       cancel: jest.fn(),
       list: jest.fn(),
+      progress: jest.fn(),
     };
     service = new PurchaseOrdersService(repository as unknown as PurchaseOrdersRepository);
   });
@@ -22,6 +23,15 @@ describe('PurchaseOrdersService', () => {
     supplierId: 'supplier-id',
     lines: [{ productId: 'product-id', quantity: 2, unitCost: 1000 }],
   };
+  it('délègue la consultation des quantités restantes au dépôt', async () => {
+    repository.progress.mockResolvedValue({ orderId: '1', lines: [], complete: true });
+    await expect(service.progress('1')).resolves.toEqual({
+      orderId: '1',
+      lines: [],
+      complete: true,
+    });
+    expect(repository.progress).toHaveBeenCalledWith('1');
+  });
   it('refuse une commande sans lignes', async () => {
     await expect(service.create({ ...input, lines: [] })).rejects.toBeInstanceOf(BadRequestException);
   });
