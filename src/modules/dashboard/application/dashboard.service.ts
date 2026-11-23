@@ -17,7 +17,7 @@ const csvCell = (value: string): string => {
 };
 
 const csvDocument = (header: string, rows: string[][]): string =>
-  '\\uFEFF' + [header, ...rows.map((row) => row.map(csvCell).join(';'))].join('\\n');
+  '\uFEFF' + [header, ...rows.map((row) => row.map(csvCell).join(';'))].join('\n');
 
 @Injectable()
 export class DashboardService {
