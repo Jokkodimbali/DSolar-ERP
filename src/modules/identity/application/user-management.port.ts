@@ -9,12 +9,13 @@ export interface CreateUserRecord {
 }
 export interface UserManagementRepository {
   list(): Promise<PublicIdentity[]>;
-  create(input: CreateUserRecord): Promise<PublicIdentity>;
-  disableUnlessLastAdmin(id: string): Promise<'disabled' | 'not_found' | 'last_admin'>;
+  create(input: CreateUserRecord, actorId?: string): Promise<PublicIdentity>;
+  disableUnlessLastAdmin(id: string, actorId?: string): Promise<'disabled' | 'not_found' | 'last_admin'>;
   replaceAccessUnlessLastAdmin(
     id: string,
     roleCodes: string[],
     storeIds: string[],
+    actorId?: string,
   ): Promise<PublicIdentity | 'last_admin' | null>;
   rolesExist(codes: string[]): Promise<boolean>;
   activeStoresExist(ids: string[]): Promise<boolean>;

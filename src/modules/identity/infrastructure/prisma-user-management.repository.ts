@@ -24,9 +24,10 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
   async activeStoresExist(ids: string[]): Promise<boolean> {
     return (await this.prisma.store.count({ where: { id: { in: ids }, status: 'ACTIVE' } })) === ids.length;
   }
-  async create(input: CreateUserRecord): Promise<PublicIdentity> {
+  async create(input: CreateUserRecord, actorId?: string): Promise<PublicIdentity> {
     try {
-      const user = await this.prisma.user.create({
+      const user = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
         data: {
           email: input.email,
           fullName: input.fullName,
@@ -34,6 +35,12 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
           roles: { create: input.roleCodes.map((code) => ({ role: { connect: { code } } })) },
           stores: { create: input.storeIds.map((storeId) => ({ store: { connect: { id: storeId } } })) },
         },
+      });
+        if (actorId) await tx.auditLog.create({ data: {
+          actorId, action: 'USER_CREATED', entityType: 'User', entityId: created.id,
+          payload: { roleCodes: input.roleCodes, storeIds: input.storeIds },
+        } });
+        return created;
       });
       const identity = await this.identity.findById(user.id);
       if (!identity) throw new Error('Utilisateur créé mais introuvable.');
@@ -46,7 +53,7 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
   }
   // Le contrôle et la modification sont atomiques : aucune fenêtre de concurrence
   // ne peut laisser l'application sans administrateur actif.
-  async disableUnlessLastAdmin(id: string): Promise<'disabled' | 'not_found' | 'last_admin'> {
+  async disableUnlessLastAdmin(id: string, actorId?: string): Promise<'disabled' | 'not_found' | 'last_admin'> {
     return this.prisma.$transaction(
       async (tx) => {
         const user = await tx.user.findUnique({
@@ -60,6 +67,7 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
           });
           if (admins <= 1) return 'last_admin';
         }
+        if (user.status === 'DISABLED') return 'disabled';
         await tx.user.update({
           where: { id },
           data: {
@@ -68,6 +76,10 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
             sessions: { updateMany: { where: { revokedAt: null }, data: { revokedAt: new Date() } } },
           },
         });
+        if (actorId) await tx.auditLog.create({ data: {
+          actorId, action: 'USER_DISABLED', entityType: 'User', entityId: id,
+          payload: { previousStatus: user.status, newStatus: 'DISABLED' },
+        } });
         return 'disabled';
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -78,6 +90,7 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
     id: string,
     roleCodes: string[],
     storeIds: string[],
+    actorId?: string,
   ): Promise<PublicIdentity | 'last_admin' | null> {
     const outcome = await this.prisma.$transaction(
       async (tx) => {
@@ -102,6 +115,11 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
         const stores = await tx.store.count({ where: { id: { in: storeIds }, status: 'ACTIVE' } });
         if (stores !== storeIds.length)
           throw new ConflictException('Les magasins ont changé pendant la modification.');
+        const previousRoles = user.roles.map((r) => r.role.code).sort();
+        const previousStores = (await tx.userStoreAccess.findMany({ where: { userId: id }, select: { storeId: true } })).map((row) => row.storeId).sort();
+        const changed = JSON.stringify(previousRoles) !== JSON.stringify([...roleCodes].sort()) ||
+          JSON.stringify(previousStores) !== JSON.stringify([...storeIds].sort());
+        if (!changed) return 'updated';
         await tx.userRole.deleteMany({ where: { userId: id } });
         await tx.userStoreAccess.deleteMany({ where: { userId: id } });
         if (roles.length)
@@ -115,6 +133,10 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
             sessions: { updateMany: { where: { revokedAt: null }, data: { revokedAt: new Date() } } },
           },
         });
+        if (actorId) await tx.auditLog.create({ data: {
+          actorId, action: 'USER_ACCESS_CHANGED', entityType: 'User', entityId: id,
+          payload: { previousRoles, newRoles: roleCodes, previousStoreIds: previousStores, newStoreIds: storeIds },
+        } });
         return 'updated';
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

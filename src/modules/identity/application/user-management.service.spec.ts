@@ -90,6 +90,20 @@ describe('UserManagementService', () => {
       passwordHash: 'hash',
       roleCodes: ['MAGASINIER'],
       storeIds: [],
-    });
+    }, undefined);
+  });
+
+  it('transmet l’identité de l’administrateur lors de la désactivation', async () => {
+    users.disableUnlessLastAdmin.mockResolvedValue('disabled');
+    await service.disable('user-1', 'admin-1');
+    expect(users.disableUnlessLastAdmin).toHaveBeenCalledWith('user-1', 'admin-1');
+  });
+
+  it('transmet l’identité de l’administrateur lors du changement des accès', async () => {
+    users.rolesExist.mockResolvedValue(true);
+    users.activeStoresExist.mockResolvedValue(true);
+    users.replaceAccessUnlessLastAdmin.mockResolvedValue({ id: 'user-1', email: 'a@b.sn', nomComplet: 'A', permissions: [], magasinsAutorises: [] });
+    await service.replaceAccess('user-1', ['MAGASINIER'], [], 'admin-1');
+    expect(users.replaceAccessUnlessLastAdmin).toHaveBeenCalledWith('user-1', ['MAGASINIER'], [], 'admin-1');
   });
 });
