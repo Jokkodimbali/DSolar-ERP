@@ -40,6 +40,18 @@ describe('StockCountService', () => {
     expect(repository.record).toHaveBeenCalledWith('id', 'actor', lines);
   });
 
+  it('accepte une quantité fractionnaire valide', async () => {
+    const lines = [{ ...line, counted: '12.500' }];
+    await service.record('id', 'actor', lines);
+    expect(repository.record).toHaveBeenCalledWith('id', 'actor', lines);
+  });
+
+  it('refuse les quantités avec notation scientifique', () => {
+    expect(() => service.record('id', 'actor', [{ ...line, counted: '1e3' }])).toThrow(
+      BadRequestException,
+    );
+  });
+
   it('délègue l’annulation', async () => {
     await service.cancel('id', 'actor');
     expect(repository.cancel).toHaveBeenCalledWith('id', 'actor');
