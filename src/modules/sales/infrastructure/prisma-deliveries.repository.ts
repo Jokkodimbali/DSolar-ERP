@@ -86,6 +86,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             delivered.set(key, (delivered.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
           }
         }
+        if (!input.lines.length) throw new ConflictException('Bon de livraison sans lignes.');
         const requested = new Map<string, Prisma.Decimal>();
         for (const line of input.lines) {
           const key = `${line.storeId}:${line.productId}`;
@@ -96,6 +97,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           requested.set(key, (requested.get(key) ?? new Prisma.Decimal(0)).plus(quantity));
         }
         for (const [key, quantity] of requested) {
+          if (!ordered.has(key)) throw new ConflictException('Produit ou magasin absent de la commande.');
           const remaining = (ordered.get(key) ?? new Prisma.Decimal(0)).minus(
             delivered.get(key) ?? new Prisma.Decimal(0),
           );
@@ -123,7 +125,8 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             action: 'DELIVERY_CREATED',
             entityType: 'DeliveryNote',
             entityId: note.id,
-            payload: { orderId },
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores },
           },
         });
         return note;
@@ -219,7 +222,14 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           data: { status: complete ? 'DELIVERED' : 'PARTIALLY_DELIVERED' },
         });
         await tx.auditLog.create({
-          data: { actorId, action: 'DELIVERY_CONFIRMED', entityType: 'DeliveryNote', entityId: deliveryId },
+          data: {
+            actorId,
+            action: 'DELIVERY_CONFIRMED',
+            entityType: 'DeliveryNote',
+            entityId: deliveryId,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores, orderStatus: complete ? 'DELIVERED' : 'PARTIALLY_DELIVERED' },
+          },
         });
         return updated;
       },
@@ -254,7 +264,14 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           include: { lines: true },
         });
         await tx.auditLog.create({
-          data: { actorId, action: 'DELIVERY_CANCELLED', entityType: 'DeliveryNote', entityId: deliveryId },
+          data: {
+            actorId,
+            action: 'DELIVERY_CANCELLED',
+            entityType: 'DeliveryNote',
+            entityId: deliveryId,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores },
+          },
         });
         return updated;
       },

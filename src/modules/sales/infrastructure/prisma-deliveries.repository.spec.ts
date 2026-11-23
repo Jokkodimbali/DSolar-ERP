@@ -110,6 +110,37 @@ describe('PrismaDeliveriesRepository', () => {
     expect(tx.deliveryNote.create).not.toHaveBeenCalled();
   });
 
+  it('refuse un bon sans lignes avant toute écriture', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue(order('3'));
+    await expect(repository.create(orderId, actorId, { lines: [] })).rejects.toThrow(ConflictException);
+    expect(tx.deliveryNote.create).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('refuse un produit absent de la commande', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue(order('3'));
+    await expect(repository.create(orderId, actorId, {
+      lines: [{ storeId, productId: '00000000-0000-4000-8000-000000000009', quantity: '1' }],
+    })).rejects.toThrow(ConflictException);
+    expect(tx.deliveryNote.create).not.toHaveBeenCalled();
+  });
+
+  it('journalise la création avec le magasin concerné', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue(order('3'));
+    tx.deliveryNote.create.mockResolvedValue({ id: deliveryId, lines: [line('1')] });
+    await repository.create(orderId, actorId, {
+      lines: [{ storeId, productId, quantity: '1' }],
+    });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'DELIVERY_CREATED',
+        entityId: deliveryId,
+        storeId,
+        payload: { orderId, storeIds: [storeId] },
+      }),
+    });
+  });
+
   it('refuse une livraison sans accès au magasin', async () => {
     tx.salesOrder.findUnique.mockResolvedValue(order('3'));
     tx.userStoreAccess.count.mockResolvedValue(0);
@@ -134,6 +165,13 @@ describe('PrismaDeliveriesRepository', () => {
       }),
     );
     expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'DELIVERY_CONFIRMED',
+        storeId,
+        payload: { orderId, storeIds: [storeId], orderStatus: 'PARTIALLY_DELIVERED' },
+      }),
+    });
     expect(tx.salesOrder.update).toHaveBeenCalledWith({
       where: { id: orderId },
       data: { status: 'PARTIALLY_DELIVERED' },
