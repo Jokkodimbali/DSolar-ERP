@@ -16,8 +16,10 @@ export class GoodsReceiptsService {
   }
   async create(input: CreateReceiptInput, actorId: string) {
     const number = input.number.trim().toUpperCase();
-    if (!number || !input.lines.length || input.lines.length > 100)
-      throw new BadRequestException('Numéro obligatoire et entre 1 et 100 lignes requises.');
+    if (!number || number.length > 100)
+      throw new BadRequestException('Le numéro de réception doit contenir entre 1 et 100 caractères.');
+    if (!input.lines.length || input.lines.length > 100)
+      throw new BadRequestException('Entre 1 et 100 lignes de réception sont requises.');
     const seen = new Set<string>();
     for (const line of input.lines) {
       if (
