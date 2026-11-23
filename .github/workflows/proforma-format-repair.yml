@@ -1,0 +1,29 @@
+name: One-time proforma formatting
+on:
+  push:
+    branches: [dev]
+    paths:
+      - '.github/workflows/proforma-format-repair.yml'
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx prettier --write src/modules/sales/infrastructure/prisma-proformas.repository.ts
+      - run: npm run format:check
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/modules/sales/infrastructure/prisma-proformas.repository.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "style(sales): format proforma repository"
+            git push origin HEAD:dev
+          fi
