@@ -23,6 +23,60 @@ export class PurchaseOrdersRepository {
       include: { supplier: true, lines: true },
     });
   }
+  async outstanding() {
+    const orders = await this.prisma.purchaseOrder.findMany({
+      where: { status: { in: [OrderStatus.CONFIRMED, OrderStatus.PARTIALLY_DELIVERED] } },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        supplierId: true,
+        orderedAt: true,
+        lines: { select: { productId: true, quantity: true } },
+      },
+      orderBy: { orderedAt: 'asc' },
+    });
+    if (!orders.length) return [];
+    const receipts = await this.prisma.goodsReceipt.findMany({
+      where: { purchaseOrderId: { in: orders.map((order) => order.id) }, status: 'CONFIRMED' },
+      select: {
+        purchaseOrderId: true,
+        lines: { select: { productId: true, quantity: true } },
+      },
+    });
+    const received = new Map<string, Prisma.Decimal>();
+    for (const receipt of receipts) {
+      if (!receipt.purchaseOrderId) continue;
+      for (const line of receipt.lines) {
+        const key = `${receipt.purchaseOrderId}:${line.productId}`;
+        received.set(key, (received.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
+      }
+    }
+    return orders.map((order) => {
+      const lines = order.lines.map((line) => {
+        const quantityReceived = received.get(`${order.id}:${line.productId}`) ?? new Prisma.Decimal(0);
+        const remaining = Prisma.Decimal.max(0, line.quantity.minus(quantityReceived));
+        return {
+          productId: line.productId,
+          orderedQuantity: line.quantity.toString(),
+          receivedQuantity: quantityReceived.toString(),
+          remainingQuantity: remaining.toString(),
+          complete: remaining.isZero(),
+        };
+      });
+      return {
+        orderId: order.id,
+        number: order.number,
+        supplierId: order.supplierId,
+        orderedAt: order.orderedAt,
+        status: order.status,
+        totalLines: lines.length,
+        pendingLines: lines.filter((line) => !line.complete).length,
+        lines,
+      };
+    }).filter((order) => order.pendingLines > 0);
+  }
+
   async progress(id: string) {
     const order = await this.find(id);
     if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
