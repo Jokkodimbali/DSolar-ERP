@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CountLineInput, STOCK_COUNT_REPOSITORY, StockCountRepository } from './stock-count.port';
 
-const quantityPattern = /^(?:0|[1-9]\\d{0,14})(?:\\.\\d{1,3})?$/;
+const quantityPattern = /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/;
 
 @Injectable()
 export class StockCountService {
