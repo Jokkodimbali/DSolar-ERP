@@ -40,6 +40,9 @@ export class PurchaseOrdersController {
   @Get() @RequirePermissions('inventory.read') list() {
     return this.orders.list();
   }
+  @Get('outstanding') @RequirePermissions('inventory.read') outstanding() {
+    return this.orders.outstanding();
+  }
   @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) {
     return this.orders.get(id);
   }
