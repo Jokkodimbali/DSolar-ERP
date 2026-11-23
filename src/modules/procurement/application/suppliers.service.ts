@@ -31,6 +31,11 @@ export class SuppliersService {
     if (!supplier.active) return supplier;
     return this.suppliers.deactivate(id);
   }
+  async activate(id: string) {
+    const supplier = await this.get(id);
+    if (supplier.active) return supplier;
+    return this.suppliers.activate(id);
+  }
   private validate(input: Partial<SupplierInput>): void {
     const limits: Array<[keyof SupplierInput, number]> = [
       ['name', 180],

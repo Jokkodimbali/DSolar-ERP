@@ -13,6 +13,7 @@ describe('SuppliersService', () => {
       create: jest.fn(),
       update: jest.fn(),
       deactivate: jest.fn(),
+      activate: jest.fn(),
     };
     service = new SuppliersService(repository);
   });
@@ -47,6 +48,17 @@ describe('SuppliersService', () => {
     repository.find.mockResolvedValue({ ...supplier, active: false });
     await service.deactivate(supplier.id);
     expect(repository.deactivate).not.toHaveBeenCalled();
+  });
+  it('réactive un fournisseur désactivé', async () => {
+    repository.find.mockResolvedValue({ ...supplier, active: false });
+    repository.activate.mockResolvedValue(supplier);
+    await service.activate(supplier.id);
+    expect(repository.activate).toHaveBeenCalledWith(supplier.id);
+  });
+  it('évite une double activation', async () => {
+    repository.find.mockResolvedValue(supplier);
+    await service.activate(supplier.id);
+    expect(repository.activate).not.toHaveBeenCalled();
   });
   it('désactive un fournisseur actif', async () => {
     repository.find.mockResolvedValue(supplier);

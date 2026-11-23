@@ -39,6 +39,11 @@ export class SuppliersController {
   ) {
     return this.suppliers.update(id, dto);
   }
+  @Post(':id/activate') @RequirePermissions('inventory.manage') activate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.suppliers.activate(id);
+  }
   @Post(':id/deactivate') @RequirePermissions('inventory.manage') deactivate(
     @Param('id', ParseUUIDPipe) id: string,
   ) {

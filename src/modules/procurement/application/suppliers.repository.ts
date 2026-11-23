@@ -13,4 +13,5 @@ export interface SuppliersRepository {
   create(input: SupplierInput): Promise<SupplierRecord>;
   update(id: string, input: Partial<SupplierInput>): Promise<SupplierRecord>;
   deactivate(id: string): Promise<SupplierRecord>;
+  activate(id: string): Promise<SupplierRecord>;
 }

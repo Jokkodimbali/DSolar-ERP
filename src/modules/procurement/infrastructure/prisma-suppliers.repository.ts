@@ -24,6 +24,9 @@ export class PrismaSuppliersRepository implements SuppliersRepository {
       throw error;
     }
   }
+  async activate(id: string) {
+    return this.update(id, { active: true } as Partial<SupplierInput>);
+  }
   async deactivate(id: string) {
     return this.update(id, { active: false } as Partial<SupplierInput>);
   }
