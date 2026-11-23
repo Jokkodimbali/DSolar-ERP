@@ -25,6 +25,21 @@ export class DashboardService {
     return { items: await this.repository.topProducts(Number(limit)) };
   }
 
+  async stockValuation(actorId: string) {
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Valorisation réservée au super administrateur.');
+    }
+    const stores = await this.repository.stockValuation();
+    const total = stores.reduce((sum, store) => sum + cents(store.valued), 0n);
+    return {
+      currency: 'XOF',
+      basis: 'ON_HAND_QUANTITY_TIMES_CURRENT_PURCHASE_PRICE',
+      totalValued: money(total),
+      unvaluedProducts: stores.reduce((sum, store) => sum + store.unvaluedProducts, 0),
+      stores,
+    };
+  }
+
   async procurement(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Suivi des achats réservé au super administrateur.');

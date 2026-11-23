@@ -39,6 +39,56 @@ export class PrismaDashboardRepository implements DashboardRepository {
     }));
   }
 
+  async stockValuation() {
+    const now = new Date();
+    const stores = await this.prisma.store.findMany({
+      where: { status: 'ACTIVE' },
+      select: {
+        id: true,
+        name: true,
+        stocks: {
+          where: { product: { active: true } },
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                prices: {
+                  where: {
+                    validFrom: { lte: now },
+                    OR: [{ validTo: null }, { validTo: { gt: now } }],
+                  },
+                  orderBy: { validFrom: 'desc' },
+                  take: 1,
+                  select: { purchasePrice: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return stores.map((store) => {
+      let valued = new Prisma.Decimal(0);
+      let unvaluedProducts = 0;
+      for (const stock of store.stocks) {
+        if (stock.quantity.lte(0)) continue;
+        const price = stock.product.prices[0]?.purchasePrice;
+        if (price === null || price === undefined) {
+          unvaluedProducts++;
+        } else {
+          valued = valued.plus(stock.quantity.mul(price));
+        }
+      }
+      return {
+        storeId: store.id,
+        storeName: store.name,
+        valued: valued.toFixed(2),
+        unvaluedProducts,
+      };
+    });
+  }
+
   async procurement() {
     const groups = await this.prisma.purchaseOrder.groupBy({
       by: ['status'],

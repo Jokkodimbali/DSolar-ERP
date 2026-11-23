@@ -59,4 +59,5 @@ export interface DashboardRepository {
   recentActivity(limit: number): Promise<DashboardActivity[]>;
   storeSales(): Promise<DashboardStoreSales[]>;
   procurement(): Promise<Array<{ status: string; count: number }>>;
+  stockValuation(): Promise<Array<{ storeId: string; storeName: string; valued: string; unvaluedProducts: number }>>;
 }
