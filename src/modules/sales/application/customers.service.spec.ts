@@ -17,15 +17,13 @@ describe('CustomersService', () => {
     await expect(service.create({ name: '   ' })).rejects.toBeInstanceOf(BadRequestException);
   });
   it('refuse un nom dépassant 180 caractères', async () => {
-    await expect(service.create({ name: 'A'.repeat(181) })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.create({ name: 'A'.repeat(181) })).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse un email dépassant 254 caractères', async () => {
-    await expect(
-      service.create({ name: 'Client', email: 'a'.repeat(255) }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create({ name: 'Client', email: 'a'.repeat(255) })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('refuse une adresse trop longue à la modification', async () => {
