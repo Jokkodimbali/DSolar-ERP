@@ -24,9 +24,11 @@ describe('PurchaseOrdersService', () => {
     lines: [{ productId: 'product-id', quantity: 2, unitCost: 1000 }],
   };
   it('délègue la consultation des quantités restantes au dépôt', async () => {
-    repository.progress.mockResolvedValue({ orderId: '1', lines: [], complete: true });
+    repository.progress.mockResolvedValue({ orderId: '1', number: 'CMD-001', status: 'CONFIRMED', lines: [], complete: true });
     await expect(service.progress('1')).resolves.toEqual({
       orderId: '1',
+      number: 'CMD-001',
+      status: 'CONFIRMED',
       lines: [],
       complete: true,
     });
