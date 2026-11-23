@@ -4,7 +4,7 @@ import { AuditRepository } from './audit.repository';
 
 describe('AuditRepository', () => {
   const user = { findUnique: jest.fn() };
-  const auditLog = { findMany: jest.fn(), findFirst: jest.fn() };
+  const auditLog = { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), groupBy: jest.fn() };
   const repository = new AuditRepository({ user, auditLog } as unknown as PrismaService);
   beforeEach(() => jest.clearAllMocks());
 
@@ -31,7 +31,21 @@ describe('AuditRepository', () => {
     }));
   });
 
-  it('retourne une pagination stable sans exposer le payload', async () => {
+  it('agrège la synthèse des événements avec les filtres appliqués', async () => {
+    user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
+    auditLog.count.mockResolvedValue(3);
+    auditLog.groupBy
+      .mockResolvedValueOnce([{ action: 'CREATE', _count: { _all: 3 } }])
+      .mockResolvedValueOnce([{ entityType: 'Store', _count: { _all: 3 } }]);
+    const result = await repository.summary('admin', { limit: 1, actorId: 'user' });
+    expect(result).toEqual({
+      total: 3, byAction: [{ action: 'CREATE', count: 3 }],
+      byEntityType: [{ entityType: 'Store', count: 3 }],
+    });
+    expect(auditLog.count).toHaveBeenCalledWith({ where: { actorId: 'user' } });
+  });
+
+  it('retourne une pagination stable sans exposer le payload', async () {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'role' }] });
     auditLog.findMany.mockResolvedValue([
       { id: '3', action: 'A' }, { id: '2', action: 'B' }, { id: '1', action: 'C' },

@@ -4,6 +4,7 @@ import { AuditRepository } from '../infrastructure/audit.repository';
 export interface AuditFilters {
   limit?: string;
   cursor?: string;
+  actorId?: string;
   entityType?: string;
   entityId?: string;
   action?: string;
@@ -30,7 +31,29 @@ export class AuditService {
       throw new BadRequestException('La date de début doit précéder la date de fin.');
     return this.repository.list(actorId, {
       limit,
+      actorId: filters.actorId,
       cursor: filters.cursor,
+      entityType: filters.entityType?.trim(),
+      entityId: filters.entityId?.trim(),
+      action: filters.action?.trim(),
+      storeId: filters.storeId,
+      from,
+      to,
+    });
+  }
+
+  summary(actorId: string, filters: Omit<AuditFilters, 'limit' | 'cursor'>) {
+    const from = this.parseDate(filters.from, 'from');
+    const to = this.parseDate(filters.to, 'to');
+    if (from && to && from > to)
+      throw new BadRequestException('La date de début doit précéder la date de fin.');
+    for (const value of [filters.entityType, filters.entityId, filters.action]) {
+      if (value !== undefined && (!value.trim() || value.length > 120))
+        throw new BadRequestException('Filtre de journal invalide.');
+    }
+    return this.repository.summary(actorId, {
+      limit: 1,
+      actorId: filters.actorId,
       entityType: filters.entityType?.trim(),
       entityId: filters.entityId?.trim(),
       action: filters.action?.trim(),

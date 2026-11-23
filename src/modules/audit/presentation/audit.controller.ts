@@ -11,11 +11,27 @@ import { AuditService } from '../application/audit.service';
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
 
+  @Get('summary')
+  @RequirePermissions('users.manage')
+  summary(
+    @CurrentUserId() actorId: string,
+    @Query('actorId', new ParseUUIDPipe({ optional: true })) filterActorId?: string,
+    @Query('entityType') entityType?: string,
+    @Query('entityId') entityId?: string,
+    @Query('action') action?: string,
+    @Query('storeId', new ParseUUIDPipe({ optional: true })) storeId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.audit.summary(actorId, { actorId: filterActorId, entityType, entityId, action, storeId, from, to });
+  }
+
   @Get()
   @RequirePermissions('users.manage')
   list(
     @CurrentUserId() actorId: string,
     @Query('limit') limit?: string,
+    @Query('actorId', new ParseUUIDPipe({ optional: true })) filterActorId?: string,
     @Query('cursor', new ParseUUIDPipe({ optional: true })) cursor?: string,
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
@@ -24,6 +40,6 @@ export class AuditController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.audit.list(actorId, { limit, cursor, entityType, entityId, action, storeId, from, to });
+    return this.audit.list(actorId, { limit, actorId: filterActorId, cursor, entityType, entityId, action, storeId, from, to });
   }
 }
