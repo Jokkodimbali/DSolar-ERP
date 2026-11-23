@@ -43,6 +43,32 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     );
   });
 
+  // prettier-ignore
+  it('ne donne pas les droits administrateur à un utilisateur inactif', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const repository = new PrismaGoodsReceiptsRepository({
+      goodsReceipt: { findMany },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'INACTIVE', roles: [{ roleId: 'admin' }] }) },
+    } as unknown as PrismaService);
+    await repository.list('inactive-actor');
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { store: { status: 'ACTIVE', userAccess: { some: { userId: 'inactive-actor', user: { status: 'ACTIVE' } } } } },
+    }));
+  });
+
+  // prettier-ignore
+  it('permet à un administrateur actif de consulter les réceptions des magasins actifs', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const repository = new PrismaGoodsReceiptsRepository({
+      goodsReceipt: { findMany },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'admin' }] }) },
+    } as unknown as PrismaService);
+    await repository.list('admin-actor');
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { store: { status: 'ACTIVE' } },
+    }));
+  });
+
   it('annule atomiquement une réception brouillon autorisée', async () => {
     const tx = {
       goodsReceipt: {
