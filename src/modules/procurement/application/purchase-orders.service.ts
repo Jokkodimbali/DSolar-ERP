@@ -12,6 +12,9 @@ export class PurchaseOrdersService {
     if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
     return order;
   }
+  progress(id: string) {
+    return this.orders.progress(id);
+  }
   async create(input: PurchaseOrderInput) {
     const number = input.number.trim().toUpperCase();
     if (!number || number.length > 100)
