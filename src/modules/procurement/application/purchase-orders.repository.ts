@@ -23,6 +23,42 @@ export class PurchaseOrdersRepository {
       include: { supplier: true, lines: true },
     });
   }
+  async progress(id: string) {
+    const order = await this.find(id);
+    if (!order) throw new NotFoundException('Commande fournisseur introuvable.');
+    const receipts = await this.prisma.goodsReceipt.findMany({
+      where: { purchaseOrderId: id, status: 'CONFIRMED' },
+      select: { lines: { select: { productId: true, quantity: true } } },
+    });
+    const received = new Map<string, Prisma.Decimal>();
+    for (const receipt of receipts) {
+      for (const line of receipt.lines) {
+        received.set(
+          line.productId,
+          (received.get(line.productId) ?? new Prisma.Decimal(0)).plus(line.quantity),
+        );
+      }
+    }
+    const lines = order.lines.map((line) => {
+      const receivedQuantity = received.get(line.productId) ?? new Prisma.Decimal(0);
+      const remaining = Prisma.Decimal.max(new Prisma.Decimal(0), line.quantity.minus(receivedQuantity));
+      return {
+        productId: line.productId,
+        orderedQuantity: line.quantity.toString(),
+        receivedQuantity: receivedQuantity.toString(),
+        remainingQuantity: remaining.toString(),
+        complete: remaining.isZero(),
+      };
+    });
+    return {
+      orderId: order.id,
+      number: order.number,
+      status: order.status,
+      lines,
+      complete: lines.every((line) => line.complete),
+    };
+  }
+
   async create(input: PurchaseOrderInput) {
     try {
       return await this.prisma.$transaction(async (tx) => {
