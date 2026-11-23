@@ -112,7 +112,8 @@ export class PrismaOrdersRepository implements OrdersRepository {
             action: 'SALES_ORDER_CONFIRMED',
             entityType: 'SalesOrder',
             entityId: id,
-            payload: { reservedLines: totals.size },
+            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+            payload: { storeIds, reservedLines: totals.size },
           },
         });
         return updated;
@@ -181,7 +182,8 @@ export class PrismaOrdersRepository implements OrdersRepository {
             action: 'SALES_ORDER_CANCELLED',
             entityType: 'SalesOrder',
             entityId: id,
-            payload: { previousStatus: order.status },
+            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+            payload: { storeIds, previousStatus: order.status },
           },
         });
         return updated;
@@ -243,7 +245,8 @@ export class PrismaOrdersRepository implements OrdersRepository {
               action: 'SALES_ORDER_CREATED',
               entityType: 'SalesOrder',
               entityId: order.id,
-              payload: { proformaId, number: order.number },
+              ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+              payload: { storeIds, proformaId, number: order.number },
             },
           });
           return order;
