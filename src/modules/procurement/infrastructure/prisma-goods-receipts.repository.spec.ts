@@ -8,6 +8,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const repository = new PrismaGoodsReceiptsRepository({
       goodsReceipt: { findMany },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
     } as unknown as PrismaService);
     await repository.list('actor-id');
     expect(findMany).toHaveBeenCalledWith(
@@ -26,6 +27,7 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     const findFirst = jest.fn().mockResolvedValue({ id: 'receipt-id' });
     const repository = new PrismaGoodsReceiptsRepository({
       goodsReceipt: { findFirst },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
     } as unknown as PrismaService);
     await repository.get('receipt-id', 'actor-id');
     expect(findFirst).toHaveBeenCalledWith(
@@ -51,8 +53,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
     };
     const prisma = {
@@ -75,8 +77,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         findUnique: jest.fn().mockResolvedValue({ id: 'receipt-id', storeId: 'store-id' }),
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
     };
     const repository = new PrismaGoodsReceiptsRepository({
@@ -91,8 +93,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         findUnique: jest.fn().mockResolvedValue({ id: 'receipt-id', storeId: 'store-id' }),
         updateMany: jest.fn(),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     const repository = new PrismaGoodsReceiptsRepository({
@@ -119,8 +121,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
 
   it('refuse de créer une réception sur une commande non confirmée', async () => {
     const tx = {
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: { findUnique: jest.fn().mockResolvedValue({ status: 'DRAFT', lines: [] }) },
       goodsReceipt: { create: jest.fn() },
@@ -144,8 +146,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
 
   it('refuse une réception sans lignes avant toute création', async () => {
     const tx = {
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: { findUnique: jest.fn().mockResolvedValue({ status: 'CONFIRMED', lines: [] }) },
       goodsReceipt: { create: jest.fn() },
@@ -164,8 +166,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
 
   it('refuse un produit absent de la commande fournisseur', async () => {
     const tx = {
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: {
         findUnique: jest.fn().mockResolvedValue({
@@ -194,8 +196,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
 
   it('refuse les produits dupliqués à la création avant toute écriture', async () => {
     const tx = {
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: {
         findUnique: jest.fn().mockResolvedValue({
@@ -248,8 +250,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         findMany: jest.fn().mockResolvedValue(previousReceipts),
         update: jest.fn().mockResolvedValue({ ...receipt, status: 'CONFIRMED' }),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: {
         findUnique: jest.fn().mockResolvedValue({
@@ -292,8 +294,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         ]),
         update: jest.fn(),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: {
         findUnique: jest.fn().mockResolvedValue({
@@ -329,8 +331,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         }),
         update: jest.fn(),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue(null) },
       purchaseOrder: { findUnique: jest.fn(), update: jest.fn() },
       storeStock: { upsert: jest.fn() },
@@ -359,8 +361,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         }),
         update: jest.fn(),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: { findUnique: jest.fn(), update: jest.fn() },
       storeStock: { upsert: jest.fn() },
@@ -391,8 +393,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: {
         findUnique: jest.fn().mockResolvedValue({
@@ -433,8 +435,8 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
         findMany: jest.fn(),
         update: jest.fn(),
       },
-      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
-      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
       purchaseOrder: { findUnique: jest.fn(), update: jest.fn() },
       storeStock: { upsert: jest.fn() },

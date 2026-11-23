@@ -14,7 +14,7 @@ describe('AuditService', () => {
   });
 
   it.each(['0', '-1', '101', 'abc', '1.5'])('rejette la limite %s', async (limit) => {
-    await expect(service.list('actor', { limit })).rejects.toBeInstanceOf(BadRequestException);
+    expect(() => service.list('actor', { limit })).toThrow(BadRequestException);
     expect(list).not.toHaveBeenCalled();
   });
 
@@ -31,11 +31,11 @@ describe('AuditService', () => {
   });
 
   it.each(['2026-02-30', '2026-1-01', 'not-a-date'])('rejette la date invalide %s', async (from) => {
-    await expect(service.list('actor', { from })).rejects.toBeInstanceOf(BadRequestException);
+    expect(() => service.list('actor', { from })).toThrow(BadRequestException);
   });
 
   it('rejette un intervalle inversé', async () => {
-    await expect(service.list('actor', { from: '2026-02-01', to: '2026-01-01' })).rejects.toBeInstanceOf(
+    expect(() => service.list('actor', { from: '2026-02-01', to: '2026-01-01' })).toThrow(
       BadRequestException,
     );
   });
@@ -58,12 +58,12 @@ describe('AuditService', () => {
   });
 
   it('rejette une période inversée dans la synthèse', async () => {
-    await expect(service.summary('admin', { from: '2026-02-01', to: '2026-01-01' })).rejects.toBeInstanceOf(
+    expect(() => service.summary('admin', { from: '2026-02-01', to: '2026-01-01' })).toThrow(
       BadRequestException,
     );
   });
 
   it('rejette les filtres vides', async () => {
-    await expect(service.list('actor', { action: '  ' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(() => service.list('actor', { action: '  ' })).toThrow(BadRequestException);
   });
 });
