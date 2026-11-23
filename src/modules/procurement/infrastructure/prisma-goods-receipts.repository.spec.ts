@@ -493,6 +493,66 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
   });
 
+  // prettier-ignore
+  it('verrouille la commande fournisseur avant de calculer le cumul reçu', async () => {
+    const calls: string[] = [];
+    const tx = {
+      $executeRaw: jest.fn().mockImplementation(async () => {
+        calls.push('lock');
+        return 1;
+      }),
+      goodsReceipt: {
+        findUnique: jest.fn().mockImplementation(async () => {
+          calls.push('receipt');
+          return {
+            id: 'receipt-id',
+            storeId: 'store-id',
+            status: 'DRAFT',
+            purchaseOrderId: 'order-id',
+            lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(2), unitCost: new Prisma.Decimal(10) }],
+          };
+        }),
+        findMany: jest.fn().mockImplementation(async () => {
+          calls.push('prior');
+          return [];
+        }),
+        update: jest.fn().mockResolvedValue({ id: 'receipt-id', status: 'CONFIRMED' }),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: {
+        findUnique: jest.fn().mockImplementation(async () => {
+          calls.push('order');
+          return {
+            id: 'order-id',
+            status: 'CONFIRMED',
+            lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(10) }],
+          };
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      storeStock: { upsert: jest.fn().mockResolvedValue({}) },
+      stockMovement: { create: jest.fn().mockResolvedValue({}) },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
+    } as unknown as PrismaService;
+    const repository = new PrismaGoodsReceiptsRepository(prisma);
+    await repository.confirm('receipt-id', 'actor-id');
+    expect(calls).toEqual(['lock', 'receipt', 'lock', 'order', 'prior']);
+    expect(tx.storeStock.upsert).toHaveBeenCalledTimes(1);
+    expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
+    expect(tx.purchaseOrder.update).toHaveBeenCalledWith({
+      where: { id: 'order-id' },
+      data: { status: 'PARTIALLY_DELIVERED' },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    }));
+  });
+
   const serializationConflict = () =>
     new Prisma.PrismaClientKnownRequestError('Serialization conflict', {
       code: 'P2034',
