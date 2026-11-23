@@ -228,11 +228,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           throw new ConflictException('Commande fournisseur non confirmée.');
         if (order.lines.length === 0)
           throw new ConflictException('Commande fournisseur sans lignes.');
-        if (
-          order.lines.some(
-            (line) => !line.quantity.isFinite() || line.quantity.lte(0),
-          )
-        )
+        if (order.lines.some((line) => !line.quantity.isFinite() || line.quantity.lte(0)))
           throw new ConflictException('Quantité commandée invalide.');
         const prior = await tx.goodsReceipt.findMany({
           where: { purchaseOrderId: order.id, status: ReceiptStatus.CONFIRMED },
