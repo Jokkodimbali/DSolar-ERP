@@ -82,11 +82,18 @@ export async function buildSourcePosting(
       if (debit.length !== 1 || !credits.length || !debit[0].debit.eq(item.invoice.totalTtc))
         throw new ConflictException('Imputation initiale incompatible.');
       const related = await tx.creditNote.findMany({
-        where: { invoiceId: item.invoiceId }, select: { id: true },
+        where: { invoiceId: item.invoiceId },
+        select: { id: true },
       });
       const prior = await tx.ledgerLine.aggregate({
-        where: { entry: { sourceType: 'CREDIT_NOTE', sourceId: { in: related.map((row) => row.id) },
-          postedAt: { not: null } } }, _sum: { debit: true },
+        where: {
+          entry: {
+            sourceType: 'CREDIT_NOTE',
+            sourceId: { in: related.map((row) => row.id) },
+            postedAt: { not: null },
+          },
+        },
+        _sum: { debit: true },
       });
       const already = prior._sum.debit ?? new Prisma.Decimal(0);
       if (already.plus(item.amount).gt(debit[0].debit))
@@ -100,21 +107,36 @@ export async function buildSourcePosting(
           : [];
       if (!lines.length) throw new ConflictException('Ventilation de l’avoir requise.');
       lines.push({ accountId: debit[0].accountId, debit: '0', credit: item.amount.toFixed(2) });
-      return { date: item.issuedAt, journalId: entry.journalId, description: 'Avoir client ' + item.number, lines };
+      return {
+        date: item.issuedAt,
+        journalId: entry.journalId,
+        description: 'Avoir client ' + item.number,
+        lines,
+      };
     }
     case 'CASH_TRANSFER': {
       const movements = await tx.cashMovement.findMany({
-        where: { transferKey: id }, include: { session: true },
+        where: { transferKey: id },
+        include: { session: true },
       });
       const outgoing = movements.find((movement) => movement.amount.lt(0));
       const incoming = movements.find((movement) => movement.amount.gt(0));
-      if (movements.length !== 2 || !outgoing || !incoming ||
+      if (
+        movements.length !== 2 ||
+        !outgoing ||
+        !incoming ||
         !outgoing.amount.negated().eq(incoming.amount) ||
         outgoing.session.registerId === incoming.session.registerId ||
-        outgoing.createdAt.toISOString().slice(0, 10) !== incoming.createdAt.toISOString().slice(0, 10))
+        outgoing.createdAt.toISOString().slice(0, 10) !== incoming.createdAt.toISOString().slice(0, 10)
+      )
         throw new ConflictException('Transfert intercaisses incohérent ou introuvable.');
-      return fromRule(tx, 'CASH_TRANSFER:' + outgoing.session.registerId + ':' + incoming.session.registerId,
-        outgoing.createdAt, 'Transfert intercaisses ' + id, incoming.amount);
+      return fromRule(
+        tx,
+        'CASH_TRANSFER:' + outgoing.session.registerId + ':' + incoming.session.registerId,
+        outgoing.createdAt,
+        'Transfert intercaisses ' + id,
+        incoming.amount,
+      );
     }
     case 'PAYMENT': {
       const item = await tx.payment.findUnique({ where: { id } });
