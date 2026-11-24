@@ -2,46 +2,92 @@ import { Injectable } from '@nestjs/common';
 import { SalesDocument, SalesPdfPort } from '../application/sales-documents.port';
 import { renderTextPdf } from './text-pdf';
 
+const TITLES = {
+  INVOICE: 'FACTURE', PROFORMA: 'PROFORMA', DELIVERY: 'BON DE LIVRAISON', PAYMENT: 'JUSTIFICATIF DE PAIEMENT',
+};
+
+const STATUS: Record<string, string> = {
+  DRAFT: 'BROUILLON - NON VALIDE', ISSUED: 'ÉMIS', ACCEPTED: 'ACCEPTÉ',
+  CANCELLED: 'ANNULÉ - NON VALIDE', EXPIRED: 'EXPIRÉ - NON VALIDE',
+  CONFIRMED: 'CONFIRMÉ', RECEIVED: 'ENCAISSÉ', REVERSED: 'CONTREPASSÉ - NON VALIDE',
+};
+
+const METHODS: Record<string, string> = {
+  CASH: 'Espèces', WAVE: 'Wave', ORANGE_MONEY: 'Orange Money',
+  BANK_TRANSFER: 'Virement bancaire', CHECK: 'Chèque', CHEQUE: 'Chèque',
+};
+
+function date(value: Date | null): string {
+  return value ? value.toISOString().slice(0, 10) : 'Non émis';
+}
+
+function detail(document: SalesDocument): string[] {
+  switch (document.kind) {
+    case 'DELIVERY':
+      return [
+        'Commande : ' + document.orderNumber,
+        '', 'DÉTAIL DES PRODUITS',
+        ...document.lines.flatMap((line, index) => [
+          '', (index + 1) + '. ' + line.sku + ' | ' + line.name,
+          'Magasin : ' + line.store,
+          'Quantité : ' + line.quantity,
+        ]),
+        '', 'Réceptionnaire : __________________________',
+        'Date et signature : ________________________',
+      ];
+    case 'PAYMENT':
+      return [
+        'Commande : ' + document.orderNumber,
+        'N° historique du versement : ' + document.installmentNumber,
+        'Mode de règlement : ' + (METHODS[document.method] ?? document.method),
+        ...(document.externalReference ? ['Référence externe : ' + document.externalReference] : []),
+        '', 'MONTANT ENREGISTRÉ : ' + document.amount + ' FCFA',
+        ...document.reversals.map((row) => 'Contrepassation du ' + date(row.createdAt) + ' : ' + row.amount + ' FCFA'),
+        ...(document.reversals.length ? ['Ce justificatif ne prouve plus un encaissement actif.'] : []),
+        '', 'Justificatif interne du règlement enregistré ; ne remplace pas la facture.',
+      ];
+    default:
+      return [
+        ...(document.expiresAt ? ['Expiration : ' + date(document.expiresAt)] : []),
+        '', 'DÉTAIL DES PRODUITS (FCFA / XOF)',
+        ...document.lines.flatMap((line, index) => [
+          '', (index + 1) + '. ' + line.sku + ' | ' + line.name,
+          'Quantité : ' + line.quantity + ' | Prix unitaire HT : ' + line.unitPrice,
+          'Remise HT : ' + line.discount + ' | TVA : ' + line.taxRate + ' %',
+          ...(line.taxAmount === undefined ? [] : ['Montant TVA : ' + line.taxAmount]),
+          'Total ligne TTC : ' + line.total,
+        ]),
+        '',
+        ...(document.totalHt === undefined ? [] : ['TOTAL HT : ' + document.totalHt + ' FCFA']),
+        ...(document.totalTax === undefined ? [] : ['TOTAL TVA : ' + document.totalTax + ' FCFA']),
+        'TOTAL TTC : ' + document.totalTtc + ' FCFA',
+      ];
+  }
+}
+
 @Injectable()
 export class SalesPdfRenderer implements SalesPdfPort {
   render(document: SalesDocument): Buffer {
-    const title = document.kind === 'INVOICE' ? 'FACTURE' : 'PROFORMA';
-    const status: Record<string, string> = {
-      DRAFT: 'BROUILLON - NON VALIDE', ISSUED: 'ÉMIS', ACCEPTED: 'ACCEPTÉ',
-      CANCELLED: 'ANNULÉ - NON VALIDE', EXPIRED: 'EXPIRÉ - NON VALIDE',
-    };
-    const date = (value: Date | null) => value ? value.toISOString().slice(0, 10) : 'Non émis';
+    const title = TITLES[document.kind];
+    const status = STATUS[document.status] ?? document.status;
     const rows = [
       'D-Solar and Agri | DSolar-ERP',
       title + ' : ' + document.number,
-      'Statut : ' + (status[document.status] ?? document.status),
-      'Émission : ' + date(document.issuedAt),
-      ...(document.expiresAt ? ['Expiration : ' + date(document.expiresAt)] : []),
+      'Statut : ' + status,
+      'Date : ' + date(document.issuedAt),
       '',
       'CLIENT : ' + document.customer.name,
       ...(document.customer.address ? ['Adresse : ' + document.customer.address] : []),
       ...(document.customer.taxId ? ['Identifiant fiscal : ' + document.customer.taxId] : []),
       ...(document.customer.phone ? ['Téléphone : ' + document.customer.phone] : []),
       '',
-      'DÉTAIL DES PRODUITS (FCFA / XOF)',
-      ...document.lines.flatMap((line, index) => [
-        '',
-        (index + 1) + '. ' + line.sku + ' | ' + line.name,
-        'Quantité : ' + line.quantity + ' | Prix unitaire HT : ' + line.unitPrice,
-        'Remise HT : ' + line.discount + ' | TVA : ' + line.taxRate + ' %',
-        ...(line.taxAmount === undefined ? [] : ['Montant TVA : ' + line.taxAmount]),
-        'Total ligne TTC : ' + line.total,
-      ]),
-      '',
-      ...(document.totalHt === undefined ? [] : ['TOTAL HT : ' + document.totalHt + ' FCFA']),
-      ...(document.totalTax === undefined ? [] : ['TOTAL TVA : ' + document.totalTax + ' FCFA']),
-      'TOTAL TTC : ' + document.totalTtc + ' FCFA',
-      '',
-      'Document interne généré depuis les montants enregistrés.',
-      'Libellés et coordonnées issus du catalogue et du client actuels.',
+      ...detail(document),
+      '', 'Document interne généré depuis les données enregistrées.',
+      'Libellés et coordonnées issus des fiches actuelles.',
     ];
-    const heading = document.status === 'DRAFT' || document.status === 'CANCELLED' || document.status === 'EXPIRED'
-      ? title + ' - ' + status[document.status] : title;
+    // Short warning on every page, within the fixed-width heading area.
+    const invalid = ['DRAFT', 'CANCELLED', 'EXPIRED', 'REVERSED'].includes(document.status);
+    const heading = invalid ? title + ' - NON VALIDE' : title;
     return Buffer.from(renderTextPdf(heading, rows), 'ascii');
   }
 }

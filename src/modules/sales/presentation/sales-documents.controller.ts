@@ -20,6 +20,28 @@ export class SalesDocumentsController {
     });
   }
 
+  @Get('sales-orders/:orderId/deliveries/:id/pdf')
+  async delivery(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actorId: string,
+  ) {
+    return new StreamableFile(await this.service.download('DELIVERY', id, actorId, orderId), {
+      type: 'application/pdf', disposition: 'attachment; filename="livraison-' + id + '.pdf"',
+    });
+  }
+
+  @Get('sales-orders/:orderId/payments/:id/pdf')
+  async payment(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actorId: string,
+  ) {
+    return new StreamableFile(await this.service.download('PAYMENT', id, actorId, orderId), {
+      type: 'application/pdf', disposition: 'attachment; filename="reglement-' + id + '.pdf"',
+    });
+  }
+
   @Get('invoices/:id/pdf')
   async invoice(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return new StreamableFile(await this.service.download('INVOICE', id, actorId), {

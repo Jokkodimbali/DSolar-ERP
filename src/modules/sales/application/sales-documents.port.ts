@@ -1,14 +1,17 @@
 export const SALES_DOCUMENTS = Symbol('SALES_DOCUMENTS');
 export const SALES_PDF = Symbol('SALES_PDF');
-export type SalesDocumentKind = 'PROFORMA' | 'INVOICE';
+export type SalesDocumentKind = 'PROFORMA' | 'INVOICE' | 'DELIVERY' | 'PAYMENT';
 
-export interface SalesDocument {
-  kind: SalesDocumentKind;
+interface DocumentBase {
   number: string;
   status: string;
   issuedAt: Date | null;
-  expiresAt?: Date | null;
   customer: { name: string; address: string | null; taxId: string | null; phone: string | null };
+}
+
+export interface CommercialDocument extends DocumentBase {
+  kind: 'PROFORMA' | 'INVOICE';
+  expiresAt?: Date | null;
   lines: {
     sku: string; name: string; quantity: string; unitPrice: string; discount: string;
     taxRate: string; taxAmount?: string; total: string;
@@ -18,8 +21,26 @@ export interface SalesDocument {
   totalTtc: string;
 }
 
+export interface DeliveryDocument extends DocumentBase {
+  kind: 'DELIVERY';
+  orderNumber: string;
+  lines: { sku: string; name: string; quantity: string; store: string }[];
+}
+
+export interface PaymentDocument extends DocumentBase {
+  kind: 'PAYMENT';
+  orderNumber: string;
+  installmentNumber: number;
+  amount: string;
+  method: string;
+  externalReference: string | null;
+  reversals: { amount: string; createdAt: Date }[];
+}
+
+export type SalesDocument = CommercialDocument | DeliveryDocument | PaymentDocument;
+
 export interface SalesDocumentsPort {
-  find(kind: SalesDocumentKind, id: string, actorId: string): Promise<SalesDocument | null>;
+  find(kind: SalesDocumentKind, id: string, actorId: string, orderId?: string): Promise<SalesDocument | null>;
 }
 
 export interface SalesPdfPort {

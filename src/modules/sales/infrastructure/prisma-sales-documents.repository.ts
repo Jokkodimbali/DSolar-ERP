@@ -26,7 +26,7 @@ function documentLine(value: Line) {
 export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  find(kind: SalesDocumentKind, id: string, actorId: string): Promise<SalesDocument | null> {
+  find(kind: SalesDocumentKind, id: string, actorId: string, orderId?: string): Promise<SalesDocument | null> {
     const scope = {
       lines: {
         some: {},
@@ -50,6 +50,56 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
         return {
           kind, number: item.number, status, issuedAt: item.issuedAt, expiresAt: item.expiresAt,
           customer: item.customer, lines: item.lines.map(documentLine), totalTtc: item.total.toFixed(2),
+        };
+      }
+      if (kind === 'DELIVERY') {
+        if (!orderId) return null;
+        const item = await tx.deliveryNote.findFirst({
+          where: { id, orderId, order: scope, ...scope },
+          select: {
+            number: true, status: true, deliveredAt: true,
+            order: { select: { number: true, customer } },
+            lines: {
+              select: { quantity: true, product, store: { select: { name: true, code: true } } },
+              orderBy: { id: 'asc' },
+            },
+          },
+        });
+        if (!item) return null;
+        return {
+          kind, number: item.number, status: item.status, issuedAt: item.deliveredAt,
+          customer: item.order.customer, orderNumber: item.order.number,
+          lines: item.lines.map((row) => ({
+            sku: row.product.sku, name: row.product.name, quantity: row.quantity.toFixed(3),
+            store: row.store.code + ' - ' + row.store.name,
+          })),
+        };
+      }
+      if (kind === 'PAYMENT') {
+        if (!orderId) return null;
+        const admin = await tx.user.findFirst({
+          where: { id: actorId, status: 'ACTIVE', roles: { some: { role: { code: 'ADMIN' } } } },
+          select: { id: true },
+        });
+        const paymentScope = admin
+          ? { lines: { some: {}, every: { store: { status: 'ACTIVE' as const } } } }
+          : scope;
+        const item = await tx.payment.findFirst({
+          where: { id, orderId, order: paymentScope },
+          select: {
+            id: true, installmentNumber: true, amount: true, method: true,
+            externalReference: true, receivedAt: true,
+            order: { select: { number: true, customer } },
+            reversals: { select: { amount: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+          },
+        });
+        if (!item) return null;
+        return {
+          kind, number: item.id, status: item.reversals.length ? 'REVERSED' : 'RECEIVED',
+          issuedAt: item.receivedAt, customer: item.order.customer, orderNumber: item.order.number,
+          installmentNumber: item.installmentNumber, amount: item.amount.toFixed(2),
+          method: item.method, externalReference: item.externalReference,
+          reversals: item.reversals.map((row) => ({ amount: row.amount.toFixed(2), createdAt: row.createdAt })),
         };
       }
       const item = await tx.invoice.findFirst({

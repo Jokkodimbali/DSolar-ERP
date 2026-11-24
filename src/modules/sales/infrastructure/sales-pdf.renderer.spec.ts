@@ -31,6 +31,38 @@ describe('Documents PDF commerciaux', () => {
     expect(data).not.toContain('/JavaScript');
     expect(data).toContain(Buffer.from('(x) /JavaScript \\', 'latin1').toString('hex'));
   });
+  it('génère un bon de livraison sans divulguer les prix', () => {
+    const data = new SalesPdfRenderer().render({
+      kind: 'DELIVERY', number: 'BL-1', status: 'CONFIRMED', issuedAt: new Date('2026-11-01'),
+      customer: doc.customer, orderNumber: 'CMD-1',
+      lines: [{ sku: 'SOL', name: 'Centrale', quantity: '2.000', store: 'M1 - Dakar' }],
+    }).toString('ascii');
+    expect(data).toContain(Buffer.from('Quantité : 2.000', 'latin1').toString('hex'));
+    expect(data).not.toContain(Buffer.from('Prix unitaire', 'latin1').toString('hex'));
+  });
+  it('marque un règlement contrepassé comme non valide', () => {
+    const data = new SalesPdfRenderer().render({
+      kind: 'PAYMENT', number: 'payment-id', status: 'REVERSED', issuedAt: new Date('2026-11-01'),
+      customer: doc.customer, orderNumber: 'CMD-1', installmentNumber: 3, amount: '15000.00',
+      method: 'CASH', externalReference: null,
+      reversals: [{ amount: '15000.00', createdAt: new Date('2026-11-02') }],
+    }).toString('ascii');
+    expect(data).toContain(Buffer.from('JUSTIFICATIF DE PAIEMENT - NON VALIDE', 'latin1').toString('hex'));
+    expect(data).toContain(Buffer.from('MONTANT ENREGISTRÉ : 15000.00 FCFA', 'latin1').toString('hex'));
+    expect(data).toContain(Buffer.from('Contrepassation du 2026-11-02 : 15000.00 FCFA', 'latin1').toString('hex'));
+  });
+  it('refuse un document rattaché à une commande sans identifiant de commande', async () => {
+    const repository = { find: jest.fn() };
+    const service = new SalesDocumentsService(repository, { render: jest.fn() });
+    await expect(service.download('PAYMENT', 'id', 'actor')).rejects.toBeInstanceOf(NotFoundException);
+    expect(repository.find).not.toHaveBeenCalled();
+  });
+  it('transmet l’identifiant de la commande à la lecture sécurisée', async () => {
+    const repository = { find: jest.fn().mockResolvedValue(null) };
+    const service = new SalesDocumentsService(repository, { render: jest.fn() });
+    await expect(service.download('DELIVERY', 'id', 'actor', 'order')).rejects.toBeInstanceOf(NotFoundException);
+    expect(repository.find).toHaveBeenCalledWith('DELIVERY', 'id', 'actor', 'order');
+  });
   it('refuse la génération avant tout rendu si le document est inaccessible', async () => {
     const repository = { find: jest.fn().mockResolvedValue(null) };
     const renderer = { render: jest.fn() };

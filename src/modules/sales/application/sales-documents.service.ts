@@ -8,8 +8,12 @@ export class SalesDocumentsService {
     @Inject(SALES_PDF) private readonly pdf: SalesPdfPort,
   ) {}
 
-  async download(kind: SalesDocumentKind, id: string, actorId: string): Promise<Buffer> {
-    const document = await this.documents.find(kind, id, actorId);
+  async download(kind: SalesDocumentKind, id: string, actorId: string, orderId?: string): Promise<Buffer> {
+    if ((kind === 'DELIVERY' || kind === 'PAYMENT') && !orderId)
+      throw new NotFoundException('Document introuvable ou non autorisé.');
+    const document = orderId === undefined
+      ? await this.documents.find(kind, id, actorId)
+      : await this.documents.find(kind, id, actorId, orderId);
     if (!document) throw new NotFoundException('Document introuvable ou non autorisé.');
     return this.pdf.render(document);
   }
