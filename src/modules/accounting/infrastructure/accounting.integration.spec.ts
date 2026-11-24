@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingRepository } from './accounting.repository';
@@ -7,19 +8,7 @@ const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : descri
 
 integration('Comptabilité PostgreSQL', () => {
   it('protège les écritures, les périodes et les contrepassations', async () => {
-    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
-      (value) => new URL(value || 'invalid:'),
-    );
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      urls.some(
-        (url) =>
-          !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-          url.pathname !== '/dsolar_test' ||
-          !['postgres:', 'postgresql:'].includes(url.protocol),
-      )
-    )
-      throw new Error('Base locale de test requise.');
+    assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const repo = new AccountingRepository(prisma);
     const suffix = randomUUID().slice(0, 8);

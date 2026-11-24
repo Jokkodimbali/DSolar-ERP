@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PrismaPaymentsRepository } from '../../sales/infrastructure/prisma-payments.repository';
@@ -8,14 +9,7 @@ const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : descri
 
 integration('Trésorerie sur PostgreSQL réel', () => {
   it('contrôle les droits, les soldes, les transferts, les répétitions et la clôture', async () => {
-    const url = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL || 'invalid:');
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-      url.pathname !== '/dsolar_test'
-    ) {
-      throw new Error('Base PostgreSQL de test locale requise.');
-    }
+    assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const repo = new TreasuryRepository(prisma);
     const suffix = randomUUID();

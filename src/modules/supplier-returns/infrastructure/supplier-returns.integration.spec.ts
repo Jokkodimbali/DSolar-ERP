@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PrismaGoodsReceiptsRepository } from '../../procurement/infrastructure/prisma-goods-receipts.repository';
@@ -8,13 +9,7 @@ const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : descri
 
 integration('Retours fournisseurs PostgreSQL', () => {
   it('contrôle le cumul, les réservations, les avoirs et les doublons', async () => {
-    const url = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL || 'invalid:');
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-      url.pathname !== '/dsolar_test'
-    )
-      throw new Error('Base de test locale requise.');
+    assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const repo = new SupplierReturnsRepository(prisma);
     const receipts = new PrismaGoodsReceiptsRepository(prisma);
