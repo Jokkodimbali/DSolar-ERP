@@ -5,9 +5,20 @@ export class LoginDto {
   @ApiProperty({ example: 'admin@dsolar.sn' })
   @IsEmail()
   @MaxLength(254)
-  @SwaggerField({ type: String, format: 'email', maxLength: 254 }) email!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(1024) @SwaggerField({ type: String, format: 'password', writeOnly: true, maxLength: 1024 }) password!: string;
+  @SwaggerField({ type: String, format: 'email', maxLength: 254 })
+  email!: string;
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1024)
+  @SwaggerField({ type: String, format: 'password', writeOnly: true, maxLength: 1024 })
+  password!: string;
 }
 export class RefreshDto {
-  @ApiProperty() @IsString() @MinLength(20) @MaxLength(4096) @SwaggerField({ type: String, writeOnly: true, maxLength: 4096, minLength: 20 }) refreshToken!: string;
+  @ApiProperty()
+  @IsString()
+  @MinLength(20)
+  @MaxLength(4096)
+  @SwaggerField({ type: String, writeOnly: true, maxLength: 4096, minLength: 20 })
+  refreshToken!: string;
 }

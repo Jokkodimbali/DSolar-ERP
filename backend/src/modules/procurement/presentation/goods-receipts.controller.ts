@@ -21,7 +21,10 @@ import { GoodsReceiptsService } from '../application/goods-receipts.service';
 
 class GoodsReceiptsReceiptLineDto {
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
-  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) @SwaggerField({ type: Number, minimum: 0.001 }) quantity!: number;
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
+  @SwaggerField({ type: Number, minimum: 0.001 })
+  quantity!: number;
   @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @SwaggerField({ type: Number, minimum: 0 }) unitCost!: number;
 }
 class GoodsReceiptsCreateGoodsReceiptDto {
@@ -33,7 +36,8 @@ class GoodsReceiptsCreateGoodsReceiptDto {
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => GoodsReceiptsReceiptLineDto)
-  @SwaggerField({ type: () => [GoodsReceiptsReceiptLineDto], minItems: 1, maxItems: 100 }) lines!: GoodsReceiptsReceiptLineDto[];
+  @SwaggerField({ type: () => [GoodsReceiptsReceiptLineDto], minItems: 1, maxItems: 100 })
+  lines!: GoodsReceiptsReceiptLineDto[];
 }
 @ApiTags('Réceptions fournisseurs')
 @ApiBearerAuth()

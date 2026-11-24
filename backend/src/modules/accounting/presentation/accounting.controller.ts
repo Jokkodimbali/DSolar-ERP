@@ -24,93 +24,120 @@ import { AccountingService } from '../application/accounting.service';
 class AccountingCodeDto {
   @IsString()
   @MaxLength(30)
-  @SwaggerField({ type: String, maxLength: 30 }) code!: string;
+  @SwaggerField({ type: String, maxLength: 30 })
+  code!: string;
   @IsString()
   @MaxLength(160)
-  @SwaggerField({ type: String, maxLength: 160 }) name!: string;
+  @SwaggerField({ type: String, maxLength: 160 })
+  name!: string;
 }
 class AccountingClassificationDto {
   @IsIn([...ACCOUNT_CLASSES])
-  @SwaggerField({ enum: [...ACCOUNT_CLASSES] }) category!: AccountClass;
+  @SwaggerField({ enum: [...ACCOUNT_CLASSES] })
+  category!: AccountClass;
 }
 class AccountingAutomationDto {
   @IsBoolean()
-  @SwaggerField({ type: Boolean }) enabled!: boolean;
+  @SwaggerField({ type: Boolean })
+  enabled!: boolean;
 }
 class AccountingPeriodDto {
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ type: String, maxLength: 100 }) name!: string;
+  @SwaggerField({ type: String, maxLength: 100 })
+  name!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) start!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  start!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) end!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  end!: string;
 }
 class AccountingLineDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) accountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  accountId!: string;
   @IsString()
   @MaxLength(19)
-  @SwaggerField({ type: String, maxLength: 19 }) debit!: string;
+  @SwaggerField({ type: String, maxLength: 19 })
+  debit!: string;
   @IsString()
   @MaxLength(19)
-  @SwaggerField({ type: String, maxLength: 19 }) credit!: string;
+  @SwaggerField({ type: String, maxLength: 19 })
+  credit!: string;
 }
 class AccountingPostingDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) journalId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  journalId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) periodId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  periodId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) date!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  date!: string;
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) description!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  description!: string;
   @IsArray()
   @ArrayMinSize(2)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => AccountingLineDto)
-  @SwaggerField({ type: () => [AccountingLineDto], minItems: 2, maxItems: 100 }) lines!: AccountingLineDto[];
+  @SwaggerField({ type: () => [AccountingLineDto], minItems: 2, maxItems: 100 })
+  lines!: AccountingLineDto[];
 }
 class AccountingRuleDto {
   @IsString()
   @MaxLength(120)
-  @SwaggerField({ type: String, maxLength: 120 }) key!: string;
+  @SwaggerField({ type: String, maxLength: 120 })
+  key!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) journalId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  journalId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) debitAccountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  debitAccountId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) creditAccountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  creditAccountId!: string;
   @IsOptional()
   @IsUUID()
-  @SwaggerField({ required: false, type: String, format: 'uuid' }) taxAccountId?: string;
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  taxAccountId?: string;
 }
 
 class AccountingSourceDto {
   @IsIn([...SOURCE_TYPES])
-  @SwaggerField({ enum: [...SOURCE_TYPES] }) type!: SourceType;
+  @SwaggerField({ enum: [...SOURCE_TYPES] })
+  type!: SourceType;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) id!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  id!: string;
 }
 
 class AccountingReverseDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) periodId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  periodId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) date!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  date!: string;
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  reason!: string;
 }
 
 @ApiTags('Comptabilité')
@@ -197,7 +224,11 @@ export class AccountingController {
   }
   @Post('entries/:id/reverse')
   @SuccessMessage('Écriture comptable contrepassée.')
-  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AccountingReverseDto, @CurrentUserId() actor: string) {
+  reverse(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AccountingReverseDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.reverse(id, dto.periodId, dto.date, dto.reason, dto.operationKey, actor);
   }
   @Get('periods/:id/entries')

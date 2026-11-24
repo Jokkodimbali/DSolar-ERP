@@ -7,16 +7,19 @@ export class CreateStoreDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
-  @SwaggerField({ type: String, maxLength: 30 }) code!: string;
+  @SwaggerField({ type: String, maxLength: 30 })
+  code!: string;
 
   @ApiProperty({ example: 'Magasin principal' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(160)
-  @SwaggerField({ type: String, maxLength: 160 }) name!: string;
+  @SwaggerField({ type: String, maxLength: 160 })
+  name!: string;
 
   @ApiPropertyOptional({ example: 'Passy, Sénégal' })
   @IsOptional()
   @IsString()
-  @SwaggerField({ required: false, type: String }) address?: string;
+  @SwaggerField({ required: false, type: String })
+  address?: string;
 }

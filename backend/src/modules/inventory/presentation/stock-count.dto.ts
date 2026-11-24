@@ -14,16 +14,19 @@ import {
 
 export class CountLineDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  productId!: string;
 
   @IsString()
   @Matches(/^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/)
-  @SwaggerField({ type: String, pattern: /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.source }) counted!: string;
+  @SwaggerField({ type: String, pattern: /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.source })
+  counted!: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ required: false, type: String, maxLength: 500 }) reason?: string;
+  @SwaggerField({ required: false, type: String, maxLength: 500 })
+  reason?: string;
 }
 
 export class RecordCountDto {
@@ -32,5 +35,6 @@ export class RecordCountDto {
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => CountLineDto)
-  @SwaggerField({ type: () => [CountLineDto], minItems: 1, maxItems: 100 }) lines!: CountLineDto[];
+  @SwaggerField({ type: () => [CountLineDto], minItems: 1, maxItems: 100 })
+  lines!: CountLineDto[];
 }

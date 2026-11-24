@@ -10,52 +10,66 @@ import { BankService } from '../application/bank.service';
 
 class BankBankAccountDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) accountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  accountId!: string;
   @IsString()
   @MaxLength(160)
-  @SwaggerField({ type: String, maxLength: 160 }) name!: string;
+  @SwaggerField({ type: String, maxLength: 160 })
+  name!: string;
 }
 class BankBankLineDto {
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ type: String, maxLength: 100 }) reference!: string;
+  @SwaggerField({ type: String, maxLength: 100 })
+  reference!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) date!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  date!: string;
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) description!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  description!: string;
   @IsString()
   @MaxLength(20)
-  @SwaggerField({ type: String, maxLength: 20 }) amount!: string;
+  @SwaggerField({ type: String, maxLength: 20 })
+  amount!: string;
 }
 class BankStatementDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) bankAccountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  bankAccountId!: string;
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ type: String, maxLength: 100 }) reference!: string;
+  @SwaggerField({ type: String, maxLength: 100 })
+  reference!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) start!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  start!: string;
   @IsString()
   @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 }) end!: string;
+  @SwaggerField({ type: String, maxLength: 10 })
+  end!: string;
   @IsString()
   @MaxLength(20)
-  @SwaggerField({ type: String, maxLength: 20 }) opening!: string;
+  @SwaggerField({ type: String, maxLength: 20 })
+  opening!: string;
   @IsString()
   @MaxLength(20)
-  @SwaggerField({ type: String, maxLength: 20 }) closing!: string;
+  @SwaggerField({ type: String, maxLength: 20 })
+  closing!: string;
   @IsArray()
   @ArrayMaxSize(500)
   @ValidateNested({ each: true })
   @Type(() => BankBankLineDto)
-  @SwaggerField({ type: () => [BankBankLineDto], maxItems: 500 }) lines!: BankBankLineDto[];
+  @SwaggerField({ type: () => [BankBankLineDto], maxItems: 500 })
+  lines!: BankBankLineDto[];
 }
 class BankMatchDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) ledgerLineId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  ledgerLineId!: string;
 }
 
 @ApiTags('Rapprochement bancaire')

@@ -9,7 +9,11 @@ import { CompanySettingsInput } from '../application/company-settings.port';
 import { CompanySettingsService } from '../application/company-settings.service';
 
 class CompanySettingsCompanySettingsDto implements CompanySettingsInput {
-  @IsInt() @Min(0) @Max(2147483646) @SwaggerField({ type: 'integer', minimum: 0, maximum: 2147483646 }) expectedRevision!: number;
+  @IsInt()
+  @Min(0)
+  @Max(2147483646)
+  @SwaggerField({ type: 'integer', minimum: 0, maximum: 2147483646 })
+  expectedRevision!: number;
   @IsString() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) legalName!: string;
   @IsString() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) tradeName!: string;
   @IsString() @MaxLength(80) @SwaggerField({ type: String, maxLength: 80 }) taxId!: string;
@@ -23,9 +27,17 @@ class CompanySettingsCompanySettingsDto implements CompanySettingsInput {
   @IsString() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) bankName!: string;
   @IsString() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) bankAccount!: string;
   @IsString() @MaxLength(500) @SwaggerField({ type: String, maxLength: 500 }) documentFooter!: string;
-  @IsOptional() @IsString() @MaxLength(80) @SwaggerField({ required: false, type: String, maxLength: 80 }) timeZone?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  @SwaggerField({ required: false, type: String, maxLength: 80 })
+  timeZone?: string;
   @IsBoolean() @SwaggerField({ type: Boolean }) notificationsEnabled!: boolean;
-  @IsInt() @Min(0) @Max(1000000) @SwaggerField({ type: 'integer', minimum: 0, maximum: 1000000 }) lowStockThreshold!: number;
+  @IsInt()
+  @Min(0)
+  @Max(1000000)
+  @SwaggerField({ type: 'integer', minimum: 0, maximum: 1000000 })
+  lowStockThreshold!: number;
 }
 
 @ApiTags('Paramètres entreprise')

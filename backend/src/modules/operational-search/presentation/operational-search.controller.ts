@@ -8,13 +8,23 @@ import { CurrentUserId } from '../../identity/presentation/current-user.decorato
 import { OperationalSearchService } from '../application/operational-search.service';
 
 class OperationalSearchOperationalQueryDto extends PageQueryDto {
-  @IsOptional() @IsString() @MaxLength(40) @SwaggerField({ required: false, type: String, maxLength: 40 }) status?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  @SwaggerField({ required: false, type: String, maxLength: 40 })
+  status?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) storeId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) periodId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) productId?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) registerId?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  registerId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) sessionId?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) statementId?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  statementId?: string;
 }
 
 @ApiTags('Recherche des opérations')

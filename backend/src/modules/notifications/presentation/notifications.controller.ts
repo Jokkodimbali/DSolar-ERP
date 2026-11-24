@@ -10,8 +10,15 @@ import { CurrentUserId } from '../../identity/presentation/current-user.decorato
 import { NotificationsService } from '../application/notifications.service';
 
 class NotificationsNotificationQueryDto extends PageQueryDto {
-  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) read?: string;
-  @IsOptional() @IsString() @MaxLength(80) @SwaggerField({ required: false, type: String, maxLength: 80 }) action?: string;
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @SwaggerField({ required: false, enum: ['true', 'false'] })
+  read?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  @SwaggerField({ required: false, type: String, maxLength: 80 })
+  action?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) storeId?: string;
 }
 

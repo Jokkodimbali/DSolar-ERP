@@ -20,32 +20,39 @@ import { SupplierReturnsService } from '../application/supplier-returns.service'
 
 class SupplierReturnsReturnLineDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) receiptLineId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  receiptLineId!: string;
   @IsString()
   @MaxLength(19)
-  @SwaggerField({ type: String, maxLength: 19 }) quantity!: string;
+  @SwaggerField({ type: String, maxLength: 19 })
+  quantity!: string;
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(100)
   @ArrayUnique()
   @IsUUID(undefined, { each: true })
-  @SwaggerField({ required: false, type: [String], maxItems: 100, uniqueItems: true }) serialIds?: string[];
+  @SwaggerField({ required: false, type: [String], maxItems: 100, uniqueItems: true })
+  serialIds?: string[];
 }
 
 class SupplierReturnsReturnDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) receiptId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  receiptId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  reason!: string;
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => SupplierReturnsReturnLineDto)
-  @SwaggerField({ type: () => [SupplierReturnsReturnLineDto], minItems: 1, maxItems: 100 }) lines!: SupplierReturnsReturnLineDto[];
+  @SwaggerField({ type: () => [SupplierReturnsReturnLineDto], minItems: 1, maxItems: 100 })
+  lines!: SupplierReturnsReturnLineDto[];
 }
 
 class SupplierReturnsRegisterSerialsDto {
@@ -55,19 +62,22 @@ class SupplierReturnsRegisterSerialsDto {
   @ArrayUnique()
   @IsString({ each: true })
   @MaxLength(150, { each: true })
-  @SwaggerField({ type: [String], minItems: 1, maxItems: 100, uniqueItems: true }) serials!: string[];
+  @SwaggerField({ type: [String], minItems: 1, maxItems: 100, uniqueItems: true })
+  serials!: string[];
 }
 
 class SupplierReturnsReasonDto {
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  reason!: string;
 }
 
 class SupplierReturnsCreditDto {
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ type: String, maxLength: 100 }) reference!: string;
+  @SwaggerField({ type: String, maxLength: 100 })
+  reference!: string;
 }
 
 @ApiTags('Retours fournisseurs')
@@ -120,14 +130,22 @@ export class SupplierReturnsController {
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
   @SuccessMessage('Retour fournisseur annulé.')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SupplierReturnsReasonDto, @CurrentUserId() actor: string) {
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SupplierReturnsReasonDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.cancel(id, dto.reason, actor);
   }
 
   @Post(':id/credit')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Avoir fournisseur enregistré.')
-  credit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SupplierReturnsCreditDto, @CurrentUserId() actor: string) {
+  credit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SupplierReturnsCreditDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.credit(id, dto.reference, actor);
   }
 }

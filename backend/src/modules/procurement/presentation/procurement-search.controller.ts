@@ -8,10 +8,23 @@ import { CurrentUserId } from '../../identity/presentation/current-user.decorato
 import { ProcurementSearchService } from '../application/procurement-search.service';
 
 class ProcurementSearchProcurementQueryDto extends PageQueryDto {
-  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) active?: string;
-  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) outstanding?: string;
-  @IsOptional() @IsString() @MaxLength(40) @SwaggerField({ required: false, type: String, maxLength: 40 }) status?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) supplierId?: string;
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @SwaggerField({ required: false, enum: ['true', 'false'] })
+  active?: string;
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @SwaggerField({ required: false, enum: ['true', 'false'] })
+  outstanding?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  @SwaggerField({ required: false, type: String, maxLength: 40 })
+  status?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  supplierId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) storeId?: string;
 }
 function criteria(query: ProcurementSearchProcurementQueryDto) {

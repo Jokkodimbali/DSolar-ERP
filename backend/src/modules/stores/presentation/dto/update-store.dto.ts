@@ -7,9 +7,11 @@ export class UpdateStoreDto {
   @IsString()
   @MinLength(1)
   @MaxLength(160)
-  @SwaggerField({ required: false, type: String, maxLength: 160, minLength: 1 }) name?: string;
+  @SwaggerField({ required: false, type: String, maxLength: 160, minLength: 1 })
+  name?: string;
   @ApiPropertyOptional({ example: 'Dakar, Sénégal', nullable: true })
   @IsOptional()
   @IsString()
-  @SwaggerField({ required: false, type: String }) address?: string | null;
+  @SwaggerField({ required: false, type: String })
+  address?: string | null;
 }

@@ -24,20 +24,36 @@ import { ProformasService } from '../application/proformas.service';
 class ProformasProformaLineDto {
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) storeId!: string;
-  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) @SwaggerField({ type: Number, minimum: 0.001 }) quantity!: number;
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
+  @SwaggerField({ type: Number, minimum: 0.001 })
+  quantity!: number;
   @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @SwaggerField({ type: Number, minimum: 0 }) unitPrice!: number;
   @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @SwaggerField({ type: Number, minimum: 0 }) discount!: number;
-  @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(100) @SwaggerField({ type: Number, minimum: 0, maximum: 100 }) taxRate!: number;
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  @Max(100)
+  @SwaggerField({ type: Number, minimum: 0, maximum: 100 })
+  taxRate!: number;
 }
 class ProformasCreateProformaDto {
-  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) @SwaggerField({ required: false, type: String, maxLength: 100 }) number?: string;
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  @SwaggerField({ required: false, type: String, maxLength: 100 })
+  number?: string;
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) customerId!: string;
-  @IsOptional() @IsDateString() @SwaggerField({ required: false, type: String, format: 'date-time' }) expiresAt?: string;
+  @IsOptional()
+  @IsDateString()
+  @SwaggerField({ required: false, type: String, format: 'date-time' })
+  expiresAt?: string;
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => ProformasProformaLineDto)
-  @SwaggerField({ type: () => [ProformasProformaLineDto], minItems: 1 }) lines!: ProformasProformaLineDto[];
+  @SwaggerField({ type: () => [ProformasProformaLineDto], minItems: 1 })
+  lines!: ProformasProformaLineDto[];
 }
 @ApiTags('Devis proforma')
 @ApiBearerAuth()

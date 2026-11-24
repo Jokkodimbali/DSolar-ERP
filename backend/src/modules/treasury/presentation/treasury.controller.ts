@@ -9,45 +9,55 @@ import { TreasuryService } from '../application/treasury.service';
 
 class TreasuryRegisterDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) storeId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  storeId!: string;
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ type: String, maxLength: 100 }) name!: string;
+  @SwaggerField({ type: String, maxLength: 100 })
+  name!: string;
 }
 class TreasuryAmountDto {
   @IsString()
   @MaxLength(20)
-  @SwaggerField({ type: String, maxLength: 20 }) amount!: string;
+  @SwaggerField({ type: String, maxLength: 20 })
+  amount!: string;
 }
 class TreasuryMovementDto extends TreasuryAmountDto {
   @IsString()
   @MaxLength(200)
-  @SwaggerField({ type: String, maxLength: 200 }) reason!: string;
+  @SwaggerField({ type: String, maxLength: 200 })
+  reason!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
 }
 
 class TreasuryOperationDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
 }
 
 class TreasuryTransferDto extends TreasuryAmountDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) destinationId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  destinationId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
 }
 
 class TreasuryReverseDto extends TreasuryOperationDto {
   @IsString()
   @MaxLength(200)
-  @SwaggerField({ type: String, maxLength: 200 }) reason!: string;
+  @SwaggerField({ type: String, maxLength: 200 })
+  reason!: string;
 }
 
 class TreasuryReconcileDto extends TreasuryOperationDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) paymentId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  paymentId!: string;
 }
 
 @ApiTags('Trésorerie')
@@ -73,14 +83,22 @@ export class TreasuryController {
   @Post('registers/:id/open')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Session de caisse ouverte.')
-  open(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryAmountDto, @CurrentUserId() actor: string) {
+  open(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TreasuryAmountDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.open(id, dto.amount, actor);
   }
 
   @Post('sessions/:id/movements')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Mouvement de caisse enregistré.')
-  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryMovementDto, @CurrentUserId() actor: string) {
+  move(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TreasuryMovementDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.move(id, dto.amount, dto.reason, dto.operationKey, actor);
   }
 
@@ -93,14 +111,22 @@ export class TreasuryController {
   @Post('sessions/:id/transfer')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Transfert de trésorerie enregistré.')
-  transfer(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryTransferDto, @CurrentUserId() actor: string) {
+  transfer(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TreasuryTransferDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.transfer(id, dto.destinationId, dto.amount, dto.operationKey, actor);
   }
 
   @Post('movements/:id/reverse')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Mouvement de caisse contrepassé.')
-  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryReverseDto, @CurrentUserId() actor: string) {
+  reverse(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TreasuryReverseDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.reverse(id, dto.reason, dto.operationKey, actor);
   }
 
@@ -118,7 +144,11 @@ export class TreasuryController {
   @Post('sessions/:id/close')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Session de caisse clôturée.')
-  close(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryAmountDto, @CurrentUserId() actor: string) {
+  close(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TreasuryAmountDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.close(id, dto.amount, actor);
   }
 }

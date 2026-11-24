@@ -59,28 +59,54 @@ const schemas: Record<string, Schema> = {
     pagination: ref('ApiPagination'),
   }),
   ApiNotification: object({
-    id: uuid, title: text, action: text, entityType: text, entityId: text,
-    storeId: { ...uuid, nullable: true }, createdAt: date, read: boolean,
+    id: uuid,
+    title: text,
+    action: text,
+    entityType: text,
+    entityId: text,
+    storeId: { ...uuid, nullable: true },
+    createdAt: date,
+    read: boolean,
   }),
-  ApiNotificationFeed: object({
-    enabled: boolean, unread: integer, items: array(ref('ApiNotification')),
-    pagination: ref('ApiPagination'),
-  }, ['enabled', 'unread', 'items']),
+  ApiNotificationFeed: object(
+    {
+      enabled: boolean,
+      unread: integer,
+      items: array(ref('ApiNotification')),
+      pagination: ref('ApiPagination'),
+    },
+    ['enabled', 'unread', 'items'],
+  ),
   ApiNotificationMark: object({ marked: integer, message: text }),
   ApiImage: object({ id: uuid, mimeType: text, createdAt: date, url: text }),
   ApiImageUpload: object({ id: uuid, mimeType: text, createdAt: date, url: text, message: text }),
   ApiPaymentItem: object({
-    id: uuid, installmentNumber: integer, amount: money, method: text, receivedAt: date,
+    id: uuid,
+    installmentNumber: integer,
+    amount: money,
+    method: text,
+    receivedAt: date,
     status: { ...text, enum: ['ACTIVE', 'REVERSED'] },
-    reversedAmount: money, reversedAt: { ...date, nullable: true },
+    reversedAmount: money,
+    reversedAt: { ...date, nullable: true },
   }),
   ApiPaymentSummary: object({
-    orderId: uuid, currency: { ...text, enum: ['XOF'] },
+    orderId: uuid,
+    currency: { ...text, enum: ['XOF'] },
     basis: { ...text, enum: ['SALES_ORDER_NET_OF_INVOICE_CREDITS'] },
-    orderStatus: text, paymentStatus: text, netPaymentStatus: text,
-    total: money, credited: money, netTotal: money, paid: money, remaining: money,
-    activeInstallments: integer, maxInstallments: { ...integer, enum: [2] },
-    consistent: boolean, canRecord: boolean, nextPaymentMustSettle: boolean,
+    orderStatus: text,
+    paymentStatus: text,
+    netPaymentStatus: text,
+    total: money,
+    credited: money,
+    netTotal: money,
+    paid: money,
+    remaining: money,
+    activeInstallments: integer,
+    maxInstallments: { ...integer, enum: [2] },
+    consistent: boolean,
+    canRecord: boolean,
+    nextPaymentMustSettle: boolean,
     payments: array(ref('ApiPaymentItem')),
   }),
 };
@@ -99,7 +125,8 @@ function successSchema(path: string, method: string): Schema | undefined {
   if (path === '/api/v1/media/products/{id}/photo' && method === 'get')
     return { allOf: [ref('ApiImage')], nullable: true };
   if (path === '/api/v1/sales-orders/{orderId}/payments/summary') return ref('ApiPaymentSummary');
-  if (method === 'get' && (path.startsWith('/api/v1/search/') || path.endsWith('/search'))) return ref('ApiPage');
+  if (method === 'get' && (path.startsWith('/api/v1/search/') || path.endsWith('/search')))
+    return ref('ApiPage');
   return undefined;
 }
 
@@ -116,8 +143,14 @@ function describeResponse(path: string, method: string, operation: Operation, me
   else if (path.startsWith('/api/v1/media/images/'))
     response.content = { 'image/png': binary, 'image/jpeg': binary };
   else if (path === '/api/v1/notifications/stream') {
-    response.description = 'Flux SSE authentifié, interrogation toutes les 5 secondes, fermeture après 60 secondes.';
-    response.content = { 'text/event-stream': { schema: text, example: 'event: notifications\ndata: {"enabled":true,"unread":0,"items":[]}\n\n' } };
+    response.description =
+      'Flux SSE authentifié, interrogation toutes les 5 secondes, fermeture après 60 secondes.';
+    response.content = {
+      'text/event-stream': {
+        schema: text,
+        example: 'event: notifications\ndata: {"enabled":true,"unread":0,"items":[]}\n\n',
+      },
+    };
   } else {
     const schema = successSchema(path, method);
     if (schema) response.content = { 'application/json': { schema } };
@@ -133,19 +166,37 @@ function describeResponse(path: string, method: string, operation: Operation, me
   }
   operation.responses[status] = response;
   for (const [code, description] of Object.entries(errors)) {
-    if ((code === '401' || code === '403') && !operation.security?.length && !path.startsWith('/api/v1/auth/')) continue;
+    if (
+      (code === '401' || code === '403') &&
+      !operation.security?.length &&
+      !path.startsWith('/api/v1/auth/')
+    )
+      continue;
     if (code === '429' && !path.startsWith('/api/v1/auth/')) continue;
     if ((code === '413' || code === '415') && !path.startsWith('/api/v1/media/')) continue;
-    operation.responses[code] ??= { description, content: { 'application/json': { schema: ref('ApiError') } } };
+    operation.responses[code] ??= {
+      description,
+      content: { 'application/json': { schema: ref('ApiError') } },
+    };
   }
 }
 
 export function createApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('DSolar-ERP — API interne')
-    .setDescription('Documentation technique de D-Solar and Agri. Les opérations sont réelles : utiliser une base de développement isolée. Les droits de route sont complétés par les contrôles métier et de magasin.')
+    .setDescription(
+      'Documentation technique de D-Solar and Agri. Les opérations sont réelles : utiliser une base de développement isolée. Les droits de route sont complétés par les contrôles métier et de magasin.',
+    )
     .setVersion('1.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Jeton d’accès obtenu via POST /api/v1/auth/login.' }, 'bearer')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Jeton d’accès obtenu via POST /api/v1/auth/login.',
+      },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config, {
     operationIdFactory: (controller, method) => controller + '_' + method,
@@ -165,7 +216,8 @@ export function createApiDocument(app: INestApplication): OpenAPIObject {
         if (typeof handler !== 'function') continue;
         handlers.set(controller.name + '_' + name, {
           public: reflector.get<boolean>(PUBLIC_ROUTE, handler) === true,
-          permissions: reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS, [handler, controller]) ?? [],
+          permissions:
+            reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS, [handler, controller]) ?? [],
           message: reflector.get<string>(SUCCESS_MESSAGE, handler),
         });
       }
@@ -182,20 +234,38 @@ export function createApiDocument(app: INestApplication): OpenAPIObject {
         operation.description,
         handler.public ? 'Route publique.' : 'Session JWT active requise.',
         handler.permissions.length ? 'Permissions : ' + handler.permissions.join(', ') + '.' : '',
-      ].filter(Boolean).join(' ');
-      operation.summary ||= handler.message ?? (method === 'get' ? 'Consulter ' : 'Exécuter ') + (operation.tags?.join(' — ') ?? 'API') + ' : ' + path.slice(8);
+      ]
+        .filter(Boolean)
+        .join(' ');
+      operation.summary ||=
+        handler.message ??
+        (method === 'get' ? 'Consulter ' : 'Exécuter ') +
+          (operation.tags?.join(' — ') ?? 'API') +
+          ' : ' +
+          path.slice(8);
       for (const parameter of operation.parameters ?? []) {
         if ('$ref' in parameter) continue;
         if (parameter.in === 'path') {
           parameter.required = true;
           parameter.schema = { type: 'string', format: 'uuid' };
         }
-        if (parameter.in === 'query' && parameter.name !== 'year' && parameter.required === undefined) parameter.required = false;
+        if (parameter.in === 'query' && parameter.name !== 'year' && parameter.required === undefined)
+          parameter.required = false;
       }
       if (path.startsWith('/api/v1/media/') && method === 'post') {
         operation.requestBody = {
           required: true,
-          content: { 'multipart/form-data': { schema: object({ file: { type: 'string', format: 'binary', description: 'PNG ou JPEG compatible, maximum 2 Mio et 4 mégapixels.' } }) } },
+          content: {
+            'multipart/form-data': {
+              schema: object({
+                file: {
+                  type: 'string',
+                  format: 'binary',
+                  description: 'PNG ou JPEG compatible, maximum 2 Mio et 4 mégapixels.',
+                },
+              }),
+            },
+          },
         };
       }
       describeResponse(path, method, operation, handler.message);
@@ -207,7 +277,12 @@ export function createApiDocument(app: INestApplication): OpenAPIObject {
 export function configureSwagger(app: INestApplication, env: NodeJS.ProcessEnv): void {
   if (!swaggerEnabled(env)) return;
   SwaggerModule.setup('documentation', app, createApiDocument(app), {
-    swaggerOptions: { persistAuthorization: false, docExpansion: 'none', filter: true, displayRequestDuration: true },
+    swaggerOptions: {
+      persistAuthorization: false,
+      docExpansion: 'none',
+      filter: true,
+      displayRequestDuration: true,
+    },
     customSiteTitle: 'DSolar-ERP — Documentation API',
   });
 }

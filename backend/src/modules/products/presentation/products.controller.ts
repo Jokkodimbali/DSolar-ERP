@@ -19,11 +19,23 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { ProductsService } from '../application/products.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 class ProductsProductSearchDto extends PageQueryDto {
-  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) active?: string;
-  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) isSolarPlant?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) categoryId?: string;
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @SwaggerField({ required: false, enum: ['true', 'false'] })
+  active?: string;
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @SwaggerField({ required: false, enum: ['true', 'false'] })
+  isSolarPlant?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  categoryId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) brandId?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) taxRegimeId?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  taxRegimeId?: string;
 }
 @ApiTags('Produits')
 @ApiBearerAuth()

@@ -8,8 +8,15 @@ import { CurrentUserId } from '../../identity/presentation/current-user.decorato
 import { CommercialSearchService } from '../application/commercial-search.service';
 
 class CommercialSearchCommercialQueryDto extends PageQueryDto {
-  @IsOptional() @IsString() @MaxLength(40) @SwaggerField({ required: false, type: String, maxLength: 40 }) status?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) customerId?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  @SwaggerField({ required: false, type: String, maxLength: 40 })
+  status?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  customerId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) storeId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) orderId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) invoiceId?: string;

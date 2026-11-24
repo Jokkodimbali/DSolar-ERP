@@ -21,7 +21,10 @@ import { PurchaseOrdersService } from '../application/purchase-orders.service';
 
 class PurchaseOrdersPurchaseOrderLineDto {
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
-  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) @SwaggerField({ type: Number, minimum: 0.001 }) quantity!: number;
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
+  @SwaggerField({ type: Number, minimum: 0.001 })
+  quantity!: number;
   @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @SwaggerField({ type: Number, minimum: 0 }) unitCost!: number;
 }
 class PurchaseOrdersCreatePurchaseOrderDto {
@@ -32,7 +35,8 @@ class PurchaseOrdersCreatePurchaseOrderDto {
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => PurchaseOrdersPurchaseOrderLineDto)
-  @SwaggerField({ type: () => [PurchaseOrdersPurchaseOrderLineDto], minItems: 1, maxItems: 100 }) lines!: PurchaseOrdersPurchaseOrderLineDto[];
+  @SwaggerField({ type: () => [PurchaseOrdersPurchaseOrderLineDto], minItems: 1, maxItems: 100 })
+  lines!: PurchaseOrdersPurchaseOrderLineDto[];
 }
 @ApiTags('Commandes fournisseurs')
 @ApiBearerAuth()

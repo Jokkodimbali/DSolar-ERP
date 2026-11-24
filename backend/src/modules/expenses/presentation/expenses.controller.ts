@@ -11,40 +11,50 @@ import { ExpensesService } from '../application/expenses.service';
 class ExpensesCategoryDto {
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ type: String, maxLength: 100 }) name!: string;
+  @SwaggerField({ type: String, maxLength: 100 })
+  name!: string;
 }
 
 class ExpensesExpenseDto {
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) storeId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  storeId!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) categoryId!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  categoryId!: string;
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) description!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  description!: string;
   @IsString()
   @MaxLength(19)
-  @SwaggerField({ type: String, maxLength: 19 }) amount!: string;
+  @SwaggerField({ type: String, maxLength: 19 })
+  amount!: string;
   @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' })
+  operationKey!: string;
 }
 
 class ExpensesPayDto {
   @IsIn(['CASH', 'BANK_TRANSFER', 'CHEQUE', 'MOBILE_MONEY', 'OTHER'])
-  @SwaggerField({ enum: ['CASH', 'BANK_TRANSFER', 'CHEQUE', 'MOBILE_MONEY', 'OTHER'] }) method!: ExpenseMethod;
+  @SwaggerField({ enum: ['CASH', 'BANK_TRANSFER', 'CHEQUE', 'MOBILE_MONEY', 'OTHER'] })
+  method!: ExpenseMethod;
   @IsOptional()
   @IsUUID()
-  @SwaggerField({ required: false, type: String, format: 'uuid' }) sessionId?: string;
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  sessionId?: string;
   @IsOptional()
   @IsString()
   @MaxLength(200)
-  @SwaggerField({ required: false, type: String, maxLength: 200 }) reference?: string;
+  @SwaggerField({ required: false, type: String, maxLength: 200 })
+  reference?: string;
 }
 
 class ExpensesReasonDto {
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 })
+  reason!: string;
 }
 
 @ApiTags('Dépenses')
@@ -109,14 +119,22 @@ export class ExpensesController {
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Dépense annulée.')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ExpensesReasonDto, @CurrentUserId() actor: string) {
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ExpensesReasonDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.cancel(id, dto.reason, actor);
   }
 
   @Post(':id/refund')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Remboursement de dépense enregistré.')
-  refund(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ExpensesReasonDto, @CurrentUserId() actor: string) {
+  refund(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ExpensesReasonDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.refund(id, dto.reason, actor);
   }
 }

@@ -12,7 +12,10 @@ import {
 import { Type } from 'class-transformer';
 export class TransferLineDto {
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
-  @IsString() @Matches(/^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/) @SwaggerField({ type: String, pattern: /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.source }) quantity!: string;
+  @IsString()
+  @Matches(/^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/)
+  @SwaggerField({ type: String, pattern: /^(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.source })
+  quantity!: string;
 }
 export class CreateTransferDto {
   @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) originId!: string;
@@ -23,5 +26,6 @@ export class CreateTransferDto {
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => TransferLineDto)
-  @SwaggerField({ type: () => [TransferLineDto], minItems: 1, maxItems: 100 }) lines!: TransferLineDto[];
+  @SwaggerField({ type: () => [TransferLineDto], minItems: 1, maxItems: 100 })
+  lines!: TransferLineDto[];
 }
