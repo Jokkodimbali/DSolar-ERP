@@ -1,4 +1,4 @@
-name: Formatage et validation des états financiers
+name: Formatage et validation du rapprochement bancaire
 on:
   push:
     branches: [dev]

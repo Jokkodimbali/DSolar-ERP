@@ -755,6 +755,7 @@ model LedgerAccount {
   name String @db.VarChar(160)
   lines LedgerLine[]
   classification LedgerAccountClassification?
+  bankAccount LedgerBankAccount?
   debitRules LedgerPostingRule[] @relation("RuleDebit")
   creditRules LedgerPostingRule[] @relation("RuleCredit")
   taxRules LedgerPostingRule[] @relation("RuleTax")
@@ -809,6 +810,7 @@ model LedgerLine {
   account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
   debit Decimal @db.Decimal(18,2)
   credit Decimal @db.Decimal(18,2)
+  bankMatch LedgerBankLine?
   @@index([entryId])
   @@index([accountId])
 }
@@ -840,4 +842,47 @@ model LedgerAccountClassification {
   category LedgerAccountClass
   classifiedBy String @db.Uuid
   classifiedAt DateTime @default(now())
+}
+
+model LedgerBankAccount {
+  id String @id @default(uuid()) @db.Uuid
+  accountId String @unique @db.Uuid
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  name String @db.VarChar(160)
+  revision Int @default(0)
+  statements LedgerBankStatement[]
+}
+
+model LedgerBankStatement {
+  id String @id @default(uuid()) @db.Uuid
+  bankAccountId String @db.Uuid
+  bankAccount LedgerBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  reference String @db.VarChar(100)
+  startsAt DateTime @db.Date
+  endsAt DateTime @db.Date
+  opening Decimal @db.Decimal(18,2)
+  closing Decimal @db.Decimal(18,2)
+  createdBy String @db.Uuid
+  createdAt DateTime @default(now())
+  closedBy String? @db.Uuid
+  closedAt DateTime?
+  lines LedgerBankLine[]
+  @@unique([bankAccountId, reference])
+  @@index([bankAccountId, startsAt, endsAt])
+}
+
+model LedgerBankLine {
+  id String @id @default(uuid()) @db.Uuid
+  statementId String @db.Uuid
+  statement LedgerBankStatement @relation(fields: [statementId], references: [id], onDelete: Restrict)
+  reference String @db.VarChar(100)
+  date DateTime @db.Date
+  description String @db.VarChar(500)
+  amount Decimal @db.Decimal(18,2)
+  ledgerLineId String? @unique @db.Uuid
+  ledgerLine LedgerLine? @relation(fields: [ledgerLineId], references: [id], onDelete: Restrict)
+  matchedBy String? @db.Uuid
+  matchedAt DateTime?
+  @@unique([statementId, reference])
+  @@index([statementId, date])
 }
