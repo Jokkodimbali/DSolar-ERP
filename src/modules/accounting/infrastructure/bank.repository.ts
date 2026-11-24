@@ -181,6 +181,61 @@ export class BankRepository implements BankPort {
     return this.transaction(actor, (tx) => this.report(tx, id));
   }
 
+  suggestionSnapshot(id: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const statement = await tx.ledgerBankStatement.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          startsAt: true,
+          endsAt: true,
+          closedAt: true,
+          bankAccount: { select: { accountId: true } },
+          lines: {
+            where: { ledgerLineId: null },
+            orderBy: [{ date: 'asc' }, { id: 'asc' }],
+            select: { id: true, date: true, amount: true, description: true },
+          },
+        },
+      });
+      if (!statement) throw new NotFoundException('Relevé introuvable.');
+      if (statement.closedAt) throw new ConflictException('Rapprochement clôturé.');
+      const bankLines = statement.lines.map((line) => ({
+        ...line,
+        amount: line.amount.toFixed(2),
+      }));
+      if (!bankLines.length) return { statementId: id, bankLines, ledgerLines: [] };
+      // Never present a truncated candidate set as a unique match.
+      const rows = await tx.ledgerLine.findMany({
+        where: {
+          accountId: statement.bankAccount.accountId,
+          bankMatch: null,
+          entry: { postedAt: { not: null }, date: { gte: statement.startsAt, lte: statement.endsAt } },
+        },
+        select: {
+          id: true,
+          debit: true,
+          credit: true,
+          entry: { select: { date: true, description: true } },
+        },
+        orderBy: [{ entry: { date: 'asc' } }, { id: 'asc' }],
+        take: 5001,
+      });
+      if (rows.length > 5000)
+        throw new ConflictException('Trop d’écritures non rapprochées pour une suggestion fiable.');
+      return {
+        statementId: id,
+        bankLines,
+        ledgerLines: rows.map((line) => ({
+          id: line.id,
+          date: line.entry.date,
+          description: line.entry.description,
+          amount: line.debit.minus(line.credit).toFixed(2),
+        })),
+      };
+    });
+  }
+
   match(id: string, ledgerLineId: string, actor: string) {
     return this.transaction(actor, async (tx) => {
       const bankLine = await tx.ledgerBankLine.findUnique({

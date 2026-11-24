@@ -4,6 +4,7 @@ import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/l
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingRepository } from './accounting.repository';
 import { BankRepository } from './bank.repository';
+import { BankService } from '../application/bank.service';
 
 const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : describe.skip;
 integration('Rapprochement bancaire PostgreSQL', () => {
@@ -11,6 +12,7 @@ integration('Rapprochement bancaire PostgreSQL', () => {
     assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const repo = new BankRepository(prisma);
+    const bankService = new BankService(repo);
     const ledger = new AccountingRepository(prisma);
     const suffix = randomUUID().slice(0, 8);
     try {
@@ -65,12 +67,18 @@ integration('Rapprochement bancaire PostgreSQL', () => {
         ConflictException,
       );
       const line = statement.lines[0];
+      await expect(bankService.suggestions(statement.id, randomUUID())).rejects.toBeInstanceOf(ForbiddenException);
+      const suggestions = await bankService.suggestions(statement.id, admin.id);
+      expect(suggestions).toMatchObject({ unique: 1, ambiguous: 0, noMatch: 0 });
+      expect(suggestions.items[0]).toMatchObject({ bankLineId: line.id, status: 'UNIQUE', candidates: [{ ledgerLineId: ledgerLine.id, daysApart: 1 }] });
+      expect((await prisma.ledgerBankLine.findUniqueOrThrow({ where: { id: line.id } })).ledgerLineId).toBeNull();
       await expect(repo.close(statement.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
       await expect(
         repo.match(line.id, entry.lines.find((item) => item.accountId === revenue.id)!.id, admin.id),
       ).rejects.toBeInstanceOf(ConflictException);
       await repo.match(line.id, ledgerLine.id, admin.id);
       expect((await repo.detail(statement.id, admin.id)).balanced).toBe(true);
+      expect((await bankService.suggestions(statement.id, admin.id)).total).toBe(0);
       expect((await repo.detail(statement.id, admin.id)).invalidMatches).toBe(0);
       await expect(repo.match(line.id, ledgerLine.id, admin.id)).resolves.toMatchObject({
         ledgerLineId: ledgerLine.id,
@@ -79,6 +87,7 @@ integration('Rapprochement bancaire PostgreSQL', () => {
       expect((await repo.detail(statement.id, admin.id)).balanced).toBe(false);
       await repo.match(line.id, ledgerLine.id, admin.id);
       await repo.close(statement.id, admin.id);
+      await expect(bankService.suggestions(statement.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
       await expect(repo.unmatch(line.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
       await expect(ledger.post({ ...post, operationKey: randomUUID() }, admin.id)).rejects.toThrow();
       expect(await prisma.ledgerEntry.count({ where: { periodId: period.id } })).toBe(1);

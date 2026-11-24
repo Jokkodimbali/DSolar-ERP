@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { BANK_RECONCILIATION, BankPort } from './bank.port';
 import { BankStatementInput, validateStatement } from '../domain/bank-policy';
+import { suggestReconciliations } from '../domain/bank-suggestions';
 
 @Injectable()
 export class BankService {
@@ -44,6 +45,10 @@ export class BankService {
 
   detail(id: string, actor: string) {
     return this.repository.detail(id, actor);
+  }
+
+  async suggestions(id: string, actor: string) {
+    return suggestReconciliations(await this.repository.suggestionSnapshot(id, actor));
   }
 
   match(id: string, ledgerLineId: string, actor: string) {

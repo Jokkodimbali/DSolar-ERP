@@ -84,6 +84,10 @@ export class BankController {
   detail(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.detail(id, actor);
   }
+  @Get('statements/:id/suggestions')
+  suggestions(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.suggestions(id, actor);
+  }
   @Post('lines/:id/match')
   match(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MatchDto, @CurrentUserId() actor: string) {
     return this.service.match(id, dto.ledgerLineId, actor);
