@@ -34,9 +34,16 @@ import { ProformasService } from './application/proformas.service';
 import { PROFORMAS_REPOSITORY } from './application/proformas.port';
 import { PrismaProformasRepository } from './infrastructure/prisma-proformas.repository';
 
+import { SalesDocumentsController } from './presentation/sales-documents.controller';
+import { SalesDocumentsService } from './application/sales-documents.service';
+import { SALES_DOCUMENTS, SALES_PDF } from './application/sales-documents.port';
+import { PrismaSalesDocumentsRepository } from './infrastructure/prisma-sales-documents.repository';
+import { SalesPdfRenderer } from './infrastructure/sales-pdf.renderer';
+
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [
+    SalesDocumentsController,
     CustomersController,
     ProformasController,
     OrdersController,
@@ -47,6 +54,9 @@ import { PrismaProformasRepository } from './infrastructure/prisma-proformas.rep
     SalesReportController,
   ],
   providers: [
+    SalesDocumentsService,
+    { provide: SALES_DOCUMENTS, useClass: PrismaSalesDocumentsRepository },
+    { provide: SALES_PDF, useClass: SalesPdfRenderer },
     CustomersService,
     OrdersService,
     DeliveriesService,
