@@ -30,27 +30,28 @@ describe('StoreAccessUseCases', () => {
       grant: jest.fn(),
       revoke: jest.fn(),
       listStoreIds: jest.fn(),
+      listVisible: jest.fn(),
     };
     service = new StoreAccessUseCases(stores, access);
   });
   it('refuse un magasin inconnu', async () => {
     stores.findById.mockResolvedValue(null);
-    await expect(service.grant('s', 'u')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.grant('s', 'u', 'admin')).rejects.toBeInstanceOf(NotFoundException);
   });
   it('refuse un magasin désactivé', async () => {
     stores.findById.mockResolvedValue({ ...store, status: 'INACTIVE' });
-    await expect(service.grant('s', 'u')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.grant('s', 'u', 'admin')).rejects.toBeInstanceOf(ConflictException);
   });
   it('refuse un utilisateur inexistant', async () => {
     stores.findById.mockResolvedValue(store);
     access.userExists.mockResolvedValue(false);
-    await expect(service.grant('s', 'u')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.grant('s', 'u', 'admin')).rejects.toBeInstanceOf(NotFoundException);
   });
   it('attribue un accès valide', async () => {
     stores.findById.mockResolvedValue(store);
     access.userExists.mockResolvedValue(true);
-    await expect(service.grant('s', 'u')).resolves.toEqual({ storeId: 's', userId: 'u', assigned: true });
-    expect(access.grant).toHaveBeenCalledWith('u', 's');
+    await expect(service.grant('s', 'u', 'admin')).resolves.toEqual({ storeId: 's', userId: 'u', assigned: true });
+    expect(access.grant).toHaveBeenCalledWith('u', 's', 'admin');
   });
   it('retourne seulement les magasins actifs autorisés', async () => {
     stores.findAll.mockResolvedValue([

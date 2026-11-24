@@ -15,8 +15,8 @@ export class StoresController {
     private readonly useCases: StoresUseCases,
     private readonly access: StoreAccessUseCases,
   ) {}
-  @Get() @RequirePermissions('stores.read') list() {
-    return this.useCases.list();
+  @Get() @RequirePermissions('stores.read') list(@CurrentUserId() userId: string) {
+    return this.access.listVisible(userId);
   }
   @Get('mine') @RequirePermissions('stores.read') mine(@CurrentUserId() userId: string) {
     return this.access.listForUser(userId);
@@ -24,14 +24,16 @@ export class StoresController {
   @Post(':id/users/:userId') @RequirePermissions('stores.manage') grant(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.access.grant(id, userId);
+    return this.access.grant(id, userId, actorId);
   }
   @Delete(':id/users/:userId') @RequirePermissions('stores.manage') revoke(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.access.revoke(id, userId);
+    return this.access.revoke(id, userId, actorId);
   }
   @Get(':id') @RequirePermissions('stores.read') get(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -54,12 +56,14 @@ export class StoresController {
   }
   @Patch(':id/activate') @RequirePermissions('stores.manage') activate(
     @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.useCases.setStatus(id, 'ACTIVE');
+    return this.useCases.setStatus(id, 'ACTIVE', actorId);
   }
   @Patch(':id/deactivate') @RequirePermissions('stores.manage') deactivate(
     @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUserId() actorId: string,
   ) {
-    return this.useCases.setStatus(id, 'INACTIVE');
+    return this.useCases.setStatus(id, 'INACTIVE', actorId);
   }
 }
