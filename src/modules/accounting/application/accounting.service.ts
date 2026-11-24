@@ -52,7 +52,9 @@ export class AccountingService {
   }
 
   reverse(id: string, periodId: string, date: string, reason: string, key: string, actor: string) {
-    this.validate(() => { calendarDate(date); });
+    this.validate(() => {
+      calendarDate(date);
+    });
     return this.repository.reverse(id, periodId, date, this.text(reason, 500), key, actor);
   }
 

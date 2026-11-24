@@ -18,7 +18,14 @@ export interface AccountingPort {
   period(name: string, start: string, end: string, actor: string): Promise<unknown>;
   close(periodId: string, actor: string): Promise<unknown>;
   post(input: PostingInput, actor: string): Promise<unknown>;
-  reverse(id: string, periodId: string, date: string, reason: string, key: string, actor: string): Promise<unknown>;
+  reverse(
+    id: string,
+    periodId: string,
+    date: string,
+    reason: string,
+    key: string,
+    actor: string,
+  ): Promise<unknown>;
   entries(periodId: string, actor: string, accountId?: string, cursor?: string): Promise<unknown>;
   trialBalance(periodId: string, actor: string): Promise<unknown>;
 }
