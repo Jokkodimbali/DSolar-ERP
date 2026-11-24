@@ -21,10 +21,18 @@ export class BankService {
   }
 
   importStatement(input: BankStatementInput, actor: string) {
-    const normalized = { ...input, reference: this.text(input.reference, 100),
-      lines: input.lines.map((line) => ({ ...line, reference: this.text(line.reference, 100),
-        description: this.text(line.description, 500) })) };
-    try { validateStatement(normalized); } catch (error) {
+    const normalized = {
+      ...input,
+      reference: this.text(input.reference, 100),
+      lines: input.lines.map((line) => ({
+        ...line,
+        reference: this.text(line.reference, 100),
+        description: this.text(line.description, 500),
+      })),
+    };
+    try {
+      validateStatement(normalized);
+    } catch (error) {
       throw new BadRequestException(error instanceof Error ? error.message : 'Relevé invalide.');
     }
     return this.repository.importStatement(normalized, actor);

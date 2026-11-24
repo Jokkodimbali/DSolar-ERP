@@ -14,6 +14,11 @@ import { BankController } from './presentation/bank.controller';
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [AccountingController, BankController],
-  providers: [AccountingService, { provide: ACCOUNTING, useClass: AccountingRepository }, BankService, { provide: BANK_RECONCILIATION, useClass: BankRepository }],
+  providers: [
+    AccountingService,
+    { provide: ACCOUNTING, useClass: AccountingRepository },
+    BankService,
+    { provide: BANK_RECONCILIATION, useClass: BankRepository },
+  ],
 })
 export class AccountingModule {}

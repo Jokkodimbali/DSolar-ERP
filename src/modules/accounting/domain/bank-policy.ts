@@ -25,10 +25,17 @@ export function validateStatement(input: BankStatementInput) {
   for (const line of input.lines) {
     const date = calendarDate(line.date);
     const amount = bankAmount(line.amount);
-    if (!line.reference.trim() || refs.has(line.reference.trim()) || date < start || date > end || amount === 0n)
+    if (
+      !line.reference.trim() ||
+      refs.has(line.reference.trim()) ||
+      date < start ||
+      date > end ||
+      amount === 0n
+    )
       throw new Error('Ligne bancaire invalide ou en double.');
     refs.add(line.reference.trim());
     balance += amount;
   }
-  if (balance !== bankAmount(input.closing)) throw new Error('Le solde final ne correspond pas aux mouvements.');
+  if (balance !== bankAmount(input.closing))
+    throw new Error('Le solde final ne correspond pas aux mouvements.');
 }
