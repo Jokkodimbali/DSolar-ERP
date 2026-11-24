@@ -16,7 +16,9 @@ describe('Sécurité HTTP transversale', () => {
   it('refuse les origines génériques ou contenant un chemin', () => {
     expect(() => configuredOrigins('*')).toThrow();
     expect(() => configuredOrigins('https://example.test/path')).toThrow();
-    expect(configuredOrigins(' https://example.test,https://example.test ')).toEqual(['https://example.test']);
+    expect(configuredOrigins(' https://example.test,https://example.test ')).toEqual([
+      'https://example.test',
+    ]);
   });
 
   it('ne fait confiance à aucun proxy par défaut', () => {

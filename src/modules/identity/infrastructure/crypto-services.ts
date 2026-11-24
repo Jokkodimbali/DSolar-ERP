@@ -18,7 +18,11 @@ export class ArgonPasswordService implements PasswordService {
 export class JwtTokenService implements TokenService {
   constructor(private readonly jwt: JwtService) {}
   signAccess(claims: AccessClaims): Promise<string> {
-    return this.jwt.signAsync(claims, { secret: this.secret('JWT_ACCESS_SECRET'), expiresIn: '15m', algorithm: 'HS256' });
+    return this.jwt.signAsync(claims, {
+      secret: this.secret('JWT_ACCESS_SECRET'),
+      expiresIn: '15m',
+      algorithm: 'HS256',
+    });
   }
   signRefresh(claims: RefreshClaims): Promise<string> {
     return this.jwt.signAsync(

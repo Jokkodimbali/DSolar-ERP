@@ -36,10 +36,15 @@ export class LoginRateLimitGuard implements CanActivate {
     }
     // Express resolves the client IP only through explicitly configured trusted proxy hops.
     const ip = request.ip ?? request.socket?.remoteAddress ?? 'unknown';
-    const endpoint = request.path?.endsWith('/refresh') ? 'refresh' : request.path?.endsWith('/logout') ? 'logout' : 'login';
+    const endpoint = request.path?.endsWith('/refresh')
+      ? 'refresh'
+      : request.path?.endsWith('/logout')
+        ? 'logout'
+        : 'login';
     this.consume(endpoint + ':ip:' + ip, endpoint === 'login' ? 60 : 120, now);
     if (endpoint === 'login') {
-      const email = typeof request.body?.email === 'string' ? request.body.email.trim().toLowerCase().slice(0,254) : '';
+      const email =
+        typeof request.body?.email === 'string' ? request.body.email.trim().toLowerCase().slice(0, 254) : '';
       const digest = createHash('sha256').update(email).digest('hex');
       this.consume('login:pair:' + ip + ':' + digest, 10, now);
     }

@@ -27,9 +27,15 @@ describe('LoginRateLimitGuard', () => {
 
   it('limite une adresse IP même si les adresses e-mail changent', () => {
     const guard = new LoginRateLimitGuard();
-    const attempt = (i: number) => ({ switchToHttp: () => ({ getRequest: () => ({
-      ip: '192.0.2.42', body: { email: 'account-' + i + '@example.test' },
-    }) }) }) as unknown as ExecutionContext;
+    const attempt = (i: number) =>
+      ({
+        switchToHttp: () => ({
+          getRequest: () => ({
+            ip: '192.0.2.42',
+            body: { email: 'account-' + i + '@example.test' },
+          }),
+        }),
+      }) as unknown as ExecutionContext;
     for (let i = 0; i < 60; i++) expect(guard.canActivate(attempt(i))).toBe(true);
     expect(() => guard.canActivate(attempt(60))).toThrow(HttpException);
   });

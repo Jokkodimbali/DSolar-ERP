@@ -15,18 +15,26 @@ export class SafeExceptionFilter extends BaseExceptionFilter {
       super.catch(exception, host);
       return;
     }
-    const conflict = exception instanceof Prisma.PrismaClientKnownRequestError &&
+    const conflict =
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
       ['P2002', 'P2003', 'P2034'].includes(exception.code);
-    const status = conflict ? HttpStatus.CONFLICT : exception instanceof HttpException
-      ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = conflict
+      ? HttpStatus.CONFLICT
+      : exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
     if (!conflict) this.logger.error('Erreur technique HTTP : ' + status);
     if (this.adapter.httpAdapter.isHeadersSent(response)) {
       this.adapter.httpAdapter.end(response);
       return;
     }
-    this.adapter.httpAdapter.reply(response, {
-      statusCode: status,
-      message: conflict ? 'Conflit de données ou opération concurrente.' : 'Erreur technique du serveur.',
-    }, status);
+    this.adapter.httpAdapter.reply(
+      response,
+      {
+        statusCode: status,
+        message: conflict ? 'Conflit de données ou opération concurrente.' : 'Erreur technique du serveur.',
+      },
+      status,
+    );
   }
 }
