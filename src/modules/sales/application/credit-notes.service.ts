@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { CreditAllocation } from '../domain/credit-tax';
 import { CREDIT_NOTES_REPOSITORY, CreditNotesRepository } from './credit-notes.port';
 
 @Injectable()
@@ -9,7 +10,7 @@ export class CreditNotesService {
     return this.creditNotes.list(invoiceId, actorId);
   }
 
-  issue(invoiceId: string, actorId: string, amount: string, reason: string) {
-    return this.creditNotes.issue(invoiceId, actorId, amount, reason);
+  issue(invoiceId: string, actorId: string, amount: string, reason: string, lines?: CreditAllocation[]) {
+    return lines ? this.creditNotes.issue(invoiceId, actorId, amount, reason, lines) : this.creditNotes.issue(invoiceId, actorId, amount, reason);
   }
 }

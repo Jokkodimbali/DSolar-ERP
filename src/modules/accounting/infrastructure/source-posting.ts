@@ -98,13 +98,44 @@ export async function buildSourcePosting(
       const already = prior._sum.debit ?? new Prisma.Decimal(0);
       if (already.plus(item.amount).gt(debit[0].debit))
         throw new ConflictException('Avoirs cumulés supérieurs à la facture.');
-      if (item.invoice.totalTax.gt(0) && !item.amount.eq(item.invoice.totalTtc))
-        throw new ConflictException('Ventilation fiscale détaillée requise pour un avoir partiel taxable.');
-      const lines: PostingLine[] = item.amount.eq(item.invoice.totalTtc)
-        ? credits.map((line) => ({ accountId: line.accountId, debit: line.credit.toFixed(2), credit: '0' }))
-        : credits.length === 1
-          ? [{ accountId: credits[0].accountId, debit: item.amount.toFixed(2), credit: '0' }]
-          : [];
+      let lines: PostingLine[];
+      if (item.netAmount !== null && item.taxAmount !== null) {
+        if (!item.netAmount.plus(item.taxAmount).eq(item.amount))
+          throw new ConflictException('Ventilation de l’avoir incohérente.');
+        const candidates = credits.filter((line) => line.credit.eq(item.invoice.totalHt));
+        let revenue = candidates.length === 1 ? candidates[0] : undefined;
+        if (!revenue && candidates.length > 1) {
+          const classified = await tx.ledgerAccountClassification.findMany({
+            where: { accountId: { in: candidates.map((line) => line.accountId) }, category: 'REVENUE' },
+          });
+          if (classified.length === 1) revenue = candidates.find((line) => line.accountId === classified[0].accountId);
+        }
+        const tax = credits.find((line) => line.accountId !== revenue?.accountId && line.credit.eq(item.invoice.totalTax));
+        if ((item.netAmount.gt(0) && !revenue) || (item.taxAmount.gt(0) && !tax))
+          throw new ConflictException('Imputation fiscale historique ambiguë.');
+        lines = [];
+        if (item.netAmount.gt(0) && revenue)
+          lines.push({ accountId: revenue.accountId, debit: item.netAmount.toFixed(2), credit: '0' });
+        if (item.taxAmount.gt(0) && tax)
+          lines.push({ accountId: tax.accountId, debit: item.taxAmount.toFixed(2), credit: '0' });
+        for (const line of lines) {
+          const originalCredit = credits.find((credit) => credit.accountId === line.accountId);
+          const previous = await tx.ledgerLine.aggregate({
+            where: { accountId: line.accountId, entry: { sourceType: 'CREDIT_NOTE',
+              sourceId: { in: related.map((row) => row.id) }, postedAt: { not: null } } }, _sum: { debit: true },
+          });
+          if (!originalCredit || (previous._sum.debit ?? new Prisma.Decimal(0)).plus(line.debit).gt(originalCredit.credit))
+            throw new ConflictException('Avoir fiscal cumulé supérieur au montant original.');
+        }
+      } else {
+        if (item.invoice.totalTax.gt(0) && !item.amount.eq(item.invoice.totalTtc))
+          throw new ConflictException('Ventilation fiscale détaillée requise pour un avoir partiel taxable.');
+        lines = item.amount.eq(item.invoice.totalTtc)
+          ? credits.map((line) => ({ accountId: line.accountId, debit: line.credit.toFixed(2), credit: '0' }))
+          : credits.length === 1
+            ? [{ accountId: credits[0].accountId, debit: item.amount.toFixed(2), credit: '0' }]
+            : [];
+      }
       if (!lines.length) throw new ConflictException('Ventilation de l’avoir requise.');
       lines.push({ accountId: debit[0].accountId, debit: '0', credit: item.amount.toFixed(2) });
       return {

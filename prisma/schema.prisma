@@ -519,6 +519,7 @@ model InvoiceLine {
   taxRate Decimal @db.Decimal(7,4)
   taxAmount Decimal @db.Decimal(18,2)
   lineTotal Decimal @db.Decimal(18,2)
+  creditLines CreditNoteLine[]
 }
 model CreditNote {
   id String @id @default(uuid()) @db.Uuid
@@ -528,6 +529,9 @@ model CreditNote {
   amount Decimal @db.Decimal(18,2)
   reason String
   issuedAt DateTime?
+  netAmount Decimal? @db.Decimal(18,2)
+  taxAmount Decimal? @db.Decimal(18,2)
+  lines CreditNoteLine[]
 }
 model Payment {
   id String @id @default(uuid()) @db.Uuid
@@ -909,4 +913,16 @@ model LedgerAutomationFailure {
   updatedAt DateTime @updatedAt
   @@id([periodId, sourceType, sourceId])
   @@index([periodId, nextAttemptAt])
+}
+
+model CreditNoteLine {
+  id String @id @default(uuid()) @db.Uuid
+  creditNoteId String @db.Uuid
+  creditNote CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Restrict)
+  invoiceLineId String @db.Uuid
+  invoiceLine InvoiceLine @relation(fields: [invoiceLineId], references: [id], onDelete: Restrict)
+  netAmount Decimal @db.Decimal(18,2)
+  taxAmount Decimal @db.Decimal(18,2)
+  @@unique([creditNoteId, invoiceLineId])
+  @@index([invoiceLineId])
 }

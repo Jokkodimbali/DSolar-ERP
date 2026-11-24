@@ -25,6 +25,6 @@ export class CreditNotesController {
     @CurrentUserId() actorId: string,
     @Body() input: IssueCreditNoteDto,
   ) {
-    return this.creditNotes.issue(invoiceId, actorId, input.amount, input.reason);
+    return this.creditNotes.issue(invoiceId, actorId, input.amount, input.reason, input.lines);
   }
 }
