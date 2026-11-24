@@ -10,7 +10,7 @@ DECLARE
   table_name text;
   relation record;
   readonly_tables text[] := ARRAY['Role','Permission','RolePermission','LedgerPendingSource'];
-  append_tables text[] := ARRAY['AuditLog','StockMovement','StockTransferEvent','LedgerLine','CreditNoteLine','CompanySettings','NotificationRead'];
+  append_tables text[] := ARRAY['AuditLog','StockMovement','StockTransferEvent','LedgerLine','CreditNoteLine','CompanySettings','NotificationRead','ImageAsset'];
   update_tables text[] := ARRAY['LedgerAccount','LedgerJournal','LedgerPeriod','LedgerEntry','LedgerPostingRule',
     'LedgerAccountClassification','LedgerBankAccount','LedgerBankStatement','LedgerBankLine','LedgerAutomation'];
   business_tables text[] := ARRAY[

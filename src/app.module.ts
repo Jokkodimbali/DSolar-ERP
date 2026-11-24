@@ -16,6 +16,7 @@ import { SupplierReturnsModule } from './modules/supplier-returns/supplier-retur
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { MediaModule } from './modules/media/media.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -34,6 +35,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AccountingModule,
     SettingsModule,
     NotificationsModule,
+    MediaModule,
   ],
   controllers: [HealthController],
 })

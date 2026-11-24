@@ -29,6 +29,11 @@ export class PrismaCompanySettingsRepository implements CompanySettingsPort {
         const current = await tx.companySettings.findFirst({ orderBy: { revision: 'desc' }, select: { revision: true } });
         if ((current?.revision ?? 0) !== expectedRevision)
           throw new ConflictException('Les paramètres ont changé. Rechargez la dernière version.');
+        if (input.logoUrl) {
+          const id = input.logoUrl.split('/').pop();
+          if (!id || !await tx.imageAsset.findFirst({ where: { id, kind: 'COMPANY_LOGO' }, select: { id: true } }))
+            throw new ConflictException('Le logo téléversé est introuvable.');
+        }
         const created = await tx.companySettings.create({ data: { ...input, revision: expectedRevision + 1 } });
         await tx.auditLog.create({
           data: {

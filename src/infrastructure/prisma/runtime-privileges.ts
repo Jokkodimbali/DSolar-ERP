@@ -42,7 +42,7 @@ export async function inspectRuntimePrivileges(prisma: PrismaClient) {
       AND (has_table_privilege(oid, 'INSERT,UPDATE,DELETE') OR has_any_column_privilege(oid, 'INSERT,UPDATE')))
     UNION ALL
     SELECT 'AUDIT_OR_LEDGER_MUTATION' WHERE EXISTS (
-      SELECT 1 FROM objects WHERE relname IN ('AuditLog','StockMovement','StockTransferEvent','LedgerLine','CreditNoteLine','CompanySettings','NotificationRead')
+      SELECT 1 FROM objects WHERE relname IN ('AuditLog','StockMovement','StockTransferEvent','LedgerLine','CreditNoteLine','CompanySettings','NotificationRead','ImageAsset')
       AND (has_table_privilege(oid, 'UPDATE,DELETE') OR has_any_column_privilege(oid, 'UPDATE')))
     UNION ALL
     SELECT 'MIGRATION_METADATA_ACCESS' WHERE EXISTS (
