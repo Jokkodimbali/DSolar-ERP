@@ -37,6 +37,14 @@ export class AccountingService {
     return this.repository.postSource(type, id, actor);
   }
 
+  pending(periodId: string, actor: string) {
+    return this.repository.pending(periodId, actor);
+  }
+
+  postPending(periodId: string, actor: string) {
+    return this.repository.postPending(periodId, actor);
+  }
+
   setup(actor: string) {
     return this.repository.setup(actor);
   }

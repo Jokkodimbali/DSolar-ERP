@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingPort, PostingInput } from '../application/accounting.port';
-import { assertBalanced, calendarDate } from '../domain/ledger-policy';
+import { aggregateCents, assertBalanced, calendarDate, moneyText } from '../domain/ledger-policy';
 import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
 import { buildSourcePosting } from './source-posting';
+import { pendingSources } from './pending-sources';
 
 @Injectable()
 export class AccountingRepository implements AccountingPort {
@@ -116,6 +117,32 @@ export class AccountingRepository implements AccountingPort {
     });
   }
 
+  pending(periodId: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const period = await tx.ledgerPeriod.findUnique({ where: { id: periodId } });
+      if (!period) throw new NotFoundException('Période introuvable.');
+      const rows = await pendingSources(tx, period.startsAt, period.endsAt, 101);
+      return { periodId, closed: !!period.closedAt, items: rows.slice(0, 100), hasMore: rows.length > 100 };
+    });
+  }
+
+  async postPending(periodId: string, actor: string) {
+    const pending = await this.pending(periodId, actor);
+    if (pending.closed) throw new ConflictException('Période clôturée.');
+    const results: { type: SourceType; id: string; entryId?: string; error?: string }[] = [];
+    // Each source gets an independent serializable transaction, allowing progress despite a missing rule.
+    for (const item of pending.items.slice(0, 25)) {
+      try {
+        const entry = await this.postSource(item.type, item.id, actor);
+        results.push({ type: item.type, id: item.id, entryId: entry.id });
+      } catch (error) {
+        if (!(error instanceof HttpException) || ![404, 409].includes(error.getStatus())) throw error;
+        results.push({ type: item.type, id: item.id, error: error.message });
+      }
+    }
+    return { results, remaining: await this.pending(periodId, actor) };
+  }
+
   account(code: string, name: string, actor: string) {
     return this.transaction(actor, async (tx) => {
       const result = await tx.ledgerAccount.create({ data: { code, name } });
@@ -154,6 +181,8 @@ export class AccountingRepository implements AccountingPort {
       if (period.closedAt) return period;
       if (await tx.ledgerEntry.count({ where: { periodId: id, postedAt: null } }))
         throw new ConflictException('Écritures non validées.');
+      if ((await pendingSources(tx, period.startsAt, period.endsAt, 1)).length)
+        throw new ConflictException('Des pièces métier restent à comptabiliser.');
       const result = await tx.ledgerPeriod.update({
         where: { id },
         data: { closedAt: new Date(), closedBy: actor },
@@ -309,13 +338,13 @@ export class AccountingRepository implements AccountingPort {
       const byAccount = new Map(groups.map((group) => [group.accountId, group]));
       const rows = accounts.map((account) => {
         const group = byAccount.get(account.id);
-        const debit = group?._sum.debit ?? new Prisma.Decimal(0);
-        const credit = group?._sum.credit ?? new Prisma.Decimal(0);
-        return { ...account, debit, credit, balance: debit.minus(credit) };
+        const debit = aggregateCents(group?._sum.debit?.toFixed(2) ?? '0');
+        const credit = aggregateCents(group?._sum.credit?.toFixed(2) ?? '0');
+        return { ...account, debit: moneyText(debit), credit: moneyText(credit), balance: moneyText(debit - credit) };
       });
-      const debit = rows.reduce((sum, row) => sum.plus(row.debit), new Prisma.Decimal(0));
-      const credit = rows.reduce((sum, row) => sum.plus(row.credit), new Prisma.Decimal(0));
-      return { rows, debit, credit, balanced: debit.eq(credit) };
+      const debit = rows.reduce((sum, row) => sum + aggregateCents(row.debit), 0n);
+      const credit = rows.reduce((sum, row) => sum + aggregateCents(row.credit), 0n);
+      return { rows, debit: moneyText(debit), credit: moneyText(credit), balanced: debit === credit };
     });
   }
 }

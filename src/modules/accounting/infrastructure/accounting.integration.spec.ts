@@ -61,7 +61,7 @@ integration('Comptabilité PostgreSQL', () => {
       await expect(prisma.ledgerEntry.delete({ where: { id: entry.id } })).rejects.toThrow();
       const balance = await repo.trialBalance(period.id, admin.id);
       expect(balance.balanced).toBe(true);
-      expect(balance.debit.toString()).toBe('100.5');
+      expect(balance.debit).toBe('100.50');
       const customer = await prisma.customer.create({ data: { name: 'Client comptabilité CI' } });
       const invoice = await prisma.invoice.create({
         data: {
@@ -172,6 +172,21 @@ integration('Comptabilité PostgreSQL', () => {
       await expect(repo.postSource('CASH_MOVEMENT', debitMovement.id, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
       );
+      const pending = await repo.pending(period.id, admin.id);
+      expect(pending.items.some((item) => item.id === partial.id)).toBe(true);
+      await expect(repo.close(period.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
+      const blocked = await repo.postPending(period.id, admin.id);
+      expect(blocked.results.some((item) => item.id === partial.id && !!item.error)).toBe(true);
+      // Remove the intentionally inconsistent test fixture, never a real issued credit.
+      await prisma.creditNote.delete({ where: { id: partial.id } });
+      const otherInvoice = await prisma.invoice.create({
+        data: { number: 'FAC2-' + suffix, customerId: customer.id, status: 'ISSUED',
+          issuedAt: new Date('2090-01-05T12:00:00Z'), totalHt: '0.01', totalTax: '0', totalTtc: '0.01' },
+      });
+      const batch = await repo.postPending(period.id, admin.id);
+      expect(batch.results.some((item) => item.id === otherInvoice.id && !!item.entryId)).toBe(true);
+      expect(batch.remaining.items).toHaveLength(0);
+      expect((await repo.postPending(period.id, admin.id)).results).toHaveLength(0);
       await repo.close(period.id, admin.id);
       await expect(repo.post({ ...input, operationKey: randomUUID() }, admin.id)).rejects.toBeInstanceOf(
         ConflictException,

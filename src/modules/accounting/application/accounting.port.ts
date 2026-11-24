@@ -15,6 +15,8 @@ export interface PostingInput {
 export interface AccountingPort {
   rule(input: PostingRuleInput, actor: string): Promise<unknown>;
   postSource(type: SourceType, id: string, actor: string): Promise<unknown>;
+  pending(periodId: string, actor: string): Promise<unknown>;
+  postPending(periodId: string, actor: string): Promise<unknown>;
   setup(actor: string): Promise<unknown>;
   account(code: string, name: string, actor: string): Promise<unknown>;
   journal(code: string, name: string, actor: string): Promise<unknown>;

@@ -1,4 +1,4 @@
-name: Formatage ponctuel des modules financiers et comptables
+name: Formatage ponctuel et contrôles comptables
 on:
   push:
     branches: [dev]

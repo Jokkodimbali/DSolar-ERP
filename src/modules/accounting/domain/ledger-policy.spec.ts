@@ -1,6 +1,10 @@
-import { assertBalanced, calendarDate, cents } from './ledger-policy';
+import { aggregateCents, assertBalanced, calendarDate, cents, moneyText } from './ledger-policy';
 
 describe('Règles comptables', () => {
+  it('additionne exactement les agrégats supérieurs à la précision individuelle', () => {
+    expect(moneyText(aggregateCents('999999999999999999999999.99') + 1n)).toBe('1000000000000000000000000.00');
+    expect(moneyText(aggregateCents('-0.01'))).toBe('-0.01');
+  });
   it('conserve les centimes sans arrondi flottant', () => {
     expect(cents('9999999999999999.99')).toBe(999999999999999999n);
   });

@@ -19,7 +19,7 @@ export function assertBalanced(lines: PostingLine[]): void {
   for (const line of lines) {
     const d = cents(line.debit);
     const c = cents(line.credit);
-    if (d > 0n === c > 0n) throw new Error('Débit ou crédit exclusif requis.');
+    if ((d > 0n) === (c > 0n)) throw new Error('Débit ou crédit exclusif requis.');
     debit += d;
     credit += c;
   }
@@ -32,4 +32,18 @@ export function calendarDate(value: string): Date {
   if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value)
     throw new Error('Date invalide.');
   return date;
+}
+
+/** PostgreSQL aggregates may exceed the precision of an individual monetary field. */
+export function aggregateCents(value: string): bigint {
+  if (!/^-?\d+(\.\d{1,2})?$/.test(value)) throw new Error('Agrégat monétaire invalide.');
+  const negative = value.startsWith('-');
+  const [whole, fraction = ''] = (negative ? value.slice(1) : value).split('.');
+  const result = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  return negative ? -result : result;
+}
+
+export function moneyText(value: bigint): string {
+  const magnitude = value < 0n ? -value : value;
+  return (value < 0n ? '-' : '') + (magnitude / 100n).toString() + '.' + (magnitude % 100n).toString().padStart(2, '0');
 }

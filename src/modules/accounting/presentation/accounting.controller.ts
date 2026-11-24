@@ -133,6 +133,14 @@ export class AccountingController {
   period(@Body() dto: PeriodDto, @CurrentUserId() actor: string) {
     return this.service.period(dto.name, dto.start, dto.end, actor);
   }
+  @Get('periods/:id/pending')
+  pending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.pending(id, actor);
+  }
+  @Post('periods/:id/post-pending')
+  postPending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.postPending(id, actor);
+  }
   @Post('periods/:id/close')
   close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.close(id, actor);
