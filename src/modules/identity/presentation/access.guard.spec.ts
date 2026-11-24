@@ -33,7 +33,11 @@ describe('AccessGuard', () => {
       tokenVersion: 2,
       permissions: ['sales.read'],
     });
-    sessions.findById.mockResolvedValue({ userId: 'user-1', revokedAt: null, expiresAt: new Date(Date.now() + 60000) });
+    sessions.findById.mockResolvedValue({
+      userId: 'user-1',
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 60000),
+    });
     Reflect.defineMetadata(REQUIRED_PERMISSIONS, ['sales.read'], handler);
   });
 

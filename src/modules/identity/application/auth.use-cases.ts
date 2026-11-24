@@ -80,7 +80,12 @@ export class AuthUseCases {
       sessionExpiry(),
     );
     if (!updated) throw unauthorized();
-    const access = await this.tokens.signAccess({ sub: user.id, ver: user.tokenVersion, sid: session.id, typ: 'access' });
+    const access = await this.tokens.signAccess({
+      sub: user.id,
+      ver: user.tokenVersion,
+      sid: session.id,
+      typ: 'access',
+    });
     return { jetonAcces: access, jetonRenouvellement: nextRefresh, utilisateur: toPublicIdentity(user) };
   }
 
@@ -105,7 +110,12 @@ export class AuthUseCases {
     sessionId: string,
     sessionSecret: string,
   ): Promise<AuthResult> {
-    const access = await this.tokens.signAccess({ sub: user.id, ver: user.tokenVersion, sid: sessionId, typ: 'access' });
+    const access = await this.tokens.signAccess({
+      sub: user.id,
+      ver: user.tokenVersion,
+      sid: sessionId,
+      typ: 'access',
+    });
     const refresh = await this.tokens.signRefresh({
       sub: user.id,
       sid: sessionId,

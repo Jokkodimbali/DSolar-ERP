@@ -50,7 +50,11 @@ describe('Sécurité HTTP de la comptabilité', () => {
       tokenVersion: 1,
       permissions: ['users.manage'],
     });
-    sessions.findById.mockResolvedValue({ userId: actor, revokedAt: null, expiresAt: new Date(Date.now() + 60000) });
+    sessions.findById.mockResolvedValue({
+      userId: actor,
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 60000),
+    });
     ledger.setup.mockResolvedValue({ accounts: [] });
     ledger.configureAutomation.mockResolvedValue({ enabled: false });
   });
@@ -113,8 +117,15 @@ describe('Sécurité HTTP de la comptabilité', () => {
   });
 
   it('refuse immédiatement un jeton d’accès après révocation de sa session', async () => {
-    sessions.findById.mockResolvedValue({ userId: actor, revokedAt: new Date(), expiresAt: new Date(Date.now() + 60000) });
-    await request(app.getHttpServer()).get('/api/v1/accounting/setup').set('Authorization','Bearer valid').expect(401);
+    sessions.findById.mockResolvedValue({
+      userId: actor,
+      revokedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60000),
+    });
+    await request(app.getHttpServer())
+      .get('/api/v1/accounting/setup')
+      .set('Authorization', 'Bearer valid')
+      .expect(401);
     expect(ledger.setup).not.toHaveBeenCalled();
   });
 

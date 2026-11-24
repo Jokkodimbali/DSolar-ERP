@@ -8,7 +8,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SetMetadata } from '@nestjs/common';
-import { SESSION_REPOSITORY, SessionRepository, TOKEN_SERVICE, TokenService, USER_REPOSITORY, UserRepository } from '../application/ports';
+import {
+  SESSION_REPOSITORY,
+  SessionRepository,
+  TOKEN_SERVICE,
+  TokenService,
+  USER_REPOSITORY,
+  UserRepository,
+} from '../application/ports';
 import { AuthenticatedRequest } from './current-user.decorator';
 
 export const REQUIRED_PERMISSIONS = 'required_permissions';

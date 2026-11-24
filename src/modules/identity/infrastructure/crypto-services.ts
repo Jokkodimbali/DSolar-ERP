@@ -39,7 +39,13 @@ export class JwtTokenService implements TokenService {
       secret: this.secret('JWT_ACCESS_SECRET'),
       algorithms: ['HS256'],
     });
-    if (claims.typ !== 'access' || !claims.sub || !claims.sid || !Number.isInteger(claims.ver) || claims.ver < 0)
+    if (
+      claims.typ !== 'access' ||
+      !claims.sub ||
+      !claims.sid ||
+      !Number.isInteger(claims.ver) ||
+      claims.ver < 0
+    )
       throw new UnauthorizedException('Jeton invalide.');
     return claims;
   }
