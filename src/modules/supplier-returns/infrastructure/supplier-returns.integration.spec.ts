@@ -73,12 +73,19 @@ integration('Retours fournisseurs PostgreSQL', () => {
       await repo.confirm(draft.id, admin.id);
       expect((await prisma.storeStock.findUniqueOrThrow({ where: stockKey })).quantity.toString()).toBe('4');
       expect(await prisma.stockMovement.count({ where: { referenceId: draft.id } })).toBe(1);
-      await expect(prisma.supplierReturnLine.update({
-        where: { id: draft.lines[0].id }, data: { quantity: '1', total: '100' },
-      })).rejects.toThrow();
+      await expect(
+        prisma.supplierReturnLine.update({
+          where: { id: draft.lines[0].id },
+          data: { quantity: '1', total: '100' },
+        }),
+      ).rejects.toThrow();
       await expect(prisma.supplierReturnLine.delete({ where: { id: draft.lines[0].id } })).rejects.toThrow();
-      await expect(prisma.supplierReturn.update({ where: { id: draft.id }, data: { total: '1' } })).rejects.toThrow();
-      expect((await prisma.supplierReturn.findUniqueOrThrow({ where: { id: draft.id } })).total.toString()).toBe('600');
+      await expect(
+        prisma.supplierReturn.update({ where: { id: draft.id }, data: { total: '1' } }),
+      ).rejects.toThrow();
+      expect(
+        (await prisma.supplierReturn.findUniqueOrThrow({ where: { id: draft.id } })).total.toString(),
+      ).toBe('600');
       const credit = await repo.credit(draft.id, 'AV-1', admin.id);
       expect(credit.amount.toString()).toBe('600');
       expect((await repo.credit(draft.id, 'AV-1', admin.id)).id).toBe(credit.id);
@@ -127,9 +134,11 @@ integration('Retours fournisseurs PostgreSQL', () => {
       const duplicateDraft = await repo.create({ ...serialInput, operationKey: randomUUID() }, admin.id);
       await repo.confirm(serialDraft.id, admin.id);
       await expect(repo.confirm(duplicateDraft.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
-      await expect(prisma.supplierReturnSerial.delete({
-        where: { returnLineId_serialId: { returnLineId: serialDraft.lines[0].id, serialId } },
-      })).rejects.toThrow();
+      await expect(
+        prisma.supplierReturnSerial.delete({
+          where: { returnLineId_serialId: { returnLineId: serialDraft.lines[0].id, serialId } },
+        }),
+      ).rejects.toThrow();
       const serial = await prisma.serialNumber.findUniqueOrThrow({ where: { id: serialId } });
       expect(serial.status).toBe('RETURNED_TO_SUPPLIER');
       expect(serial.currentStoreId).toBeNull();
