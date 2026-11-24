@@ -4,6 +4,8 @@ import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { CreateTransferInput, ReceiveTransferInput, TransferRepository } from '../application/transfers.port';
 
 const D = (value: string | Prisma.Decimal) => new Prisma.Decimal(value);
+const validQuantity = (value: Prisma.Decimal) =>
+  value.isFinite() && !value.lt(0) && value.decimalPlaces() <= 3 && value.lt('1000000000000000');
 @Injectable()
 export class PrismaTransfersRepository implements TransferRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -93,14 +95,14 @@ export class PrismaTransfersRepository implements TransferRepository {
       if (input.originId === input.destinationId) {
         throw new ConflictException('Les magasins source et destination doivent être différents.');
       }
-      if (input.lines.length === 0) {
-        throw new ConflictException('Un transfert doit contenir au moins une ligne.');
+      if (input.lines.length === 0 || input.lines.length > 100) {
+        throw new ConflictException('Un transfert doit contenir entre 1 et 100 lignes.');
       }
       const productIds = input.lines.map((line) => line.productId);
       if (new Set(productIds).size !== productIds.length) {
         throw new ConflictException('Un produit ne peut apparaître qu’une fois par transfert.');
       }
-      if (input.lines.some((line) => !D(line.quantity).isFinite() || D(line.quantity).lte(0))) {
+      if (input.lines.some((line) => !validQuantity(D(line.quantity)) || D(line.quantity).lte(0))) {
         throw new ConflictException('Les quantités transférées doivent être strictement positives.');
       }
       const products = await tx.product.count({
@@ -144,6 +146,12 @@ export class PrismaTransfersRepository implements TransferRepository {
       const transfer = await this.load(tx, id, actorId, 'origin');
       if (transfer.status === TransferStatus.SHIPPED) return transfer;
       if (transfer.status !== TransferStatus.APPROVED) throw new ConflictException('Transfert non approuvé.');
+      if (
+        !transfer.lines.length ||
+        new Set(transfer.lines.map((line) => line.productId)).size !== transfer.lines.length ||
+        transfer.lines.some((line) => !validQuantity(line.quantity) || line.quantity.lte(0))
+      )
+        throw new ConflictException('Lignes du transfert incohérentes.');
       for (const line of [...transfer.lines].sort((a, b) => a.productId.localeCompare(b.productId))) {
         await tx.storeStock.upsert({
           where: { storeId_productId: { storeId: transfer.originId, productId: line.productId } },
@@ -203,6 +211,12 @@ export class PrismaTransfersRepository implements TransferRepository {
     return this.atomic(async (tx) => {
       const { id, actorId, operationKey } = input;
       const transfer = await this.load(tx, id, actorId, 'destination');
+      if (
+        !input.lines.length ||
+        input.lines.length > 100 ||
+        new Set(input.lines.map((line) => line.lineId)).size !== input.lines.length
+      )
+        throw new ConflictException('Lignes de réception absentes, trop nombreuses ou dupliquées.');
       const payload = JSON.stringify({
         lines: [...input.lines].sort((a, b) => a.lineId.localeCompare(b.lineId)),
         finalize: input.finalize,
@@ -212,6 +226,7 @@ export class PrismaTransfersRepository implements TransferRepository {
         if (
           prior.transferId !== id ||
           prior.action !== 'RECEIPT' ||
+          prior.actorId !== actorId ||
           JSON.stringify(prior.payload) !== payload
         )
           throw new ConflictException('Clé d’idempotence réutilisée avec un contenu différent.');
@@ -219,18 +234,35 @@ export class PrismaTransfersRepository implements TransferRepository {
       }
       if (transfer.status !== TransferStatus.SHIPPED)
         throw new ConflictException('Réception impossible dans cet état.');
+      if (
+        !transfer.lines.length ||
+        new Set(transfer.lines.map((line) => line.productId)).size !== transfer.lines.length ||
+        transfer.lines.some(
+          (line) =>
+            !validQuantity(line.quantity) ||
+            line.quantity.lte(0) ||
+            ![line.receivedQuantity, line.damagedQuantity, line.missingQuantity].every(validQuantity) ||
+            line.receivedQuantity.plus(line.damagedQuantity).plus(line.missingQuantity).gt(line.quantity),
+        )
+      )
+        throw new ConflictException('Historique des quantités du transfert incohérent.');
       const byId = new Map(transfer.lines.map((line) => [line.id, line]));
-      for (const line of input.lines) {
+      for (const line of [...input.lines].sort((a, b) => {
+        const left = byId.get(a.lineId)?.productId ?? a.lineId;
+        const right = byId.get(b.lineId)?.productId ?? b.lineId;
+        return left.localeCompare(right);
+      })) {
         const current = byId.get(line.lineId);
         if (!current) throw new ConflictException('Ligne étrangère au transfert.');
         const good = D(line.received),
           damaged = D(line.damaged),
           missing = D(line.missing);
-        if ([good, damaged, missing].some((quantity) => !quantity.isFinite() || quantity.isNegative()))
+        if ([good, damaged, missing].some((quantity) => !validQuantity(quantity)))
           throw new ConflictException(
             'Les quantités reçues, endommagées ou manquantes doivent être positives ou nulles.',
           );
         const total = good.plus(damaged).plus(missing);
+        if (total.isZero()) throw new ConflictException('Quantité de réception nulle.');
         const remaining = current.quantity
           .minus(current.receivedQuantity)
           .minus(current.damagedQuantity)
