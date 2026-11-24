@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { readReceivableGroups } from '../../../shared/receivables-query';
 import { DashboardRepository, DashboardSnapshot } from '../application/dashboard.port';
 
 @Injectable()
@@ -157,18 +158,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
   async receivables(actorId: string) {
     return this.read(actorId, async (tx) => {
-      const groups = await tx.salesOrder.groupBy({
-        by: ['paymentStatus'],
-        where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
-        _count: { _all: true },
-        _sum: { total: true, amountPaid: true },
-      });
-      return groups.map((group) => ({
-        status: group.paymentStatus,
-        count: group._count._all,
-        total: (group._sum.total ?? new Prisma.Decimal(0)).toFixed(2),
-        paid: (group._sum.amountPaid ?? new Prisma.Decimal(0)).toFixed(2),
-      }));
+      return readReceivableGroups(tx);
     });
   }
 

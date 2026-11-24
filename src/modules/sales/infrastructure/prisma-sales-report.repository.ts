@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { readReceivableGroups } from '../../../shared/receivables-query';
 import { SalesReportRepository, SalesReportSnapshot } from '../application/sales-report.port';
 
 @Injectable()
@@ -18,15 +19,15 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
     return Boolean(user && user.status === 'ACTIVE' && user.roles.some(({ role }) => role.code === 'ADMIN'));
   }
 
-  async snapshot(): Promise<SalesReportSnapshot> {
+  async snapshot(actorId: string): Promise<SalesReportSnapshot> {
     const { orders, invoices, credits } = await this.prisma.$transaction(
       async (tx) => {
-        const orders = await tx.salesOrder.groupBy({
-          by: ['paymentStatus'],
-          where: { status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
-          _count: { _all: true },
-          _sum: { total: true, amountPaid: true },
+        const admin = await tx.user.findFirst({
+          where: { id: actorId, status: 'ACTIVE', roles: { some: { role: { code: 'ADMIN' } } } },
+          select: { id: true },
         });
+        if (!admin) throw new ForbiddenException('Rapport financier réservé au super administrateur actif.');
+        const orders = await readReceivableGroups(tx);
         const invoices = await tx.invoice.aggregate({
           where: { status: 'ISSUED' },
           _count: { _all: true },
@@ -42,10 +43,13 @@ export class PrismaSalesReportRepository implements SalesReportRepository {
     );
     return {
       orders: orders.map((group) => ({
-        paymentStatus: group.paymentStatus,
-        count: group._count._all,
-        total: (group._sum.total ?? new Prisma.Decimal(0)).toFixed(2),
-        amountPaid: (group._sum.amountPaid ?? new Prisma.Decimal(0)).toFixed(2),
+        paymentStatus: group.status,
+        count: group.count,
+        total: group.total,
+        amountPaid: group.paid,
+        credited: group.credited,
+        outstanding: group.outstanding,
+        overpaid: group.overpaid,
       })),
       issuedInvoices: invoices._count._all,
       grossInvoiced: (invoices._sum.totalTtc ?? new Prisma.Decimal(0)).toFixed(2),

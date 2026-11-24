@@ -47,6 +47,9 @@ export interface DashboardReceivable {
   status: string;
   total: string;
   paid: string;
+  credited?: string;
+  outstanding?: string;
+  overpaid?: string;
   count: number;
 }
 

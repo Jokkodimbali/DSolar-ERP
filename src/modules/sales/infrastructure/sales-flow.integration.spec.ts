@@ -1,3 +1,4 @@
+import { readReceivableGroups } from '../../../shared/receivables-query';
 import { randomUUID } from 'node:crypto';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
@@ -122,6 +123,9 @@ integration('Parcours commercial réel PostgreSQL', () => {
         consistent: true,
         canRecord: false,
       });
+      const groups = await readReceivableGroups(prisma, order.id);
+      expect(groups).toEqual([{ status: 'PAID', count: 1, total: '224.20', credited: '11.80',
+        paid: '212.40', outstanding: '0.00', overpaid: '0.00' }]);
       expect(invoice.totalHt.toFixed(2)).toBe('190.00');
       expect(invoice.totalTax.toFixed(2)).toBe('34.20');
       expect(invoice.totalTtc.toFixed(2)).toBe(order.total.toFixed(2));

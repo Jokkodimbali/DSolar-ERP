@@ -5,6 +5,10 @@ export interface SalesReport {
   totalOrders: string;
   collected: string;
   outstanding: string;
+  creditedOrders: string;
+  netOrders: string;
+  overpaid: string;
+  overpaidOrders: number;
   unpaidOrders: number;
   partiallyPaidOrders: number;
   paidOrders: number;
@@ -20,6 +24,9 @@ export interface SalesReportSnapshot {
     count: number;
     total: string;
     amountPaid: string;
+    credited: string;
+    outstanding: string;
+    overpaid: string;
   }>;
   issuedInvoices: number;
   grossInvoiced: string;
@@ -28,5 +35,5 @@ export interface SalesReportSnapshot {
 
 export interface SalesReportRepository {
   isActiveAdmin(actorId: string): Promise<boolean>;
-  snapshot(): Promise<SalesReportSnapshot>;
+  snapshot(actorId: string): Promise<SalesReportSnapshot>;
 }

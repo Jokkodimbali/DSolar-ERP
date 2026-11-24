@@ -18,16 +18,23 @@ export class SalesReportService {
   async summary(actorId: string) {
     if (!(await this.reports.isActiveAdmin(actorId)))
       throw new ForbiddenException('Rapport financier réservé au super administrateur.');
-    const snapshot = await this.reports.snapshot();
+    const snapshot = await this.reports.snapshot(actorId);
     const total = snapshot.orders.reduce((sum, group) => sum + cents(group.total), 0n);
     const collected = snapshot.orders.reduce((sum, group) => sum + cents(group.amountPaid), 0n);
+    const credited = snapshot.orders.reduce((sum, group) => sum + cents(group.credited), 0n);
+    const outstanding = snapshot.orders.reduce((sum, group) => sum + cents(group.outstanding), 0n);
+    const overpaid = snapshot.orders.reduce((sum, group) => sum + cents(group.overpaid), 0n);
     const count = (status: string) =>
       snapshot.orders.find((group) => group.paymentStatus === status)?.count ?? 0;
     return {
       orders: snapshot.orders.reduce((sum, group) => sum + group.count, 0),
       totalOrders: money(total),
       collected: money(collected),
-      outstanding: money(total - collected),
+      creditedOrders: money(credited),
+      netOrders: money(total - credited),
+      outstanding: money(outstanding),
+      overpaid: money(overpaid),
+      overpaidOrders: count('OVERPAID'),
       unpaidOrders: count('UNPAID'),
       partiallyPaidOrders: count('PARTIALLY_PAID'),
       paidOrders: count('PAID'),

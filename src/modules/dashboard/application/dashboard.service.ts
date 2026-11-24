@@ -34,7 +34,10 @@ export class DashboardService {
       ['Impayees', String(report.unpaidOrders)],
       ['Partiellement payees', String(report.partiallyPaidOrders)],
       ['Payees', String(report.paidOrders)],
-      ['Total', report.total],
+      ['Total brut', report.total],
+      ['Avoirs', report.credited],
+      ['Total net', report.netTotal],
+      ['Trop-perçus', report.overpaid],
       ['Encaisse', report.paid],
       ['Reste a encaisser', report.outstanding],
     ]);
@@ -125,16 +128,23 @@ export class DashboardService {
     const groups = await this.repository.receivables(actorId);
     const total = groups.reduce((sum, group) => sum + cents(group.total), 0n);
     const paid = groups.reduce((sum, group) => sum + cents(group.paid), 0n);
+    const credited = groups.reduce((sum, group) => sum + cents(group.credited ?? '0.00'), 0n);
+    const outstanding = groups.reduce((sum, group) => sum + (group.outstanding === undefined ? cents(group.total) - cents(group.paid) : cents(group.outstanding)), 0n);
+    const overpaid = groups.reduce((sum, group) => sum + cents(group.overpaid ?? '0.00'), 0n);
     return {
       currency: 'XOF',
-      basis: 'ACTIVE_SALES_ORDERS',
+      basis: 'ACTIVE_SALES_ORDERS_NET_OF_CREDITS',
       orders: groups.reduce((sum, group) => sum + group.count, 0),
       unpaidOrders: groups.find((group) => group.status === 'UNPAID')?.count ?? 0,
       partiallyPaidOrders: groups.find((group) => group.status === 'PARTIALLY_PAID')?.count ?? 0,
       paidOrders: groups.find((group) => group.status === 'PAID')?.count ?? 0,
       total: money(total),
       paid: money(paid),
-      outstanding: money(total - paid),
+      credited: money(credited),
+      netTotal: money(total - credited),
+      outstanding: money(outstanding),
+      overpaid: money(overpaid),
+      overpaidOrders: groups.find((group) => group.status === 'OVERPAID')?.count ?? 0,
     };
   }
 

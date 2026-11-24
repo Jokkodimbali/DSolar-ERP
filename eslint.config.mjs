@@ -16,7 +16,7 @@ export default [
     },
   },
   {
-    files: ['src/modules/{settings,notifications,media,operational-search}/**/*.ts', 'src/modules/{sales,procurement}/**/*search*.ts', 'src/shared/**/*.ts'],
+    files: ['src/**/*.ts'],
     ignores: ['**/*.spec.ts'],
     languageOptions: { parserOptions: { project: './tsconfig.json' } },
     rules: {
