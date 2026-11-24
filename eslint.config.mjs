@@ -15,4 +15,16 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
+  {
+    files: ['src/modules/{settings,notifications,media,operational-search}/**/*.ts', 'src/modules/{sales,procurement}/**/*search*.ts', 'src/shared/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    languageOptions: { parserOptions: { project: './tsconfig.json' } },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+    },
+  },
 ];
