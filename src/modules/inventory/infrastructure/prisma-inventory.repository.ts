@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, MovementType } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { validStockQuantity } from '../domain/stock-quantity';
 import {
   InventoryRepository,
   StockAdjustment,
@@ -21,11 +22,11 @@ export class PrismaInventoryRepository implements InventoryRepository {
       }),
       tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
     ]);
+    if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
+      throw new ForbiddenException('Accès à ce magasin non autorisé.');
     if (!store || !product) throw new NotFoundException('Magasin ou produit introuvable.');
     if (store.status !== 'ACTIVE' || !product.active)
       throw new ConflictException('Magasin ou produit inactif.');
-    if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
-      throw new ForbiddenException('Accès à ce magasin non autorisé.');
   }
   private format(
     storeId: string,
@@ -55,11 +56,11 @@ export class PrismaInventoryRepository implements InventoryRepository {
           }),
           tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
         ]);
-        if (!store) throw new NotFoundException('Magasin introuvable.');
-        if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
         if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0)) {
           throw new ForbiddenException('Accès à ce magasin non autorisé.');
         }
+        if (!store) throw new NotFoundException('Magasin introuvable.');
+        if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
         const stocks = await tx.storeStock.findMany({
           where: { storeId, product: { active: true } },
           select: {
@@ -81,20 +82,28 @@ export class PrismaInventoryRepository implements InventoryRepository {
     );
   }
   async getBalance(storeId: string, productId: string, actorId: string): Promise<StockBalance> {
-    return this.prisma.$transaction(async (tx) => {
-      await this.authorize(tx, storeId, productId, actorId);
-      const stock = await tx.storeStock.findUnique({ where: { storeId_productId: { storeId, productId } } });
-      return this.format(
-        storeId,
-        productId,
-        stock?.quantity ?? new Prisma.Decimal(0),
-        stock?.reserved ?? new Prisma.Decimal(0),
-      );
-    });
+    return this.prisma.$transaction(
+      async (tx) => {
+        await this.authorize(tx, storeId, productId, actorId);
+        const stock = await tx.storeStock.findUnique({ where: { storeId_productId: { storeId, productId } } });
+        return this.format(
+          storeId,
+          productId,
+          stock?.quantity ?? new Prisma.Decimal(0),
+          stock?.reserved ?? new Prisma.Decimal(0),
+        );
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
   async adjust(command: StockAdjustment): Promise<StockBalance> {
     const { storeId, productId, actorId, operationKey } = command;
+    if (!validStockQuantity(command.quantity) || !['IN', 'OUT'].includes(command.direction))
+      throw new ConflictException('Quantité ou direction d’ajustement invalide.');
     const amount = new Prisma.Decimal(command.quantity);
+    if (amount.lte(0)) throw new ConflictException('Quantité d’ajustement strictement positive requise.');
+    if (typeof command.reason !== 'string' || command.reason.trim().length < 5 || command.reason.length > 500)
+      throw new ConflictException('Justification d’ajustement invalide.');
     const signed = command.direction === 'IN' ? amount : amount.negated();
     try {
       return await this.prisma.$transaction(
@@ -105,7 +114,7 @@ export class PrismaInventoryRepository implements InventoryRepository {
             if (
               prior.referenceType !== 'MANUAL_ADJUSTMENT' ||
               prior.type !== MovementType.INVENTORY_ADJUSTMENT ||
-              (prior.actorId !== null && prior.actorId !== actorId) ||
+              prior.actorId !== actorId ||
               prior.storeId !== storeId ||
               prior.productId !== productId ||
               !prior.quantity.equals(signed) ||

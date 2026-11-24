@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { MovementType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { validStockQuantity } from '../domain/stock-quantity';
 import { CountLineInput, StockCountRepository } from '../application/stock-count.port';
 
 @Injectable()
@@ -19,11 +20,11 @@ export class PrismaStockCountRepository implements StockCountRepository {
       }),
       tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
     ]);
-    if (!store) throw new NotFoundException('Magasin introuvable.');
-    if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
     if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0)) {
       throw new ForbiddenException('Accès au magasin non autorisé.');
     }
+    if (!store) throw new NotFoundException('Magasin introuvable.');
+    if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
   }
 
   private async session(tx: Prisma.TransactionClient, id: string, actorId: string) {
@@ -99,24 +100,52 @@ export class PrismaStockCountRepository implements StockCountRepository {
       if (session.status !== 'DRAFT') {
         throw new ConflictException('Cet inventaire est déjà validé.');
       }
+      if (!lines.length || lines.length > 100)
+        throw new ConflictException('Entre 1 et 100 lignes de comptage sont requises.');
       const productIds = lines.map((line) => line.productId);
       if (new Set(productIds).size !== productIds.length) {
         throw new ConflictException('Un produit ne peut être compté plusieurs fois.');
       }
-      const products = new Set(session.lines.map((line) => line.productId));
-      for (const line of lines) {
-        if (!products.has(line.productId)) {
-          throw new NotFoundException('Produit absent de la session d’inventaire.');
-        }
-        const counted = new Prisma.Decimal(line.counted);
-        if (!counted.isFinite() || counted.isNegative()) {
-          throw new ConflictException('La quantité comptée doit être positive ou nulle.');
-        }
+      const products = new Map(session.lines.map((line) => [line.productId, line]));
+      const changes = lines.map((line) => {
+        const previous = products.get(line.productId);
+        if (!previous) throw new NotFoundException('Produit absent de la session d’inventaire.');
+        if (!validStockQuantity(line.counted))
+          throw new ConflictException('Quantité comptée invalide (trois décimales maximum).');
+        if (line.reason !== undefined && (typeof line.reason !== 'string' || line.reason.length > 500))
+          throw new ConflictException('Justification invalide.');
+        return {
+          productId: line.productId,
+          previous: previous.counted?.toFixed(3) ?? null,
+          previousReason: previous.reason ?? null,
+          counted: new Prisma.Decimal(line.counted),
+          reason: line.reason?.trim() || null,
+        };
+      });
+      for (const line of changes) {
         await tx.inventoryLine.update({
           where: { sessionId_productId: { sessionId: id, productId: line.productId } },
-          data: { counted, reason: line.reason?.trim() || null },
+          data: { counted: line.counted, reason: line.reason },
         });
       }
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'INVENTORY_COUNT_RECORDED',
+          entityType: 'InventorySession',
+          entityId: id,
+          storeId: session.storeId,
+          payload: {
+            lines: changes.map((line) => ({
+              productId: line.productId,
+              previous: line.previous,
+              previousReason: line.previousReason,
+              counted: line.counted.toFixed(3),
+              reason: line.reason,
+            })),
+          },
+        },
+      });
       return tx.inventorySession.findUniqueOrThrow({
         where: { id },
         include: { lines: { orderBy: { productId: 'asc' } } },
@@ -170,7 +199,7 @@ export class PrismaStockCountRepository implements StockCountRepository {
           );
         }
         const counted = line.counted!;
-        if (!counted.isFinite() || counted.isNegative()) {
+        if (!counted.isFinite() || !validStockQuantity(counted.toFixed())) {
           throw new ConflictException('Quantité inventoriée invalide.');
         }
         if (counted.lessThan(stock.reserved)) {

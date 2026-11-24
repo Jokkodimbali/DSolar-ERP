@@ -317,4 +317,52 @@ describe('PrismaStockCountRepository', () => {
     await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
   });
+
+  it('refuse une ligne invalide avant même de modifier une ligne valide du lot', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [{ productId: 'a' }, { productId: 'b' }],
+    });
+    await expect(
+      repository.record('session-id', 'actor-id', [
+        { productId: 'a', counted: '2' },
+        { productId: 'b', counted: '0.0001' },
+      ]),
+    ).rejects.toThrow(ConflictException);
+    expect(tx.inventoryLine.update).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('journalise les anciennes et nouvelles valeurs de comptage', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [{ productId: 'a', counted: new Prisma.Decimal('2'), reason: 'Ancien motif' }],
+    });
+    tx.inventorySession.findUniqueOrThrow.mockResolvedValue({ id: 'session-id' });
+    await repository.record('session-id', 'actor-id', [
+      { productId: 'a', counted: '3.125', reason: 'Recomptage' },
+    ]);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        actorId: 'actor-id',
+        action: 'INVENTORY_COUNT_RECORDED',
+        entityType: 'InventorySession',
+        entityId: 'session-id',
+        storeId: 'store-id',
+        payload: {
+          lines: [{
+            productId: 'a',
+            previous: '2.000',
+            previousReason: 'Ancien motif',
+            counted: '3.125',
+            reason: 'Recomptage',
+          }],
+        },
+      },
+    });
+  });
 });
