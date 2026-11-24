@@ -118,7 +118,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           } catch (error) {
             throw new ConflictException(error instanceof Error ? error.message : 'Ventilation invalide.');
           }
-        } else if (invoice.totalTax.gt(0) && !amount.eq(invoice.totalTtc)) {
+        } else if (invoice.creditNotes.some((note) => note.lines.length) || (invoice.totalTax.gt(0) && !amount.eq(invoice.totalTtc))) {
           throw new ConflictException('Ventilation par ligne obligatoire pour un avoir partiel taxable.');
         }
         const creditNote = await tx.creditNote.create({

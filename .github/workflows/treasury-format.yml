@@ -1,4 +1,4 @@
-name: Formatage et validation des avoirs fiscaux
+name: Formatage et tests de sécurité comptable
 on:
   push:
     branches: [dev]
