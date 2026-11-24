@@ -5,5 +5,9 @@ export interface TreasuryPort {
   create(store: string, name: string, actor: string): Promise<unknown>;
   open(register: string, amount: string, actor: string): Promise<unknown>;
   move(session: string, amount: string, reason: string, key: string, actor: string): Promise<unknown>;
+  transfer(from: string, to: string, amount: string, key: string, actor: string): Promise<unknown>;
+  reverse(id: string, reason: string, key: string, actor: string): Promise<unknown>;
+  reconcile(session: string, payment: string, key: string, actor: string): Promise<unknown>;
+  summary(session: string, actor: string): Promise<unknown>;
   close(session: string, counted: string, actor: string): Promise<unknown>;
 }

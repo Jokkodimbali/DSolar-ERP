@@ -25,6 +25,29 @@ class MovementDto extends AmountDto {
   operationKey!: string;
 }
 
+class OperationDto {
+  @IsUUID()
+  operationKey!: string;
+}
+
+class TransferDto extends AmountDto {
+  @IsUUID()
+  destinationId!: string;
+  @IsUUID()
+  operationKey!: string;
+}
+
+class ReverseDto extends OperationDto {
+  @IsString()
+  @MaxLength(200)
+  reason!: string;
+}
+
+class ReconcileDto extends OperationDto {
+  @IsUUID()
+  paymentId!: string;
+}
+
 @ApiTags('Trésorerie')
 @ApiBearerAuth()
 @UseGuards(AccessGuard)
@@ -54,6 +77,42 @@ export class TreasuryController {
   @RequirePermissions('sales.manage')
   move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUserId() actor: string) {
     return this.service.move(id, dto.amount, dto.reason, dto.operationKey, actor);
+  }
+
+  @Get('sessions/:id/summary')
+  @RequirePermissions('sales.read')
+  summary(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.summary(id, actor);
+  }
+
+  @Post('sessions/:id/transfer')
+  @RequirePermissions('sales.manage')
+  transfer(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TransferDto,
+    @CurrentUserId() actor: string,
+  ) {
+    return this.service.transfer(id, dto.destinationId, dto.amount, dto.operationKey, actor);
+  }
+
+  @Post('movements/:id/reverse')
+  @RequirePermissions('sales.manage')
+  reverse(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReverseDto,
+    @CurrentUserId() actor: string,
+  ) {
+    return this.service.reverse(id, dto.reason, dto.operationKey, actor);
+  }
+
+  @Post('sessions/:id/reconcile')
+  @RequirePermissions('sales.manage')
+  reconcile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReconcileDto,
+    @CurrentUserId() actor: string,
+  ) {
+    return this.service.reconcile(id, dto.paymentId, dto.operationKey, actor);
   }
 
   @Post('sessions/:id/close')

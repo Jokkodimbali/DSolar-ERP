@@ -536,6 +536,7 @@ model Payment {
   receivedAt DateTime @default(now())
   allocations PaymentAllocation[]
   reversals PaymentReversal[]
+  cashMovement CashMovement?
   @@unique([orderId,installmentNumber])
 }
 model PaymentAllocation {
@@ -621,8 +622,15 @@ model CashMovement {
   session CashSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   amount Decimal @db.Decimal(18,2)
   reason String @db.VarChar(200)
+  transferKey String? @db.Uuid
+  reversalOfId String? @unique @db.Uuid
+  reversalOf CashMovement? @relation("CashReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversal CashMovement? @relation("CashReversal")
+  paymentId String? @unique @db.Uuid
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   operationKey String @unique @db.Uuid
   actorId String @db.Uuid
   createdAt DateTime @default(now())
   @@index([sessionId, createdAt])
+  @@index([transferKey])
 }
