@@ -71,3 +71,7 @@ jobs:
         run: npx prisma migrate status
       - name: Exécuter les tests d'intégration PostgreSQL
         run: npm run test:integration
+      - name: Tester les opérations de trésorerie sur PostgreSQL
+        run: npm test -- --runTestsByPath src/modules/treasury/infrastructure/treasury.integration.spec.ts
+        env:
+          TREASURY_INTEGRATION: '1'

@@ -10,8 +10,9 @@ export class TreasuryService {
       typeof value !== 'string' ||
       !/^-?\d{1,16}(\.\d{1,2})?$/.test(value) ||
       (!signed && value.startsWith('-'))
-    )
+    ) {
       throw new BadRequestException('Montant invalide.');
+    }
     return value;
   }
 
@@ -42,8 +43,9 @@ export class TreasuryService {
   }
 
   reverse(id: string, reason: string, key: string, actor: string) {
-    if (!reason.trim() || reason.trim().length > 200)
+    if (!reason.trim() || reason.trim().length > 200) {
       throw new BadRequestException('Motif invalide.');
+    }
     return this.repository.reverse(id, reason.trim(), key, actor);
   }
 

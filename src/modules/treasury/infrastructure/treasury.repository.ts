@@ -1,10 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { TreasuryPort } from '../application/treasury.port';
@@ -194,8 +189,9 @@ export class TreasuryRepository implements TreasuryPort {
     return this.transaction(actor, async (tx) => {
       const previous = await tx.cashMovement.findUnique({ where: { operationKey: key } });
       if (previous) {
-        if (previous.reversalOfId !== id || previous.reason !== reason || previous.actorId !== actor)
+        if (previous.reversalOfId !== id || previous.reason !== reason || previous.actorId !== actor) {
           throw new ConflictException('Clé opération déjà utilisée.');
+        }
         return previous;
       }
       const original = await tx.cashMovement.findUnique({ where: { id } });
@@ -224,8 +220,13 @@ export class TreasuryRepository implements TreasuryPort {
     return this.transaction(actor, async (tx) => {
       const previous = await tx.cashMovement.findUnique({ where: { operationKey: key } });
       if (previous) {
-        if (previous.sessionId !== id || previous.paymentId !== paymentId || previous.actorId !== actor)
+        if (
+          previous.sessionId !== id ||
+          previous.paymentId !== paymentId ||
+          previous.actorId !== actor
+        ) {
           throw new ConflictException('Clé opération déjà utilisée.');
+        }
         return previous;
       }
       const session = await this.session(tx, id);
