@@ -2,7 +2,7 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Observable, timer, exhaustMap, map, distinctUntilChanged, takeUntil, catchError, EMPTY } from 'rxjs';
 import { MessageEvent } from '@nestjs/common';
 import { TOKEN_SERVICE, USER_REPOSITORY, SESSION_REPOSITORY, TokenService, UserRepository, SessionRepository } from '../../identity/application/ports';
-import { NOTIFICATIONS, NotificationsPort } from './notifications.port';
+import { NOTIFICATIONS, NotificationQuery, NotificationsPort } from './notifications.port';
 
 @Injectable()
 export class NotificationsService {
@@ -13,10 +13,11 @@ export class NotificationsService {
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepository,
   ) {}
 
-  feed(actorId: string) { return this.repository.feed(actorId); }
+  feed(actorId: string, query?: NotificationQuery) { return this.repository.feed(actorId, query); }
 
   async mark(actorId: string, id?: string) {
-    return { marked: await this.repository.mark(actorId, id) };
+    const marked = await this.repository.mark(actorId, id);
+    return { marked, message: id ? 'Notification marquée comme lue.' : 'Toutes les notifications accessibles sont marquées comme lues.' };
   }
 
   stream(actorId: string, authorization: string): Observable<MessageEvent> {

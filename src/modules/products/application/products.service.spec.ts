@@ -3,6 +3,7 @@ import { ProductsService } from './products.service';
 import { ProductRepository } from './product.repository';
 const mock = (): jest.Mocked<ProductRepository> => ({
   list: jest.fn(),
+  search: jest.fn(),
   findById: jest.fn(),
   findBySku: jest.fn(),
   create: jest.fn(),

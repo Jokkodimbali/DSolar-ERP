@@ -1,9 +1,10 @@
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configuredOrigins, securityHeaders, trustedProxyHops } from './infrastructure/http/http-security';
+import { frenchValidationErrors } from './infrastructure/http/french-validation';
 import { SafeExceptionFilter } from './infrastructure/http/safe-exception.filter';
 import { validatedJwtSecrets } from './modules/identity/infrastructure/jwt-configuration';
 
@@ -21,6 +22,8 @@ async function bootstrap(): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      validationError: { target: false, value: false },
+      exceptionFactory: (errors) => new BadRequestException(frenchValidationErrors(errors)),
     }),
   );
   const origins = configuredOrigins(process.env.CORS_ORIGINS);

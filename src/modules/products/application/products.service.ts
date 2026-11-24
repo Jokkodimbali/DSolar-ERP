@@ -6,13 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateProduct, UpdateProduct } from '../domain/product';
-import { PRODUCT_REPOSITORY, ProductRepository } from './product.repository';
+import { PRODUCT_REPOSITORY, ProductRepository, ProductSearch } from './product.repository';
 @Injectable()
 export class ProductsService {
   constructor(@Inject(PRODUCT_REPOSITORY) private readonly repository: ProductRepository) {}
   list(active?: boolean) {
     return this.repository.list(active);
   }
+  search(query: ProductSearch) { return this.repository.search(query); }
   async get(id: string) {
     const product = await this.repository.findById(id);
     if (!product) throw new NotFoundException('Produit introuvable.');

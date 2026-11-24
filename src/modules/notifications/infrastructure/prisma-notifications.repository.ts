@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { NotificationsPort, NotificationFeed } from '../application/notifications.port';
+import { NotificationsPort, NotificationFeed, NotificationQuery } from '../application/notifications.port';
 import { ADMIN_EVENTS, STORE_EVENTS, notificationTitle } from '../domain/notification-events';
 
 @Injectable()
@@ -28,23 +28,35 @@ export class PrismaNotificationsRepository implements NotificationsPort {
     return { action: { in: actions }, storeId: { in: user.stores.map((row) => row.storeId) } };
   }
 
-  feed(actorId: string): Promise<NotificationFeed> {
+  feed(actorId: string, query?: NotificationQuery): Promise<NotificationFeed> {
     return this.prisma.$transaction(async (tx) => {
       const where = await this.scope(tx, actorId);
       const settings = await tx.companySettings.findFirst({ orderBy: { revision: 'desc' }, select: { notificationsEnabled: true } });
       if (settings?.notificationsEnabled === false) return { enabled: false, unread: 0, items: [] };
-      const [rows, unread] = await Promise.all([
+      const page = query?.page ?? 1;
+      const limit = query?.limit ?? 50;
+      const search = query?.search?.trim();
+      const matchingActions = search ? Object.entries(ADMIN_EVENTS).filter(([action, title]) => (action + ' ' + title).toLocaleLowerCase('fr').includes(search.toLocaleLowerCase('fr'))).map(([action]) => action) : [];
+      const filtered: Prisma.AuditLogWhereInput = { AND: [where,
+        ...(query?.action ? [{ action: query.action }] : []),
+        ...(query?.storeId ? [{ storeId: query.storeId }] : []),
+        ...(query?.read === undefined ? [] : [{ notificationReads: query.read ? { some: { userId: actorId } } : { none: { userId: actorId } } }]),
+        ...(search ? [{ OR: [{ action: { in: matchingActions } }, { entityId: { contains: search, mode: 'insensitive' as const } }] }] : []),
+      ] };
+      const [rows, unread, total] = await Promise.all([
         tx.auditLog.findMany({
-          where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50,
+          where: filtered, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: limit, skip: (page - 1) * limit,
           select: {
             id: true, action: true, entityType: true, entityId: true, storeId: true, createdAt: true,
             notificationReads: { where: { userId: actorId }, select: { auditId: true } },
           },
         }),
         tx.auditLog.count({ where: { AND: [where, { notificationReads: { none: { userId: actorId } } }] } }),
+        tx.auditLog.count({ where: filtered }),
       ]);
       return {
         enabled: true, unread,
+        ...(query ? { pagination: { page, limit, total, pages: Math.ceil(total / limit) } } : {}),
         items: rows.map((row) => ({
           id: row.id, action: row.action, title: notificationTitle(row.action), entityType: row.entityType,
           entityId: row.entityId, storeId: row.storeId, createdAt: row.createdAt, read: row.notificationReads.length > 0,

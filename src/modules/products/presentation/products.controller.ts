@@ -10,10 +10,19 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { IsIn, IsOptional, IsUUID } from 'class-validator';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { ProductsService } from '../application/products.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+class ProductSearchDto extends PageQueryDto {
+  @IsOptional() @IsIn(['true', 'false']) active?: string;
+  @IsOptional() @IsIn(['true', 'false']) isSolarPlant?: string;
+  @IsOptional() @IsUUID() categoryId?: string;
+  @IsOptional() @IsUUID() brandId?: string;
+  @IsOptional() @IsUUID() taxRegimeId?: string;
+}
 @ApiTags('Produits')
 @ApiBearerAuth()
 @UseGuards(AccessGuard)
@@ -24,6 +33,14 @@ export class ProductsController {
     if (active !== undefined && active !== 'true' && active !== 'false')
       throw new BadRequestException('Le filtre active doit être true ou false.');
     return this.products.list(active === undefined ? undefined : active === 'true');
+  }
+  @Get('search') @RequirePermissions('products.read')
+  search(@Query() query: ProductSearchDto) {
+    const { active, isSolarPlant, ...filters } = query;
+    return this.products.search({ ...filters,
+      active: active === undefined ? undefined : active === 'true',
+      isSolarPlant: isSolarPlant === undefined ? undefined : isSolarPlant === 'true',
+    });
   }
   @Get(':id') @RequirePermissions('products.read') get(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.products.get(id);

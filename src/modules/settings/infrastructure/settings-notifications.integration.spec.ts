@@ -22,7 +22,7 @@ integration('Paramètres et notifications PostgreSQL', () => {
       const workerRole = await prisma.role.upsert({
         where: { code: 'MAGASINIER' }, update: {}, create: { code: 'MAGASINIER', name: 'Magasinier' },
       });
-      const permission = await prisma.permission.findUniqueOrThrow({ where: { code: 'inventory.read' } });
+      const permission = await prisma.permission.upsert({ where: { code: 'inventory.read' }, update: {}, create: { code: 'inventory.read', description: 'Lecture du stock' } });
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: workerRole.id, permissionId: permission.id } },
         update: {}, create: { roleId: workerRole.id, permissionId: permission.id },
