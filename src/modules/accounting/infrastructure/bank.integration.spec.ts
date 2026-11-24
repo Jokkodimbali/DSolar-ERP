@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingRepository } from './accounting.repository';
 import { BankRepository } from './bank.repository';
@@ -7,19 +8,7 @@ import { BankRepository } from './bank.repository';
 const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : describe.skip;
 integration('Rapprochement bancaire PostgreSQL', () => {
   it('contrôle les écarts, les doublons, la clôture et les écritures rétroactives', async () => {
-    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
-      (value) => new URL(value || 'invalid:'),
-    );
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      urls.some(
-        (url) =>
-          !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-          url.pathname !== '/dsolar_test' ||
-          !['postgres:', 'postgresql:'].includes(url.protocol),
-      )
-    )
-      throw new Error('Base de test locale requise.');
+    assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const repo = new BankRepository(prisma);
     const ledger = new AccountingRepository(prisma);
@@ -82,6 +71,10 @@ integration('Rapprochement bancaire PostgreSQL', () => {
       ).rejects.toBeInstanceOf(ConflictException);
       await repo.match(line.id, ledgerLine.id, admin.id);
       expect((await repo.detail(statement.id, admin.id)).balanced).toBe(true);
+      expect((await repo.detail(statement.id, admin.id)).invalidMatches).toBe(0);
+      await expect(repo.match(line.id, ledgerLine.id, admin.id)).resolves.toMatchObject({
+        ledgerLineId: ledgerLine.id,
+      });
       await repo.unmatch(line.id, admin.id);
       expect((await repo.detail(statement.id, admin.id)).balanced).toBe(false);
       await repo.match(line.id, ledgerLine.id, admin.id);

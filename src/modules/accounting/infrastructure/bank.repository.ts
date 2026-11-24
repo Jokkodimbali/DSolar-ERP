@@ -125,6 +125,29 @@ export class BankRepository implements BankPort {
       orderBy: [{ entry: { date: 'asc' } }, { id: 'asc' }],
       take: 501,
     });
+    const matchedBankLines = statement.lines.filter((line) => line.ledgerLineId !== null);
+    const matchedLedgerLines = await tx.ledgerLine.findMany({
+      where: { id: { in: matchedBankLines.map((line) => line.ledgerLineId!) } },
+      select: {
+        id: true,
+        accountId: true,
+        debit: true,
+        credit: true,
+        entry: { select: { postedAt: true, date: true } },
+      },
+    });
+    const byId = new Map(matchedLedgerLines.map((line) => [line.id, line]));
+    const invalidMatches = matchedBankLines.filter((bankLine) => {
+      const line = byId.get(bankLine.ledgerLineId!);
+      return (
+        !line ||
+        !line.entry.postedAt ||
+        line.accountId !== statement.bankAccount.accountId ||
+        line.entry.date < statement.startsAt ||
+        line.entry.date > statement.endsAt ||
+        !line.debit.minus(line.credit).eq(bankLine.amount)
+      );
+    }).length;
     const unmatchedBank = statement.lines.filter((line) => !line.ledgerLineId).length;
     const openingDifference = aggregateCents(balances.opening) - aggregateCents(statement.opening.toFixed(2));
     const closingDifference = aggregateCents(balances.closing) - aggregateCents(statement.closing.toFixed(2));
@@ -141,6 +164,7 @@ export class BankRepository implements BankPort {
       closingDifference: moneyText(closingDifference),
       bankDifference: moneyText(bankDifference),
       unmatchedBank,
+      invalidMatches,
       unmatchedLedger: unmatched.slice(0, 500),
       hasMoreLedger: unmatched.length > 500,
       balanced:
@@ -148,6 +172,7 @@ export class BankRepository implements BankPort {
         closingDifference === 0n &&
         bankDifference === 0n &&
         unmatchedBank === 0 &&
+        invalidMatches === 0 &&
         unmatched.length === 0,
     };
   }
@@ -164,8 +189,7 @@ export class BankRepository implements BankPort {
       });
       if (!bankLine) throw new NotFoundException('Ligne bancaire introuvable.');
       if (bankLine.statement.closedAt) throw new ConflictException('Rapprochement clôturé.');
-      if (bankLine.ledgerLineId === ledgerLineId) return bankLine;
-      if (bankLine.ledgerLineId)
+      if (bankLine.ledgerLineId && bankLine.ledgerLineId !== ledgerLineId)
         throw new ConflictException('Annuler le rapprochement existant avant modification.');
       const line = await tx.ledgerLine.findUnique({
         where: { id: ledgerLineId },
@@ -174,13 +198,14 @@ export class BankRepository implements BankPort {
       if (
         !line ||
         !line.entry.postedAt ||
-        line.bankMatch ||
+        (line.bankMatch && line.bankMatch.id !== id) ||
         line.accountId !== bankLine.statement.bankAccount.accountId ||
         line.entry.date < bankLine.statement.startsAt ||
         line.entry.date > bankLine.statement.endsAt ||
         !line.debit.minus(line.credit).eq(bankLine.amount)
       )
         throw new ConflictException('Écriture incompatible ou déjà rapprochée.');
+      if (bankLine.ledgerLineId === ledgerLineId) return bankLine;
       const result = await tx.ledgerBankLine.update({
         where: { id },
         data: { ledgerLineId, matchedBy: actor, matchedAt: new Date() },
