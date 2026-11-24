@@ -7,7 +7,11 @@ export class StoreAccessUseCases {
     @Inject(STORE_REPOSITORY) private readonly stores: StoreRepository,
     @Inject(STORE_ACCESS_REPOSITORY) private readonly access: StoreAccessRepository,
   ) {}
-  async grant(storeId: string, userId: string, actorId: string): Promise<{ storeId: string; userId: string; assigned: true }> {
+  async grant(
+    storeId: string,
+    userId: string,
+    actorId: string,
+  ): Promise<{ storeId: string; userId: string; assigned: true }> {
     const store = await this.stores.findById(storeId);
     if (!store) throw new NotFoundException('Magasin introuvable.');
     if (store.status !== 'ACTIVE')

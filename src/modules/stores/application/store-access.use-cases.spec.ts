@@ -50,7 +50,11 @@ describe('StoreAccessUseCases', () => {
   it('attribue un accès valide', async () => {
     stores.findById.mockResolvedValue(store);
     access.userExists.mockResolvedValue(true);
-    await expect(service.grant('s', 'u', 'admin')).resolves.toEqual({ storeId: 's', userId: 'u', assigned: true });
+    await expect(service.grant('s', 'u', 'admin')).resolves.toEqual({
+      storeId: 's',
+      userId: 'u',
+      assigned: true,
+    });
     expect(access.grant).toHaveBeenCalledWith('u', 's', 'admin');
   });
   it('retourne seulement les magasins actifs autorisés', async () => {
