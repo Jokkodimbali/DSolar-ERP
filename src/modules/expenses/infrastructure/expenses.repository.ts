@@ -3,6 +3,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { ExpensePayment, ExpensesPort, NewExpense } from '../application/expenses.port';
+import { validCashAmount } from '../../treasury/domain/cash-amount';
 
 @Injectable()
 export class ExpensesRepository implements ExpensesPort {
@@ -62,6 +63,7 @@ export class ExpensesRepository implements ExpensesPort {
 
   create(input: NewExpense, actor: string) {
     return this.transaction(actor, async (tx) => {
+      if (!validCashAmount(input.amount, false, false)) throw new ConflictException('Montant de dépense invalide.');
       const existing = await tx.expense.findUnique({ where: { operationKey: input.operationKey } });
       if (existing) {
         if (

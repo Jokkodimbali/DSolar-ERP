@@ -3,6 +3,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { TreasuryPort } from '../application/treasury.port';
+import { validCashAmount } from '../domain/cash-amount';
 
 @Injectable()
 export class TreasuryRepository implements TreasuryPort {
@@ -69,6 +70,7 @@ export class TreasuryRepository implements TreasuryPort {
 
   open(register: string, amount: string, actor: string) {
     return this.transaction(actor, async (tx) => {
+      if (!validCashAmount(amount)) throw new ConflictException('Montant d’ouverture invalide.');
       const cash = await tx.cashRegister.findFirst({
         where: { id: register, store: { status: 'ACTIVE' } },
       });
@@ -107,8 +109,12 @@ export class TreasuryRepository implements TreasuryPort {
 
   move(id: string, amount: string, reason: string, key: string, actor: string) {
     return this.transaction(actor, async (tx) => {
+      if (!validCashAmount(amount, true, false)) throw new ConflictException('Montant du mouvement invalide.');
       const value = new Prisma.Decimal(amount);
-      const existing = await tx.cashMovement.findUnique({ where: { operationKey: key } });
+      const existing = await tx.cashMovement.findUnique({
+        where: { operationKey: key },
+        include: { expensePayment: true, expenseRefund: true },
+      });
       if (existing) {
         if (
           existing.sessionId !== id ||
@@ -117,10 +123,13 @@ export class TreasuryRepository implements TreasuryPort {
           existing.actorId !== actor ||
           existing.transferKey ||
           existing.reversalOfId ||
-          existing.paymentId
+          existing.paymentId ||
+          existing.expensePayment ||
+          existing.expenseRefund
         )
           throw new ConflictException('Clé opération déjà utilisée.');
-        return existing;
+        const { expensePayment: _payment, expenseRefund: _refund, ...movement } = existing;
+        return movement;
       }
       const session = await this.session(tx, id);
       this.checkBalance(await this.balance(tx, id, session.opening), value);
@@ -134,8 +143,9 @@ export class TreasuryRepository implements TreasuryPort {
 
   transfer(from: string, to: string, amount: string, key: string, actor: string) {
     return this.transaction(actor, async (tx) => {
+      if (from === to || !validCashAmount(amount, false, false))
+        throw new ConflictException('Transfert invalide.');
       const value = new Prisma.Decimal(amount);
-      if (from === to || value.lte(0)) throw new ConflictException('Transfert invalide.');
       const previous = await tx.cashMovement.findUnique({ where: { operationKey: key } });
       if (previous) {
         const credit = await tx.cashMovement.findFirst({
@@ -147,7 +157,9 @@ export class TreasuryRepository implements TreasuryPort {
           !previous.amount.eq(value.negated()) ||
           previous.actorId !== actor ||
           !credit ||
-          credit.sessionId !== to
+          credit.sessionId !== to ||
+          !credit.amount.eq(value) ||
+          credit.actorId !== actor
         )
           throw new ConflictException('Clé opération déjà utilisée.');
         return { debit: previous, credit };
@@ -193,10 +205,12 @@ export class TreasuryRepository implements TreasuryPort {
       }
       const original = await tx.cashMovement.findUnique({
         where: { id },
-        include: { expensePayment: true },
+        include: { expensePayment: true, expenseRefund: true },
       });
       if (!original) throw new NotFoundException('Mouvement introuvable.');
-      if (original.transferKey || original.reversalOfId || original.paymentId || original.expensePayment)
+      if (
+        original.transferKey || original.reversalOfId || original.paymentId || original.expensePayment || original.expenseRefund
+      )
         throw new ConflictException('Mouvement non contrepassable individuellement.');
       const session = await this.session(tx, original.sessionId);
       const amount = original.amount.negated();
@@ -289,6 +303,7 @@ export class TreasuryRepository implements TreasuryPort {
 
   close(id: string, counted: string, actor: string) {
     return this.transaction(actor, async (tx) => {
+      if (!validCashAmount(counted)) throw new ConflictException('Montant compté invalide.');
       const session = await this.session(tx, id);
       const expected = await this.balance(tx, id, session.opening);
       const result = await tx.cashSession.update({
