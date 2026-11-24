@@ -21,6 +21,10 @@ export class ProcurementSearchService {
       (kind === 'purchase-orders' && query.storeId)
     )
       throw new BadRequestException('Filtre non disponible pour cette liste.');
+    if (query.outstanding !== undefined && kind !== 'purchase-orders')
+      throw new BadRequestException('Le filtre des commandes en attente est réservé aux commandes fournisseurs.');
+    if (query.outstanding && query.status && !['CONFIRMED','PARTIALLY_DELIVERED'].includes(query.status))
+      throw new BadRequestException('Les commandes en attente doivent être confirmées ou partiellement réceptionnées.');
     return this.repository.search(kind, actor, query);
   }
 }

@@ -8,13 +8,14 @@ import { ProcurementSearchService } from '../application/procurement-search.serv
 
 class ProcurementQueryDto extends PageQueryDto {
   @IsOptional() @IsIn(['true', 'false']) active?: string;
+  @IsOptional() @IsIn(['true', 'false']) outstanding?: string;
   @IsOptional() @IsString() @MaxLength(40) status?: string;
   @IsOptional() @IsUUID() supplierId?: string;
   @IsOptional() @IsUUID() storeId?: string;
 }
 function criteria(query: ProcurementQueryDto) {
-  const { active, ...rest } = query;
-  return { ...rest, active: active === undefined ? undefined : active === 'true' };
+  const { active, outstanding, ...rest } = query;
+  return { ...rest, active: active === undefined ? undefined : active === 'true', outstanding: outstanding === undefined ? undefined : outstanding === 'true' };
 }
 
 @ApiTags('Recherche approvisionnement')

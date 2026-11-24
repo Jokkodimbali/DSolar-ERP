@@ -3,6 +3,7 @@ export const PROCUREMENT_SEARCH = Symbol('PROCUREMENT_SEARCH');
 export type ProcurementKind = 'suppliers' | 'purchase-orders' | 'receipts';
 export interface ProcurementCriteria extends ListCriteria {
   active?: boolean;
+  outstanding?: boolean;
   status?: string;
   supplierId?: string;
   storeId?: string;

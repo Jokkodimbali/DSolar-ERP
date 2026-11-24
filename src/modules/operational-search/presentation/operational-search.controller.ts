@@ -10,6 +10,10 @@ class OperationalQueryDto extends PageQueryDto {
   @IsOptional() @IsString() @MaxLength(40) status?: string;
   @IsOptional() @IsUUID() storeId?: string;
   @IsOptional() @IsUUID() periodId?: string;
+  @IsOptional() @IsUUID() productId?: string;
+  @IsOptional() @IsUUID() registerId?: string;
+  @IsOptional() @IsUUID() sessionId?: string;
+  @IsOptional() @IsUUID() statementId?: string;
 }
 
 @ApiTags('Recherche des opérations')
@@ -76,5 +80,76 @@ export class OperationalSearchController {
   @RequirePermissions('users.manage')
   bankStatements(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
     return this.service.search('bank-statements', actor, query);
+  }
+  @Get('categories')
+  @RequirePermissions('products.read')
+  categories(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('categories', actor, query);
+  }
+
+  @Get('brands')
+  @RequirePermissions('products.read')
+  brands(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('brands', actor, query);
+  }
+
+  @Get('tax-regimes')
+  @RequirePermissions('products.read')
+  taxRegimes(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('tax-regimes', actor, query);
+  }
+
+  @Get('price-history')
+  @RequirePermissions('products.read')
+  priceHistory(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('price-history', actor, query);
+  }
+
+  @Get('stock-movements')
+  @RequirePermissions('inventory.read')
+  stockMovements(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('stock-movements', actor, query);
+  }
+
+  @Get('accounts')
+  @RequirePermissions('users.manage')
+  accounts(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('accounts', actor, query);
+  }
+
+  @Get('journals')
+  @RequirePermissions('users.manage')
+  journals(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('journals', actor, query);
+  }
+
+  @Get('periods')
+  @RequirePermissions('users.manage')
+  periods(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('periods', actor, query);
+  }
+
+  @Get('bank-accounts')
+  @RequirePermissions('users.manage')
+  bankAccounts(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('bank-accounts', actor, query);
+  }
+
+  @Get('cash-sessions')
+  @RequirePermissions('users.manage')
+  cashSessions(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('cash-sessions', actor, query);
+  }
+
+  @Get('cash-movements')
+  @RequirePermissions('users.manage')
+  cashMovements(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('cash-movements', actor, query);
+  }
+
+  @Get('bank-lines')
+  @RequirePermissions('users.manage')
+  bankLines(@CurrentUserId() actor: string, @Query() query: OperationalQueryDto) {
+    return this.service.search('bank-lines', actor, query);
   }
 }
