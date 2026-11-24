@@ -33,9 +33,10 @@ export class PrismaProcurementSearchRepository implements ProcurementSearchPort 
         if (kind === 'purchase-orders') {
           const where: Prisma.PurchaseOrderWhereInput = {
             supplierId: query.supplierId,
-            status: query.outstanding && !query.status
-              ? { in: [OrderStatus.CONFIRMED, OrderStatus.PARTIALLY_DELIVERED] }
-              : query.status as OrderStatus | undefined,
+            status:
+              query.outstanding && !query.status
+                ? { in: [OrderStatus.CONFIRMED, OrderStatus.PARTIALLY_DELIVERED] }
+                : (query.status as OrderStatus | undefined),
             ...(contains ? { OR: [{ number: contains }, { supplier: { name: contains } }] } : {}),
           };
           const [items, total] = await Promise.all([

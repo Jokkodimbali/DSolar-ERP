@@ -17,10 +17,29 @@ const statuses: Record<OperationalKind, readonly string[]> = {
   registers: [],
   entries: ['POSTED', 'DRAFT'],
   'bank-statements': ['OPEN', 'CLOSED'],
-  categories: [], brands: [], 'tax-regimes': [], 'price-history': ['ACTIVE', 'HISTORICAL'],
-  'stock-movements': ['RECEIPT','DELIVERY','TRANSFER_OUT','TRANSFER_IN','INVENTORY_ADJUSTMENT','RETURN_IN','RETURN_OUT','SITE_CONSUMPTION','DAMAGE','LOSS'],
-  accounts: [], journals: [], periods: ['OPEN','CLOSED'], 'bank-accounts': [],
-  'cash-sessions': ['OPEN','CLOSED'], 'cash-movements': [], 'bank-lines': ['MATCHED','UNMATCHED'],
+  categories: [],
+  brands: [],
+  'tax-regimes': [],
+  'price-history': ['ACTIVE', 'HISTORICAL'],
+  'stock-movements': [
+    'RECEIPT',
+    'DELIVERY',
+    'TRANSFER_OUT',
+    'TRANSFER_IN',
+    'INVENTORY_ADJUSTMENT',
+    'RETURN_IN',
+    'RETURN_OUT',
+    'SITE_CONSUMPTION',
+    'DAMAGE',
+    'LOSS',
+  ],
+  accounts: [],
+  journals: [],
+  periods: ['OPEN', 'CLOSED'],
+  'bank-accounts': [],
+  'cash-sessions': ['OPEN', 'CLOSED'],
+  'cash-movements': [],
+  'bank-lines': ['MATCHED', 'UNMATCHED'],
 };
 
 @Injectable()
@@ -31,16 +50,31 @@ export class OperationalSearchService {
       throw new BadRequestException('Statut non autorisé pour cette liste.');
     if (query.periodId && kind !== 'entries')
       throw new BadRequestException('Le filtre par période est réservé aux écritures comptables.');
-    if (query.storeId && !['stores','stocks','transfers','counts','expenses','returns','registers','stock-movements','cash-sessions','cash-movements'].includes(kind))
+    if (
+      query.storeId &&
+      ![
+        'stores',
+        'stocks',
+        'transfers',
+        'counts',
+        'expenses',
+        'returns',
+        'registers',
+        'stock-movements',
+        'cash-sessions',
+        'cash-movements',
+      ].includes(kind)
+    )
       throw new BadRequestException('Le filtre par magasin n’est pas disponible pour cette liste.');
     const allowedFilters: [string | undefined, OperationalKind[], string][] = [
-      [query.productId, ['stocks','stock-movements','price-history'], 'produit'],
-      [query.registerId, ['cash-sessions','cash-movements'], 'caisse'],
+      [query.productId, ['stocks', 'stock-movements', 'price-history'], 'produit'],
+      [query.registerId, ['cash-sessions', 'cash-movements'], 'caisse'],
       [query.sessionId, ['cash-movements'], 'session'],
       [query.statementId, ['bank-lines'], 'relevé bancaire'],
     ];
     for (const [value, allowed, label] of allowedFilters) {
-      if (value && !allowed.includes(kind)) throw new BadRequestException('Filtre par ' + label + ' indisponible pour cette liste.');
+      if (value && !allowed.includes(kind))
+        throw new BadRequestException('Filtre par ' + label + ' indisponible pour cette liste.');
     }
     return this.repository.search(kind, actorId, query);
   }

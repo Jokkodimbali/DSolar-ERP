@@ -32,7 +32,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
 
   private async credited(tx: Prisma.TransactionClient, orderId: string): Promise<Prisma.Decimal> {
     const result = await tx.creditNote.aggregate({
-      where: { invoice: { orderId, status: 'ISSUED' } }, _sum: { amount: true },
+      where: { invoice: { orderId, status: 'ISSUED' } },
+      _sum: { amount: true },
     });
     return result._sum.amount ?? new Prisma.Decimal(0);
   }
@@ -149,22 +150,35 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         }
         const credited = await this.credited(tx, orderId);
         const snapshot = summarizeOrderPayments({
-          orderId, orderStatus: order.status, paymentStatus: order.paymentStatus,
-          total: order.total.toFixed(2), amountPaid: order.amountPaid.toFixed(2),
+          orderId,
+          orderStatus: order.status,
+          paymentStatus: order.paymentStatus,
+          total: order.total.toFixed(2),
+          amountPaid: order.amountPaid.toFixed(2),
           creditTotal: credited.toFixed(2),
           payments: order.payments.map((payment) => ({
-            ...payment, amount: payment.amount.toFixed(2),
-            reversals: payment.reversals.map((reversal) => ({ ...reversal, amount: reversal.amount.toFixed(2) })),
+            ...payment,
+            amount: payment.amount.toFixed(2),
+            reversals: payment.reversals.map((reversal) => ({
+              ...reversal,
+              amount: reversal.amount.toFixed(2),
+            })),
           })),
         });
         if (!snapshot.consistent)
-          throw new ConflictException('Les règlements ou avoirs historiques sont incohérents. Régularisez la commande avant tout encaissement.');
+          throw new ConflictException(
+            'Les règlements ou avoirs historiques sont incohérents. Régularisez la commande avant tout encaissement.',
+          );
         const remaining = order.total.minus(credited).minus(order.amountPaid);
         if (amount.greaterThan(remaining)) {
-          throw new ConflictException('Montant supérieur au solde après avoirs : ' + remaining.toFixed(2) + ' FCFA.');
+          throw new ConflictException(
+            'Montant supérieur au solde après avoirs : ' + remaining.toFixed(2) + ' FCFA.',
+          );
         }
         if (activePayments.length === 1 && !amount.equals(remaining)) {
-          throw new ConflictException('La deuxième tranche doit être égale au solde de ' + remaining.toFixed(2) + ' FCFA.');
+          throw new ConflictException(
+            'La deuxième tranche doit être égale au solde de ' + remaining.toFixed(2) + ' FCFA.',
+          );
         }
         const nextPaid = order.amountPaid.plus(amount);
         const payment = await tx.payment.create({

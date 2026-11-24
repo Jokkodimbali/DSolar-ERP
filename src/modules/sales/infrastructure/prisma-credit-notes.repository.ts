@@ -87,11 +87,13 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           (sum, allocation) => sum.plus(allocation.amount),
           new Prisma.Decimal(0),
         );
-        const available = invoice.totalTtc.minus(credited).minus(
-          Prisma.Decimal.max(allocated, invoice.order.amountPaid),
-        );
+        const available = invoice.totalTtc
+          .minus(credited)
+          .minus(Prisma.Decimal.max(allocated, invoice.order.amountPaid));
         if (amount.greaterThan(available)) {
-          throw new ConflictException('Avoir supérieur au solde non encaissé de la facture. Régularisez les règlements avant de créer cet avoir.');
+          throw new ConflictException(
+            'Avoir supérieur au solde non encaissé de la facture. Régularisez les règlements avant de créer cet avoir.',
+          );
         }
         let detail: ReturnType<typeof allocateCredit> | undefined;
         if (lines) {
@@ -141,7 +143,10 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           include: { lines: true },
         });
         // Publish a new order row version to serialize concurrent payments and credits.
-        await tx.salesOrder.update({ where: { id: invoice.order.id }, data: { amountPaid: invoice.order.amountPaid } });
+        await tx.salesOrder.update({
+          where: { id: invoice.order.id },
+          data: { amountPaid: invoice.order.amountPaid },
+        });
         await tx.auditLog.create({
           data: {
             actorId,

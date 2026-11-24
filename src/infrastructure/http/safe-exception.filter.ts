@@ -33,9 +33,11 @@ export class SafeExceptionFilter extends BaseExceptionFilter {
         429: 'Trop de requêtes. Réessayez ultérieurement.',
       };
       const translate = (message: string): string => {
-        if (/^Unexpected field$/i.test(message)) return 'Champ de téléversement invalide : utilisez le champ « file ».';
+        if (/^Unexpected field$/i.test(message))
+          return 'Champ de téléversement invalide : utilisez le champ « file ».';
         if (/^File too large$/i.test(message)) return 'Le fichier dépasse la taille maximale autorisée.';
-        if (/^Validation failed \(boolean string is expected\)/i.test(message)) return 'Valeur booléenne attendue : true (oui) ou false (non).';
+        if (/^Validation failed \(boolean string is expected\)/i.test(message))
+          return 'Valeur booléenne attendue : true (oui) ou false (non).';
         if (/^Validation failed \(uuid is expected\)/i.test(message))
           return 'Identifiant invalide : un UUID est attendu.';
         if (/^Validation failed \(numeric string is expected\)/i.test(message))

@@ -15,7 +15,11 @@ class ProcurementQueryDto extends PageQueryDto {
 }
 function criteria(query: ProcurementQueryDto) {
   const { active, outstanding, ...rest } = query;
-  return { ...rest, active: active === undefined ? undefined : active === 'true', outstanding: outstanding === undefined ? undefined : outstanding === 'true' };
+  return {
+    ...rest,
+    active: active === undefined ? undefined : active === 'true',
+    outstanding: outstanding === undefined ? undefined : outstanding === 'true',
+  };
 }
 
 @ApiTags('Recherche approvisionnement')

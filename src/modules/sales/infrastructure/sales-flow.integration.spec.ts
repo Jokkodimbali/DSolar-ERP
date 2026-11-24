@@ -106,8 +106,12 @@ integration('Parcours commercial réel PostgreSQL', () => {
       ).rejects.toBeInstanceOf(ConflictException);
       const line = await prisma.invoiceLine.findFirstOrThrow({ where: { invoiceId: invoice.id } });
       const credits = new PrismaCreditNotesRepository(prisma);
-      await credits.issue(invoice.id, actor.id, '11.80', 'Correction tarifaire CI', [{ invoiceLineId: line.id, netAmount: '10.00' }]);
-      await expect(payments.record(order.id, actor.id, { ...first, amount: '124.20', idempotencyKey: randomUUID() })).rejects.toBeInstanceOf(ConflictException);
+      await credits.issue(invoice.id, actor.id, '11.80', 'Correction tarifaire CI', [
+        { invoiceLineId: line.id, netAmount: '10.00' },
+      ]);
+      await expect(
+        payments.record(order.id, actor.id, { ...first, amount: '124.20', idempotencyKey: randomUUID() }),
+      ).rejects.toBeInstanceOf(ConflictException);
       await payments.record(order.id, actor.id, { ...first, amount: '112.40', idempotencyKey: randomUUID() });
       expect(await payments.summary(order.id, actor.id)).toMatchObject({
         paid: '212.40',

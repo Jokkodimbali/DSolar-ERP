@@ -69,8 +69,14 @@ describe('PrismaCreditNotesRepository', () => {
   });
 
   it('refuse un avoir qui dépasserait le solde après un règlement non affecté', async () => {
-    tx.invoice.findUnique.mockResolvedValue({ ...invoice, order: { ...invoice.order, amountPaid: decimal('90') }, allocations: [] });
-    await expect(repository.issue(invoiceId, actorId, '10.01', 'Correction de prix')).rejects.toThrow(ConflictException);
+    tx.invoice.findUnique.mockResolvedValue({
+      ...invoice,
+      order: { ...invoice.order, amountPaid: decimal('90') },
+      allocations: [],
+    });
+    await expect(repository.issue(invoiceId, actorId, '10.01', 'Correction de prix')).rejects.toThrow(
+      ConflictException,
+    );
     expect(tx.creditNote.create).not.toHaveBeenCalled();
   });
   it('exige une ventilation pour un avoir partiel taxable', async () => {

@@ -1,7 +1,10 @@
 import { preparePdfImage } from './pdf-image';
 
 describe('Intégrité des images téléversées', () => {
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg==', 'base64');
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg==',
+    'base64',
+  );
   it('décode un PNG valide et conserve ses dimensions', () => {
     expect(preparePdfImage(png, 'image/png')).toMatchObject({ width: 1, height: 1 });
   });

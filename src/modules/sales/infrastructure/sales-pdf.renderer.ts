@@ -33,7 +33,14 @@ const METHODS: Record<string, string> = {
 };
 
 function date(value: Date | null, timeZone = 'Africa/Dakar'): string {
-  return value ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone }).format(value) : 'Non émis';
+  return value
+    ? new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone,
+      }).format(value)
+    : 'Non émis';
 }
 
 function numberFr(value: string): string {
@@ -67,7 +74,12 @@ function detail(document: SalesDocument): string[] {
         '',
         'MONTANT ENREGISTRÉ : ' + numberFr(document.amount) + ' FCFA',
         ...document.reversals.map(
-          (row) => 'Contrepassation du ' + date(row.createdAt, document.company?.timeZone) + ' : ' + numberFr(row.amount) + ' FCFA',
+          (row) =>
+            'Contrepassation du ' +
+            date(row.createdAt, document.company?.timeZone) +
+            ' : ' +
+            numberFr(row.amount) +
+            ' FCFA',
         ),
         ...(document.reversals.length ? ['Ce justificatif ne prouve plus un encaissement actif.'] : []),
         '',
@@ -75,7 +87,9 @@ function detail(document: SalesDocument): string[] {
       ];
     default:
       return [
-        ...(document.expiresAt ? ['Expiration : ' + date(document.expiresAt, document.company?.timeZone)] : []),
+        ...(document.expiresAt
+          ? ['Expiration : ' + date(document.expiresAt, document.company?.timeZone)]
+          : []),
         '',
         'DÉTAIL DES PRODUITS (FCFA / XOF)',
         ...document.lines.flatMap((line, index) => [

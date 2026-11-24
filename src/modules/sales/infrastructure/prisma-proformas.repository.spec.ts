@@ -91,15 +91,29 @@ describe('PrismaProformasRepository status transitions', () => {
 
   it('refuse une expiration anticipée ou sans échéance', async () => {
     for (const expiresAt of [null, new Date('2999-01-01')]) {
-      tx.proforma.findUnique.mockResolvedValue({ id, status: DocumentStatus.ISSUED, expiresAt, lines: [{ storeId }] });
-      await expect(repository.transition(id, 'ISSUED', 'EXPIRED', actorId)).rejects.toThrow(ConflictException);
+      tx.proforma.findUnique.mockResolvedValue({
+        id,
+        status: DocumentStatus.ISSUED,
+        expiresAt,
+        lines: [{ storeId }],
+      });
+      await expect(repository.transition(id, 'ISSUED', 'EXPIRED', actorId)).rejects.toThrow(
+        ConflictException,
+      );
     }
     expect(tx.proforma.update).not.toHaveBeenCalled();
   });
   it('journalise une expiration arrivée à échéance', async () => {
-    tx.proforma.findUnique.mockResolvedValue({ id, status: DocumentStatus.ISSUED, expiresAt: new Date('2020-01-01'), lines: [{ storeId }] });
+    tx.proforma.findUnique.mockResolvedValue({
+      id,
+      status: DocumentStatus.ISSUED,
+      expiresAt: new Date('2020-01-01'),
+      lines: [{ storeId }],
+    });
     await repository.transition(id, 'ISSUED', 'EXPIRED', actorId);
-    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({ action: 'PROFORMA_EXPIRED' }) });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: 'PROFORMA_EXPIRED' }),
+    });
   });
   it('journalise l’acceptation et le statut précédent', async () => {
     tx.proforma.findUnique.mockResolvedValue({

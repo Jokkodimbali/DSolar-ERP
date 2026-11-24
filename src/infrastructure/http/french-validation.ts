@@ -28,15 +28,40 @@ const labels: Record<string, string> = {
   read: 'état de lecture',
   expectedRevision: 'version attendue',
   lowStockThreshold: 'seuil de stock',
-  fullName: 'nom complet', taxId: 'NINEA', registrationNumber: 'RCCM', legalForm: 'forme juridique',
-  address: 'adresse', website: 'site web', logoUrl: 'logo', bankName: 'banque', bankAccount: 'compte bancaire',
-  documentFooter: 'pied de page', timeZone: 'fuseau horaire', notificationsEnabled: 'activation des notifications',
-  invoiceId: 'facture', periodId: 'période comptable', categoryId: 'catégorie', brandId: 'marque',
-  taxRegimeId: 'régime fiscal', reason: 'motif', unitCost: 'coût unitaire', method: 'mode de paiement',
-  externalReference: 'référence externe', idempotencyKey: 'clé de déduplication', operationKey: 'clé d’opération',
-  expiresAt: 'date d’expiration', from: 'date de début', to: 'date de fin', originId: 'magasin source',
-  destinationId: 'magasin destination', received: 'quantité reçue', damaged: 'quantité endommagée',
-  missing: 'quantité manquante', registerId: 'caisse', sessionId: 'session de caisse', statementId: 'relevé bancaire',
+  fullName: 'nom complet',
+  taxId: 'NINEA',
+  registrationNumber: 'RCCM',
+  legalForm: 'forme juridique',
+  address: 'adresse',
+  website: 'site web',
+  logoUrl: 'logo',
+  bankName: 'banque',
+  bankAccount: 'compte bancaire',
+  documentFooter: 'pied de page',
+  timeZone: 'fuseau horaire',
+  notificationsEnabled: 'activation des notifications',
+  invoiceId: 'facture',
+  periodId: 'période comptable',
+  categoryId: 'catégorie',
+  brandId: 'marque',
+  taxRegimeId: 'régime fiscal',
+  reason: 'motif',
+  unitCost: 'coût unitaire',
+  method: 'mode de paiement',
+  externalReference: 'référence externe',
+  idempotencyKey: 'clé de déduplication',
+  operationKey: 'clé d’opération',
+  expiresAt: 'date d’expiration',
+  from: 'date de début',
+  to: 'date de fin',
+  originId: 'magasin source',
+  destinationId: 'magasin destination',
+  received: 'quantité reçue',
+  damaged: 'quantité endommagée',
+  missing: 'quantité manquante',
+  registerId: 'caisse',
+  sessionId: 'session de caisse',
+  statementId: 'relevé bancaire',
 };
 
 const messages: Record<string, string> = {
@@ -70,7 +95,8 @@ const messages: Record<string, string> = {
 };
 
 function constraintMessage(key: string, raw: string): string {
-  if (key === 'isIn' && /following values: true, false$/.test(raw)) return 'doit valoir true (oui) ou false (non).';
+  if (key === 'isIn' && /following values: true, false$/.test(raw))
+    return 'doit valoir true (oui) ou false (non).';
   const number = raw.match(
     /(?:at most|at least|less than|greater than|equal to|than|to|longer than|shorter than|more than)\s+(-?\d+(?:\.\d+)?)/i,
   )?.[1];
