@@ -40,7 +40,11 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
   private async load(tx: Prisma.TransactionClient, id: string) {
     const result = await tx.supplierReturn.findUnique({
       where: { id },
-      include: { lines: { include: { receiptLine: true, serials: { include: { serial: true } } } }, receipt: true, credit: true },
+      include: {
+        lines: { include: { receiptLine: true, serials: { include: { serial: true } } } },
+        receipt: true,
+        credit: true,
+      },
     });
     if (!result) throw new NotFoundException('Retour introuvable.');
     return result;
@@ -88,11 +92,17 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         throw new ConflictException('Stock physique disponible insuffisant.');
       const created = await tx.serialNumber.createMany({
         data: serials.map((serial) => ({
-          serial, receiptLineId, productId: line.productId, currentStoreId: line.receipt.storeId,
+          serial,
+          receiptLineId,
+          productId: line.productId,
+          currentStoreId: line.receipt.storeId,
         })),
       });
       await this.audit(tx, actor, 'RECEIPT_SERIALS_REGISTERED', receiptLineId, line.receipt.storeId);
-      return { count: created.count, serials: await tx.serialNumber.findMany({ where: { serial: { in: serials } } }) };
+      return {
+        count: created.count,
+        serials: await tx.serialNumber.findMany({ where: { serial: { in: serials } } }),
+      };
     });
   }
 
@@ -118,7 +128,9 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
           input.lines.some(
             (line) =>
               !existing.lines.some(
-                (old) => old.receiptLineId === line.receiptLineId && old.quantity.eq(line.quantity) &&
+                (old) =>
+                  old.receiptLineId === line.receiptLineId &&
+                  old.quantity.eq(line.quantity) &&
                   old.serials.length === (line.serialIds?.length ?? 0) &&
                   old.serials.every((serial) => line.serialIds?.includes(serial.serialId)),
               ),
@@ -138,27 +150,40 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         receipt.store.status !== 'ACTIVE'
       )
         throw new ConflictException('Réception confirmée avec commande et magasin actif requise.');
-      const lines = await Promise.all(input.lines.map(async (line) => {
-        const original = receipt.lines.find((item) => item.id === line.receiptLineId);
-        const quantity = new Prisma.Decimal(line.quantity);
-        if (!original || quantity.gt(original.quantity))
-          throw new ConflictException('Quantité supérieure à la réception ou ligne inconnue.');
-        const total = quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-        const serialIds = line.serialIds ?? [];
-        if (new Set(serialIds).size !== serialIds.length || serialIds.length > 100)
-          throw new ConflictException('Numéros de série en double ou trop nombreux.');
-        if (serialIds.length) {
-          if (!quantity.eq(serialIds.length))
-            throw new ConflictException('La quantité doit correspondre aux numéros de série.');
-          const count = await tx.serialNumber.count({
-            where: { id: { in: serialIds }, receiptLineId: original.id, productId: original.productId,
-              currentStoreId: receipt.storeId, status: 'AVAILABLE' },
-          });
-          if (count !== serialIds.length) throw new ConflictException('Numéros de série non disponibles ou hors réception.');
-        }
-        return { receiptLineId: original.id, quantity, unitCost: original.unitCost, total,
-          serials: { create: serialIds.map((serialId) => ({ serialId })) } };
-      }));
+      const lines = await Promise.all(
+        input.lines.map(async (line) => {
+          const original = receipt.lines.find((item) => item.id === line.receiptLineId);
+          const quantity = new Prisma.Decimal(line.quantity);
+          if (!original || quantity.gt(original.quantity))
+            throw new ConflictException('Quantité supérieure à la réception ou ligne inconnue.');
+          const total = quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+          const serialIds = line.serialIds ?? [];
+          if (new Set(serialIds).size !== serialIds.length || serialIds.length > 100)
+            throw new ConflictException('Numéros de série en double ou trop nombreux.');
+          if (serialIds.length) {
+            if (!quantity.eq(serialIds.length))
+              throw new ConflictException('La quantité doit correspondre aux numéros de série.');
+            const count = await tx.serialNumber.count({
+              where: {
+                id: { in: serialIds },
+                receiptLineId: original.id,
+                productId: original.productId,
+                currentStoreId: receipt.storeId,
+                status: 'AVAILABLE',
+              },
+            });
+            if (count !== serialIds.length)
+              throw new ConflictException('Numéros de série non disponibles ou hors réception.');
+          }
+          return {
+            receiptLineId: original.id,
+            quantity,
+            unitCost: original.unitCost,
+            total,
+            serials: { create: serialIds.map((serialId) => ({ serialId })) },
+          };
+        }),
+      );
       const total = lines.reduce((sum, line) => sum.plus(line.total), new Prisma.Decimal(0));
       if (total.gt('9999999999999999.99')) throw new ConflictException('Montant hors limite.');
       const result = await tx.supplierReturn.create({
@@ -203,8 +228,13 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
           if (!ids.length || !line.quantity.eq(ids.length))
             throw new ConflictException('Produit sérialisé : numéros de série obligatoires.');
           const changedSerials = await tx.serialNumber.updateMany({
-            where: { id: { in: ids }, productId: original.productId, receiptLineId: original.id,
-              currentStoreId: store.id, status: 'AVAILABLE' },
+            where: {
+              id: { in: ids },
+              productId: original.productId,
+              receiptLineId: original.id,
+              currentStoreId: store.id,
+              status: 'AVAILABLE',
+            },
             data: { status: 'RETURNED_TO_SUPPLIER', currentStoreId: null },
           });
           if (changedSerials.count !== ids.length)

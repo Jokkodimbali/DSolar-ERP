@@ -86,20 +86,37 @@ integration('Retours fournisseurs PostgreSQL', () => {
         data: { sku: suffix + '-S', name: 'Équipement CI' },
       });
       const serializedOrder = await prisma.purchaseOrder.create({
-        data: { number: suffix + '-S', supplierId: supplier.id, status: 'CONFIRMED',
-          lines: { create: [{ productId: serializedProduct.id, quantity: 2, unitCost: 500 }] } },
+        data: {
+          number: suffix + '-S',
+          supplierId: supplier.id,
+          status: 'CONFIRMED',
+          lines: { create: [{ productId: serializedProduct.id, quantity: 2, unitCost: 500 }] },
+        },
       });
-      const serializedReceipt = await receipts.create({
-        number: suffix + '-S', storeId: store.id, purchaseOrderId: serializedOrder.id,
-        lines: [{ productId: serializedProduct.id, quantity: 2, unitCost: 500 }],
-      }, admin.id);
+      const serializedReceipt = await receipts.create(
+        {
+          number: suffix + '-S',
+          storeId: store.id,
+          purchaseOrderId: serializedOrder.id,
+          lines: [{ productId: serializedProduct.id, quantity: 2, unitCost: 500 }],
+        },
+        admin.id,
+      );
       await receipts.confirm(serializedReceipt.id, admin.id);
       const receiptLineId = serializedReceipt.lines[0].id;
-      const registration = await repo.registerSerials(receiptLineId, [suffix + '-01', suffix + '-02'], admin.id);
+      const registration = await repo.registerSerials(
+        receiptLineId,
+        [suffix + '-01', suffix + '-02'],
+        admin.id,
+      );
       expect(registration.count).toBe(2);
       const serialId = registration.serials[0].id;
-      const serialInput = { receiptId: serializedReceipt.id, reason: 'Équipement défectueux',
-        operationKey: randomUUID(), lines: [{ receiptLineId, quantity: '1', serialIds: [serialId] }] };
+      const serialInput = {
+        receiptId: serializedReceipt.id,
+        reason: 'Équipement défectueux',
+        operationKey: randomUUID(),
+        lines: [{ receiptLineId, quantity: '1', serialIds: [serialId] }],
+      };
       const serialDraft = await repo.create(serialInput, admin.id);
       const duplicateDraft = await repo.create({ ...serialInput, operationKey: randomUUID() }, admin.id);
       await repo.confirm(serialDraft.id, admin.id);
