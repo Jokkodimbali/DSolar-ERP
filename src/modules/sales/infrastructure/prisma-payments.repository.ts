@@ -30,16 +30,21 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
   }
 
   async list(orderId: string, actorId: string) {
-    const order = await this.prisma.salesOrder.findUnique({
-      where: { id: orderId },
-      select: { lines: { select: { storeId: true } } },
-    });
-    if (!order) throw new NotFoundException('Commande introuvable.');
-    await this.assertStoreAccess(this.prisma, [...new Set(order.lines.map((line) => line.storeId))], actorId);
-    return this.prisma.payment.findMany({
-      where: { orderId },
-      orderBy: { installmentNumber: 'asc' },
-    });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          select: { lines: { select: { storeId: true } } },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        await this.assertStoreAccess(tx, [...new Set(order.lines.map((line) => line.storeId))], actorId);
+        return tx.payment.findMany({
+          where: { orderId },
+          orderBy: { installmentNumber: 'asc' },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async record(orderId: string, actorId: string, input: RecordPaymentInput) {
@@ -54,11 +59,11 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
+        const stores = [...new Set(order.lines.map((line) => line.storeId))];
+        await this.assertStoreAccess(tx, stores, actorId);
         if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.status)) {
           throw new ConflictException('La commande doit être confirmée.');
         }
-        const stores = [...new Set(order.lines.map((line) => line.storeId))];
-        await this.assertStoreAccess(tx, stores, actorId);
         const amount = new Prisma.Decimal(input.amount);
         if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
           throw new ConflictException('Montant invalide.');
