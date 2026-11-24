@@ -271,6 +271,9 @@ model SerialNumber {
   id String @id @default(uuid()) @db.Uuid
   productId String @db.Uuid
   product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
+  receiptLineId String? @db.Uuid
+  receiptLine GoodsReceiptLine? @relation(fields: [receiptLineId], references: [id], onDelete: Restrict)
+  returnSelections SupplierReturnSerial[]
   serial String @unique
   currentStoreId String? @db.Uuid
   status String @default("AVAILABLE")
@@ -393,6 +396,7 @@ model GoodsReceiptLine {
   quantity Decimal @db.Decimal(18,3)
   unitCost Decimal @db.Decimal(18,2)
   returnLines SupplierReturnLine[]
+  serialNumbers SerialNumber[]
 }
 
 // Ventes : clients, devis proforma, commandes et livraisons
@@ -719,6 +723,7 @@ model SupplierReturnLine {
   quantity Decimal @db.Decimal(18,3)
   unitCost Decimal @db.Decimal(18,2)
   total Decimal @db.Decimal(18,2)
+  serials SupplierReturnSerial[]
   @@unique([returnId, receiptLineId])
   @@index([receiptLineId])
 }
@@ -733,4 +738,13 @@ model SupplierReturnCredit {
   recordedBy String @db.Uuid
   recordedAt DateTime @default(now())
   @@unique([supplierId, reference])
+}
+
+model SupplierReturnSerial {
+  returnLineId String @db.Uuid
+  serialId String @db.Uuid
+  returnLine SupplierReturnLine @relation(fields: [returnLineId], references: [id], onDelete: Restrict)
+  serial SerialNumber @relation(fields: [serialId], references: [id], onDelete: Restrict)
+  @@id([returnLineId, serialId])
+  @@index([serialId])
 }

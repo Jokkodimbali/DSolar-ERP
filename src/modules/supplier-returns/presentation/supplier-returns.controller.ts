@@ -5,6 +5,8 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsOptional,
+  ArrayUnique,
   IsString,
   IsUUID,
   MaxLength,
@@ -20,6 +22,12 @@ class ReturnLineDto {
   @IsString()
   @MaxLength(19)
   quantity!: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsUUID(undefined, { each: true })
+  serialIds?: string[];
 }
 
 class ReturnDto {
@@ -36,6 +44,16 @@ class ReturnDto {
   @ValidateNested({ each: true })
   @Type(() => ReturnLineDto)
   lines!: ReturnLineDto[];
+}
+
+class RegisterSerialsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @MaxLength(150, { each: true })
+  serials!: string[];
 }
 
 class ReasonDto {
@@ -76,6 +94,16 @@ export class SupplierReturnsController {
   @RequirePermissions('inventory.manage')
   create(@Body() dto: ReturnDto, @CurrentUserId() actor: string) {
     return this.service.create(dto, actor);
+  }
+
+  @Post('receipt-lines/:id/serials')
+  @RequirePermissions('inventory.manage')
+  registerSerials(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RegisterSerialsDto,
+    @CurrentUserId() actor: string,
+  ) {
+    return this.service.registerSerials(id, dto.serials, actor);
   }
 
   @Post(':id/confirm')

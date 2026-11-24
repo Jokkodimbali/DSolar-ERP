@@ -81,6 +81,36 @@ integration('Retours fournisseurs PostgreSQL', () => {
       await expect(repo.confirm(second.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
       expect((await repo.cancel(second.id, 'Annulation', admin.id)).status).toBe('CANCELLED');
       await expect(repo.cancel(draft.id, 'Annulation', admin.id)).rejects.toBeInstanceOf(ConflictException);
+
+      const serializedProduct = await prisma.product.create({
+        data: { sku: suffix + '-S', name: 'Équipement CI' },
+      });
+      const serializedOrder = await prisma.purchaseOrder.create({
+        data: { number: suffix + '-S', supplierId: supplier.id, status: 'CONFIRMED',
+          lines: { create: [{ productId: serializedProduct.id, quantity: 2, unitCost: 500 }] } },
+      });
+      const serializedReceipt = await receipts.create({
+        number: suffix + '-S', storeId: store.id, purchaseOrderId: serializedOrder.id,
+        lines: [{ productId: serializedProduct.id, quantity: 2, unitCost: 500 }],
+      }, admin.id);
+      await receipts.confirm(serializedReceipt.id, admin.id);
+      const receiptLineId = serializedReceipt.lines[0].id;
+      const registration = await repo.registerSerials(receiptLineId, [suffix + '-01', suffix + '-02'], admin.id);
+      expect(registration.count).toBe(2);
+      const serialId = registration.serials[0].id;
+      const serialInput = { receiptId: serializedReceipt.id, reason: 'Équipement défectueux',
+        operationKey: randomUUID(), lines: [{ receiptLineId, quantity: '1', serialIds: [serialId] }] };
+      const serialDraft = await repo.create(serialInput, admin.id);
+      const duplicateDraft = await repo.create({ ...serialInput, operationKey: randomUUID() }, admin.id);
+      await repo.confirm(serialDraft.id, admin.id);
+      await expect(repo.confirm(duplicateDraft.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
+      const serial = await prisma.serialNumber.findUniqueOrThrow({ where: { id: serialId } });
+      expect(serial.status).toBe('RETURNED_TO_SUPPLIER');
+      expect(serial.currentStoreId).toBeNull();
+      const serialStock = await prisma.storeStock.findUniqueOrThrow({
+        where: { storeId_productId: { storeId: store.id, productId: serializedProduct.id } },
+      });
+      expect(serialStock.quantity.toString()).toBe('1');
     } finally {
       await prisma.$disconnect();
     }

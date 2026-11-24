@@ -12,6 +12,15 @@ export class SupplierReturnsService {
     return value.trim();
   }
 
+  registerSerials(receiptLineId: string, serials: string[], actor: string) {
+    if (!Array.isArray(serials) || !serials.length || serials.length > 100)
+      throw new BadRequestException('Numéros de série invalides.');
+    const normalized = serials.map((serial) => this.text(serial, 150));
+    if (new Set(normalized).size !== normalized.length)
+      throw new BadRequestException('Numéros de série en double.');
+    return this.repository.registerSerials(receiptLineId, normalized, actor);
+  }
+
   create(input: ReturnInput, actor: string) {
     if (
       !input.lines.length ||
