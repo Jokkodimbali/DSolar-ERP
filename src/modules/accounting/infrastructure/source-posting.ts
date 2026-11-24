@@ -108,9 +108,12 @@ export async function buildSourcePosting(
           const classified = await tx.ledgerAccountClassification.findMany({
             where: { accountId: { in: candidates.map((line) => line.accountId) }, category: 'REVENUE' },
           });
-          if (classified.length === 1) revenue = candidates.find((line) => line.accountId === classified[0].accountId);
+          if (classified.length === 1)
+            revenue = candidates.find((line) => line.accountId === classified[0].accountId);
         }
-        const tax = credits.find((line) => line.accountId !== revenue?.accountId && line.credit.eq(item.invoice.totalTax));
+        const tax = credits.find(
+          (line) => line.accountId !== revenue?.accountId && line.credit.eq(item.invoice.totalTax),
+        );
         if ((item.netAmount.gt(0) && !revenue) || (item.taxAmount.gt(0) && !tax))
           throw new ConflictException('Imputation fiscale historique ambiguë.');
         lines = [];
@@ -121,10 +124,20 @@ export async function buildSourcePosting(
         for (const line of lines) {
           const originalCredit = credits.find((credit) => credit.accountId === line.accountId);
           const previous = await tx.ledgerLine.aggregate({
-            where: { accountId: line.accountId, entry: { sourceType: 'CREDIT_NOTE',
-              sourceId: { in: related.map((row) => row.id) }, postedAt: { not: null } } }, _sum: { debit: true },
+            where: {
+              accountId: line.accountId,
+              entry: {
+                sourceType: 'CREDIT_NOTE',
+                sourceId: { in: related.map((row) => row.id) },
+                postedAt: { not: null },
+              },
+            },
+            _sum: { debit: true },
           });
-          if (!originalCredit || (previous._sum.debit ?? new Prisma.Decimal(0)).plus(line.debit).gt(originalCredit.credit))
+          if (
+            !originalCredit ||
+            (previous._sum.debit ?? new Prisma.Decimal(0)).plus(line.debit).gt(originalCredit.credit)
+          )
             throw new ConflictException('Avoir fiscal cumulé supérieur au montant original.');
         }
       } else {

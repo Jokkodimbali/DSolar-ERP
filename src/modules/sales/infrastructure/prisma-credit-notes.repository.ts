@@ -32,8 +32,15 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
     });
   }
 
-  async issue(invoiceId: string, actorId: string, amountText: string, reason: string, lines?: CreditAllocation[]) {
-    if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(amountText)) throw new ConflictException('Montant de l’avoir invalide.');
+  async issue(
+    invoiceId: string,
+    actorId: string,
+    amountText: string,
+    reason: string,
+    lines?: CreditAllocation[],
+  ) {
+    if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(amountText))
+      throw new ConflictException('Montant de l’avoir invalide.');
     const amount = new Prisma.Decimal(amountText);
     const normalizedReason = reason.trim();
     if (!amount.isFinite() || !amount.greaterThan(0) || amount.decimalPlaces() > 2) {
@@ -88,12 +95,26 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           if (invoice.creditNotes.some((note) => !note.lines.length))
             throw new ConflictException('Avoir historique sans détail : régularisation préalable requise.');
           try {
-            detail = allocateCredit(invoice.lines.map((line) => {
-              const prior = invoice.creditNotes.flatMap((note) => note.lines).filter((item) => item.invoiceLineId === line.id);
-              return { id: line.id, total: line.lineTotal.toFixed(2), tax: line.taxAmount.toFixed(2),
-                priorNet: prior.reduce((sum, item) => sum.plus(item.netAmount), new Prisma.Decimal(0)).toFixed(2),
-                priorTax: prior.reduce((sum, item) => sum.plus(item.taxAmount), new Prisma.Decimal(0)).toFixed(2) };
-            }), lines, amount.toFixed(2));
+            detail = allocateCredit(
+              invoice.lines.map((line) => {
+                const prior = invoice.creditNotes
+                  .flatMap((note) => note.lines)
+                  .filter((item) => item.invoiceLineId === line.id);
+                return {
+                  id: line.id,
+                  total: line.lineTotal.toFixed(2),
+                  tax: line.taxAmount.toFixed(2),
+                  priorNet: prior
+                    .reduce((sum, item) => sum.plus(item.netAmount), new Prisma.Decimal(0))
+                    .toFixed(2),
+                  priorTax: prior
+                    .reduce((sum, item) => sum.plus(item.taxAmount), new Prisma.Decimal(0))
+                    .toFixed(2),
+                };
+              }),
+              lines,
+              amount.toFixed(2),
+            );
           } catch (error) {
             throw new ConflictException(error instanceof Error ? error.message : 'Ventilation invalide.');
           }
@@ -107,7 +128,9 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
             amount,
             reason: normalizedReason,
             issuedAt: new Date(),
-            ...(detail ? { netAmount: detail.netAmount, taxAmount: detail.taxAmount, lines: { create: detail.lines } } : {}),
+            ...(detail
+              ? { netAmount: detail.netAmount, taxAmount: detail.taxAmount, lines: { create: detail.lines } }
+              : {}),
           },
           include: { lines: true },
         });

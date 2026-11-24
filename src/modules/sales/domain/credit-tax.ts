@@ -22,8 +22,11 @@ function money(value: bigint): string {
 }
 
 export function allocateCredit(lines: HistoricalLine[], allocations: CreditAllocation[], amount: string) {
-  if (!allocations.length || allocations.length > 100 ||
-    new Set(allocations.map((line) => line.invoiceLineId)).size !== allocations.length)
+  if (
+    !allocations.length ||
+    allocations.length > 100 ||
+    new Set(allocations.map((line) => line.invoiceLineId)).size !== allocations.length
+  )
     throw new Error('Ventilation des lignes invalide.');
   let totalNet = 0n;
   let totalTax = 0n;
@@ -44,8 +47,13 @@ export function allocateCredit(lines: HistoricalLine[], allocations: CreditAlloc
     if (currentTax < 0n || cumulativeTax > tax) throw new Error('Ventilation historique incohérente.');
     totalNet += requested;
     totalTax += currentTax;
-    return { invoiceLineId: allocation.invoiceLineId, netAmount: money(requested), taxAmount: money(currentTax) };
+    return {
+      invoiceLineId: allocation.invoiceLineId,
+      netAmount: money(requested),
+      taxAmount: money(currentTax),
+    };
   });
-  if (totalNet + totalTax !== cents(amount)) throw new Error('Montant TTC différent de la ventilation calculée.');
+  if (totalNet + totalTax !== cents(amount))
+    throw new Error('Montant TTC différent de la ventilation calculée.');
   return { netAmount: money(totalNet), taxAmount: money(totalTax), lines: detail };
 }

@@ -69,18 +69,32 @@ describe('PrismaCreditNotesRepository', () => {
 
   it('exige une ventilation pour un avoir partiel taxable', async () => {
     tx.invoice.findUnique.mockResolvedValue({ ...invoice, totalTax: decimal('18.00') });
-    await expect(repository.issue(invoiceId, actorId, '10.00', 'Correction de prix')).rejects.toThrow(ConflictException);
+    await expect(repository.issue(invoiceId, actorId, '10.00', 'Correction de prix')).rejects.toThrow(
+      ConflictException,
+    );
     expect(tx.creditNote.create).not.toHaveBeenCalled();
   });
 
   it('enregistre les montants HT et TVA calculés sur la ligne originale', async () => {
-    tx.invoice.findUnique.mockResolvedValue({ ...invoice, totalTax: decimal('18.00'), creditNotes: [], allocations: [],
-      lines: [{ id: 'line-1', lineTotal: decimal('118'), taxAmount: decimal('18') }] });
-    await repository.issue(invoiceId, actorId, '59.00', 'Correction de prix', [{ invoiceLineId: 'line-1', netAmount: '50' }]);
-    expect(tx.creditNote.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ netAmount: '50.00', taxAmount: '9.00',
-        lines: { create: [{ invoiceLineId: 'line-1', netAmount: '50.00', taxAmount: '9.00' }] } }),
-    }));
+    tx.invoice.findUnique.mockResolvedValue({
+      ...invoice,
+      totalTax: decimal('18.00'),
+      creditNotes: [],
+      allocations: [],
+      lines: [{ id: 'line-1', lineTotal: decimal('118'), taxAmount: decimal('18') }],
+    });
+    await repository.issue(invoiceId, actorId, '59.00', 'Correction de prix', [
+      { invoiceLineId: 'line-1', netAmount: '50' },
+    ]);
+    expect(tx.creditNote.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          netAmount: '50.00',
+          taxAmount: '9.00',
+          lines: { create: [{ invoiceLineId: 'line-1', netAmount: '50.00', taxAmount: '9.00' }] },
+        }),
+      }),
+    );
   });
 
   it('refuse un montant négatif ou trop précis', async () => {

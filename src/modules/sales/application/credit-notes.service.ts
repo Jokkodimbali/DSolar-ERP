@@ -11,6 +11,8 @@ export class CreditNotesService {
   }
 
   issue(invoiceId: string, actorId: string, amount: string, reason: string, lines?: CreditAllocation[]) {
-    return lines ? this.creditNotes.issue(invoiceId, actorId, amount, reason, lines) : this.creditNotes.issue(invoiceId, actorId, amount, reason);
+    return lines
+      ? this.creditNotes.issue(invoiceId, actorId, amount, reason, lines)
+      : this.creditNotes.issue(invoiceId, actorId, amount, reason);
   }
 }

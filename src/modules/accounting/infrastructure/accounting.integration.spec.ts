@@ -185,23 +185,56 @@ integration('Comptabilité PostgreSQL', () => {
       expect(blocked.results.some((item) => item.id === partial.id && !!item.error)).toBe(true);
       // Remove the intentionally inconsistent test fixture, never a real issued credit.
       await prisma.creditNote.delete({ where: { id: partial.id } });
-      const product = await prisma.product.create({ data: { sku: 'FISC-' + suffix, name: 'Article fiscal CI' } });
+      const product = await prisma.product.create({
+        data: { sku: 'FISC-' + suffix, name: 'Article fiscal CI' },
+      });
       const detailedInvoice = await prisma.invoice.create({
-        data: { number: 'FAC-FISC-' + suffix, customerId: customer.id, totalHt: '100', totalTax: '18', totalTtc: '118',
-          lines: { create: [{ productId: product.id, quantity: '1', unitPrice: '100', taxRate: '18', taxAmount: '18', lineTotal: '118' }] } },
+        data: {
+          number: 'FAC-FISC-' + suffix,
+          customerId: customer.id,
+          totalHt: '100',
+          totalTax: '18',
+          totalTtc: '118',
+          lines: {
+            create: [
+              {
+                productId: product.id,
+                quantity: '1',
+                unitPrice: '100',
+                taxRate: '18',
+                taxAmount: '18',
+                lineTotal: '118',
+              },
+            ],
+          },
+        },
         include: { lines: true },
       });
-      await prisma.invoice.update({ where: { id: detailedInvoice.id }, data: { status: 'ISSUED', issuedAt: new Date('2090-01-05T12:00:00Z') } });
+      await prisma.invoice.update({
+        where: { id: detailedInvoice.id },
+        data: { status: 'ISSUED', issuedAt: new Date('2090-01-05T12:00:00Z') },
+      });
       await repo.postSource('INVOICE', detailedInvoice.id, admin.id);
       const detailedCredit = await prisma.creditNote.create({
-        data: { number: 'AV-FISC-' + suffix, invoiceId: detailedInvoice.id, amount: '59', netAmount: '50', taxAmount: '9',
-          reason: 'Correction fiscale CI', issuedAt: new Date('2090-01-05T13:00:00Z'),
-          lines: { create: [{ invoiceLineId: detailedInvoice.lines[0].id, netAmount: '50', taxAmount: '9' }] } },
+        data: {
+          number: 'AV-FISC-' + suffix,
+          invoiceId: detailedInvoice.id,
+          amount: '59',
+          netAmount: '50',
+          taxAmount: '9',
+          reason: 'Correction fiscale CI',
+          issuedAt: new Date('2090-01-05T13:00:00Z'),
+          lines: {
+            create: [{ invoiceLineId: detailedInvoice.lines[0].id, netAmount: '50', taxAmount: '9' }],
+          },
+        },
       });
       const fiscalEntry = await repo.postSource('CREDIT_NOTE', detailedCredit.id, admin.id);
       expect(fiscalEntry.lines.find((line) => line.accountId === tax.id)?.debit.toString()).toBe('9');
       expect(fiscalEntry.lines.find((line) => line.accountId === income.id)?.debit.toString()).toBe('50');
-      await expect(prisma.invoiceLine.update({ where: { id: detailedInvoice.lines[0].id }, data: { taxAmount: '1' } })).rejects.toThrow();
+      await expect(
+        prisma.invoiceLine.update({ where: { id: detailedInvoice.lines[0].id }, data: { taxAmount: '1' } }),
+      ).rejects.toThrow();
       const otherInvoice = await prisma.invoice.create({
         data: {
           number: 'FAC2-' + suffix,
