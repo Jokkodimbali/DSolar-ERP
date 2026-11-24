@@ -44,6 +44,20 @@ describe('JwtTokenService', () => {
     });
   });
 
+  it('refuse les jetons signés sans expiration et les refresh sans jti', async () => {
+    const jwt = new JwtService();
+    const noExpiry = await jwt.signAsync(
+      { sub: 'user-id', sid: 'session-id', ver: 0, typ: 'access' },
+      { secret: process.env.JWT_ACCESS_SECRET, algorithm: 'HS256' },
+    );
+    await expect(service.verifyAccess(noExpiry)).rejects.toThrow();
+    const noJti = await jwt.signAsync(
+      { sub: 'user-id', sid: 'session-id', typ: 'refresh' },
+      { secret: process.env.JWT_REFRESH_SECRET, algorithm: 'HS256', expiresIn: '7d' },
+    );
+    await expect(service.verifyRefresh(noJti)).rejects.toThrow();
+  });
+
   it('génère un jti différent si le caller ne le fournit pas', async () => {
     const claims = { sub: 'user-id', sid: 'session-id', typ: 'refresh' as const };
     const first = await service.verifyRefresh(await service.signRefresh(claims));

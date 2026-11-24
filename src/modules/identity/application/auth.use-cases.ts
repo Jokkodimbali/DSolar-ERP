@@ -20,6 +20,9 @@ export interface AuthResult {
 const unauthorized = () => new UnauthorizedException('Identifiants ou session invalides.');
 const sessionExpiry = (): Date => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
+// Argon2id with the same work factors as the password service. No account uses this hash.
+const dummyPasswordHash =
+  '$argon2id$v=19$m=65536,t=3,p=4$2V8CM4o5lLqmx/OEf3CpiA$AEcjUltqD0pv2TbEmqpIgCaVou+LMfHNaGz5DfnQNTU';
 
 @Injectable()
 export class AuthUseCases {
@@ -32,8 +35,9 @@ export class AuthUseCases {
 
   async login(email: string, password: string): Promise<AuthResult> {
     const user = await this.users.findByEmail(email.trim().toLowerCase());
-    if (!user || user.status !== 'ACTIVE' || !(await this.passwords.verify(user.passwordHash, password)))
-      throw unauthorized();
+    const active = user?.status === 'ACTIVE';
+    const matches = await this.passwords.verify(active && user ? user.passwordHash : dummyPasswordHash, password);
+    if (!user || !active || !matches) throw unauthorized();
     const sid = randomBytes(16).toString('hex');
     // Le refresh est signé avec l'identifiant de session créé en base.
     const expiry = sessionExpiry();

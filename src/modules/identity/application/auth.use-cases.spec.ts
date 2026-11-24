@@ -24,6 +24,8 @@ describe('AuthUseCases', () => {
   it('refuse un utilisateur inconnu', async () => {
     users.findByEmail.mockResolvedValue(null);
     await expect(useCases.login('inconnu@exemple.sn', 'motdepasse')).rejects.toThrow(UnauthorizedException);
+    expect(passwords.verify).toHaveBeenCalledWith(expect.stringMatching(/^\$argon2id\$/), 'motdepasse');
+    expect(sessions.create).not.toHaveBeenCalled();
   });
   it('refuse un compte désactivé', async () => {
     users.findByEmail.mockResolvedValue({
@@ -37,7 +39,14 @@ describe('AuthUseCases', () => {
       storeIds: [],
     });
     await expect(useCases.login('a@b.sn', 'secret')).rejects.toThrow(UnauthorizedException);
-    expect(passwords.verify).not.toHaveBeenCalled();
+    expect(passwords.verify).toHaveBeenCalledWith(expect.stringMatching(/^\$argon2id\$/), 'secret');
+    expect(sessions.create).not.toHaveBeenCalled();
+  });
+  it('ne crée jamais de session si le hash factice correspond', async () => {
+    users.findByEmail.mockResolvedValue(null);
+    passwords.verify.mockResolvedValue(true);
+    await expect(useCases.login('inconnu@exemple.sn', 'secret')).rejects.toThrow(UnauthorizedException);
+    expect(sessions.create).not.toHaveBeenCalled();
   });
   it('ne confirme pas une déconnexion lorsque la révocation en base échoue', async () => {
     tokens.verifyRefresh.mockResolvedValue({ sub: 'user-1', sid: 'session-1', typ: 'refresh' });

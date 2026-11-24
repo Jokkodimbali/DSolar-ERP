@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
 import { validatedJwtSecrets } from './jwt-configuration';
+import { validSessionClaims } from '../domain/session-claims';
 import { AccessClaims, PasswordService, RefreshClaims, TokenService } from '../application/ports';
 
 @Injectable()
@@ -40,13 +41,7 @@ export class JwtTokenService implements TokenService {
       secret: this.secret('JWT_ACCESS_SECRET'),
       algorithms: ['HS256'],
     });
-    if (
-      claims.typ !== 'access' ||
-      !claims.sub ||
-      !claims.sid ||
-      !Number.isInteger(claims.ver) ||
-      claims.ver < 0
-    )
+    if (!validSessionClaims(claims, 'access', Math.floor(Date.now() / 1000)))
       throw new UnauthorizedException('Jeton invalide.');
     return claims;
   }
@@ -55,7 +50,7 @@ export class JwtTokenService implements TokenService {
       secret: this.secret('JWT_REFRESH_SECRET'),
       algorithms: ['HS256'],
     });
-    if (claims.typ !== 'refresh' || !claims.sub || !claims.sid)
+    if (!validSessionClaims(claims, 'refresh', Math.floor(Date.now() / 1000)))
       throw new UnauthorizedException('Jeton invalide.');
     return claims;
   }
