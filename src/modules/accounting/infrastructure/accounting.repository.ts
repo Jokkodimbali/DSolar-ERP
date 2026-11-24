@@ -122,6 +122,9 @@ export class AccountingRepository implements AccountingPort {
       if (previous?.postedAt) {
         if (scope && previous.periodId !== scope.periodId)
           throw new ConflictException('Écriture rattachée à une autre période.');
+        await tx.ledgerAutomationFailure.deleteMany({
+          where: { periodId: previous.periodId, sourceType: type, sourceId: id },
+        });
         return previous;
       }
       if (previous) throw new ConflictException('Écriture source non validée.');
@@ -213,37 +216,59 @@ export class AccountingRepository implements AccountingPort {
     let processed = 0;
     let failed = 0;
     for (const item of candidates) {
-      const key = { periodId: item.periodId, sourceType: item.type, sourceId: item.id };
       try {
         await this.postSource(item.type, item.id, item.actorId, {
           periodId: item.periodId,
           revision: item.revision,
         });
-        await this.prisma.ledgerAutomationFailure.deleteMany({ where: key });
         processed++;
       } catch (error) {
         failed++;
-        const config = await this.prisma.ledgerAutomation.findUnique({ where: { periodId: item.periodId } });
-        if (!config?.enabled || config.revision !== item.revision) continue;
-        if (
-          await this.prisma.ledgerEntry.findUnique({
-            where: { sourceType_sourceId: { sourceType: item.type, sourceId: item.id } },
-          })
-        )
-          continue;
-        const lastError =
-          error instanceof HttpException && [404, 409].includes(error.getStatus())
-            ? error.message.slice(0, 500)
-            : 'Échec technique de la comptabilisation automatique.';
-        const nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000);
-        await this.prisma.ledgerAutomationFailure.upsert({
-          where: { periodId_sourceType_sourceId: key },
-          create: { ...key, lastError, nextAttemptAt },
-          update: { attempts: { increment: 1 }, lastError, nextAttemptAt },
-        });
+        await this.recordAutomationFailure(item, error);
       }
     }
     return { processed, failed };
+  }
+
+  private async recordAutomationFailure(
+    item: { periodId: string; actorId: string; revision: number; type: SourceType; id: string },
+    error: unknown,
+  ): Promise<void> {
+    const key = { periodId: item.periodId, sourceType: item.type, sourceId: item.id };
+    const lastError =
+      error instanceof HttpException && [404, 409].includes(error.getStatus())
+        ? error.message.slice(0, 500)
+        : 'Échec technique de la comptabilisation automatique.';
+    const nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // A successful posting, configuration change or period closure must not leave a stale failure.
+    // Retry serialization conflicts using a new snapshot, not the previous transaction.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.transaction(item.actorId, async (tx) => {
+          await tx.$queryRaw`SELECT "periodId" FROM "LedgerAutomation" WHERE "periodId" = ${item.periodId}::uuid FOR UPDATE`;
+          const config = await tx.ledgerAutomation.findUnique({ where: { periodId: item.periodId } });
+          if (!config?.enabled || config.revision !== item.revision || config.actorId !== item.actorId)
+            return;
+          const period = await tx.ledgerPeriod.findUnique({ where: { id: item.periodId } });
+          if (!period || period.closedAt) return;
+          const existing = await tx.ledgerEntry.findUnique({
+            where: { sourceType_sourceId: { sourceType: item.type, sourceId: item.id } },
+          });
+          if (existing?.postedAt) return;
+          await tx.ledgerAutomationFailure.upsert({
+            where: { periodId_sourceType_sourceId: key },
+            create: { ...key, lastError, nextAttemptAt },
+            update: { attempts: { increment: 1 }, lastError, nextAttemptAt },
+          });
+        });
+        return;
+      } catch (failure) {
+        if (failure instanceof ForbiddenException) return;
+        if (failure instanceof ConflictException && attempt < 2) continue;
+        throw failure;
+      }
+    }
   }
 
   pending(periodId: string, actor: string) {
