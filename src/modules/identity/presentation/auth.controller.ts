@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthUseCases } from '../application/auth.use-cases';
@@ -11,13 +12,13 @@ import { LoginDto, RefreshDto } from './dto/auth.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly useCases: AuthUseCases) {}
-  @Post('login') @PublicRoute() @UseGuards(LoginRateLimitGuard) login(@Body() dto: LoginDto) {
+  @Post('login') @PublicRoute() @UseGuards(LoginRateLimitGuard) @SuccessMessage('Connexion réussie.') login(@Body() dto: LoginDto) {
     return this.useCases.login(dto.email, dto.password);
   }
-  @Post('refresh') @PublicRoute() @UseGuards(LoginRateLimitGuard) refresh(@Body() dto: RefreshDto) {
+  @Post('refresh') @PublicRoute() @UseGuards(LoginRateLimitGuard) @SuccessMessage('Session renouvelée avec succès.') refresh(@Body() dto: RefreshDto) {
     return this.useCases.refresh(dto.refreshToken);
   }
-  @Post('logout') @PublicRoute() @UseGuards(LoginRateLimitGuard) logout(@Body() dto: RefreshDto) {
+  @Post('logout') @PublicRoute() @UseGuards(LoginRateLimitGuard) @SuccessMessage('Déconnexion effectuée.') logout(@Body() dto: RefreshDto) {
     return this.useCases.logout(dto.refreshToken);
   }
   @Get('me')

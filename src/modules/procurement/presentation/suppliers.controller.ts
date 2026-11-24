@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -31,26 +32,26 @@ export class SuppliersController {
   @Get(':id') @RequirePermissions('inventory.read') get(@Param('id', ParseUUIDPipe) id: string) {
     return this.suppliers.get(id);
   }
-  @Post() @RequirePermissions('inventory.manage') create(
+  @Post() @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur créé.') create(
     @Body() dto: SupplierDto,
     @CurrentUserId() actorId: string,
   ) {
     return this.suppliers.create(dto, actorId);
   }
-  @Patch(':id') @RequirePermissions('inventory.manage') update(
+  @Patch(':id') @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur mis à jour.') update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSupplierDto,
     @CurrentUserId() actorId: string,
   ) {
     return this.suppliers.update(id, dto, actorId);
   }
-  @Post(':id/activate') @RequirePermissions('inventory.manage') activate(
+  @Post(':id/activate') @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur activé.') activate(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() actorId: string,
   ) {
     return this.suppliers.activate(id, actorId);
   }
-  @Post(':id/deactivate') @RequirePermissions('inventory.manage') deactivate(
+  @Post(':id/deactivate') @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur désactivé.') deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() actorId: string,
   ) {

@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsString, Max, MaxLength, Min } from 'class-validator';
@@ -39,7 +40,7 @@ export class CompanySettingsController {
   }
 
   @Put()
-  save(@CurrentUserId() actorId: string, @Body() body: CompanySettingsDto) {
+  @SuccessMessage('Paramètres de l’entreprise enregistrés avec succès.') save(@CurrentUserId() actorId: string, @Body() body: CompanySettingsDto) {
     const { expectedRevision, ...input } = body;
     return this.service.save(actorId, expectedRevision, input);
   }

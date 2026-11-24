@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import {
   BadRequestException,
   Body,
@@ -45,21 +46,21 @@ export class ProductsController {
   @Get(':id') @RequirePermissions('products.read') get(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.products.get(id);
   }
-  @Post() @RequirePermissions('products.manage') create(@Body() dto: CreateProductDto) {
+  @Post() @RequirePermissions('products.manage') @SuccessMessage('Produit créé avec succès.') create(@Body() dto: CreateProductDto) {
     return this.products.create(dto);
   }
-  @Patch(':id') @RequirePermissions('products.manage') update(
+  @Patch(':id') @RequirePermissions('products.manage') @SuccessMessage('Produit mis à jour.') update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateProductDto,
   ) {
     return this.products.update(id, dto);
   }
-  @Patch(':id/activate') @RequirePermissions('products.manage') activate(
+  @Patch(':id/activate') @RequirePermissions('products.manage') @SuccessMessage('Produit activé.') activate(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.products.setActive(id, true);
   }
-  @Patch(':id/deactivate') @RequirePermissions('products.manage') deactivate(
+  @Patch(':id/deactivate') @RequirePermissions('products.manage') @SuccessMessage('Produit désactivé.') deactivate(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.products.setActive(id, false);

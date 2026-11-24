@@ -32,10 +32,23 @@ jobs:
           DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm run format:check
       - run: npm test
+        if: ${{ !cancelled() }}
       - run: npm run build
+        if: ${{ !cancelled() }}
       - run: node --test scripts/local-integration-database.test.cjs
+        if: ${{ !cancelled() }}
+      - name: Contrôler le formatage
+        id: format
+        if: ${{ !cancelled() }}
+        run: npm run format:check
+      - name: Préparer le correctif de formatage
+        if: ${{ !cancelled() && steps.format.outcome == 'failure' }}
+        run: |
+          npm run format
+          git diff --binary -- src '*.json' '*.md' > /tmp/dsolar-format.patch
+          node -e "const fs=require('node:fs'); const data=fs.readFileSync('/tmp/dsolar-format.patch').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('DSOLAR_FORMAT_PATCH:'+data.slice(i,i+8000));"
+
 
   dependency-security:
     runs-on: ubuntu-latest

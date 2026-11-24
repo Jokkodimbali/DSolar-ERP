@@ -1,10 +1,11 @@
 import 'reflect-metadata';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { HttpAdapterHost, NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configuredOrigins, securityHeaders, trustedProxyHops } from './infrastructure/http/http-security';
 import { frenchValidationErrors } from './infrastructure/http/french-validation';
+import { SuccessMessageInterceptor } from './infrastructure/http/success-message.interceptor';
 import { SafeExceptionFilter } from './infrastructure/http/safe-exception.filter';
 import { validatedJwtSecrets } from './modules/identity/infrastructure/jwt-configuration';
 
@@ -15,6 +16,7 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', trustedProxyHops(process.env.TRUST_PROXY_HOPS));
   app.use(securityHeaders);
   app.useGlobalFilters(new SafeExceptionFilter(app.get(HttpAdapterHost)));
+  app.useGlobalInterceptors(new SuccessMessageInterceptor(app.get(Reflector)));
   app.enableShutdownHooks();
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
@@ -27,7 +29,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
   const origins = configuredOrigins(process.env.CORS_ORIGINS);
-  app.enableCors({ origin: origins });
+  app.enableCors({ origin: origins, exposedHeaders: ['X-Success-Message'] });
   if (process.env.NODE_ENV === 'development' && process.env.ENABLE_SWAGGER === 'true') {
     const config = new DocumentBuilder()
       .setTitle('DSolar ERP — API')

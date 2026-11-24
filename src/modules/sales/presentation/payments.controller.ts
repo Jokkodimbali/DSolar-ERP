@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -28,7 +29,7 @@ export class PaymentsController {
 
   @Post()
   @RequirePermissions('sales.manage')
-  record(
+  @SuccessMessage('Règlement enregistré avec succès.') record(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @CurrentUserId() actorId: string,
     @Body() input: RecordPaymentDto,
@@ -37,7 +38,7 @@ export class PaymentsController {
   }
   @Post(':paymentId/reverse')
   @RequirePermissions('sales.manage')
-  reverse(
+  @SuccessMessage('Règlement contrepassé.') reverse(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @CurrentUserId() actorId: string,
@@ -47,7 +48,7 @@ export class PaymentsController {
   }
   @Post(':paymentId/allocations/:allocationId/cancel')
   @RequirePermissions('sales.manage')
-  cancelAllocation(
+  @SuccessMessage('Affectation du règlement annulée.') cancelAllocation(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @Param('allocationId', ParseUUIDPipe) allocationId: string,
@@ -58,7 +59,7 @@ export class PaymentsController {
   }
   @Post(':paymentId/allocations')
   @RequirePermissions('sales.manage')
-  allocate(
+  @SuccessMessage('Règlement affecté à la facture.') allocate(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @CurrentUserId() actorId: string,

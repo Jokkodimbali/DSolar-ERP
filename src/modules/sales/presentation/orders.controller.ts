@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -25,19 +26,19 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Commande annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.cancel(id, actorId);
   }
 
   @Post(':id/confirm')
   @RequirePermissions('sales.manage')
-  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Commande confirmée et stock réservé.') confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.confirm(id, actorId);
   }
 
   @Post('from-proforma/:id')
   @RequirePermissions('sales.manage')
-  convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Commande créée à partir de la proforma.') convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.convert(id, actorId);
   }
 }

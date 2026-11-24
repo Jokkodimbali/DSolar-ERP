@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
@@ -60,7 +61,7 @@ export class ExpensesController {
 
   @Post('categories')
   @RequirePermissions('sales.manage')
-  createCategory(@Body() dto: CategoryDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Catégorie de dépense créée.') createCategory(@Body() dto: CategoryDto, @CurrentUserId() actor: string) {
     return this.service.createCategory(dto.name, actor);
   }
 
@@ -84,31 +85,31 @@ export class ExpensesController {
 
   @Post()
   @RequirePermissions('sales.manage')
-  create(@Body() dto: ExpenseDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Dépense enregistrée.') create(@Body() dto: ExpenseDto, @CurrentUserId() actor: string) {
     return this.service.create(dto, actor);
   }
 
   @Post(':id/approve')
   @RequirePermissions('sales.manage')
-  approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+  @SuccessMessage('Dépense approuvée.') approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.approve(id, actor);
   }
 
   @Post(':id/pay')
   @RequirePermissions('sales.manage')
-  pay(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PayDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Dépense réglée.') pay(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PayDto, @CurrentUserId() actor: string) {
     return this.service.pay(id, dto, actor);
   }
 
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Dépense annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
     return this.service.cancel(id, dto.reason, actor);
   }
 
   @Post(':id/refund')
   @RequirePermissions('sales.manage')
-  refund(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Remboursement de dépense enregistré.') refund(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
     return this.service.refund(id, dto.reason, actor);
   }
 }

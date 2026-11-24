@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -14,7 +15,7 @@ export class DeliveriesController {
 
   @Post()
   @RequirePermissions('sales.manage')
-  create(
+  @SuccessMessage('Bon de livraison créé.') create(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @CurrentUserId() actorId: string,
     @Body() input: CreateDeliveryDto,
@@ -24,7 +25,7 @@ export class DeliveriesController {
 
   @Post(':deliveryId/confirm')
   @RequirePermissions('sales.manage')
-  confirm(
+  @SuccessMessage('Livraison confirmée et stock mis à jour.') confirm(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('deliveryId', ParseUUIDPipe) deliveryId: string,
     @CurrentUserId() actorId: string,
@@ -34,7 +35,7 @@ export class DeliveriesController {
 
   @Post(':deliveryId/cancel')
   @RequirePermissions('sales.manage')
-  cancel(
+  @SuccessMessage('Bon de livraison annulé.') cancel(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('deliveryId', ParseUUIDPipe) deliveryId: string,
     @CurrentUserId() actorId: string,

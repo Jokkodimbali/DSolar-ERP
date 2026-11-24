@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -55,18 +56,18 @@ export class ProformasController {
   }
   @Post()
   @RequirePermissions('sales.manage')
-  create(@Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma créée avec succès.') create(@Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
     return this.proformas.create(dto, actorId);
   }
   @Post(':id/issue')
   @RequirePermissions('sales.manage')
-  issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma émise avec succès.') issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.issue(id, actorId);
   }
 
   @Put(':id')
   @RequirePermissions('sales.manage')
-  update(
+  @SuccessMessage('Proforma mise à jour.') update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateProformaDto,
     @CurrentUserId() actorId: string,
@@ -75,17 +76,17 @@ export class ProformasController {
   }
   @Post(':id/accept')
   @RequirePermissions('sales.manage')
-  accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma acceptée.') accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.accept(id, actorId);
   }
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.cancel(id, actorId);
   }
   @Post(':id/expire')
   @RequirePermissions('sales.manage')
-  expire(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma expirée.') expire(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.expire(id, actorId);
   }
 }

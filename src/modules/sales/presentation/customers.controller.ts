@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -34,12 +35,12 @@ export class CustomersController {
   }
   @Post()
   @RequirePermissions('sales.manage')
-  create(@Body() dto: CreateCustomerDto) {
+  @SuccessMessage('Client créé avec succès.') create(@Body() dto: CreateCustomerDto) {
     return this.customers.create(dto);
   }
   @Patch(':id')
   @RequirePermissions('sales.manage')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCustomerDto) {
+  @SuccessMessage('Informations du client mises à jour.') update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCustomerDto) {
     return this.customers.update(id, dto);
   }
 }

@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -25,19 +26,19 @@ export class InvoicesController {
 
   @Post('from-order/:orderId')
   @RequirePermissions('sales.manage')
-  createFromOrder(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Facture créée à partir de la commande.') createFromOrder(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
     return this.invoices.createFromOrder(orderId, actorId);
   }
 
   @Post(':id/issue')
   @RequirePermissions('sales.manage')
-  issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Facture émise avec succès.') issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.invoices.issue(id, actorId);
   }
 
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Facture annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.invoices.cancel(id, actorId);
   }
 }
