@@ -39,6 +39,7 @@ model Store {
   inventories InventorySession[]
   deliveries DeliveryLine[]
   salesLines SalesOrderLine[]
+  cashRegisters CashRegister[]
 }
 
 model Product {
@@ -588,4 +589,40 @@ model IdempotencyKey {
   operation String
   response Json?
   createdAt DateTime @default(now())
+}
+
+model CashRegister {
+  id String @id @default(uuid()) @db.Uuid
+  storeId String @db.Uuid
+  name String @db.VarChar(100)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  sessions CashSession[]
+  @@unique([storeId, name])
+}
+
+model CashSession {
+  id String @id @default(uuid()) @db.Uuid
+  registerId String @db.Uuid
+  register CashRegister @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  opening Decimal @db.Decimal(18,2)
+  openedBy String @db.Uuid
+  openedAt DateTime @default(now())
+  closedAt DateTime?
+  closedBy String? @db.Uuid
+  counted Decimal? @db.Decimal(18,2)
+  expected Decimal? @db.Decimal(18,2)
+  movements CashMovement[]
+  @@index([registerId, closedAt])
+}
+
+model CashMovement {
+  id String @id @default(uuid()) @db.Uuid
+  sessionId String @db.Uuid
+  session CashSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  amount Decimal @db.Decimal(18,2)
+  reason String @db.VarChar(200)
+  operationKey String @unique @db.Uuid
+  actorId String @db.Uuid
+  createdAt DateTime @default(now())
+  @@index([sessionId, createdAt])
 }
