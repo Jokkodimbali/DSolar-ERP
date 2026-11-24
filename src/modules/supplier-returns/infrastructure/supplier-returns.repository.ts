@@ -27,7 +27,13 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
     }
   }
 
-  private async audit(tx: Prisma.TransactionClient, actorId: string, action: string, entityId: string, storeId: string) {
+  private async audit(
+    tx: Prisma.TransactionClient,
+    actorId: string,
+    action: string,
+    entityId: string,
+    storeId: string,
+  ) {
     await tx.auditLog.create({ data: { actorId, action, entityId, storeId, entityType: 'SupplierReturn' } });
   }
 
@@ -41,12 +47,14 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
   }
 
   list(actor: string, storeId?: string) {
-    return this.transaction(actor, (tx) => tx.supplierReturn.findMany({
-      where: { receipt: { storeId } },
-      include: { lines: true, credit: true },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 200,
-    }));
+    return this.transaction(actor, (tx) =>
+      tx.supplierReturn.findMany({
+        where: { receipt: { storeId } },
+        include: { lines: true, credit: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 200,
+      }),
+    );
   }
 
   get(id: string, actor: string) {
@@ -55,19 +63,30 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
 
   create(input: ReturnInput, actor: string) {
     return this.transaction(actor, async (tx) => {
-      if (!input.lines.length || input.lines.length > 100 ||
+      if (
+        !input.lines.length ||
+        input.lines.length > 100 ||
         new Set(input.lines.map((line) => line.receiptLineId)).size !== input.lines.length ||
-        input.lines.some((line) => !validReturnQuantity(line.quantity)))
+        input.lines.some((line) => !validReturnQuantity(line.quantity))
+      )
         throw new ConflictException('Lignes invalides.');
       const existing = await tx.supplierReturn.findUnique({
         where: { operationKey: input.operationKey },
         include: { lines: true },
       });
       if (existing) {
-        if (existing.createdBy !== actor || existing.receiptId !== input.receiptId ||
-          existing.reason !== input.reason || existing.lines.length !== input.lines.length ||
-          input.lines.some((line) => !existing.lines.some((old) => old.receiptLineId === line.receiptLineId &&
-            old.quantity.eq(line.quantity))))
+        if (
+          existing.createdBy !== actor ||
+          existing.receiptId !== input.receiptId ||
+          existing.reason !== input.reason ||
+          existing.lines.length !== input.lines.length ||
+          input.lines.some(
+            (line) =>
+              !existing.lines.some(
+                (old) => old.receiptLineId === line.receiptLineId && old.quantity.eq(line.quantity),
+              ),
+          )
+        )
           throw new ConflictException('Clé opération déjà utilisée.');
         return existing;
       }
@@ -75,7 +94,12 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         where: { id: input.receiptId },
         include: { lines: true, store: true },
       });
-      if (!receipt || receipt.status !== 'CONFIRMED' || !receipt.purchaseOrderId || receipt.store.status !== 'ACTIVE')
+      if (
+        !receipt ||
+        receipt.status !== 'CONFIRMED' ||
+        !receipt.purchaseOrderId ||
+        receipt.store.status !== 'ACTIVE'
+      )
         throw new ConflictException('Réception confirmée avec commande et magasin actif requise.');
       const lines = input.lines.map((line) => {
         const original = receipt.lines.find((item) => item.id === line.receiptLineId);
@@ -89,8 +113,12 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
       if (total.gt('9999999999999999.99')) throw new ConflictException('Montant hors limite.');
       const result = await tx.supplierReturn.create({
         data: {
-          receiptId: receipt.id, operationKey: input.operationKey, reason: input.reason,
-          createdBy: actor, total, lines: { create: lines },
+          receiptId: receipt.id,
+          operationKey: input.operationKey,
+          reason: input.reason,
+          createdBy: actor,
+          total,
+          lines: { create: lines },
         },
         include: { lines: true },
       });
@@ -107,9 +135,12 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         throw new ConflictException('Retour non confirmable.');
       const store = await tx.store.findFirst({ where: { id: item.receipt.storeId, status: 'ACTIVE' } });
       if (!store) throw new ConflictException('Magasin inactif.');
-      for (const line of [...item.lines].sort((a, b) => a.receiptLine.productId.localeCompare(b.receiptLine.productId))) {
+      for (const line of [...item.lines].sort((a, b) =>
+        a.receiptLine.productId.localeCompare(b.receiptLine.productId),
+      )) {
         const original = line.receiptLine;
-        if (original.receiptId !== item.receiptId) throw new ConflictException('Ligne de réception incohérente.');
+        if (original.receiptId !== item.receiptId)
+          throw new ConflictException('Ligne de réception incohérente.');
         const returned = await tx.supplierReturnLine.aggregate({
           where: { receiptLineId: original.id, supplierReturn: { status: 'CONFIRMED' } },
           _sum: { quantity: true },
@@ -131,14 +162,21 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         if (changed.count !== 1) throw new ConflictException('Stock modifié simultanément.');
         await tx.stockMovement.create({
           data: {
-            storeId: store.id, productId: original.productId, quantity: line.quantity,
-            type: 'RETURN_OUT', referenceType: 'SUPPLIER_RETURN', referenceId: id,
-            operationKey: 'supplier-return:' + id + ':' + line.id, actorId: actor, reason: item.reason,
+            storeId: store.id,
+            productId: original.productId,
+            quantity: line.quantity,
+            type: 'RETURN_OUT',
+            referenceType: 'SUPPLIER_RETURN',
+            referenceId: id,
+            operationKey: 'supplier-return:' + id + ':' + line.id,
+            actorId: actor,
+            reason: item.reason,
           },
         });
       }
       await tx.supplierReturn.update({
-        where: { id }, data: { status: 'CONFIRMED', confirmedBy: actor, confirmedAt: new Date() },
+        where: { id },
+        data: { status: 'CONFIRMED', confirmedBy: actor, confirmedAt: new Date() },
       });
       await this.audit(tx, actor, 'SUPPLIER_RETURN_CONFIRMED', id, store.id);
       return this.load(tx, id);
@@ -151,7 +189,12 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
       if (item.status !== 'DRAFT') throw new ConflictException('Seul un brouillon peut être annulé.');
       await tx.supplierReturn.update({
         where: { id },
-        data: { status: 'CANCELLED', cancelledBy: actor, cancelledAt: new Date(), cancellationReason: reason },
+        data: {
+          status: 'CANCELLED',
+          cancelledBy: actor,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
       });
       await this.audit(tx, actor, 'SUPPLIER_RETURN_CANCELLED', id, item.receipt.storeId);
       return this.load(tx, id);
@@ -169,7 +212,13 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         throw new ConflictException('Retour confirmé valorisé obligatoire.');
       const order = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: item.receipt.purchaseOrderId } });
       const result = await tx.supplierReturnCredit.create({
-        data: { returnId: id, supplierId: order.supplierId, amount: item.total, reference, recordedBy: actor },
+        data: {
+          returnId: id,
+          supplierId: order.supplierId,
+          amount: item.total,
+          reference,
+          recordedBy: actor,
+        },
       });
       await this.audit(tx, actor, 'SUPPLIER_RETURN_CREDIT_RECORDED', id, item.receipt.storeId);
       return result;

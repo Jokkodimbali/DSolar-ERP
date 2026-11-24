@@ -9,35 +9,58 @@ const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : descri
 integration('Retours fournisseurs PostgreSQL', () => {
   it('contrôle le cumul, les réservations, les avoirs et les doublons', async () => {
     const url = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL || 'invalid:');
-    if (process.env.NODE_ENV !== 'test' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-      url.pathname !== '/dsolar_test') throw new Error('Base de test locale requise.');
+    if (
+      process.env.NODE_ENV !== 'test' ||
+      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+      url.pathname !== '/dsolar_test'
+    )
+      throw new Error('Base de test locale requise.');
     const prisma = new PrismaService();
     const repo = new SupplierReturnsRepository(prisma);
     const receipts = new PrismaGoodsReceiptsRepository(prisma);
     const suffix = randomUUID();
     try {
       const role = await prisma.role.upsert({
-        where: { code: 'ADMIN' }, update: {}, create: { code: 'ADMIN', name: 'Administrateur' },
+        where: { code: 'ADMIN' },
+        update: {},
+        create: { code: 'ADMIN', name: 'Administrateur' },
       });
       const admin = await prisma.user.create({
-        data: { email: suffix + '@example.test', fullName: 'Admin CI', passwordHash: 'test',
-          roles: { create: { roleId: role.id } } },
+        data: {
+          email: suffix + '@example.test',
+          fullName: 'Admin CI',
+          passwordHash: 'test',
+          roles: { create: { roleId: role.id } },
+        },
       });
       await expect(repo.list(randomUUID())).rejects.toBeInstanceOf(ForbiddenException);
       const store = await prisma.store.create({ data: { code: 'RET-' + suffix.slice(0, 8), name: 'CI' } });
       const product = await prisma.product.create({ data: { sku: suffix, name: 'Produit CI' } });
       const supplier = await prisma.supplier.create({ data: { name: 'Fournisseur CI' } });
       const order = await prisma.purchaseOrder.create({
-        data: { number: suffix, supplierId: supplier.id, status: 'CONFIRMED',
-          lines: { create: [{ productId: product.id, quantity: 10, unitCost: 100 }] } },
+        data: {
+          number: suffix,
+          supplierId: supplier.id,
+          status: 'CONFIRMED',
+          lines: { create: [{ productId: product.id, quantity: 10, unitCost: 100 }] },
+        },
       });
-      const receipt = await receipts.create({
-        number: suffix, storeId: store.id, purchaseOrderId: order.id,
-        lines: [{ productId: product.id, quantity: 10, unitCost: 100 }],
-      }, admin.id);
+      const receipt = await receipts.create(
+        {
+          number: suffix,
+          storeId: store.id,
+          purchaseOrderId: order.id,
+          lines: [{ productId: product.id, quantity: 10, unitCost: 100 }],
+        },
+        admin.id,
+      );
       await receipts.confirm(receipt.id, admin.id);
-      const input = { receiptId: receipt.id, reason: 'Défaut', operationKey: randomUUID(),
-        lines: [{ receiptLineId: receipt.lines[0].id, quantity: '6' }] };
+      const input = {
+        receiptId: receipt.id,
+        reason: 'Défaut',
+        operationKey: randomUUID(),
+        lines: [{ receiptLineId: receipt.lines[0].id, quantity: '6' }],
+      };
       const draft = await repo.create(input, admin.id);
       expect((await repo.create(input, admin.id)).id).toBe(draft.id);
       await expect(repo.credit(draft.id, 'AV-1', admin.id)).rejects.toBeInstanceOf(ConflictException);
