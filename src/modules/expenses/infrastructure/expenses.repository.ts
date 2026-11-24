@@ -204,7 +204,13 @@ export class ExpensesRepository implements ExpensesPort {
       }
       const result = await tx.expense.update({
         where: { id },
-        data: { status: 'REFUNDED', endedAt: new Date(), endedBy: actor, endReason: reason, refundMovementId },
+        data: {
+          status: 'REFUNDED',
+          endedAt: new Date(),
+          endedBy: actor,
+          endReason: reason,
+          refundMovementId,
+        },
       });
       await this.audit(tx, actor, 'EXPENSE_REFUNDED', id, expense.storeId);
       return result;
