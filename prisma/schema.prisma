@@ -748,3 +748,59 @@ model SupplierReturnSerial {
   @@id([returnLineId, serialId])
   @@index([serialId])
 }
+
+model LedgerAccount {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(30)
+  name String @db.VarChar(160)
+  lines LedgerLine[]
+}
+
+model LedgerJournal {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(30)
+  name String @db.VarChar(160)
+  entries LedgerEntry[]
+}
+
+model LedgerPeriod {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique @db.VarChar(100)
+  startsAt DateTime @db.Date
+  endsAt DateTime @db.Date
+  closedAt DateTime?
+  closedBy String? @db.Uuid
+  entries LedgerEntry[]
+}
+
+model LedgerEntry {
+  id String @id @default(uuid()) @db.Uuid
+  journalId String @db.Uuid
+  journal LedgerJournal @relation(fields: [journalId], references: [id], onDelete: Restrict)
+  periodId String @db.Uuid
+  period LedgerPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  date DateTime @db.Date
+  description String @db.VarChar(500)
+  operationKey String @unique @db.Uuid
+  actorId String @db.Uuid
+  createdAt DateTime @default(now())
+  postedAt DateTime?
+  reversalOfId String? @unique @db.Uuid
+  reversalOf LedgerEntry? @relation("LedgerReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversal LedgerEntry? @relation("LedgerReversal")
+  lines LedgerLine[]
+  @@index([periodId, date, id])
+  @@index([journalId, date])
+}
+
+model LedgerLine {
+  id String @id @default(uuid()) @db.Uuid
+  entryId String @db.Uuid
+  entry LedgerEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  accountId String @db.Uuid
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  debit Decimal @db.Decimal(18,2)
+  credit Decimal @db.Decimal(18,2)
+  @@index([entryId])
+  @@index([accountId])
+}
