@@ -40,6 +40,8 @@ export class SalesPdfRenderer implements SalesPdfPort {
       'Document interne généré depuis les montants enregistrés.',
       'Libellés et coordonnées issus du catalogue et du client actuels.',
     ];
-    return Buffer.from(renderTextPdf(title, rows), 'ascii');
+    const heading = document.status === 'DRAFT' || document.status === 'CANCELLED' || document.status === 'EXPIRED'
+      ? title + ' - ' + status[document.status] : title;
+    return Buffer.from(renderTextPdf(heading, rows), 'ascii');
   }
 }
