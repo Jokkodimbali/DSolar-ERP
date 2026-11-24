@@ -67,7 +67,12 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
 
   registerSerials(receiptLineId: string, serials: string[], actor: string) {
     return this.transaction(actor, async (tx) => {
-      if (!serials.length || serials.length > 100 || new Set(serials).size !== serials.length)
+      if (
+        !serials.length ||
+        serials.length > 100 ||
+        new Set(serials).size !== serials.length ||
+        serials.some((serial) => typeof serial !== 'string' || !serial.trim() || serial !== serial.trim() || serial.length > 150)
+      )
         throw new ConflictException('Numéros de série invalides.');
       const line = await tx.goodsReceiptLine.findUnique({
         where: { id: receiptLineId },
@@ -112,7 +117,12 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         !input.lines.length ||
         input.lines.length > 100 ||
         new Set(input.lines.map((line) => line.receiptLineId)).size !== input.lines.length ||
-        input.lines.some((line) => !validReturnQuantity(line.quantity))
+        input.lines.some(
+          (line) =>
+            !validReturnQuantity(line.quantity) ||
+            (line.serialIds !== undefined &&
+              (line.serialIds.length > 100 || new Set(line.serialIds).size !== line.serialIds.length)),
+        )
       )
         throw new ConflictException('Lignes invalides.');
       const existing = await tx.supplierReturn.findUnique({
@@ -154,7 +164,7 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         input.lines.map(async (line) => {
           const original = receipt.lines.find((item) => item.id === line.receiptLineId);
           const quantity = new Prisma.Decimal(line.quantity);
-          if (!original || quantity.gt(original.quantity))
+          if (!original || !original.quantity.isFinite() || original.quantity.lte(0) || quantity.gt(original.quantity) || !original.unitCost.isFinite() || original.unitCost.lt(0))
             throw new ConflictException('Quantité supérieure à la réception ou ligne inconnue.');
           const total = quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
           const serialIds = line.serialIds ?? [];
@@ -202,12 +212,40 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
     });
   }
 
+  private assertValuation(item: Awaited<ReturnType<SupplierReturnsRepository['load']>>) {
+    const maximum = new Prisma.Decimal('9999999999999999.99');
+    if (
+      !item.lines.length ||
+      !item.total.isFinite() ||
+      item.total.lt(0) ||
+      item.total.gt(maximum) ||
+      !item.total.eq(item.lines.reduce((sum, line) => sum.plus(line.total), new Prisma.Decimal(0)))
+    )
+      throw new ConflictException('Valorisation totale du retour incohérente.');
+    for (const line of item.lines) {
+      const original = line.receiptLine;
+      if (
+        original.receiptId !== item.receiptId ||
+        !line.quantity.isFinite() ||
+        !validReturnQuantity(line.quantity.toFixed()) ||
+        !original.quantity.isFinite() ||
+        line.quantity.gt(original.quantity) ||
+        !original.unitCost.isFinite() ||
+        original.unitCost.lt(0) ||
+        !line.unitCost.eq(original.unitCost) ||
+        !line.total.eq(line.quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP))
+      )
+        throw new ConflictException('Valorisation de ligne de retour incohérente.');
+    }
+  }
+
   confirm(id: string, actor: string) {
     return this.transaction(actor, async (tx) => {
       const item = await this.load(tx, id);
       if (item.status === 'CONFIRMED') return item;
       if (item.status !== 'DRAFT' || item.receipt.status !== 'CONFIRMED' || !item.lines.length)
         throw new ConflictException('Retour non confirmable.');
+      this.assertValuation(item);
       const store = await tx.store.findFirst({ where: { id: item.receipt.storeId, status: 'ACTIVE' } });
       if (!store) throw new ConflictException('Magasin inactif.');
       for (const line of [...item.lines].sort((a, b) =>
@@ -218,10 +256,14 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
           throw new ConflictException('Ligne de réception incohérente.');
         const returned = await tx.supplierReturnLine.aggregate({
           where: { receiptLineId: original.id, supplierReturn: { status: 'CONFIRMED' } },
-          _sum: { quantity: true },
+          _sum: { quantity: true, total: true },
         });
         if ((returned._sum.quantity ?? new Prisma.Decimal(0)).plus(line.quantity).gt(original.quantity))
           throw new ConflictException('Quantité cumulée retournée supérieure à la réception.');
+        const receivedValue = original.quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        const priorValue = returned._sum.total ?? new Prisma.Decimal(0);
+        if (priorValue.lt(0) || priorValue.plus(line.total).gt(receivedValue))
+          throw new ConflictException('Valorisation cumulée supérieure à la réception.');
         const serialized = await tx.serialNumber.count({ where: { productId: original.productId } });
         if (serialized || line.serials.length) {
           const ids = line.serials.map((entry) => entry.serialId);
@@ -300,6 +342,7 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
       }
       if (item.status !== 'CONFIRMED' || !item.receipt.purchaseOrderId || item.total.lte(0))
         throw new ConflictException('Retour confirmé valorisé obligatoire.');
+      this.assertValuation(item);
       const order = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: item.receipt.purchaseOrderId } });
       const result = await tx.supplierReturnCredit.create({
         data: {
