@@ -62,10 +62,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           },
         });
         if (!invoice) throw new NotFoundException('Facture introuvable.');
-        if (invoice.status !== 'ISSUED') {
-          throw new ConflictException('Seule une facture émise peut faire l’objet d’un avoir.');
-        }
-        if (!invoice.order) throw new ConflictException('Facture sans commande associée.');
+        if (!invoice.order) throw new ForbiddenException('Accès magasin refusé.');
         const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
           where: {
@@ -77,6 +74,9 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
         });
         if (!stores.length || allowed !== stores.length) {
           throw new ForbiddenException('Accès magasin refusé.');
+        }
+        if (invoice.status !== 'ISSUED') {
+          throw new ConflictException('Seule une facture émise peut faire l’objet d’un avoir.');
         }
         const credited = invoice.creditNotes.reduce(
           (sum, note) => sum.plus(note.amount),

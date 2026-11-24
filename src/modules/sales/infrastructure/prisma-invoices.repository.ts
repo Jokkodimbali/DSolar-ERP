@@ -40,11 +40,6 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           include: { lines: true, invoices: true },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
-        if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.status)) {
-          throw new ConflictException('Seule une commande confirmée peut être facturée.');
-        }
-        if (!order.lines.length) throw new ConflictException('Commande sans ligne.');
-        if (order.invoices.length) throw new ConflictException('Commande déjà facturée.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         // prettier-ignore
         const authorized = await tx.userStoreAccess.count({
@@ -53,6 +48,10 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         if (!stores.length || authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
         }
+        if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.status)) {
+          throw new ConflictException('Seule une commande confirmée peut être facturée.');
+        }
+        if (order.invoices.length) throw new ConflictException('Commande déjà facturée.');
         const lines = order.lines.map((line) => {
           const net = line.quantity.mul(line.unitPrice).minus(line.discount);
           if (net.lessThan(0)) throw new ConflictException('Remise supérieure au montant brut.');
@@ -113,8 +112,7 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           include: { order: { include: { lines: true } } },
         });
         if (!invoice) throw new NotFoundException('Facture introuvable.');
-        if (invoice.status !== 'DRAFT') throw new ConflictException('Facture déjà traitée.');
-        if (!invoice.order) throw new ConflictException('Facture sans commande.');
+        if (!invoice.order) throw new ForbiddenException('Accès insuffisant aux magasins.');
         const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
         // prettier-ignore
         const authorized = await tx.userStoreAccess.count({
@@ -123,6 +121,7 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         if (!stores.length || authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins.');
         }
+        if (invoice.status !== 'DRAFT') throw new ConflictException('Facture déjà traitée.');
         const updated = await tx.invoice.update({
           where: { id },
           data: { status: 'ISSUED', issuedAt: new Date() },
@@ -153,13 +152,7 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           include: { order: { include: { lines: true } }, allocations: true, creditNotes: true },
         });
         if (!invoice) throw new NotFoundException('Facture introuvable.');
-        if (invoice.status !== 'DRAFT') {
-          throw new ConflictException('Une facture émise doit être corrigée par un avoir.');
-        }
-        if (invoice.allocations.length || invoice.creditNotes.length) {
-          throw new ConflictException('Facture déjà liée à des paiements ou avoirs.');
-        }
-        if (!invoice.order) throw new ConflictException('Facture sans commande.');
+        if (!invoice.order) throw new ForbiddenException('Accès insuffisant aux magasins.');
         const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
         // prettier-ignore
         const authorized = await tx.userStoreAccess.count({
@@ -167,6 +160,12 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
         });
         if (!stores.length || authorized !== stores.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins.');
+        }
+        if (invoice.status !== 'DRAFT') {
+          throw new ConflictException('Une facture émise doit être corrigée par un avoir.');
+        }
+        if (invoice.allocations.length || invoice.creditNotes.length) {
+          throw new ConflictException('Facture déjà liée à des paiements ou avoirs.');
         }
         const updated = await tx.invoice.update({
           where: { id },
