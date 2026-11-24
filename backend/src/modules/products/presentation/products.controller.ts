@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import {
   BadRequestException,
@@ -17,12 +18,12 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { ProductsService } from '../application/products.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
-class ProductSearchDto extends PageQueryDto {
-  @IsOptional() @IsIn(['true', 'false']) active?: string;
-  @IsOptional() @IsIn(['true', 'false']) isSolarPlant?: string;
-  @IsOptional() @IsUUID() categoryId?: string;
-  @IsOptional() @IsUUID() brandId?: string;
-  @IsOptional() @IsUUID() taxRegimeId?: string;
+class ProductsProductSearchDto extends PageQueryDto {
+  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) active?: string;
+  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) isSolarPlant?: string;
+  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) categoryId?: string;
+  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) brandId?: string;
+  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) taxRegimeId?: string;
 }
 @ApiTags('Produits')
 @ApiBearerAuth()
@@ -37,7 +38,7 @@ export class ProductsController {
   }
   @Get('search')
   @RequirePermissions('products.read')
-  search(@Query() query: ProductSearchDto) {
+  search(@Query() query: ProductsProductSearchDto) {
     const { active, isSolarPlant, ...filters } = query;
     return this.products.search({
       ...filters,

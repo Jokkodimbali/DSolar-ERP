@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -7,54 +8,54 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { BankService } from '../application/bank.service';
 
-class BankAccountDto {
+class BankBankAccountDto {
   @IsUUID()
-  accountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) accountId!: string;
   @IsString()
   @MaxLength(160)
-  name!: string;
+  @SwaggerField({ type: String, maxLength: 160 }) name!: string;
 }
-class BankLineDto {
+class BankBankLineDto {
   @IsString()
   @MaxLength(100)
-  reference!: string;
+  @SwaggerField({ type: String, maxLength: 100 }) reference!: string;
   @IsString()
   @MaxLength(10)
-  date!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) date!: string;
   @IsString()
   @MaxLength(500)
-  description!: string;
+  @SwaggerField({ type: String, maxLength: 500 }) description!: string;
   @IsString()
   @MaxLength(20)
-  amount!: string;
+  @SwaggerField({ type: String, maxLength: 20 }) amount!: string;
 }
-class StatementDto {
+class BankStatementDto {
   @IsUUID()
-  bankAccountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) bankAccountId!: string;
   @IsString()
   @MaxLength(100)
-  reference!: string;
+  @SwaggerField({ type: String, maxLength: 100 }) reference!: string;
   @IsString()
   @MaxLength(10)
-  start!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) start!: string;
   @IsString()
   @MaxLength(10)
-  end!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) end!: string;
   @IsString()
   @MaxLength(20)
-  opening!: string;
+  @SwaggerField({ type: String, maxLength: 20 }) opening!: string;
   @IsString()
   @MaxLength(20)
-  closing!: string;
+  @SwaggerField({ type: String, maxLength: 20 }) closing!: string;
   @IsArray()
   @ArrayMaxSize(500)
   @ValidateNested({ each: true })
-  @Type(() => BankLineDto)
-  lines!: BankLineDto[];
+  @Type(() => BankBankLineDto)
+  @SwaggerField({ type: () => [BankBankLineDto], maxItems: 500 }) lines!: BankBankLineDto[];
 }
-class MatchDto {
+class BankMatchDto {
   @IsUUID()
-  ledgerLineId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) ledgerLineId!: string;
 }
 
 @ApiTags('Rapprochement bancaire')
@@ -71,12 +72,12 @@ export class BankController {
   }
   @Post('accounts')
   @SuccessMessage('Compte bancaire enregistré.')
-  account(@Body() dto: BankAccountDto, @CurrentUserId() actor: string) {
+  account(@Body() dto: BankBankAccountDto, @CurrentUserId() actor: string) {
     return this.service.createAccount(dto.accountId, dto.name, actor);
   }
   @Post('statements')
   @SuccessMessage('Relevé bancaire importé.')
-  importStatement(@Body() dto: StatementDto, @CurrentUserId() actor: string) {
+  importStatement(@Body() dto: BankStatementDto, @CurrentUserId() actor: string) {
     return this.service.importStatement(dto, actor);
   }
   @Get('accounts/:id/statements')
@@ -93,7 +94,7 @@ export class BankController {
   }
   @Post('lines/:id/match')
   @SuccessMessage('Ligne bancaire rapprochée.')
-  match(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MatchDto, @CurrentUserId() actor: string) {
+  match(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BankMatchDto, @CurrentUserId() actor: string) {
     return this.service.match(id, dto.ledgerLineId, actor);
   }
   @Post('lines/:id/unmatch')

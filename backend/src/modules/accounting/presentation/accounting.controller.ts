@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -20,96 +21,96 @@ import { ACCOUNT_CLASSES, AccountClass } from '../domain/financial-statements';
 import { SOURCE_TYPES, SourceType } from '../domain/source-types';
 import { AccountingService } from '../application/accounting.service';
 
-class CodeDto {
+class AccountingCodeDto {
   @IsString()
   @MaxLength(30)
-  code!: string;
+  @SwaggerField({ type: String, maxLength: 30 }) code!: string;
   @IsString()
   @MaxLength(160)
-  name!: string;
+  @SwaggerField({ type: String, maxLength: 160 }) name!: string;
 }
-class ClassificationDto {
+class AccountingClassificationDto {
   @IsIn([...ACCOUNT_CLASSES])
-  category!: AccountClass;
+  @SwaggerField({ enum: [...ACCOUNT_CLASSES] }) category!: AccountClass;
 }
-class AutomationDto {
+class AccountingAutomationDto {
   @IsBoolean()
-  enabled!: boolean;
+  @SwaggerField({ type: Boolean }) enabled!: boolean;
 }
-class PeriodDto {
+class AccountingPeriodDto {
   @IsString()
   @MaxLength(100)
-  name!: string;
+  @SwaggerField({ type: String, maxLength: 100 }) name!: string;
   @IsString()
   @MaxLength(10)
-  start!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) start!: string;
   @IsString()
   @MaxLength(10)
-  end!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) end!: string;
 }
-class LineDto {
+class AccountingLineDto {
   @IsUUID()
-  accountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) accountId!: string;
   @IsString()
   @MaxLength(19)
-  debit!: string;
+  @SwaggerField({ type: String, maxLength: 19 }) debit!: string;
   @IsString()
   @MaxLength(19)
-  credit!: string;
+  @SwaggerField({ type: String, maxLength: 19 }) credit!: string;
 }
-class PostingDto {
+class AccountingPostingDto {
   @IsUUID()
-  journalId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) journalId!: string;
   @IsUUID()
-  periodId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) periodId!: string;
   @IsUUID()
-  operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
   @IsString()
   @MaxLength(10)
-  date!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) date!: string;
   @IsString()
   @MaxLength(500)
-  description!: string;
+  @SwaggerField({ type: String, maxLength: 500 }) description!: string;
   @IsArray()
   @ArrayMinSize(2)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
-  @Type(() => LineDto)
-  lines!: LineDto[];
+  @Type(() => AccountingLineDto)
+  @SwaggerField({ type: () => [AccountingLineDto], minItems: 2, maxItems: 100 }) lines!: AccountingLineDto[];
 }
-class RuleDto {
+class AccountingRuleDto {
   @IsString()
   @MaxLength(120)
-  key!: string;
+  @SwaggerField({ type: String, maxLength: 120 }) key!: string;
   @IsUUID()
-  journalId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) journalId!: string;
   @IsUUID()
-  debitAccountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) debitAccountId!: string;
   @IsUUID()
-  creditAccountId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) creditAccountId!: string;
   @IsOptional()
   @IsUUID()
-  taxAccountId?: string;
+  @SwaggerField({ required: false, type: String, format: 'uuid' }) taxAccountId?: string;
 }
 
-class SourceDto {
+class AccountingSourceDto {
   @IsIn([...SOURCE_TYPES])
-  type!: SourceType;
+  @SwaggerField({ enum: [...SOURCE_TYPES] }) type!: SourceType;
   @IsUUID()
-  id!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) id!: string;
 }
 
-class ReverseDto {
+class AccountingReverseDto {
   @IsUUID()
-  periodId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) periodId!: string;
   @IsUUID()
-  operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
   @IsString()
   @MaxLength(10)
-  date!: string;
+  @SwaggerField({ type: String, maxLength: 10 }) date!: string;
   @IsString()
   @MaxLength(500)
-  reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
 }
 
 @ApiTags('Comptabilité')
@@ -126,24 +127,24 @@ export class AccountingController {
   }
   @Post('rules')
   @SuccessMessage('Règle de comptabilisation enregistrée.')
-  rule(@Body() dto: RuleDto, @CurrentUserId() actor: string) {
+  rule(@Body() dto: AccountingRuleDto, @CurrentUserId() actor: string) {
     return this.service.rule(dto, actor);
   }
   @Post('sources')
   @SuccessMessage('Comptabilisation de la source effectuée.')
-  source(@Body() dto: SourceDto, @CurrentUserId() actor: string) {
+  source(@Body() dto: AccountingSourceDto, @CurrentUserId() actor: string) {
     return this.service.postSource(dto.type, dto.id, actor);
   }
   @Post('accounts')
   @SuccessMessage('Compte comptable créé.')
-  account(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
+  account(@Body() dto: AccountingCodeDto, @CurrentUserId() actor: string) {
     return this.service.account(dto.code, dto.name, actor);
   }
   @Post('accounts/:id/classify')
   @SuccessMessage('Classification du compte enregistrée.')
   classify(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ClassificationDto,
+    @Body() dto: AccountingClassificationDto,
     @CurrentUserId() actor: string,
   ) {
     return this.service.classify(id, dto.category, actor);
@@ -154,12 +155,12 @@ export class AccountingController {
   }
   @Post('journals')
   @SuccessMessage('Journal comptable créé.')
-  journal(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
+  journal(@Body() dto: AccountingCodeDto, @CurrentUserId() actor: string) {
     return this.service.journal(dto.code, dto.name, actor);
   }
   @Post('periods')
   @SuccessMessage('Période comptable créée.')
-  period(@Body() dto: PeriodDto, @CurrentUserId() actor: string) {
+  period(@Body() dto: AccountingPeriodDto, @CurrentUserId() actor: string) {
     return this.service.period(dto.name, dto.start, dto.end, actor);
   }
   @Get('periods/:id/automation')
@@ -170,7 +171,7 @@ export class AccountingController {
   @SuccessMessage('Paramètres de comptabilisation automatique enregistrés.')
   configureAutomation(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AutomationDto,
+    @Body() dto: AccountingAutomationDto,
     @CurrentUserId() actor: string,
   ) {
     return this.service.configureAutomation(id, dto.enabled, actor);
@@ -191,12 +192,12 @@ export class AccountingController {
   }
   @Post('entries')
   @SuccessMessage('Écriture comptable enregistrée.')
-  post(@Body() dto: PostingDto, @CurrentUserId() actor: string) {
+  post(@Body() dto: AccountingPostingDto, @CurrentUserId() actor: string) {
     return this.service.post(dto, actor);
   }
   @Post('entries/:id/reverse')
   @SuccessMessage('Écriture comptable contrepassée.')
-  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
+  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AccountingReverseDto, @CurrentUserId() actor: string) {
     return this.service.reverse(id, dto.periodId, dto.date, dto.reason, dto.operationKey, actor);
   }
   @Get('periods/:id/entries')

@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -6,16 +7,16 @@ export class CreateStoreDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
-  code!: string;
+  @SwaggerField({ type: String, maxLength: 30 }) code!: string;
 
   @ApiProperty({ example: 'Magasin principal' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(160)
-  name!: string;
+  @SwaggerField({ type: String, maxLength: 160 }) name!: string;
 
   @ApiPropertyOptional({ example: 'Passy, Sénégal' })
   @IsOptional()
   @IsString()
-  address?: string;
+  @SwaggerField({ required: false, type: String }) address?: string;
 }

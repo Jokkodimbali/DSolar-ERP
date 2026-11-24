@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Request, Response } from 'express';
 import { Observable, tap } from 'rxjs';
 
-const SUCCESS_MESSAGE = 'dsolar.success_message';
+export const SUCCESS_MESSAGE = 'dsolar.success_message';
 export const SuccessMessage = (message: string) => SetMetadata(SUCCESS_MESSAGE, message);
 
 /** Keep response bodies and existing API contracts unchanged. Encode UTF-8 in a safe ASCII header. */

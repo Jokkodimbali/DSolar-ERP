@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -17,56 +18,56 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { SupplierReturnsService } from '../application/supplier-returns.service';
 
-class ReturnLineDto {
+class SupplierReturnsReturnLineDto {
   @IsUUID()
-  receiptLineId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) receiptLineId!: string;
   @IsString()
   @MaxLength(19)
-  quantity!: string;
+  @SwaggerField({ type: String, maxLength: 19 }) quantity!: string;
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(100)
   @ArrayUnique()
   @IsUUID(undefined, { each: true })
-  serialIds?: string[];
+  @SwaggerField({ required: false, type: [String], maxItems: 100, uniqueItems: true }) serialIds?: string[];
 }
 
-class ReturnDto {
+class SupplierReturnsReturnDto {
   @IsUUID()
-  receiptId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) receiptId!: string;
   @IsUUID()
-  operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
   @IsString()
   @MaxLength(500)
-  reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
-  @Type(() => ReturnLineDto)
-  lines!: ReturnLineDto[];
+  @Type(() => SupplierReturnsReturnLineDto)
+  @SwaggerField({ type: () => [SupplierReturnsReturnLineDto], minItems: 1, maxItems: 100 }) lines!: SupplierReturnsReturnLineDto[];
 }
 
-class RegisterSerialsDto {
+class SupplierReturnsRegisterSerialsDto {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ArrayUnique()
   @IsString({ each: true })
   @MaxLength(150, { each: true })
-  serials!: string[];
+  @SwaggerField({ type: [String], minItems: 1, maxItems: 100, uniqueItems: true }) serials!: string[];
 }
 
-class ReasonDto {
+class SupplierReturnsReasonDto {
   @IsString()
   @MaxLength(500)
-  reason!: string;
+  @SwaggerField({ type: String, maxLength: 500 }) reason!: string;
 }
 
-class CreditDto {
+class SupplierReturnsCreditDto {
   @IsString()
   @MaxLength(100)
-  reference!: string;
+  @SwaggerField({ type: String, maxLength: 100 }) reference!: string;
 }
 
 @ApiTags('Retours fournisseurs')
@@ -94,7 +95,7 @@ export class SupplierReturnsController {
   @Post()
   @RequirePermissions('inventory.manage')
   @SuccessMessage('Retour fournisseur enregistré.')
-  create(@Body() dto: ReturnDto, @CurrentUserId() actor: string) {
+  create(@Body() dto: SupplierReturnsReturnDto, @CurrentUserId() actor: string) {
     return this.service.create(dto, actor);
   }
 
@@ -103,7 +104,7 @@ export class SupplierReturnsController {
   @SuccessMessage('Numéros de série enregistrés.')
   registerSerials(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: RegisterSerialsDto,
+    @Body() dto: SupplierReturnsRegisterSerialsDto,
     @CurrentUserId() actor: string,
   ) {
     return this.service.registerSerials(id, dto.serials, actor);
@@ -119,14 +120,14 @@ export class SupplierReturnsController {
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
   @SuccessMessage('Retour fournisseur annulé.')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
+  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SupplierReturnsReasonDto, @CurrentUserId() actor: string) {
     return this.service.cancel(id, dto.reason, actor);
   }
 
   @Post(':id/credit')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Avoir fournisseur enregistré.')
-  credit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreditDto, @CurrentUserId() actor: string) {
+  credit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SupplierReturnsCreditDto, @CurrentUserId() actor: string) {
     return this.service.credit(id, dto.reference, actor);
   }
 }

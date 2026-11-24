@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Sse, UseGuards } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
@@ -8,10 +9,10 @@ import { AuthenticatedOnly } from '../../identity/presentation/route-policy';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { NotificationsService } from '../application/notifications.service';
 
-class NotificationQueryDto extends PageQueryDto {
-  @IsOptional() @IsIn(['true', 'false']) read?: string;
-  @IsOptional() @IsString() @MaxLength(80) action?: string;
-  @IsOptional() @IsUUID() storeId?: string;
+class NotificationsNotificationQueryDto extends PageQueryDto {
+  @IsOptional() @IsIn(['true', 'false']) @SwaggerField({ required: false, enum: ['true', 'false'] }) read?: string;
+  @IsOptional() @IsString() @MaxLength(80) @SwaggerField({ required: false, type: String, maxLength: 80 }) action?: string;
+  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) storeId?: string;
 }
 
 @ApiTags('Notifications')
@@ -23,7 +24,7 @@ export class NotificationsController {
 
   @Get()
   @AuthenticatedOnly()
-  list(@CurrentUserId() actorId: string, @Query() query: NotificationQueryDto) {
+  list(@CurrentUserId() actorId: string, @Query() query: NotificationsNotificationQueryDto) {
     const { read, ...filters } = query;
     return this.service.feed(actorId, { ...filters, read: read === undefined ? undefined : read === 'true' });
   }

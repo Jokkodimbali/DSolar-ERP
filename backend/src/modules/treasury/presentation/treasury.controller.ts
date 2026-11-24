@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -6,47 +7,47 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { TreasuryService } from '../application/treasury.service';
 
-class RegisterDto {
+class TreasuryRegisterDto {
   @IsUUID()
-  storeId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) storeId!: string;
   @IsString()
   @MaxLength(100)
-  name!: string;
+  @SwaggerField({ type: String, maxLength: 100 }) name!: string;
 }
-class AmountDto {
+class TreasuryAmountDto {
   @IsString()
   @MaxLength(20)
-  amount!: string;
+  @SwaggerField({ type: String, maxLength: 20 }) amount!: string;
 }
-class MovementDto extends AmountDto {
+class TreasuryMovementDto extends TreasuryAmountDto {
   @IsString()
   @MaxLength(200)
-  reason!: string;
+  @SwaggerField({ type: String, maxLength: 200 }) reason!: string;
   @IsUUID()
-  operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
 }
 
-class OperationDto {
+class TreasuryOperationDto {
   @IsUUID()
-  operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
 }
 
-class TransferDto extends AmountDto {
+class TreasuryTransferDto extends TreasuryAmountDto {
   @IsUUID()
-  destinationId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) destinationId!: string;
   @IsUUID()
-  operationKey!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) operationKey!: string;
 }
 
-class ReverseDto extends OperationDto {
+class TreasuryReverseDto extends TreasuryOperationDto {
   @IsString()
   @MaxLength(200)
-  reason!: string;
+  @SwaggerField({ type: String, maxLength: 200 }) reason!: string;
 }
 
-class ReconcileDto extends OperationDto {
+class TreasuryReconcileDto extends TreasuryOperationDto {
   @IsUUID()
-  paymentId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) paymentId!: string;
 }
 
 @ApiTags('Trésorerie')
@@ -65,21 +66,21 @@ export class TreasuryController {
   @Post('registers')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Caisse créée.')
-  create(@Body() dto: RegisterDto, @CurrentUserId() actor: string) {
+  create(@Body() dto: TreasuryRegisterDto, @CurrentUserId() actor: string) {
     return this.service.create(dto.storeId, dto.name, actor);
   }
 
   @Post('registers/:id/open')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Session de caisse ouverte.')
-  open(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
+  open(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryAmountDto, @CurrentUserId() actor: string) {
     return this.service.open(id, dto.amount, actor);
   }
 
   @Post('sessions/:id/movements')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Mouvement de caisse enregistré.')
-  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUserId() actor: string) {
+  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryMovementDto, @CurrentUserId() actor: string) {
     return this.service.move(id, dto.amount, dto.reason, dto.operationKey, actor);
   }
 
@@ -92,14 +93,14 @@ export class TreasuryController {
   @Post('sessions/:id/transfer')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Transfert de trésorerie enregistré.')
-  transfer(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TransferDto, @CurrentUserId() actor: string) {
+  transfer(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryTransferDto, @CurrentUserId() actor: string) {
     return this.service.transfer(id, dto.destinationId, dto.amount, dto.operationKey, actor);
   }
 
   @Post('movements/:id/reverse')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Mouvement de caisse contrepassé.')
-  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
+  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryReverseDto, @CurrentUserId() actor: string) {
     return this.service.reverse(id, dto.reason, dto.operationKey, actor);
   }
 
@@ -108,7 +109,7 @@ export class TreasuryController {
   @SuccessMessage('Encaissement rapproché avec la caisse.')
   reconcile(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ReconcileDto,
+    @Body() dto: TreasuryReconcileDto,
     @CurrentUserId() actor: string,
   ) {
     return this.service.reconcile(id, dto.paymentId, dto.operationKey, actor);
@@ -117,7 +118,7 @@ export class TreasuryController {
   @Post('sessions/:id/close')
   @RequirePermissions('sales.manage')
   @SuccessMessage('Session de caisse clôturée.')
-  close(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
+  close(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TreasuryAmountDto, @CurrentUserId() actor: string) {
     return this.service.close(id, dto.amount, actor);
   }
 }

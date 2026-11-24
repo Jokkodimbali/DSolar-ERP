@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -18,21 +19,21 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { GoodsReceiptsService } from '../application/goods-receipts.service';
 
-class ReceiptLineDto {
-  @IsUUID() productId!: string;
-  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) quantity!: number;
-  @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) unitCost!: number;
+class GoodsReceiptsReceiptLineDto {
+  @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
+  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) @SwaggerField({ type: Number, minimum: 0.001 }) quantity!: number;
+  @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @SwaggerField({ type: Number, minimum: 0 }) unitCost!: number;
 }
-class CreateGoodsReceiptDto {
-  @IsString() @IsNotEmpty() @MaxLength(100) number!: string;
-  @IsUUID() purchaseOrderId!: string;
-  @IsUUID() storeId!: string;
+class GoodsReceiptsCreateGoodsReceiptDto {
+  @IsString() @IsNotEmpty() @MaxLength(100) @SwaggerField({ type: String, maxLength: 100 }) number!: string;
+  @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) purchaseOrderId!: string;
+  @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) storeId!: string;
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
-  @Type(() => ReceiptLineDto)
-  lines!: ReceiptLineDto[];
+  @Type(() => GoodsReceiptsReceiptLineDto)
+  @SwaggerField({ type: () => [GoodsReceiptsReceiptLineDto], minItems: 1, maxItems: 100 }) lines!: GoodsReceiptsReceiptLineDto[];
 }
 @ApiTags('Réceptions fournisseurs')
 @ApiBearerAuth()
@@ -53,7 +54,7 @@ export class GoodsReceiptsController {
   @Post()
   @RequirePermissions('inventory.manage')
   @SuccessMessage('Bon de réception créé.')
-  create(@Body() dto: CreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
+  create(@Body() dto: GoodsReceiptsCreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
     return this.receipts.create(dto, actorId);
   }
   @Post(':id/cancel')

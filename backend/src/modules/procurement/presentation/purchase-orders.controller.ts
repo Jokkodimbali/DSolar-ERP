@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -18,20 +19,20 @@ import { CurrentUserId } from '../../identity/presentation/current-user.decorato
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { PurchaseOrdersService } from '../application/purchase-orders.service';
 
-class PurchaseOrderLineDto {
-  @IsUUID() productId!: string;
-  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) quantity!: number;
-  @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) unitCost!: number;
+class PurchaseOrdersPurchaseOrderLineDto {
+  @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) productId!: string;
+  @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) @SwaggerField({ type: Number, minimum: 0.001 }) quantity!: number;
+  @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @SwaggerField({ type: Number, minimum: 0 }) unitCost!: number;
 }
-class CreatePurchaseOrderDto {
-  @IsString() @IsNotEmpty() @MaxLength(100) number!: string;
-  @IsUUID() supplierId!: string;
+class PurchaseOrdersCreatePurchaseOrderDto {
+  @IsString() @IsNotEmpty() @MaxLength(100) @SwaggerField({ type: String, maxLength: 100 }) number!: string;
+  @IsUUID() @SwaggerField({ type: String, format: 'uuid' }) supplierId!: string;
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
-  @Type(() => PurchaseOrderLineDto)
-  lines!: PurchaseOrderLineDto[];
+  @Type(() => PurchaseOrdersPurchaseOrderLineDto)
+  @SwaggerField({ type: () => [PurchaseOrdersPurchaseOrderLineDto], minItems: 1, maxItems: 100 }) lines!: PurchaseOrdersPurchaseOrderLineDto[];
 }
 @ApiTags('Commandes fournisseurs')
 @ApiBearerAuth()
@@ -54,7 +55,7 @@ export class PurchaseOrdersController {
     return this.orders.progress(id);
   }
   @Post() @RequirePermissions('inventory.manage') @SuccessMessage('Commande fournisseur créée.') create(
-    @Body() dto: CreatePurchaseOrderDto,
+    @Body() dto: PurchaseOrdersCreatePurchaseOrderDto,
     @CurrentUserId() actorId: string,
   ) {
     return this.orders.create(dto, actorId);

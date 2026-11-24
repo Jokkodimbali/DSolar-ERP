@@ -14,6 +14,7 @@ Documentation du backend NestJS, basée sur le code de la branche `dev` au commi
 | [06 — API identité et stocks](06-api-identite-stocks.md) | Routes et DTO |
 | [06 — API commerciale](06-api-commerce.md) | Routes et DTO |
 | [06 — API financière et transversale](06-api-finance.md) | Routes et DTO |
+| [07 — Swagger](07-swagger.md) | Documentation interactive OpenAPI, JWT et exemples de test |
 | [08 — Données](08-data-dictionary.md) | Modèles, relations, enums et migrations |
 | [09 — Installation et exploitation](09-exploitation.md) | Configuration, démarrage, déploiement, sauvegardes |
 | [10 — Tests et maintenance](10-tests-maintenance.md) | CI, suites, évolution sûre |

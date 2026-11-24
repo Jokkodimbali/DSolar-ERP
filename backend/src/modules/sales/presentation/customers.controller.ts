@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -6,18 +7,18 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { CustomersService } from '../application/customers.service';
 
 export class CreateCustomerDto {
-  @IsString() @IsNotEmpty() @MaxLength(180) name!: string;
-  @IsOptional() @IsString() @MaxLength(100) taxId?: string;
-  @IsOptional() @IsString() @MaxLength(50) phone?: string;
-  @IsOptional() @IsEmail() email?: string;
-  @IsOptional() @IsString() @MaxLength(500) address?: string;
+  @IsString() @IsNotEmpty() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) name!: string;
+  @IsOptional() @IsString() @MaxLength(100) @SwaggerField({ required: false, type: String, maxLength: 100 }) taxId?: string;
+  @IsOptional() @IsString() @MaxLength(50) @SwaggerField({ required: false, type: String, maxLength: 50 }) phone?: string;
+  @IsOptional() @IsEmail() @SwaggerField({ required: false, type: String, format: 'email' }) email?: string;
+  @IsOptional() @IsString() @MaxLength(500) @SwaggerField({ required: false, type: String, maxLength: 500 }) address?: string;
 }
 export class UpdateCustomerDto {
-  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(180) name?: string;
-  @IsOptional() @IsString() @MaxLength(100) taxId?: string;
-  @IsOptional() @IsString() @MaxLength(50) phone?: string;
-  @IsOptional() @IsEmail() email?: string;
-  @IsOptional() @IsString() @MaxLength(500) address?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(180) @SwaggerField({ required: false, type: String, maxLength: 180 }) name?: string;
+  @IsOptional() @IsString() @MaxLength(100) @SwaggerField({ required: false, type: String, maxLength: 100 }) taxId?: string;
+  @IsOptional() @IsString() @MaxLength(50) @SwaggerField({ required: false, type: String, maxLength: 50 }) phone?: string;
+  @IsOptional() @IsEmail() @SwaggerField({ required: false, type: String, format: 'email' }) email?: string;
+  @IsOptional() @IsString() @MaxLength(500) @SwaggerField({ required: false, type: String, maxLength: 500 }) address?: string;
 }
 @ApiTags('Clients')
 @ApiBearerAuth()

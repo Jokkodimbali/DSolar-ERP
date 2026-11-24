@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -12,27 +13,27 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-class CreditAllocationDto {
+class IssueCreditNoteCreditAllocationDto {
   @IsUUID()
-  invoiceLineId!: string;
+  @SwaggerField({ type: String, format: 'uuid' }) invoiceLineId!: string;
   @Matches(/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/)
-  netAmount!: string;
+  @SwaggerField({ type: String, pattern: /^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.source }) netAmount!: string;
 }
 
 export class IssueCreditNoteDto {
   @Matches(/^(?!(?:0)(?:\.0{1,2})?$)(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/)
-  amount!: string;
+  @SwaggerField({ type: String, pattern: /^(?!(?:0)(?:\.0{1,2})?$)(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.source }) amount!: string;
 
   @IsString()
   @MinLength(10)
   @MaxLength(500)
-  reason!: string;
+  @SwaggerField({ type: String, maxLength: 500, minLength: 10 }) reason!: string;
 
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
-  @Type(() => CreditAllocationDto)
-  lines?: CreditAllocationDto[];
+  @Type(() => IssueCreditNoteCreditAllocationDto)
+  @SwaggerField({ required: false, type: () => [IssueCreditNoteCreditAllocationDto], minItems: 1, maxItems: 100 }) lines?: IssueCreditNoteCreditAllocationDto[];
 }

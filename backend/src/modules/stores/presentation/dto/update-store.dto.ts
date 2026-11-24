@@ -1,3 +1,4 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 export class UpdateStoreDto {
@@ -6,9 +7,9 @@ export class UpdateStoreDto {
   @IsString()
   @MinLength(1)
   @MaxLength(160)
-  name?: string;
+  @SwaggerField({ required: false, type: String, maxLength: 160, minLength: 1 }) name?: string;
   @ApiPropertyOptional({ example: 'Dakar, Sénégal', nullable: true })
   @IsOptional()
   @IsString()
-  address?: string | null;
+  @SwaggerField({ required: false, type: String }) address?: string | null;
 }
