@@ -115,6 +115,21 @@ describe('DashboardService', () => {
     expect(csv).toContain('"125.50";"1"');
   });
 
+  it('préserve le signe des centimes négatifs lors des agrégations', async () => {
+    repository.stockValuation.mockResolvedValue([
+      { storeId: 'a', storeName: 'A', valued: '-0.25', unvaluedProducts: 0 },
+      { storeId: 'b', storeName: 'B', valued: '-1.10', unvaluedProducts: 0 },
+    ]);
+    expect((await service.stockValuation('admin')).totalValued).toBe('-1.35');
+  });
+
+  it('neutralise les formules CSV précédées d’espaces', async () => {
+    repository.storeSales.mockResolvedValue([
+      { storeId: 's1', storeName: '  =1+1', quantity: '1.000', amount: '10.00' },
+    ]);
+    expect(await service.exportStoreSalesCsv('admin')).toContain('"\'  =1+1"');
+  });
+
   it('calcule le suivi des commandes fournisseurs par statut', async () => {
     const procurementRepository = {
       ...repository,
@@ -172,6 +187,6 @@ describe('DashboardService', () => {
   it('accepte la limite maximale autorisée pour les produits', async () => {
     repository.topProducts.mockResolvedValue([]);
     await expect(service.topProducts('admin', '50')).resolves.toEqual({ items: [] });
-    expect(repository.topProducts).toHaveBeenCalledWith(50);
+    expect(repository.topProducts).toHaveBeenCalledWith(50, 'admin');
   });
 });

@@ -2,8 +2,10 @@ import { BadRequestException, ForbiddenException, Inject, Injectable } from '@ne
 import { DASHBOARD_REPOSITORY, DashboardRepository } from './dashboard.port';
 
 const cents = (value: string): bigint => {
-  const [whole, fraction = ''] = value.split('.');
-  return BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
+  const negative = value.startsWith('-');
+  const [whole, fraction = ''] = (negative ? value.slice(1) : value).split('.');
+  const magnitude = BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
+  return negative ? -magnitude : magnitude;
 };
 const money = (value: bigint): string => {
   const sign = value < 0n ? '-' : '';
@@ -13,7 +15,7 @@ const money = (value: bigint): string => {
 
 const csvCell = (value: string): string => {
   const needsEscape =
-    ['=', '+', '-', '@'].includes(value.charAt(0)) || value.charCodeAt(0) === 9 || value.charCodeAt(0) === 13;
+    /^[\s\uFEFF]*[=+\-@]/u.test(value) || /^[\t\r\n]/.test(value);
   const safe = needsEscape ? "'" + value : value;
   return '"' + safe.replace(/"/g, '""') + '"';
 };
@@ -54,7 +56,7 @@ export class DashboardService {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Classement réservé au super administrateur.');
     }
-    return { items: await this.repository.topProducts(Number(limit)) };
+    return { items: await this.repository.topProducts(Number(limit), actorId) };
   }
 
   async exportStockValuationCsv(actorId: string): Promise<string> {
@@ -74,7 +76,7 @@ export class DashboardService {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Valorisation réservée au super administrateur.');
     }
-    const stores = await this.repository.stockValuation();
+    const stores = await this.repository.stockValuation(actorId);
     const total = stores.reduce((sum, store) => sum + cents(store.valued), 0n);
     return {
       currency: 'XOF',
@@ -89,7 +91,7 @@ export class DashboardService {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Suivi des achats réservé au super administrateur.');
     }
-    const statuses = await this.repository.procurement();
+    const statuses = await this.repository.procurement(actorId);
     return {
       total: statuses.reduce((sum, status) => sum + status.count, 0),
       statuses,
@@ -103,7 +105,7 @@ export class DashboardService {
     return {
       basis: 'CONFIRMED_SALES_ORDER_LINES',
       currency: 'XOF',
-      stores: await this.repository.storeSales(),
+      stores: await this.repository.storeSales(actorId),
     };
   }
 
@@ -114,14 +116,14 @@ export class DashboardService {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Journal réservé au super administrateur.');
     }
-    return { items: await this.repository.recentActivity(Number(limit)) };
+    return { items: await this.repository.recentActivity(Number(limit), actorId) };
   }
 
   async receivables(actorId: string) {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Créances réservées au super administrateur.');
     }
-    const groups = await this.repository.receivables();
+    const groups = await this.repository.receivables(actorId);
     const total = groups.reduce((sum, group) => sum + cents(group.total), 0n);
     const paid = groups.reduce((sum, group) => sum + cents(group.paid), 0n);
     return {
@@ -144,7 +146,7 @@ export class DashboardService {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Statistiques financières réservées au super administrateur.');
     }
-    const invoices = await this.repository.monthlyInvoices(Number(year));
+    const invoices = await this.repository.monthlyInvoices(Number(year), actorId);
     const totals = Array.from({ length: 12 }, () => 0n);
     for (const invoice of invoices) {
       totals[invoice.issuedAt.getUTCMonth()] += cents(invoice.total);
@@ -164,7 +166,7 @@ export class DashboardService {
     if (!(await this.repository.isAdmin(actorId))) {
       throw new ForbiddenException('Tableau de bord global réservé au super administrateur.');
     }
-    const data = await this.repository.snapshot();
+    const data = await this.repository.snapshot(actorId);
     return {
       stores: data.stores,
       activeProducts: data.activeProducts,

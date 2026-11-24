@@ -52,14 +52,14 @@ export interface DashboardReceivable {
 
 export interface DashboardRepository {
   isAdmin(actorId: string): Promise<boolean>;
-  snapshot(): Promise<DashboardSnapshot>;
-  monthlyInvoices(year: number): Promise<Array<{ issuedAt: Date; total: string }>>;
-  receivables(): Promise<DashboardReceivable[]>;
-  topProducts(limit: number): Promise<DashboardProductRank[]>;
-  recentActivity(limit: number): Promise<DashboardActivity[]>;
-  storeSales(): Promise<DashboardStoreSales[]>;
-  procurement(): Promise<Array<{ status: string; count: number }>>;
-  stockValuation(): Promise<
+  snapshot(actorId: string): Promise<DashboardSnapshot>;
+  monthlyInvoices(year: number, actorId: string): Promise<Array<{ issuedAt: Date; total: string }>>;
+  receivables(actorId: string): Promise<DashboardReceivable[]>;
+  topProducts(limit: number, actorId: string): Promise<DashboardProductRank[]>;
+  recentActivity(limit: number, actorId: string): Promise<DashboardActivity[]>;
+  storeSales(actorId: string): Promise<DashboardStoreSales[]>;
+  procurement(actorId: string): Promise<Array<{ status: string; count: number }>>;
+  stockValuation(actorId: string): Promise<
     Array<{ storeId: string; storeName: string; valued: string; unvaluedProducts: number }>
   >;
 }

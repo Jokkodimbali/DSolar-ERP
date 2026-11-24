@@ -1,17 +1,27 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AuditRepository } from './audit.repository';
 
 describe('AuditRepository', () => {
   const user = { findUnique: jest.fn() };
   const auditLog = { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), groupBy: jest.fn() };
-  const repository = new AuditRepository({ user, auditLog } as unknown as PrismaService);
+  const tx = { user, auditLog };
+  const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
+  const repository = new AuditRepository({ $transaction: transaction } as unknown as PrismaService);
   beforeEach(() => jest.clearAllMocks());
 
   it('interdit la lecture aux magasiniers', async () => {
     user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [] });
     await expect(repository.list('actor', { limit: 10 })).rejects.toBeInstanceOf(ForbiddenException);
     expect(auditLog.findMany).not.toHaveBeenCalled();
+  });
+
+  it('interdit la synthèse à un administrateur désactivé', async () => {
+    user.findUnique.mockResolvedValue({ status: 'INACTIVE', roles: [{ roleId: 'role' }] });
+    await expect(repository.summary('actor', { limit: 1 })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(auditLog.count).not.toHaveBeenCalled();
+    expect(auditLog.groupBy).not.toHaveBeenCalled();
   });
 
   it('rejette un curseur inexistant dans les filtres courants', async () => {
@@ -47,6 +57,9 @@ describe('AuditRepository', () => {
       byEntityType: [{ entityType: 'Store', count: 3 }],
     });
     expect(auditLog.count).toHaveBeenCalledWith({ where: { actorId: 'user' } });
+    expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    });
   });
 
   it('retourne une pagination stable sans exposer le payload', async () => {
