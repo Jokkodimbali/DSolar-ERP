@@ -1,7 +1,22 @@
 import { buildFinancialStatements, StatementAccount } from './financial-statements';
 
-function row(category: StatementAccount['category'], openingDebit: string, openingCredit: string, periodDebit: string, periodCredit: string): StatementAccount {
-  return { accountId: String(category), code: String(category), name: String(category), category, openingDebit, openingCredit, periodDebit, periodCredit };
+function row(
+  category: StatementAccount['category'],
+  openingDebit: string,
+  openingCredit: string,
+  periodDebit: string,
+  periodCredit: string,
+): StatementAccount {
+  return {
+    accountId: String(category),
+    code: String(category),
+    name: String(category),
+    category,
+    openingDebit,
+    openingCredit,
+    periodDebit,
+    periodCredit,
+  };
 }
 
 describe('États financiers internes', () => {
@@ -22,8 +37,11 @@ describe('États financiers internes', () => {
   });
 
   it('ne masque pas une perte', () => {
-    const result = buildFinancialStatements([row('ASSET', '100', '0', '0', '10.01'),
-      row('EQUITY', '0', '100', '0', '0'), row('EXPENSE', '0', '0', '10.01', '0')]);
+    const result = buildFinancialStatements([
+      row('ASSET', '100', '0', '0', '10.01'),
+      row('EQUITY', '0', '100', '0', '0'),
+      row('EXPENSE', '0', '0', '10.01', '0'),
+    ]);
     if (!result.complete) throw new Error('Incomplete');
     expect(result.incomeStatement.result).toBe('-10.01');
     expect(result.balanceSheet.balanced).toBe(true);

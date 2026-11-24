@@ -131,7 +131,11 @@ export class AccountingController {
     return this.service.account(dto.code, dto.name, actor);
   }
   @Post('accounts/:id/classify')
-  classify(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ClassificationDto, @CurrentUserId() actor: string) {
+  classify(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ClassificationDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.classify(id, dto.category, actor);
   }
   @Get('periods/:id/statements')

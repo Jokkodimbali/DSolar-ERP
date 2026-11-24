@@ -49,7 +49,10 @@ export class AccountingRepository implements AccountingPort {
   setup(actor: string) {
     return this.transaction(actor, async (tx) => ({
       rules: await tx.ledgerPostingRule.findMany({ orderBy: { key: 'asc' } }),
-      accounts: await tx.ledgerAccount.findMany({ orderBy: { code: 'asc' }, include: { classification: true } }),
+      accounts: await tx.ledgerAccount.findMany({
+        orderBy: { code: 'asc' },
+        include: { classification: true },
+      }),
       journals: await tx.ledgerJournal.findMany({ orderBy: { code: 'asc' } }),
       periods: await tx.ledgerPeriod.findMany({ orderBy: { startsAt: 'desc' } }),
     }));
@@ -168,14 +171,25 @@ export class AccountingRepository implements AccountingPort {
         throw new NotFoundException('Compte introuvable.');
       const existing = await tx.ledgerAccountClassification.findUnique({ where: { accountId } });
       if (existing?.category === category) return existing;
-      if (existing && await tx.ledgerLine.count({ where: { accountId, entry: { postedAt: { not: null } } } }))
+      if (
+        existing &&
+        (await tx.ledgerLine.count({ where: { accountId, entry: { postedAt: { not: null } } } }))
+      )
         throw new ConflictException('Classification déjà utilisée dans une écriture validée.');
       const result = await tx.ledgerAccountClassification.upsert({
-        where: { accountId }, create: { accountId, category, classifiedBy: actor },
+        where: { accountId },
+        create: { accountId, category, classifiedBy: actor },
         update: { category, classifiedBy: actor, classifiedAt: new Date() },
       });
-      await tx.auditLog.create({ data: { actorId: actor, entityType: 'Accounting', entityId: accountId,
-        action: 'LEDGER_ACCOUNT_CLASSIFIED', payload: { previous: existing?.category ?? null, category } } });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor,
+          entityType: 'Accounting',
+          entityId: accountId,
+          action: 'LEDGER_ACCOUNT_CLASSIFIED',
+          payload: { previous: existing?.category ?? null, category },
+        },
+      });
       return result;
     });
   }
@@ -200,12 +214,22 @@ export class AccountingRepository implements AccountingPort {
         SELECT count(*)::text AS count FROM "LedgerPendingSource"
         WHERE date IS NULL OR date < (${period.endsAt}::date + 1)
       `;
-      const unposted = await tx.ledgerEntry.count({ where: { date: { lte: period.endsAt }, postedAt: null } });
+      const unposted = await tx.ledgerEntry.count({
+        where: { date: { lte: period.endsAt }, postedAt: null },
+      });
       const report = buildFinancialStatements(rows);
       return {
-        periodId, startsAt: period.startsAt, endsAt: period.endsAt, closed: !!period.closedAt,
-        pendingSources: pending.count, unpostedEntries: unposted,
-        provisional: !period.closedAt || pending.count !== '0' || unposted !== 0 || !report.complete ||
+        periodId,
+        startsAt: period.startsAt,
+        endsAt: period.endsAt,
+        closed: !!period.closedAt,
+        pendingSources: pending.count,
+        unpostedEntries: unposted,
+        provisional:
+          !period.closedAt ||
+          pending.count !== '0' ||
+          unposted !== 0 ||
+          !report.complete ||
           (report.complete && !report.balanceSheet.balanced),
         ...report,
       };

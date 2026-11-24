@@ -7,10 +7,17 @@ const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : descri
 
 integration('Comptabilité PostgreSQL', () => {
   it('protège les écritures, les périodes et les contrepassations', async () => {
-    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map((value) => new URL(value || 'invalid:'));
+    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
+      (value) => new URL(value || 'invalid:'),
+    );
     if (
       process.env.NODE_ENV !== 'test' ||
-      urls.some((url) => !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.pathname !== '/dsolar_test' || !['postgres:', 'postgresql:'].includes(url.protocol))
+      urls.some(
+        (url) =>
+          !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+          url.pathname !== '/dsolar_test' ||
+          !['postgres:', 'postgresql:'].includes(url.protocol),
+      )
     )
       throw new Error('Base locale de test requise.');
     const prisma = new PrismaService();
