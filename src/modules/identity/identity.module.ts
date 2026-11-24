@@ -6,6 +6,8 @@ import { USER_MANAGEMENT_REPOSITORY } from './application/user-management.port';
 import { PrismaUserManagementRepository } from './infrastructure/prisma-user-management.repository';
 import { UsersController } from './presentation/users.controller';
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { RoutePolicyGuard } from './presentation/route-policy.guard';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthUseCases } from './application/auth.use-cases';
@@ -28,6 +30,7 @@ import { AuthController } from './presentation/auth.controller';
     BootstrapService,
     { provide: BOOTSTRAP_REPOSITORY, useClass: PrismaBootstrapRepository },
     AccessGuard,
+    { provide: APP_GUARD, useClass: RoutePolicyGuard },
     LoginRateLimitGuard,
     { provide: AUTH_RATE_LIMIT, useClass: PrismaAuthRateLimitRepository },
     PrismaUserRepository,
