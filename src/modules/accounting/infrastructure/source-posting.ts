@@ -25,16 +25,25 @@ async function original(tx: Prisma.TransactionClient, type: SourceType, id: stri
 
 function reverse(entry: Original, date: Date, description: string): SourcePosting {
   return {
-    date, description, journalId: entry.journalId, reversalOfId: entry.id,
+    date,
+    description,
+    journalId: entry.journalId,
+    reversalOfId: entry.id,
     lines: entry.lines.map((line) => ({
-      accountId: line.accountId, debit: line.credit.toFixed(2), credit: line.debit.toFixed(2),
+      accountId: line.accountId,
+      debit: line.credit.toFixed(2),
+      credit: line.debit.toFixed(2),
     })),
   };
 }
 
 async function fromRule(
-  tx: Prisma.TransactionClient, key: string, date: Date, description: string,
-  amount: Prisma.Decimal, tax = new Prisma.Decimal(0),
+  tx: Prisma.TransactionClient,
+  key: string,
+  date: Date,
+  description: string,
+  amount: Prisma.Decimal,
+  tax = new Prisma.Decimal(0),
 ): Promise<SourcePosting> {
   if (amount.lte(0) || tax.lt(0) || tax.gt(amount))
     throw new ConflictException('Montant de la pièce invalide.');
@@ -42,13 +51,17 @@ async function fromRule(
   if (!rule) throw new ConflictException('Règle comptable manquante : ' + key);
   if (tax.gt(0) && !rule.taxAccountId) throw new ConflictException('Compte de taxe obligatoire.');
   const lines: PostingLine[] = [{ accountId: rule.debitAccountId, debit: amount.toFixed(2), credit: '0' }];
-  if (amount.gt(tax)) lines.push({ accountId: rule.creditAccountId, debit: '0', credit: amount.minus(tax).toFixed(2) });
-  if (tax.gt(0) && rule.taxAccountId) lines.push({ accountId: rule.taxAccountId, debit: '0', credit: tax.toFixed(2) });
+  if (amount.gt(tax))
+    lines.push({ accountId: rule.creditAccountId, debit: '0', credit: amount.minus(tax).toFixed(2) });
+  if (tax.gt(0) && rule.taxAccountId)
+    lines.push({ accountId: rule.taxAccountId, debit: '0', credit: tax.toFixed(2) });
   return { date, description, journalId: rule.journalId, lines };
 }
 
 export async function buildSourcePosting(
-  tx: Prisma.TransactionClient, type: SourceType, id: string,
+  tx: Prisma.TransactionClient,
+  type: SourceType,
+  id: string,
 ): Promise<SourcePosting> {
   switch (type) {
     case 'INVOICE': {
@@ -68,7 +81,8 @@ export async function buildSourcePosting(
       if (!item) throw new NotFoundException('Contrepassation introuvable.');
       const entry = await original(tx, 'PAYMENT', item.paymentId);
       const debit = entry.lines.reduce((sum, line) => sum.plus(line.debit), new Prisma.Decimal(0));
-      if (!debit.eq(item.amount)) throw new ConflictException('Contrepassation partielle non prise en charge.');
+      if (!debit.eq(item.amount))
+        throw new ConflictException('Contrepassation partielle non prise en charge.');
       return reverse(entry, item.createdAt, 'Remboursement client ' + id);
     }
     case 'EXPENSE': {
@@ -76,7 +90,13 @@ export async function buildSourcePosting(
       if (!item) throw new NotFoundException('Dépense introuvable.');
       if (!item.paidAt || !item.method || !['PAID', 'REFUNDED'].includes(item.status))
         throw new ConflictException('Dépense payée obligatoire.');
-      return fromRule(tx, type + ':' + item.method + ':' + item.categoryId, item.paidAt, 'Dépense ' + id, item.amount);
+      return fromRule(
+        tx,
+        type + ':' + item.method + ':' + item.categoryId,
+        item.paidAt,
+        'Dépense ' + id,
+        item.amount,
+      );
     }
     case 'EXPENSE_REFUND': {
       const item = await tx.expense.findUnique({ where: { id } });
@@ -87,9 +107,13 @@ export async function buildSourcePosting(
     case 'GOODS_RECEIPT': {
       const item = await tx.goodsReceipt.findUnique({ where: { id }, include: { lines: true } });
       if (!item) throw new NotFoundException('Réception introuvable.');
-      if (item.status !== 'CONFIRMED' || !item.receivedAt) throw new ConflictException('Réception confirmée obligatoire.');
-      const amount = item.lines.reduce((sum, line) =>
-        sum.plus(line.quantity.mul(line.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)), new Prisma.Decimal(0));
+      if (item.status !== 'CONFIRMED' || !item.receivedAt)
+        throw new ConflictException('Réception confirmée obligatoire.');
+      const amount = item.lines.reduce(
+        (sum, line) =>
+          sum.plus(line.quantity.mul(line.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)),
+        new Prisma.Decimal(0),
+      );
       return fromRule(tx, type, item.receivedAt, 'Réception ' + item.number, amount);
     }
     case 'SUPPLIER_RETURN': {
@@ -102,15 +126,26 @@ export async function buildSourcePosting(
       const credit = entry.lines.find((line) => line.credit.gt(0));
       if (entry.lines.length !== 2 || !debit || !credit)
         throw new ConflictException('Imputation de la réception non compatible.');
-      const related = await tx.supplierReturn.findMany({ where: { receiptId: item.receiptId }, select: { id: true } });
+      const related = await tx.supplierReturn.findMany({
+        where: { receiptId: item.receiptId },
+        select: { id: true },
+      });
       const prior = await tx.ledgerLine.aggregate({
-        where: { entry: { sourceType: 'SUPPLIER_RETURN', sourceId: { in: related.map((row) => row.id) }, postedAt: { not: null } } },
+        where: {
+          entry: {
+            sourceType: 'SUPPLIER_RETURN',
+            sourceId: { in: related.map((row) => row.id) },
+            postedAt: { not: null },
+          },
+        },
         _sum: { debit: true },
       });
       if ((prior._sum.debit ?? new Prisma.Decimal(0)).plus(item.total).gt(debit.debit))
         throw new ConflictException('Valorisation cumulée supérieure à la réception.');
       return {
-        date: item.confirmedAt, description: 'Retour fournisseur ' + id, journalId: entry.journalId,
+        date: item.confirmedAt,
+        description: 'Retour fournisseur ' + id,
+        journalId: entry.journalId,
         lines: [
           { accountId: credit.accountId, debit: item.total.toFixed(2), credit: '0' },
           { accountId: debit.accountId, debit: '0', credit: item.total.toFixed(2) },
@@ -119,15 +154,38 @@ export async function buildSourcePosting(
     }
     case 'CASH_MOVEMENT': {
       const item = await tx.cashMovement.findUnique({
-        where: { id }, include: { expensePayment: true, expenseRefund: true,
-          reversalOf: { include: { expensePayment: true } } },
+        where: { id },
+        include: {
+          expensePayment: true,
+          expenseRefund: true,
+          reversalOf: { include: { expensePayment: true } },
+        },
       });
       if (!item) throw new NotFoundException('Mouvement de caisse introuvable.');
-      if (item.transferKey || item.paymentId || item.expensePayment || item.expenseRefund ||
-        item.reversalOf?.paymentId || item.reversalOf?.expensePayment)
-        throw new ConflictException('Comptabiliser la pièce commerciale liée ; transfert à traiter séparément.');
-      if (item.reversalOfId) return reverse(await original(tx, type, item.reversalOfId), item.createdAt, 'Correction caisse ' + id);
-      return fromRule(tx, item.amount.gt(0) ? 'CASH_IN' : 'CASH_OUT', item.createdAt, 'Mouvement caisse ' + id, item.amount.abs());
+      if (
+        item.transferKey ||
+        item.paymentId ||
+        item.expensePayment ||
+        item.expenseRefund ||
+        item.reversalOf?.paymentId ||
+        item.reversalOf?.expensePayment
+      )
+        throw new ConflictException(
+          'Comptabiliser la pièce commerciale liée ; transfert à traiter séparément.',
+        );
+      if (item.reversalOfId)
+        return reverse(
+          await original(tx, type, item.reversalOfId),
+          item.createdAt,
+          'Correction caisse ' + id,
+        );
+      return fromRule(
+        tx,
+        item.amount.gt(0) ? 'CASH_IN' : 'CASH_OUT',
+        item.createdAt,
+        'Mouvement caisse ' + id,
+        item.amount.abs(),
+      );
     }
   }
 }

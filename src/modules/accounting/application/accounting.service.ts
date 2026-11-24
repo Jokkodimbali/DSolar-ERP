@@ -23,7 +23,11 @@ export class AccountingService {
 
   rule(input: PostingRuleInput, actor: string) {
     if (!validRuleKey(input.key)) throw new BadRequestException('Clé de règle invalide.');
-    const ids = [input.debitAccountId, input.creditAccountId, ...(input.taxAccountId ? [input.taxAccountId] : [])];
+    const ids = [
+      input.debitAccountId,
+      input.creditAccountId,
+      ...(input.taxAccountId ? [input.taxAccountId] : []),
+    ];
     if (new Set(ids).size !== ids.length || (input.taxAccountId && input.key !== 'INVOICE'))
       throw new BadRequestException('Comptes distincts requis ; taxe réservée aux factures.');
     return this.repository.rule(input, actor);

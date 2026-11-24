@@ -64,18 +64,37 @@ integration('Comptabilité PostgreSQL', () => {
       expect(balance.debit.toString()).toBe('100.5');
       const customer = await prisma.customer.create({ data: { name: 'Client comptabilité CI' } });
       const invoice = await prisma.invoice.create({
-        data: { number: 'FAC-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2090-01-02T12:00:00Z'), totalHt: '100', totalTax: '18', totalTtc: '118' },
+        data: {
+          number: 'FAC-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          issuedAt: new Date('2090-01-02T12:00:00Z'),
+          totalHt: '100',
+          totalTax: '18',
+          totalTtc: '118',
+        },
       });
-      await expect(repo.postSource('INVOICE', invoice.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
+      await expect(repo.postSource('INVOICE', invoice.id, admin.id)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
       const tax = await repo.account('44-' + suffix, 'Taxe collectée', admin.id);
-      await repo.rule({ key: 'INVOICE', journalId: journal.id,
-        debitAccountId: cash.id, creditAccountId: income.id, taxAccountId: tax.id }, admin.id);
+      await repo.rule(
+        {
+          key: 'INVOICE',
+          journalId: journal.id,
+          debitAccountId: cash.id,
+          creditAccountId: income.id,
+          taxAccountId: tax.id,
+        },
+        admin.id,
+      );
       const booked = await repo.postSource('INVOICE', invoice.id, admin.id);
       expect(booked.lines).toHaveLength(3);
       expect(booked.lines.find((line) => line.accountId === tax.id)?.credit.toString()).toBe('18');
       expect((await repo.postSource('INVOICE', invoice.id, admin.id)).id).toBe(booked.id);
-      await expect(repo.reverse(booked.id, period.id, '2090-01-03', 'Correction', randomUUID(), admin.id)).rejects.toBeInstanceOf(ConflictException);
+      await expect(
+        repo.reverse(booked.id, period.id, '2090-01-03', 'Correction', randomUUID(), admin.id),
+      ).rejects.toBeInstanceOf(ConflictException);
       await repo.close(period.id, admin.id);
       await expect(repo.post({ ...input, operationKey: randomUUID() }, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
