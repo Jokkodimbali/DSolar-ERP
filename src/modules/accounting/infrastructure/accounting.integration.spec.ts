@@ -460,6 +460,12 @@ integration('Comptabilité PostgreSQL', () => {
           totalTtc: '25.01',
         },
       });
+      await expect(
+        repo.postSource('INVOICE', autoInvoice.id, admin.id, { periodId: next.id }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(
+        await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: autoInvoice.id } }),
+      ).toBe(0);
       expect((await repo.runAutomaticCycle()).processed).toBe(0);
       await repo.configureAutomation(autoPeriod.id, true, admin.id);
       expect((await repo.runAutomaticCycle()).processed).toBe(1);
@@ -467,6 +473,9 @@ integration('Comptabilité PostgreSQL', () => {
       expect(
         await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: autoInvoice.id } }),
       ).toBe(1);
+      await expect(
+        repo.postSource('INVOICE', autoInvoice.id, admin.id, { periodId: next.id }),
+      ).rejects.toBeInstanceOf(ConflictException);
       await repo.configureAutomation(autoPeriod.id, false, admin.id);
       const disabledInvoice = await prisma.invoice.create({
         data: {

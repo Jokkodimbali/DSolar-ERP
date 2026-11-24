@@ -100,18 +100,18 @@ export class AccountingRepository implements AccountingPort {
     type: SourceType,
     id: string,
     actor: string,
-    automatic?: { periodId: string; revision: number },
+    scope?: { periodId: string; revision?: number },
   ) {
     return this.transaction(actor, async (tx) => {
-      if (automatic) {
-        await tx.$queryRaw`SELECT "periodId" FROM "LedgerAutomation" WHERE "periodId" = ${automatic.periodId}::uuid FOR UPDATE`;
+      if (scope?.revision !== undefined) {
+        await tx.$queryRaw`SELECT "periodId" FROM "LedgerAutomation" WHERE "periodId" = ${scope.periodId}::uuid FOR UPDATE`;
         const configuration = await tx.ledgerAutomation.findUnique({
-          where: { periodId: automatic.periodId },
+          where: { periodId: scope.periodId },
         });
         if (
           !configuration?.enabled ||
           configuration.actorId !== actor ||
-          configuration.revision !== automatic.revision
+          configuration.revision !== scope.revision
         )
           throw new ConflictException('Automatisation désactivée ou configuration modifiée.');
       }
@@ -119,7 +119,11 @@ export class AccountingRepository implements AccountingPort {
         where: { sourceType_sourceId: { sourceType: type, sourceId: id } },
         include: { lines: true },
       });
-      if (previous?.postedAt) return previous;
+      if (previous?.postedAt) {
+        if (scope && previous.periodId !== scope.periodId)
+          throw new ConflictException('Écriture rattachée à une autre période.');
+        return previous;
+      }
       if (previous) throw new ConflictException('Écriture source non validée.');
       await lockSource(tx, type, id);
       const posting = await buildSourcePosting(tx, type, id);
@@ -128,7 +132,7 @@ export class AccountingRepository implements AccountingPort {
       const period = await tx.ledgerPeriod.findFirst({
         where: { startsAt: { lte: day }, endsAt: { gte: day }, closedAt: null },
       });
-      if (!period || (automatic && period.id !== automatic.periodId))
+      if (!period || (scope && period.id !== scope.periodId))
         throw new ConflictException('Aucune période ouverte autorisée à la date de la pièce.');
       return this.write(
         tx,
@@ -259,7 +263,7 @@ export class AccountingRepository implements AccountingPort {
     for (const item of pending.items.slice(0, 25)) {
       try {
         if (!item.date) throw new ConflictException('Date comptable manquante sur la pièce.');
-        const entry = await this.postSource(item.type, item.id, actor);
+        const entry = await this.postSource(item.type, item.id, actor, { periodId });
         results.push({ type: item.type, id: item.id, entryId: entry.id });
       } catch (error) {
         if (!(error instanceof HttpException) || ![404, 409].includes(error.getStatus())) throw error;

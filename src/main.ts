@@ -5,9 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configuredOrigins, securityHeaders, trustedProxyHops } from './infrastructure/http/http-security';
 import { SafeExceptionFilter } from './infrastructure/http/safe-exception.filter';
+import { validatedJwtSecrets } from './modules/identity/infrastructure/jwt-configuration';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  validatedJwtSecrets(process.env);
   app.getHttpAdapter().getInstance().disable('x-powered-by');
   app.getHttpAdapter().getInstance().set('trust proxy', trustedProxyHops(process.env.TRUST_PROXY_HOPS));
   app.use(securityHeaders);

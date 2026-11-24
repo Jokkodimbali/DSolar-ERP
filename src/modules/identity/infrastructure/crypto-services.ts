@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
+import { validatedJwtSecrets } from './jwt-configuration';
 import { AccessClaims, PasswordService, RefreshClaims, TokenService } from '../application/ports';
 
 @Injectable()
@@ -58,12 +59,7 @@ export class JwtTokenService implements TokenService {
       throw new UnauthorizedException('Jeton invalide.');
     return claims;
   }
-  private secret(name: string): string {
-    const secret = process.env[name];
-    if (!secret || secret.length < 32)
-      throw new Error(`Configuration requise : ${name} (32 caractères minimum)`);
-    const other = process.env[name === 'JWT_ACCESS_SECRET' ? 'JWT_REFRESH_SECRET' : 'JWT_ACCESS_SECRET'];
-    if (secret === other) throw new Error('Les secrets JWT doivent être distincts.');
-    return secret;
+  private secret(name: 'JWT_ACCESS_SECRET' | 'JWT_REFRESH_SECRET'): string {
+    return validatedJwtSecrets(process.env)[name];
   }
 }
