@@ -180,8 +180,15 @@ integration('Comptabilité PostgreSQL', () => {
       // Remove the intentionally inconsistent test fixture, never a real issued credit.
       await prisma.creditNote.delete({ where: { id: partial.id } });
       const otherInvoice = await prisma.invoice.create({
-        data: { number: 'FAC2-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2090-01-05T12:00:00Z'), totalHt: '0.01', totalTax: '0', totalTtc: '0.01' },
+        data: {
+          number: 'FAC2-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          issuedAt: new Date('2090-01-05T12:00:00Z'),
+          totalHt: '0.01',
+          totalTax: '0',
+          totalTtc: '0.01',
+        },
       });
       const batch = await repo.postPending(period.id, admin.id);
       expect(batch.results.some((item) => item.id === otherInvoice.id && !!item.entryId)).toBe(true);

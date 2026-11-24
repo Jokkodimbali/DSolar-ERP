@@ -19,7 +19,7 @@ export function assertBalanced(lines: PostingLine[]): void {
   for (const line of lines) {
     const d = cents(line.debit);
     const c = cents(line.credit);
-    if ((d > 0n) === (c > 0n)) throw new Error('Débit ou crédit exclusif requis.');
+    if (d > 0n === c > 0n) throw new Error('Débit ou crédit exclusif requis.');
     debit += d;
     credit += c;
   }
@@ -45,5 +45,10 @@ export function aggregateCents(value: string): bigint {
 
 export function moneyText(value: bigint): string {
   const magnitude = value < 0n ? -value : value;
-  return (value < 0n ? '-' : '') + (magnitude / 100n).toString() + '.' + (magnitude % 100n).toString().padStart(2, '0');
+  return (
+    (value < 0n ? '-' : '') +
+    (magnitude / 100n).toString() +
+    '.' +
+    (magnitude % 100n).toString().padStart(2, '0')
+  );
 }

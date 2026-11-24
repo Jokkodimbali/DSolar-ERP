@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { ConflictException, ForbiddenException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingPort, PostingInput } from '../application/accounting.port';
@@ -340,7 +346,12 @@ export class AccountingRepository implements AccountingPort {
         const group = byAccount.get(account.id);
         const debit = aggregateCents(group?._sum.debit?.toFixed(2) ?? '0');
         const credit = aggregateCents(group?._sum.credit?.toFixed(2) ?? '0');
-        return { ...account, debit: moneyText(debit), credit: moneyText(credit), balance: moneyText(debit - credit) };
+        return {
+          ...account,
+          debit: moneyText(debit),
+          credit: moneyText(credit),
+          balance: moneyText(debit - credit),
+        };
       });
       const debit = rows.reduce((sum, row) => sum + aggregateCents(row.debit), 0n);
       const credit = rows.reduce((sum, row) => sum + aggregateCents(row.credit), 0n);
