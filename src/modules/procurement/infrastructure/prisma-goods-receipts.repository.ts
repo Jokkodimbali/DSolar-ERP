@@ -21,8 +21,8 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
     if (!store || store.status !== 'ACTIVE') throw new ConflictException('Magasin introuvable ou inactif.');
   }
 
-  private async isActiveAdmin(actorId: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
+  private async isActiveAdmin(tx: Prisma.TransactionClient, actorId: string): Promise<boolean> {
+    const user = await tx.user.findUnique({
       where: { id: actorId },
       select: {
         status: true,
@@ -33,37 +33,47 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
   }
 
   async list(actorId: string) {
-    const isAdmin = await this.isActiveAdmin(actorId);
-    return this.prisma.goodsReceipt.findMany({
-      where: isAdmin
-        ? { store: { status: 'ACTIVE' } }
-        : {
-            store: {
-              status: 'ACTIVE',
-              userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
-            },
-          },
-      include: { lines: true },
-      orderBy: { number: 'desc' },
-    });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const isAdmin = await this.isActiveAdmin(tx, actorId);
+        return tx.goodsReceipt.findMany({
+          where: isAdmin
+            ? { store: { status: 'ACTIVE' } }
+            : {
+                store: {
+                  status: 'ACTIVE',
+                  userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+                },
+              },
+          include: { lines: true },
+          orderBy: { number: 'desc' },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async get(id: string, actorId: string) {
-    const isAdmin = await this.isActiveAdmin(actorId);
-    const receipt = await this.prisma.goodsReceipt.findFirst({
-      where: isAdmin
-        ? { id, store: { status: 'ACTIVE' } }
-        : {
-            id,
-            store: {
-              status: 'ACTIVE',
-              userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
-            },
-          },
-      include: { lines: true },
-    });
-    if (!receipt) throw new NotFoundException('Réception introuvable.');
-    return receipt;
+    return this.prisma.$transaction(
+      async (tx) => {
+        const isAdmin = await this.isActiveAdmin(tx, actorId);
+        const receipt = await tx.goodsReceipt.findFirst({
+          where: isAdmin
+            ? { id, store: { status: 'ACTIVE' } }
+            : {
+                id,
+                store: {
+                  status: 'ACTIVE',
+                  userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+                },
+              },
+          include: { lines: true },
+        });
+        if (!receipt) throw new NotFoundException('Réception introuvable.');
+        return receipt;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
   async create(input: CreateReceiptInput, actorId: string) {
     try {
@@ -126,7 +136,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           });
           return created;
         },
-        { maxWait: 10000, timeout: 30000 },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
       );
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -236,18 +246,27 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
           include: { lines: true },
         });
         const received = new Map<string, Prisma.Decimal>();
-        for (const item of prior)
-          for (const line of item.lines)
+        for (const item of prior) {
+          for (const line of item.lines) {
+            if (!line.quantity.isFinite() || line.quantity.lte(0))
+              throw new ConflictException('Quantité historique réceptionnée invalide.');
             received.set(
               line.productId,
               (received.get(line.productId) ?? new Prisma.Decimal(0)).plus(line.quantity),
             );
+          }
+        }
         const ordered = new Map<string, Prisma.Decimal>();
         for (const line of order.lines)
           ordered.set(
             line.productId,
             (ordered.get(line.productId) ?? new Prisma.Decimal(0)).plus(line.quantity),
           );
+        for (const [productId, quantity] of received) {
+          const limit = ordered.get(productId);
+          if (!limit || quantity.gt(limit))
+            throw new ConflictException('Cumul historique des réceptions incohérent.');
+        }
         for (const line of receipt.lines) {
           const limit = ordered.get(line.productId);
           if (!limit || (received.get(line.productId) ?? new Prisma.Decimal(0)).plus(line.quantity).gt(limit))
@@ -257,7 +276,7 @@ export class PrismaGoodsReceiptsRepository implements GoodsReceiptsRepository {
             (received.get(line.productId) ?? new Prisma.Decimal(0)).plus(line.quantity),
           );
         }
-        for (const line of receipt.lines) {
+        for (const line of [...receipt.lines].sort((a, b) => a.productId.localeCompare(b.productId))) {
           await tx.storeStock.upsert({
             where: { storeId_productId: { storeId: receipt.storeId, productId: line.productId } },
             create: { storeId: receipt.storeId, productId: line.productId, quantity: line.quantity },

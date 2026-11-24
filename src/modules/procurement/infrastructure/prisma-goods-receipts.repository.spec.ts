@@ -6,11 +6,18 @@ import { PrismaGoodsReceiptsRepository } from './prisma-goods-receipts.repositor
 describe('PrismaGoodsReceiptsRepository.confirm', () => {
   it('restreint la liste aux utilisateurs actifs et aux magasins actifs autorisés', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
-    const repository = new PrismaGoodsReceiptsRepository({
+    const tx = {
       goodsReceipt: { findMany },
       user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+    };
+    const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: transaction,
     } as unknown as PrismaService);
     await repository.list('actor-id');
+    expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    });
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -25,9 +32,13 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
 
   it('restreint la consultation individuelle aux mêmes autorisations', async () => {
     const findFirst = jest.fn().mockResolvedValue({ id: 'receipt-id' });
-    const repository = new PrismaGoodsReceiptsRepository({
+    const tx = {
       goodsReceipt: { findFirst },
       user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+    };
+    const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: transaction,
     } as unknown as PrismaService);
     await repository.get('receipt-id', 'actor-id');
     expect(findFirst).toHaveBeenCalledWith(
@@ -46,9 +57,13 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
   // prettier-ignore
   it('ne donne pas les droits administrateur à un utilisateur inactif', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
-    const repository = new PrismaGoodsReceiptsRepository({
+    const tx = {
       goodsReceipt: { findMany },
       user: { findUnique: jest.fn().mockResolvedValue({ status: 'INACTIVE', roles: [{ roleId: 'admin' }] }) },
+    };
+    const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: transaction,
     } as unknown as PrismaService);
     await repository.list('inactive-actor');
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -59,9 +74,13 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
   // prettier-ignore
   it('permet à un administrateur actif de consulter les réceptions des magasins actifs', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
-    const repository = new PrismaGoodsReceiptsRepository({
+    const tx = {
       goodsReceipt: { findMany },
       user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'admin' }] }) },
+    };
+    const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: transaction,
     } as unknown as PrismaService);
     await repository.list('admin-actor');
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -674,6 +693,50 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
     expect(tx.goodsReceipt.update).toHaveBeenCalledTimes(1);
     expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['product-id', '-1'],
+    ['product-id', '11'],
+    ['unexpected-product', '1'],
+  ])('refuse un historique incohérent avant mutation : %s / %s', async (productId, quantity) => {
+    const tx = {
+      $executeRaw: jest.fn(),
+      goodsReceipt: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'receipt-id',
+          storeId: 'store-id',
+          status: 'DRAFT',
+          purchaseOrderId: 'order-id',
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(10) }],
+        }),
+        findMany: jest.fn().mockResolvedValue([
+          { lines: [{ productId, quantity: new Prisma.Decimal(quantity) }] },
+        ]),
+        update: jest.fn(),
+      },
+      store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
+      userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor-id' }) },
+      purchaseOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'order-id',
+          status: 'CONFIRMED',
+          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(10) }],
+        }),
+        update: jest.fn(),
+      },
+      storeStock: { upsert: jest.fn() },
+      stockMovement: { create: jest.fn() },
+    };
+    const repository = new PrismaGoodsReceiptsRepository({
+      $transaction: jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx)),
+    } as unknown as PrismaService);
+    await expect(repository.confirm('receipt-id', 'actor-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.storeStock.upsert).not.toHaveBeenCalled();
+    expect(tx.stockMovement.create).not.toHaveBeenCalled();
+    expect(tx.purchaseOrder.update).not.toHaveBeenCalled();
+    expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
   });
 
   const serializationConflict = () =>
