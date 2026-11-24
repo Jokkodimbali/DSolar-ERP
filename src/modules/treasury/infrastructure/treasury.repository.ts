@@ -191,9 +191,12 @@ export class TreasuryRepository implements TreasuryPort {
         }
         return previous;
       }
-      const original = await tx.cashMovement.findUnique({ where: { id } });
+      const original = await tx.cashMovement.findUnique({
+        where: { id },
+        include: { expensePayment: true },
+      });
       if (!original) throw new NotFoundException('Mouvement introuvable.');
-      if (original.transferKey || original.reversalOfId || original.paymentId)
+      if (original.transferKey || original.reversalOfId || original.paymentId || original.expensePayment)
         throw new ConflictException('Mouvement non contrepassable individuellement.');
       const session = await this.session(tx, original.sessionId);
       const amount = original.amount.negated();
