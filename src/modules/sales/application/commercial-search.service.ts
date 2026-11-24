@@ -11,6 +11,9 @@ const statuses: Record<CommercialKind, readonly string[]> = {
   proformas: ['DRAFT', 'ISSUED', 'ACCEPTED', 'CANCELLED', 'EXPIRED'],
   orders: ['DRAFT', 'CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED', 'CANCELLED'],
   invoices: ['DRAFT', 'ISSUED', 'CANCELLED'],
+  deliveries: ['DRAFT', 'CONFIRMED', 'CANCELLED'],
+  payments: ['ACTIVE', 'REVERSED'],
+  'credit-notes': [],
 };
 
 @Injectable()
@@ -23,6 +26,10 @@ export class CommercialSearchService {
       );
     if (kind === 'customers' && (query.customerId || query.storeId || query.status))
       throw new BadRequestException('Ces filtres ne sont pas disponibles pour les clients.');
+    if (query.orderId && !['deliveries', 'payments', 'invoices'].includes(kind))
+      throw new BadRequestException('Le filtre par commande n’est pas disponible pour cette liste.');
+    if (query.invoiceId && kind !== 'credit-notes')
+      throw new BadRequestException('Le filtre par facture est réservé aux avoirs.');
     return this.repository.search(kind, actorId, query);
   }
 }

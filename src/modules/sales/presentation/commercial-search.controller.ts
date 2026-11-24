@@ -10,6 +10,8 @@ class CommercialQueryDto extends PageQueryDto {
   @IsOptional() @IsString() @MaxLength(40) status?: string;
   @IsOptional() @IsUUID() customerId?: string;
   @IsOptional() @IsUUID() storeId?: string;
+  @IsOptional() @IsUUID() orderId?: string;
+  @IsOptional() @IsUUID() invoiceId?: string;
 }
 @ApiTags('Recherche commerciale')
 @ApiBearerAuth()
@@ -33,5 +35,17 @@ export class CommercialSearchController {
   @Get('invoices/search')
   invoices(@CurrentUserId() actor: string, @Query() query: CommercialQueryDto) {
     return this.service.search('invoices', actor, query);
+  }
+  @Get('deliveries/search')
+  deliveries(@CurrentUserId() actor: string, @Query() query: CommercialQueryDto) {
+    return this.service.search('deliveries', actor, query);
+  }
+  @Get('payments/search')
+  payments(@CurrentUserId() actor: string, @Query() query: CommercialQueryDto) {
+    return this.service.search('payments', actor, query);
+  }
+  @Get('credit-notes/search')
+  creditNotes(@CurrentUserId() actor: string, @Query() query: CommercialQueryDto) {
+    return this.service.search('credit-notes', actor, query);
   }
 }
