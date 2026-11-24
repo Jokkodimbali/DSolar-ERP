@@ -382,6 +382,7 @@ model GoodsReceipt {
   status ReceiptStatus @default(DRAFT)
   receivedAt DateTime?
   lines GoodsReceiptLine[]
+  supplierReturns SupplierReturn[]
 }
 model GoodsReceiptLine {
   id String @id @default(uuid()) @db.Uuid
@@ -391,6 +392,7 @@ model GoodsReceiptLine {
   product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
   quantity Decimal @db.Decimal(18,3)
   unitCost Decimal @db.Decimal(18,2)
+  returnLines SupplierReturnLine[]
 }
 
 // Ventes : clients, devis proforma, commandes et livraisons
@@ -679,4 +681,56 @@ model Expense {
   endReason String? @db.VarChar(500)
   @@index([storeId, status, createdAt])
   @@index([categoryId])
+}
+
+enum SupplierReturnStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+model SupplierReturn {
+  id String @id @default(uuid()) @db.Uuid
+  receiptId String @db.Uuid
+  receipt GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+  operationKey String @unique @db.Uuid
+  reason String @db.VarChar(500)
+  status SupplierReturnStatus @default(DRAFT)
+  total Decimal @db.Decimal(18,2)
+  createdBy String @db.Uuid
+  createdAt DateTime @default(now())
+  confirmedBy String? @db.Uuid
+  confirmedAt DateTime?
+  cancelledBy String? @db.Uuid
+  cancelledAt DateTime?
+  cancellationReason String? @db.VarChar(500)
+  lines SupplierReturnLine[]
+  credit SupplierReturnCredit?
+  @@index([receiptId, status])
+  @@index([createdAt])
+}
+
+model SupplierReturnLine {
+  id String @id @default(uuid()) @db.Uuid
+  returnId String @db.Uuid
+  supplierReturn SupplierReturn @relation(fields: [returnId], references: [id], onDelete: Restrict)
+  receiptLineId String @db.Uuid
+  receiptLine GoodsReceiptLine @relation(fields: [receiptLineId], references: [id], onDelete: Restrict)
+  quantity Decimal @db.Decimal(18,3)
+  unitCost Decimal @db.Decimal(18,2)
+  total Decimal @db.Decimal(18,2)
+  @@unique([returnId, receiptLineId])
+  @@index([receiptLineId])
+}
+
+model SupplierReturnCredit {
+  id String @id @default(uuid()) @db.Uuid
+  returnId String @unique @db.Uuid
+  supplierReturn SupplierReturn @relation(fields: [returnId], references: [id], onDelete: Restrict)
+  reference String @db.VarChar(100)
+  supplierId String @db.Uuid
+  amount Decimal @db.Decimal(18,2)
+  recordedBy String @db.Uuid
+  recordedAt DateTime @default(now())
+  @@unique([supplierId, reference])
 }

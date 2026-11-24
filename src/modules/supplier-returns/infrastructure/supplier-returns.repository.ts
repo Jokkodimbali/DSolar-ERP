@@ -1,0 +1,178 @@
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { ReturnInput, SupplierReturnsPort } from '../application/supplier-returns.port';
+import { validReturnQuantity } from '../domain/return-policy';
+
+@Injectable()
+export class SupplierReturnsRepository implements SupplierReturnsPort {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async transaction<T>(actor: string, work: (tx: Prisma.TransactionClient) => Promise<T>) {
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const user = await tx.user.findFirst({
+            where: { id: actor, status: 'ACTIVE', roles: { some: { role: { code: 'ADMIN' } } } },
+          });
+          if (!user) throw new ForbiddenException('Accès retours fournisseurs interdit.');
+          return work(tx);
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30000 },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code))
+        throw new ConflictException('Opération concurrente ou déjà enregistrée.');
+      throw error;
+    }
+  }
+
+  private async audit(tx: Prisma.TransactionClient, actorId: string, action: string, entityId: string, storeId: string) {
+    await tx.auditLog.create({ data: { actorId, action, entityId, storeId, entityType: 'SupplierReturn' } });
+  }
+
+  private async load(tx: Prisma.TransactionClient, id: string) {
+    const result = await tx.supplierReturn.findUnique({
+      where: { id },
+      include: { lines: { include: { receiptLine: true } }, receipt: true, credit: true },
+    });
+    if (!result) throw new NotFoundException('Retour introuvable.');
+    return result;
+  }
+
+  list(actor: string, storeId?: string) {
+    return this.transaction(actor, (tx) => tx.supplierReturn.findMany({
+      where: { receipt: { storeId } },
+      include: { lines: true, credit: true },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 200,
+    }));
+  }
+
+  get(id: string, actor: string) {
+    return this.transaction(actor, (tx) => this.load(tx, id));
+  }
+
+  create(input: ReturnInput, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      if (!input.lines.length || input.lines.length > 100 ||
+        new Set(input.lines.map((line) => line.receiptLineId)).size !== input.lines.length ||
+        input.lines.some((line) => !validReturnQuantity(line.quantity)))
+        throw new ConflictException('Lignes invalides.');
+      const existing = await tx.supplierReturn.findUnique({
+        where: { operationKey: input.operationKey },
+        include: { lines: true },
+      });
+      if (existing) {
+        if (existing.createdBy !== actor || existing.receiptId !== input.receiptId ||
+          existing.reason !== input.reason || existing.lines.length !== input.lines.length ||
+          input.lines.some((line) => !existing.lines.some((old) => old.receiptLineId === line.receiptLineId &&
+            old.quantity.eq(line.quantity))))
+          throw new ConflictException('Clé opération déjà utilisée.');
+        return existing;
+      }
+      const receipt = await tx.goodsReceipt.findUnique({
+        where: { id: input.receiptId },
+        include: { lines: true, store: true },
+      });
+      if (!receipt || receipt.status !== 'CONFIRMED' || !receipt.purchaseOrderId || receipt.store.status !== 'ACTIVE')
+        throw new ConflictException('Réception confirmée avec commande et magasin actif requise.');
+      const lines = input.lines.map((line) => {
+        const original = receipt.lines.find((item) => item.id === line.receiptLineId);
+        const quantity = new Prisma.Decimal(line.quantity);
+        if (!original || quantity.gt(original.quantity))
+          throw new ConflictException('Quantité supérieure à la réception ou ligne inconnue.');
+        const total = quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        return { receiptLineId: original.id, quantity, unitCost: original.unitCost, total };
+      });
+      const total = lines.reduce((sum, line) => sum.plus(line.total), new Prisma.Decimal(0));
+      if (total.gt('9999999999999999.99')) throw new ConflictException('Montant hors limite.');
+      const result = await tx.supplierReturn.create({
+        data: {
+          receiptId: receipt.id, operationKey: input.operationKey, reason: input.reason,
+          createdBy: actor, total, lines: { create: lines },
+        },
+        include: { lines: true },
+      });
+      await this.audit(tx, actor, 'SUPPLIER_RETURN_CREATED', result.id, receipt.storeId);
+      return result;
+    });
+  }
+
+  confirm(id: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const item = await this.load(tx, id);
+      if (item.status === 'CONFIRMED') return item;
+      if (item.status !== 'DRAFT' || item.receipt.status !== 'CONFIRMED' || !item.lines.length)
+        throw new ConflictException('Retour non confirmable.');
+      const store = await tx.store.findFirst({ where: { id: item.receipt.storeId, status: 'ACTIVE' } });
+      if (!store) throw new ConflictException('Magasin inactif.');
+      for (const line of [...item.lines].sort((a, b) => a.receiptLine.productId.localeCompare(b.receiptLine.productId))) {
+        const original = line.receiptLine;
+        if (original.receiptId !== item.receiptId) throw new ConflictException('Ligne de réception incohérente.');
+        const returned = await tx.supplierReturnLine.aggregate({
+          where: { receiptLineId: original.id, supplierReturn: { status: 'CONFIRMED' } },
+          _sum: { quantity: true },
+        });
+        if ((returned._sum.quantity ?? new Prisma.Decimal(0)).plus(line.quantity).gt(original.quantity))
+          throw new ConflictException('Quantité cumulée retournée supérieure à la réception.');
+        // Never silently remove stock associated with serialized equipment.
+        if (await tx.serialNumber.count({ where: { productId: original.productId } }))
+          throw new ConflictException('Produit sérialisé : retour avec traçabilité individuelle requis.');
+        const stock = await tx.storeStock.findUnique({
+          where: { storeId_productId: { storeId: store.id, productId: original.productId } },
+        });
+        if (!stock || stock.quantity.minus(stock.reserved).lt(line.quantity))
+          throw new ConflictException('Stock disponible insuffisant.');
+        const changed = await tx.storeStock.updateMany({
+          where: { id: stock.id, quantity: stock.quantity, reserved: stock.reserved },
+          data: { quantity: { decrement: line.quantity } },
+        });
+        if (changed.count !== 1) throw new ConflictException('Stock modifié simultanément.');
+        await tx.stockMovement.create({
+          data: {
+            storeId: store.id, productId: original.productId, quantity: line.quantity,
+            type: 'RETURN_OUT', referenceType: 'SUPPLIER_RETURN', referenceId: id,
+            operationKey: 'supplier-return:' + id + ':' + line.id, actorId: actor, reason: item.reason,
+          },
+        });
+      }
+      await tx.supplierReturn.update({
+        where: { id }, data: { status: 'CONFIRMED', confirmedBy: actor, confirmedAt: new Date() },
+      });
+      await this.audit(tx, actor, 'SUPPLIER_RETURN_CONFIRMED', id, store.id);
+      return this.load(tx, id);
+    });
+  }
+
+  cancel(id: string, reason: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const item = await this.load(tx, id);
+      if (item.status !== 'DRAFT') throw new ConflictException('Seul un brouillon peut être annulé.');
+      await tx.supplierReturn.update({
+        where: { id },
+        data: { status: 'CANCELLED', cancelledBy: actor, cancelledAt: new Date(), cancellationReason: reason },
+      });
+      await this.audit(tx, actor, 'SUPPLIER_RETURN_CANCELLED', id, item.receipt.storeId);
+      return this.load(tx, id);
+    });
+  }
+
+  credit(id: string, reference: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const item = await this.load(tx, id);
+      if (item.credit) {
+        if (item.credit.reference === reference) return item.credit;
+        throw new ConflictException('Avoir fournisseur déjà enregistré.');
+      }
+      if (item.status !== 'CONFIRMED' || !item.receipt.purchaseOrderId || item.total.lte(0))
+        throw new ConflictException('Retour confirmé valorisé obligatoire.');
+      const order = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: item.receipt.purchaseOrderId } });
+      const result = await tx.supplierReturnCredit.create({
+        data: { returnId: id, supplierId: order.supplierId, amount: item.total, reference, recordedBy: actor },
+      });
+      await this.audit(tx, actor, 'SUPPLIER_RETURN_CREDIT_RECORDED', id, item.receipt.storeId);
+      return result;
+    });
+  }
+}

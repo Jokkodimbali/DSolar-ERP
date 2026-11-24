@@ -12,6 +12,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
+import { SupplierReturnsModule } from './modules/supplier-returns/supplier-returns.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -26,6 +27,7 @@ import { ExpensesModule } from './modules/expenses/expenses.module';
     AuditModule,
     TreasuryModule,
     ExpensesModule,
+    SupplierReturnsModule,
   ],
   controllers: [HealthController],
 })
