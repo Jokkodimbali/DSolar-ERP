@@ -25,10 +25,7 @@ export class TreasuryRepository implements TreasuryPort {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        ['P2002', 'P2034'].includes(error.code)
-      )
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code))
         throw new ConflictException('Opération concurrente ou déjà enregistrée.');
       throw error;
     }
@@ -220,11 +217,7 @@ export class TreasuryRepository implements TreasuryPort {
     return this.transaction(actor, async (tx) => {
       const previous = await tx.cashMovement.findUnique({ where: { operationKey: key } });
       if (previous) {
-        if (
-          previous.sessionId !== id ||
-          previous.paymentId !== paymentId ||
-          previous.actorId !== actor
-        ) {
+        if (previous.sessionId !== id || previous.paymentId !== paymentId || previous.actorId !== actor) {
           throw new ConflictException('Clé opération déjà utilisée.');
         }
         return previous;

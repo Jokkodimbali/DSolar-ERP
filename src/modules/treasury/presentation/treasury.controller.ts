@@ -69,21 +69,13 @@ export class TreasuryController {
 
   @Post('registers/:id/open')
   @RequirePermissions('sales.manage')
-  open(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AmountDto,
-    @CurrentUserId() actor: string,
-  ) {
+  open(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
     return this.service.open(id, dto.amount, actor);
   }
 
   @Post('sessions/:id/movements')
   @RequirePermissions('sales.manage')
-  move(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: MovementDto,
-    @CurrentUserId() actor: string,
-  ) {
+  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUserId() actor: string) {
     return this.service.move(id, dto.amount, dto.reason, dto.operationKey, actor);
   }
 
@@ -95,21 +87,13 @@ export class TreasuryController {
 
   @Post('sessions/:id/transfer')
   @RequirePermissions('sales.manage')
-  transfer(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: TransferDto,
-    @CurrentUserId() actor: string,
-  ) {
+  transfer(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TransferDto, @CurrentUserId() actor: string) {
     return this.service.transfer(id, dto.destinationId, dto.amount, dto.operationKey, actor);
   }
 
   @Post('movements/:id/reverse')
   @RequirePermissions('sales.manage')
-  reverse(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ReverseDto,
-    @CurrentUserId() actor: string,
-  ) {
+  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
     return this.service.reverse(id, dto.reason, dto.operationKey, actor);
   }
 
@@ -125,11 +109,7 @@ export class TreasuryController {
 
   @Post('sessions/:id/close')
   @RequirePermissions('sales.manage')
-  close(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AmountDto,
-    @CurrentUserId() actor: string,
-  ) {
+  close(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
     return this.service.close(id, dto.amount, actor);
   }
 }

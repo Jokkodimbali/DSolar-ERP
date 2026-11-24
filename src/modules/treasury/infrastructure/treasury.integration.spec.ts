@@ -48,9 +48,9 @@ integration('Trésorerie sur PostgreSQL réel', () => {
       const source = await repo.open(first.id, '100.00', admin.id);
       const target = await repo.open(second.id, '0.00', admin.id);
       await expect(repo.open(first.id, '0', admin.id)).rejects.toBeInstanceOf(ConflictException);
-      await expect(
-        repo.transfer(source.id, target.id, '101', randomUUID(), admin.id),
-      ).rejects.toBeInstanceOf(ConflictException);
+      await expect(repo.transfer(source.id, target.id, '101', randomUUID(), admin.id)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
       const key = randomUUID();
       const transfer = await repo.transfer(source.id, target.id, '40', key, admin.id);
       const repeated = await repo.transfer(source.id, target.id, '40', key, admin.id);
@@ -76,9 +76,9 @@ integration('Trésorerie sur PostgreSQL réel', () => {
       expect(summary.expected.toString()).toBe('10');
       const closed = await repo.close(source.id, '9', admin.id);
       expect(closed.difference.toString()).toBe('-1');
-      await expect(
-        repo.move(source.id, '1', 'Après clôture', randomUUID(), admin.id),
-      ).rejects.toBeInstanceOf(ConflictException);
+      await expect(repo.move(source.id, '1', 'Après clôture', randomUUID(), admin.id)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
       expect((await repo.summary(target.id, admin.id)).expected.toString()).toBe('40');
       expect(await prisma.cashMovement.count({ where: { transferKey: key } })).toBe(2);
     } finally {
