@@ -3,6 +3,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { InvoicesRepository } from '../application/invoices.port';
+import { assertStoredSalesPricing } from './sales-pricing';
 
 @Injectable()
 export class PrismaInvoicesRepository implements InvoicesRepository {
@@ -52,27 +53,19 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           throw new ConflictException('Seule une commande confirmée peut être facturée.');
         }
         if (order.invoices.length) throw new ConflictException('Commande déjà facturée.');
-        const lines = order.lines.map((line) => {
-          const net = line.quantity.mul(line.unitPrice).minus(line.discount);
-          if (net.lessThan(0)) throw new ConflictException('Remise supérieure au montant brut.');
-          const taxAmount = net.mul(line.taxRate).div(100).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-          return {
-            productId: line.productId,
-            quantity: line.quantity,
-            unitPrice: line.unitPrice,
-            discount: line.discount,
-            taxRate: line.taxRate,
-            taxAmount,
-            lineTotal: net.plus(taxAmount),
-            net,
-          };
-        });
-        const totalHt = lines.reduce((sum, line) => sum.plus(line.net), new Prisma.Decimal(0));
-        const totalTax = lines.reduce((sum, line) => sum.plus(line.taxAmount), new Prisma.Decimal(0));
-        const totalTtc = totalHt.plus(totalTax);
-        if (!totalTtc.equals(order.total)) {
-          throw new ConflictException('Total commande incohérent avec le calcul de la facture.');
-        }
+        const pricing = assertStoredSalesPricing(order.lines, order.total);
+        const lines = order.lines.map((line, index) => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          discount: line.discount,
+          taxRate: line.taxRate,
+          taxAmount: new Prisma.Decimal(pricing.lines[index].tax),
+          lineTotal: new Prisma.Decimal(pricing.lines[index].total),
+        }));
+        const totalHt = new Prisma.Decimal(pricing.totalHt);
+        const totalTax = new Prisma.Decimal(pricing.totalTax);
+        const totalTtc = new Prisma.Decimal(pricing.totalTtc);
         const invoice = await tx.invoice.create({
           data: {
             number: `FAC-${randomUUID().slice(0, 12).toUpperCase()}`,
@@ -82,7 +75,7 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
             totalTax,
             totalTtc,
             lines: {
-              create: lines.map(({ net: _net, ...line }) => line),
+              create: lines,
             },
           },
           include: { lines: true },

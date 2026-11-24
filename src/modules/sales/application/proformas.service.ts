@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { calculateSalesTotals } from '../domain/sales-pricing';
 import { PROFORMAS_REPOSITORY, ProformaInput, ProformasRepository } from './proformas.port';
 
 @Injectable()
@@ -22,30 +22,7 @@ export class ProformasService {
   }
   async create(input: ProformaInput, actorId: string) {
     const number = input.number?.trim().toUpperCase() || `PF-${randomUUID().slice(0, 12).toUpperCase()}`;
-    if (!input.lines.length || input.lines.length > 100)
-      throw new BadRequestException('Le devis doit contenir entre 1 et 100 lignes.');
-    const seen = new Set<string>();
-    for (const line of input.lines) {
-      if (
-        ![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite) ||
-        line.quantity <= 0 ||
-        new Prisma.Decimal(line.quantity).decimalPlaces() > 3 ||
-        new Prisma.Decimal(line.unitPrice).decimalPlaces() > 2 ||
-        new Prisma.Decimal(line.discount).decimalPlaces() > 2 ||
-        new Prisma.Decimal(line.taxRate).decimalPlaces() > 4 ||
-        line.unitPrice < 0 ||
-        line.discount < 0 ||
-        line.taxRate < 0 ||
-        line.taxRate > 100
-      )
-        throw new BadRequestException('Montants ou taux invalides.');
-      const key = line.storeId + ':' + line.productId;
-      if (seen.has(key)) throw new BadRequestException('Produit en double dans un magasin.');
-      seen.add(key);
-      const gross = new Prisma.Decimal(line.quantity).mul(line.unitPrice);
-      if (new Prisma.Decimal(line.discount).gt(gross))
-        throw new BadRequestException('La remise dépasse le montant de la ligne.');
-    }
+    this.validateLines(input);
     this.validateExpiry(input.expiresAt);
     return this.proformas.create({ ...input, number }, actorId);
   }
@@ -60,28 +37,7 @@ export class ProformasService {
     const current = await this.get(id, actorId);
     if (current.status !== 'DRAFT') throw new ConflictException('Seul un brouillon est modifiable.');
     const number = input.number?.trim().toUpperCase();
-    if (!input.lines.length || input.lines.length > 100)
-      throw new BadRequestException('Le devis doit contenir entre 1 et 100 lignes.');
-    const seen = new Set<string>();
-    for (const line of input.lines) {
-      if (
-        ![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite) ||
-        line.quantity <= 0 ||
-        new Prisma.Decimal(line.quantity).decimalPlaces() > 3 ||
-        new Prisma.Decimal(line.unitPrice).decimalPlaces() > 2 ||
-        new Prisma.Decimal(line.discount).decimalPlaces() > 2 ||
-        new Prisma.Decimal(line.taxRate).decimalPlaces() > 4 ||
-        line.unitPrice < 0 ||
-        line.discount < 0 ||
-        line.taxRate < 0 ||
-        line.taxRate > 100 ||
-        new Prisma.Decimal(line.discount).gt(new Prisma.Decimal(line.quantity).mul(line.unitPrice))
-      )
-        throw new BadRequestException('Montants, remise ou taux invalides.');
-      const key = line.storeId + ':' + line.productId;
-      if (seen.has(key)) throw new BadRequestException('Ligne en double.');
-      seen.add(key);
-    }
+    this.validateLines(input);
     this.validateExpiry(input.expiresAt);
     return this.proformas.update(id, { ...input, ...(number ? { number } : {}) }, actorId);
   }
@@ -101,6 +57,25 @@ export class ProformasService {
     const current = await this.get(id, actorId);
     if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
     return this.proformas.transition(id, 'ISSUED', 'EXPIRED', actorId);
+  }
+
+  private validateLines(input: ProformaInput) {
+    const seen = new Set<string>();
+    for (const line of input.lines) {
+      if (![line.quantity, line.unitPrice, line.discount, line.taxRate].every(Number.isFinite))
+        throw new BadRequestException('Montants ou taux invalides.');
+      const key = line.storeId + ':' + line.productId;
+      if (seen.has(key)) throw new BadRequestException('Produit en double dans un magasin.');
+      seen.add(key);
+    }
+    try {
+      calculateSalesTotals(input.lines.map((line) => ({
+        quantity: String(line.quantity), unitPrice: String(line.unitPrice),
+        discount: String(line.discount), taxRate: String(line.taxRate),
+      })));
+    } catch (error) {
+      throw new BadRequestException(error instanceof Error ? error.message : 'Montants invalides.');
+    }
   }
 
   private validateExpiry(expiresAt?: string) {

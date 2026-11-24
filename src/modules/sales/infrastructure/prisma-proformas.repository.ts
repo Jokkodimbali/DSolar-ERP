@@ -3,6 +3,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { ProformaInput, ProformasRepository } from '../application/proformas.port';
+import { salesPricing } from './sales-pricing';
 
 @Injectable()
 export class PrismaProformasRepository implements ProformasRepository {
@@ -68,23 +69,17 @@ export class PrismaProformasRepository implements ProformasRepository {
     });
   }
   async create(input: ProformaInput, actorId: string) {
-    const lines = input.lines.map((line) => {
-      const gross = new Prisma.Decimal(line.quantity).mul(line.unitPrice);
-      const net = gross.minus(line.discount);
-      const total = net
-        .mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
-        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-      return {
-        productId: line.productId,
-        storeId: line.storeId,
-        quantity: new Prisma.Decimal(line.quantity),
-        unitPrice: new Prisma.Decimal(line.unitPrice),
-        discount: new Prisma.Decimal(line.discount),
-        taxRate: new Prisma.Decimal(line.taxRate),
-        lineTotal: total,
-      };
-    });
-    const total = lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0));
+    const pricing = salesPricing(input.lines);
+    const lines = input.lines.map((line, index) => ({
+      productId: line.productId,
+      storeId: line.storeId,
+      quantity: new Prisma.Decimal(line.quantity),
+      unitPrice: new Prisma.Decimal(line.unitPrice),
+      discount: new Prisma.Decimal(line.discount),
+      taxRate: new Prisma.Decimal(line.taxRate),
+      lineTotal: new Prisma.Decimal(pricing.lines[index].total),
+    }));
+    const total = new Prisma.Decimal(pricing.totalTtc);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
@@ -207,20 +202,16 @@ export class PrismaProformasRepository implements ProformasRepository {
         });
         if (stores.length !== new Set(input.lines.map((line) => line.storeId)).size)
           throw new ConflictException('Magasin inexistant ou inactif.');
-        const lines = input.lines.map((line) => {
-          const net = new Prisma.Decimal(line.quantity).mul(line.unitPrice).minus(line.discount);
-          return {
-            productId: line.productId,
-            storeId: line.storeId,
-            quantity: new Prisma.Decimal(line.quantity),
-            unitPrice: new Prisma.Decimal(line.unitPrice),
-            discount: new Prisma.Decimal(line.discount),
-            taxRate: new Prisma.Decimal(line.taxRate),
-            lineTotal: net
-              .mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(line.taxRate).div(100)))
-              .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
-          };
-        });
+        const pricing = salesPricing(input.lines);
+        const lines = input.lines.map((line, index) => ({
+          productId: line.productId,
+          storeId: line.storeId,
+          quantity: new Prisma.Decimal(line.quantity),
+          unitPrice: new Prisma.Decimal(line.unitPrice),
+          discount: new Prisma.Decimal(line.discount),
+          taxRate: new Prisma.Decimal(line.taxRate),
+          lineTotal: new Prisma.Decimal(pricing.lines[index].total),
+        }));
         await tx.proformaLine.deleteMany({ where: { proformaId: id } });
         const updated = await tx.proforma.update({
           where: { id },
@@ -228,7 +219,7 @@ export class PrismaProformasRepository implements ProformasRepository {
             number: input.number ?? existing.number,
             customerId: input.customerId,
             expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-            total: lines.reduce((sum, line) => sum.plus(line.lineTotal), new Prisma.Decimal(0)),
+            total: new Prisma.Decimal(pricing.totalTtc),
             lines: { create: lines },
           },
           include: { lines: true },

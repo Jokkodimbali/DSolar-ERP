@@ -24,6 +24,7 @@ describe('PrismaInvoicesRepository', () => {
         unitPrice: decimal('50'),
         discount: decimal('0'),
         taxRate: decimal('18'),
+        lineTotal: decimal('118'),
       },
     ],
   };
@@ -93,8 +94,8 @@ describe('PrismaInvoicesRepository', () => {
     tx.salesOrder.findUnique.mockResolvedValue({
       ...order,
       lines: [
-        { ...order.lines[0], quantity: decimal('1') },
-        { ...order.lines[0], storeId: secondStoreId, quantity: decimal('1') },
+        { ...order.lines[0], quantity: decimal('1'), lineTotal: decimal('59') },
+        { ...order.lines[0], storeId: secondStoreId, quantity: decimal('1'), lineTotal: decimal('59') },
       ],
     });
     tx.userStoreAccess.count.mockResolvedValue(2);
@@ -102,6 +103,30 @@ describe('PrismaInvoicesRepository', () => {
     const audit = tx.auditLog.create.mock.calls[0][0].data;
     expect(audit.storeId).toBeUndefined();
     expect(audit.payload.storeIds).toEqual([storeId, secondStoreId]);
+  });
+
+  it('facture une quantité fractionnaire avec le même arrondi que le devis', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue({
+      ...order,
+      total: decimal('0.04'),
+      lines: [{
+        ...order.lines[0], quantity: decimal('0.025'), unitPrice: decimal('1'),
+        taxRate: decimal('18'), lineTotal: decimal('0.04'),
+      }],
+    });
+    await repository.createFromOrder(orderId, actorId);
+    const data = tx.invoice.create.mock.calls[0][0].data;
+    expect(data.totalHt.toFixed(2)).toBe('0.03');
+    expect(data.totalTax.toFixed(2)).toBe('0.01');
+    expect(data.totalTtc.toFixed(2)).toBe('0.04');
+  });
+
+  it('refuse un total de ligne historique incohérent', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue({
+      ...order, lines: [{ ...order.lines[0], lineTotal: decimal('117') }],
+    });
+    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
+    expect(tx.invoice.create).not.toHaveBeenCalled();
   });
 
   it('refuse une seconde facture pour la même commande', async () => {
@@ -120,7 +145,7 @@ describe('PrismaInvoicesRepository', () => {
 
   it('refuse une commande sans magasin avant de créer la facture', async () => {
     tx.salesOrder.findUnique.mockResolvedValue({ ...order, lines: [] });
-    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
+    await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ForbiddenException);
     expect(tx.invoice.create).not.toHaveBeenCalled();
   });
 

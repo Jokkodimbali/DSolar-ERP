@@ -3,6 +3,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { OrdersRepository } from '../application/orders.port';
+import { assertStoredSalesPricing } from './sales-pricing';
 
 @Injectable()
 export class PrismaOrdersRepository implements OrdersRepository {
@@ -221,6 +222,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
             throw new ConflictException('Seul un devis accepté peut être converti.');
           const existing = await tx.salesOrder.findFirst({ where: { proformaId } });
           if (existing) throw new ConflictException('Ce devis a déjà été converti.');
+          assertStoredSalesPricing(proforma.lines, proforma.total);
           const order = await tx.salesOrder.create({
             data: {
               number: `CMD-${randomUUID().slice(0, 12).toUpperCase()}`,
