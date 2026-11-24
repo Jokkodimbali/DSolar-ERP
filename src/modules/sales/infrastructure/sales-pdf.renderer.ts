@@ -71,7 +71,14 @@ export class SalesPdfRenderer implements SalesPdfPort {
     const title = TITLES[document.kind];
     const status = STATUS[document.status] ?? document.status;
     const rows = [
-      'D-Solar and Agri | DSolar-ERP',
+      document.company?.legalName || 'DSolar-ERP',
+      ...(document.company ? [
+        document.company.tradeName && document.company.tradeName !== document.company.legalName ? document.company.tradeName : '',
+        document.company.legalForm,
+        document.company.taxId ? 'NINEA : ' + document.company.taxId : '',
+        document.company.registrationNumber ? 'RCCM : ' + document.company.registrationNumber : '',
+        document.company.address, document.company.phone, document.company.email, document.company.website,
+      ].filter(Boolean) : ['Identité entreprise historique non renseignée.']),
       title + ' : ' + document.number,
       'Statut : ' + status,
       'Date : ' + date(document.issuedAt),
@@ -82,6 +89,11 @@ export class SalesPdfRenderer implements SalesPdfPort {
       ...(document.customer.phone ? ['Téléphone : ' + document.customer.phone] : []),
       '',
       ...detail(document),
+      ...(document.kind === 'INVOICE' || document.kind === 'PROFORMA' ? [
+        document.company?.bankName ? 'Banque : ' + document.company.bankName : '',
+        document.company?.bankAccount ? 'Compte : ' + document.company.bankAccount : '',
+      ].filter(Boolean) : []),
+      ...(document.company?.documentFooter ? [document.company.documentFooter] : []),
       '', 'Document interne généré depuis les données enregistrées.',
       'Libellés et coordonnées issus des fiches actuelles.',
     ];

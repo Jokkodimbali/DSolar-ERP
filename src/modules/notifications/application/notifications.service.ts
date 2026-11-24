@@ -1,5 +1,5 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { Observable, timer, exhaustMap, map, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Observable, timer, exhaustMap, map, distinctUntilChanged, takeUntil, catchError, EMPTY } from 'rxjs';
 import { MessageEvent } from '@nestjs/common';
 import { TOKEN_SERVICE, USER_REPOSITORY, SESSION_REPOSITORY, TokenService, UserRepository, SessionRepository } from '../../identity/application/ports';
 import { NOTIFICATIONS, NotificationsPort } from './notifications.port';
@@ -33,6 +33,7 @@ export class NotificationsService {
       distinctUntilChanged(),
       map((data): MessageEvent => ({ type: 'notifications', data })),
       takeUntil(timer(60000)),
+      catchError(() => EMPTY),
     );
   }
 }

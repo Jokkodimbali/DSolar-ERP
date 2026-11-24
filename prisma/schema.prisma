@@ -414,6 +414,8 @@ model Customer {
   invoices Invoice[]
 }
 model Proforma {
+  companySettingsId String? @db.Uuid
+  companySettings CompanySettings? @relation(fields: [companySettingsId], references: [id], onDelete: Restrict)
   id String @id @default(uuid()) @db.Uuid
   number String @unique
   customerId String @db.Uuid
@@ -472,6 +474,8 @@ model SalesOrderLine {
   lineTotal Decimal @db.Decimal(18,2)
 }
 model DeliveryNote {
+  companySettingsId String? @db.Uuid
+  companySettings CompanySettings? @relation(fields: [companySettingsId], references: [id], onDelete: Restrict)
   id String @id @default(uuid()) @db.Uuid
   number String @unique
   orderId String @db.Uuid
@@ -493,6 +497,8 @@ model DeliveryLine {
 
 // Facturation : factures, avoirs, encaissements et remises
 model Invoice {
+  companySettingsId String? @db.Uuid
+  companySettings CompanySettings? @relation(fields: [companySettingsId], references: [id], onDelete: Restrict)
   id String @id @default(uuid()) @db.Uuid
   number String @unique
   customerId String @db.Uuid
@@ -535,6 +541,8 @@ model CreditNote {
   lines CreditNoteLine[]
 }
 model Payment {
+  companySettingsId String? @db.Uuid
+  companySettings CompanySettings? @relation(fields: [companySettingsId], references: [id], onDelete: Restrict)
   id String @id @default(uuid()) @db.Uuid
   orderId String @db.Uuid
   order SalesOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
@@ -940,6 +948,10 @@ model AuthRateLimitBucket {
 }
 
 model CompanySettings {
+  proformas Proforma[]
+  invoices Invoice[]
+  deliveries DeliveryNote[]
+  payments Payment[]
   id String @id @default(uuid()) @db.Uuid
   revision Int @unique
   legalName String @db.VarChar(180)

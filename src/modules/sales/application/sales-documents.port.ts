@@ -2,7 +2,23 @@ export const SALES_DOCUMENTS = Symbol('SALES_DOCUMENTS');
 export const SALES_PDF = Symbol('SALES_PDF');
 export type SalesDocumentKind = 'PROFORMA' | 'INVOICE' | 'DELIVERY' | 'PAYMENT';
 
+export interface CompanyDocumentIdentity {
+  legalName: string;
+  tradeName: string;
+  taxId: string;
+  registrationNumber: string;
+  legalForm: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  bankName: string;
+  bankAccount: string;
+  documentFooter: string;
+}
+
 interface DocumentBase {
+  company?: CompanyDocumentIdentity | null;
   number: string;
   status: string;
   issuedAt: Date | null;

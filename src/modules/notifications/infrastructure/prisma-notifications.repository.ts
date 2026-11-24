@@ -23,7 +23,7 @@ export class PrismaNotificationsRepository implements NotificationsPort {
     if (!roles.length) throw new ForbiddenException('Rôle interne requis.');
     const permissions = new Set(roles.flatMap((row) => row.role.permissions.map((p) => p.permission.code)));
     const actions = Object.keys(STORE_EVENTS).filter((action) =>
-      action === 'GOODS_RECEIPT_CONFIRMED' ? permissions.has('inventory.read') : permissions.has('sales.read'),
+      ['GOODS_RECEIPT_CONFIRMED', 'LOW_STOCK'].includes(action) ? permissions.has('inventory.read') : permissions.has('sales.read'),
     );
     return { action: { in: actions }, storeId: { in: user.stores.map((row) => row.storeId) } };
   }
@@ -58,14 +58,19 @@ export class PrismaNotificationsRepository implements NotificationsPort {
       const scope = await this.scope(tx, actorId);
       if (id && !await tx.auditLog.findFirst({ where: { AND: [scope, { id }] }, select: { id: true } }))
         throw new NotFoundException('Notification introuvable.');
-      const rows = await tx.auditLog.findMany({
-        where: { AND: [scope, ...(id ? [{ id }] : []), { notificationReads: { none: { userId: actorId } } }] },
-        select: { id: true }, take: 1000, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      });
-      const result = await tx.notificationRead.createMany({
-        data: rows.map((row) => ({ userId: actorId, auditId: row.id })), skipDuplicates: true,
-      });
-      return result.count;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      let marked = 0;
+      for (;;) {
+        const rows = await tx.auditLog.findMany({
+          where: { AND: [scope, ...(id ? [{ id }] : []), { notificationReads: { none: { userId: actorId } } }] },
+          select: { id: true }, take: 1000, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        });
+        if (!rows.length) return marked;
+        const result = await tx.notificationRead.createMany({
+          data: rows.map((row) => ({ userId: actorId, auditId: row.id })), skipDuplicates: true,
+        });
+        marked += result.count;
+        if (rows.length < 1000 || id) return marked;
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30000 });
   }
 }

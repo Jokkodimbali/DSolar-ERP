@@ -1,4 +1,5 @@
 export const STORE_EVENTS = {
+  LOW_STOCK: 'Stock disponible sous le seuil d’alerte',
   GOODS_RECEIPT_CONFIRMED: 'Réception de marchandises confirmée',
   PAYMENT_RECEIVED: 'Règlement client enregistré',
   DELIVERY_CONFIRMED: 'Livraison confirmée',

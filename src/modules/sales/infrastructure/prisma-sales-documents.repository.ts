@@ -3,6 +3,12 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { SalesDocument, SalesDocumentKind, SalesDocumentsPort } from '../application/sales-documents.port';
 
+const companySettings = { select: {
+  legalName: true, tradeName: true, taxId: true, registrationNumber: true,
+  legalForm: true, address: true, phone: true, email: true, website: true,
+  bankName: true, bankAccount: true, documentFooter: true,
+} } as const;
+
 const customer = { select: { name: true, address: true, taxId: true, phone: true } } as const;
 const product = { select: { name: true, sku: true } } as const;
 const line = {
@@ -45,7 +51,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
         const item = await tx.proforma.findFirst({
           where: { id, lines: { some: {}, every: { storeId: { in: access.map((row) => row.storeId) } } } },
           select: {
-            number: true, status: true, issuedAt: true, expiresAt: true, total: true, customer,
+            number: true, status: true, issuedAt: true, expiresAt: true, total: true, customer, companySettings,
             lines: { select: line, orderBy: { id: 'asc' } },
           },
         });
@@ -53,7 +59,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
         const status = item.status === 'ISSUED' && item.expiresAt && item.expiresAt <= new Date()
           ? 'EXPIRED' : item.status;
         return {
-          kind, number: item.number, status, issuedAt: item.issuedAt, expiresAt: item.expiresAt,
+          kind, company: item.companySettings, number: item.number, status, issuedAt: item.issuedAt, expiresAt: item.expiresAt,
           customer: item.customer, lines: item.lines.map(documentLine), totalTtc: item.total.toFixed(2),
         };
       }
@@ -62,7 +68,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
         const item = await tx.deliveryNote.findFirst({
           where: { id, orderId, order: scope, ...scope },
           select: {
-            number: true, status: true, deliveredAt: true,
+            number: true, status: true, deliveredAt: true, companySettings,
             order: { select: { number: true, customer } },
             lines: {
               select: { quantity: true, product, store: { select: { name: true, code: true } } },
@@ -72,7 +78,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
         });
         if (!item) return null;
         return {
-          kind, number: item.number, status: item.status, issuedAt: item.deliveredAt,
+          kind, company: item.companySettings, number: item.number, status: item.status, issuedAt: item.deliveredAt,
           customer: item.order.customer, orderNumber: item.order.number,
           lines: item.lines.map((row) => ({
             sku: row.product.sku, name: row.product.name, quantity: row.quantity.toFixed(3),
@@ -93,14 +99,14 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
           where: { id, orderId, order: paymentScope },
           select: {
             id: true, installmentNumber: true, amount: true, method: true,
-            externalReference: true, receivedAt: true,
+            externalReference: true, receivedAt: true, companySettings,
             order: { select: { number: true, customer } },
             reversals: { select: { amount: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
           },
         });
         if (!item) return null;
         return {
-          kind, number: item.id, status: item.reversals.length ? 'REVERSED' : 'RECEIVED',
+          kind, company: item.companySettings, number: item.id, status: item.reversals.length ? 'REVERSED' : 'RECEIVED',
           issuedAt: item.receivedAt, customer: item.order.customer, orderNumber: item.order.number,
           installmentNumber: item.installmentNumber, amount: item.amount.toFixed(2),
           method: item.method, externalReference: item.externalReference,
@@ -110,13 +116,13 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
       const item = await tx.invoice.findFirst({
         where: { id, order: scope },
         select: {
-          number: true, status: true, issuedAt: true, customer, totalHt: true, totalTax: true, totalTtc: true,
+          number: true, status: true, issuedAt: true, customer, companySettings, totalHt: true, totalTax: true, totalTtc: true,
           lines: { select: { ...line, taxAmount: true }, orderBy: { id: 'asc' } },
         },
       });
       if (!item) return null;
       return {
-        kind, number: item.number, status: item.status, issuedAt: item.issuedAt, customer: item.customer,
+        kind, company: item.companySettings, number: item.number, status: item.status, issuedAt: item.issuedAt, customer: item.customer,
         lines: item.lines.map((row) => ({ ...documentLine(row), taxAmount: row.taxAmount.toFixed(2) })),
         totalHt: item.totalHt.toFixed(2), totalTax: item.totalTax.toFixed(2), totalTtc: item.totalTtc.toFixed(2),
       };
