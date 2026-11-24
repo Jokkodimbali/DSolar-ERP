@@ -5,9 +5,16 @@ const { randomUUID } = require('node:crypto');
 const { PrismaClient, Prisma } = require('@prisma/client');
 
 async function main() {
-  const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map((value) => new URL(value || 'invalid:'));
+  const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
+    (value) => new URL(value || 'invalid:'),
+  );
   if (
-    urls.some((url) => !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.pathname !== '/dsolar_test' || !['postgres:', 'postgresql:'].includes(url.protocol)) ||
+    urls.some(
+      (url) =>
+        !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+        url.pathname !== '/dsolar_test' ||
+        !['postgres:', 'postgresql:'].includes(url.protocol),
+    ) ||
     process.env.NODE_ENV !== 'test'
   ) {
     throw new Error('Integration tests require NODE_ENV=test and local database dsolar_test.');
@@ -36,9 +43,14 @@ async function main() {
       data: { storeId, productId, quantity: new Prisma.Decimal(10), reserved: new Prisma.Decimal(2) },
     });
 
-    const duplicate = await prisma.storeStock.create({
-      data: { storeId, productId, quantity: new Prisma.Decimal(1) },
-    }).then(() => false, (error) => error.code === 'P2002');
+    const duplicate = await prisma.storeStock
+      .create({
+        data: { storeId, productId, quantity: new Prisma.Decimal(1) },
+      })
+      .then(
+        () => false,
+        (error) => error.code === 'P2002',
+      );
     assert.equal(duplicate, true, 'Unique store/product stock constraint must be enforced');
 
     const [first, second] = await Promise.all([
@@ -279,9 +291,11 @@ async function main() {
       'Duplicate operation keys must be rejected by PostgreSQL',
     );
     assert.equal(
-      (await prisma.storeStock.findUniqueOrThrow({
-        where: { storeId_productId: { storeId, productId } },
-      })).quantity.toString(),
+      (
+        await prisma.storeStock.findUniqueOrThrow({
+          where: { storeId_productId: { storeId, productId } },
+        })
+      ).quantity.toString(),
       beforeDuplicateMovement.quantity.toString(),
       'Duplicate movement must roll back stock increment',
     );
@@ -321,12 +335,12 @@ async function main() {
                   include: { lines: true },
                 });
                 const received = previous.reduce(
-                  (sum, entry) => sum.plus(
-                    entry.lines.filter((line) => line.productId === productId).reduce(
-                      (subtotal, line) => subtotal.plus(line.quantity),
-                      new Prisma.Decimal(0),
+                  (sum, entry) =>
+                    sum.plus(
+                      entry.lines
+                        .filter((line) => line.productId === productId)
+                        .reduce((subtotal, line) => subtotal.plus(line.quantity), new Prisma.Decimal(0)),
                     ),
-                  ),
                   new Prisma.Decimal(0),
                 );
                 const ordered = orderState.lines.find((line) => line.productId === productId).quantity;
@@ -435,15 +449,15 @@ async function main() {
           return true;
         });
       const confirmations = await Promise.all([confirmOnce(), confirmOnce()]);
+      assert.equal(confirmations.filter(Boolean).length, 1, 'The same receipt must not be confirmed twice');
       assert.equal(
-        confirmations.filter(Boolean).length,
-        1,
-        'The same receipt must not be confirmed twice',
-      );
-      assert.equal(
-        (await prisma.storeStock.findUniqueOrThrow({
-          where: { storeId_productId: { storeId, productId } },
-        })).quantity.minus(stockBeforeIdempotency.quantity).toString(),
+        (
+          await prisma.storeStock.findUniqueOrThrow({
+            where: { storeId_productId: { storeId, productId } },
+          })
+        ).quantity
+          .minus(stockBeforeIdempotency.quantity)
+          .toString(),
         '1',
         'Repeated confirmation must increase stock only once',
       );
@@ -508,10 +522,15 @@ async function main() {
       'Successful receipt transaction must persist exactly one audit event',
     );
     // Audit history is immutable; the ephemeral CI database is discarded after the run.
-    await assert.rejects(prisma.auditLog.deleteMany({
-      where: { entityType: 'GoodsReceipt', entityId: auditEntityId },
-    }));
-    assert.equal(await prisma.auditLog.count({ where: { entityType: 'GoodsReceipt', entityId: auditEntityId } }), 1);
+    await assert.rejects(
+      prisma.auditLog.deleteMany({
+        where: { entityType: 'GoodsReceipt', entityId: auditEntityId },
+      }),
+    );
+    assert.equal(
+      await prisma.auditLog.count({ where: { entityType: 'GoodsReceipt', entityId: auditEntityId } }),
+      1,
+    );
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {

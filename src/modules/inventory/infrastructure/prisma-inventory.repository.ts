@@ -164,8 +164,11 @@ export class PrismaInventoryRepository implements InventoryRepository {
               entityType: 'StockMovement',
               entityId: movement.id,
               payload: {
-                productId, operationKey, direction: command.direction,
-                quantity: amount.toFixed(3), resultingQuantity: updated.quantity.toFixed(3),
+                productId,
+                operationKey,
+                direction: command.direction,
+                quantity: amount.toFixed(3),
+                resultingQuantity: updated.quantity.toFixed(3),
                 resultingReserved: updated.reserved.toFixed(3),
               },
             },

@@ -19,7 +19,10 @@ export class AuditService {
 
   list(actorId: string, filters: AuditFilters) {
     const limit = filters.limit === undefined ? 30 : Number(filters.limit);
-    if (filters.limit !== undefined && (typeof filters.limit !== 'string' || !/^\d{1,3}$/.test(filters.limit)))
+    if (
+      filters.limit !== undefined &&
+      (typeof filters.limit !== 'string' || !/^\d{1,3}$/.test(filters.limit))
+    )
       throw new BadRequestException('Limite de journal invalide.');
     if (!Number.isInteger(limit) || limit < 1 || limit > 100)
       throw new BadRequestException('La limite doit être un entier entre 1 et 100.');
