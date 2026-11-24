@@ -201,6 +201,8 @@ export class AccountingRepository implements AccountingPort {
         previous.date.getTime() !== date.getTime() ||
         previous.description !== input.description ||
         previous.reversalOfId !== (reversalOfId ?? null) ||
+        previous.sourceType !== (source?.sourceType ?? null) ||
+        previous.sourceId !== (source?.sourceId ?? null) ||
         !previous.postedAt ||
         signature(previous.lines) !== signature(input.lines)
       )

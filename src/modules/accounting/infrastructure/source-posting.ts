@@ -71,6 +71,51 @@ export async function buildSourcePosting(
         throw new ConflictException('Facture émise et totaux cohérents requis.');
       return fromRule(tx, type, item.issuedAt, 'Facture ' + item.number, item.totalTtc, item.totalTax);
     }
+    case 'CREDIT_NOTE': {
+      const item = await tx.creditNote.findUnique({ where: { id }, include: { invoice: true } });
+      if (!item) throw new NotFoundException('Avoir client introuvable.');
+      if (!item.issuedAt || item.amount.lte(0) || item.invoice.status !== 'ISSUED')
+        throw new ConflictException('Avoir émis sur facture valide requis.');
+      const entry = await original(tx, 'INVOICE', item.invoiceId);
+      const debit = entry.lines.filter((line) => line.debit.gt(0));
+      const credits = entry.lines.filter((line) => line.credit.gt(0));
+      if (debit.length !== 1 || !credits.length || !debit[0].debit.eq(item.invoice.totalTtc))
+        throw new ConflictException('Imputation initiale incompatible.');
+      const related = await tx.creditNote.findMany({
+        where: { invoiceId: item.invoiceId }, select: { id: true },
+      });
+      const prior = await tx.ledgerLine.aggregate({
+        where: { entry: { sourceType: 'CREDIT_NOTE', sourceId: { in: related.map((row) => row.id) },
+          postedAt: { not: null } } }, _sum: { debit: true },
+      });
+      const already = prior._sum.debit ?? new Prisma.Decimal(0);
+      if (already.plus(item.amount).gt(debit[0].debit))
+        throw new ConflictException('Avoirs cumulés supérieurs à la facture.');
+      if (item.invoice.totalTax.gt(0) && !item.amount.eq(item.invoice.totalTtc))
+        throw new ConflictException('Ventilation fiscale détaillée requise pour un avoir partiel taxable.');
+      const lines: PostingLine[] = item.amount.eq(item.invoice.totalTtc)
+        ? credits.map((line) => ({ accountId: line.accountId, debit: line.credit.toFixed(2), credit: '0' }))
+        : credits.length === 1
+          ? [{ accountId: credits[0].accountId, debit: item.amount.toFixed(2), credit: '0' }]
+          : [];
+      if (!lines.length) throw new ConflictException('Ventilation de l’avoir requise.');
+      lines.push({ accountId: debit[0].accountId, debit: '0', credit: item.amount.toFixed(2) });
+      return { date: item.issuedAt, journalId: entry.journalId, description: 'Avoir client ' + item.number, lines };
+    }
+    case 'CASH_TRANSFER': {
+      const movements = await tx.cashMovement.findMany({
+        where: { transferKey: id }, include: { session: true },
+      });
+      const outgoing = movements.find((movement) => movement.amount.lt(0));
+      const incoming = movements.find((movement) => movement.amount.gt(0));
+      if (movements.length !== 2 || !outgoing || !incoming ||
+        !outgoing.amount.negated().eq(incoming.amount) ||
+        outgoing.session.registerId === incoming.session.registerId ||
+        outgoing.createdAt.toISOString().slice(0, 10) !== incoming.createdAt.toISOString().slice(0, 10))
+        throw new ConflictException('Transfert intercaisses incohérent ou introuvable.');
+      return fromRule(tx, 'CASH_TRANSFER:' + outgoing.session.registerId + ':' + incoming.session.registerId,
+        outgoing.createdAt, 'Transfert intercaisses ' + id, incoming.amount);
+    }
     case 'PAYMENT': {
       const item = await tx.payment.findUnique({ where: { id } });
       if (!item) throw new NotFoundException('Paiement introuvable.');

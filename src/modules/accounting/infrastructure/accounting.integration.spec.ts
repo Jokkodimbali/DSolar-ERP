@@ -95,6 +95,44 @@ integration('Comptabilité PostgreSQL', () => {
       await expect(
         repo.reverse(booked.id, period.id, '2090-01-03', 'Correction', randomUUID(), admin.id),
       ).rejects.toBeInstanceOf(ConflictException);
+      const note = await prisma.creditNote.create({
+        data: { number: 'AV-' + suffix, invoiceId: invoice.id, amount: '118',
+          reason: 'Correction complète CI', issuedAt: new Date('2090-01-03T12:00:00Z') },
+      });
+      const partial = await prisma.creditNote.create({
+        data: { number: 'AV-P-' + suffix, invoiceId: invoice.id, amount: '1',
+          reason: 'Avoir partiel CI', issuedAt: new Date('2090-01-03T12:00:00Z') },
+      });
+      await expect(repo.postSource('CREDIT_NOTE', partial.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
+      const credit = await repo.postSource('CREDIT_NOTE', note.id, admin.id);
+      expect(credit.lines.find((line) => line.accountId === tax.id)?.debit.toString()).toBe('18');
+      expect((await repo.postSource('CREDIT_NOTE', note.id, admin.id)).id).toBe(credit.id);
+
+      const store = await prisma.store.create({ data: { code: 'LED-' + suffix, name: 'CI' } });
+      const sourceRegister = await prisma.cashRegister.create({ data: { storeId: store.id, name: 'Caisse A' } });
+      const targetRegister = await prisma.cashRegister.create({ data: { storeId: store.id, name: 'Caisse B' } });
+      const sourceSession = await prisma.cashSession.create({
+        data: { registerId: sourceRegister.id, opening: '100', openedBy: admin.id },
+      });
+      const targetSession = await prisma.cashSession.create({
+        data: { registerId: targetRegister.id, opening: '0', openedBy: admin.id },
+      });
+      const transferKey = randomUUID();
+      const debitMovement = await prisma.cashMovement.create({
+        data: { sessionId: sourceSession.id, amount: '-25', reason: 'Transfert sortant', operationKey: transferKey,
+          transferKey, actorId: admin.id, createdAt: new Date('2090-01-04T12:00:00Z') },
+      });
+      await prisma.cashMovement.create({
+        data: { sessionId: targetSession.id, amount: '25', reason: 'Transfert entrant', operationKey: randomUUID(),
+          transferKey, actorId: admin.id, createdAt: new Date('2090-01-04T12:00:00Z') },
+      });
+      const targetCash = await repo.account('57B-' + suffix, 'Caisse B', admin.id);
+      await repo.rule({ key: 'CASH_TRANSFER:' + sourceRegister.id + ':' + targetRegister.id,
+        journalId: journal.id, debitAccountId: targetCash.id, creditAccountId: cash.id }, admin.id);
+      const transferred = await repo.postSource('CASH_TRANSFER', transferKey, admin.id);
+      expect(transferred.lines.find((line) => line.accountId === targetCash.id)?.debit.toString()).toBe('25');
+      expect((await repo.postSource('CASH_TRANSFER', transferKey, admin.id)).id).toBe(transferred.id);
+      await expect(repo.postSource('CASH_MOVEMENT', debitMovement.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
       await repo.close(period.id, admin.id);
       await expect(repo.post({ ...input, operationKey: randomUUID() }, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
