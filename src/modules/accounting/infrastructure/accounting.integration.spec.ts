@@ -332,24 +332,44 @@ integration('Comptabilité PostgreSQL', () => {
       expect(statements.provisional).toBe(true);
       const autoPeriod = await repo.period('CI-auto-' + suffix, '2098-01-01', '2098-12-31', admin.id);
       const autoInvoice = await prisma.invoice.create({
-        data: { number: 'FAC-AUTO-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2098-01-02T12:00:00Z'), totalHt: '25.01', totalTax: '0', totalTtc: '25.01' },
+        data: {
+          number: 'FAC-AUTO-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          issuedAt: new Date('2098-01-02T12:00:00Z'),
+          totalHt: '25.01',
+          totalTax: '0',
+          totalTtc: '25.01',
+        },
       });
       expect((await repo.runAutomaticCycle()).processed).toBe(0);
       await repo.configureAutomation(autoPeriod.id, true, admin.id);
       expect((await repo.runAutomaticCycle()).processed).toBe(1);
       expect((await repo.runAutomaticCycle()).processed).toBe(0);
-      expect(await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: autoInvoice.id } })).toBe(1);
+      expect(
+        await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: autoInvoice.id } }),
+      ).toBe(1);
       await repo.configureAutomation(autoPeriod.id, false, admin.id);
       const disabledInvoice = await prisma.invoice.create({
-        data: { number: 'FAC-DISABLED-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2098-01-03T12:00:00Z'), totalHt: '1', totalTax: '0', totalTtc: '1' },
+        data: {
+          number: 'FAC-DISABLED-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          issuedAt: new Date('2098-01-03T12:00:00Z'),
+          totalHt: '1',
+          totalTax: '0',
+          totalTtc: '1',
+        },
       });
       expect((await repo.runAutomaticCycle()).processed).toBe(0);
-      expect(await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: disabledInvoice.id } })).toBe(0);
+      expect(
+        await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: disabledInvoice.id } }),
+      ).toBe(0);
       await repo.postSource('INVOICE', disabledInvoice.id, admin.id);
       await repo.close(autoPeriod.id, admin.id);
-      await expect(repo.configureAutomation(autoPeriod.id, true, admin.id)).rejects.toBeInstanceOf(ConflictException);
+      await expect(repo.configureAutomation(autoPeriod.id, true, admin.id)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
     } finally {
       await prisma.$disconnect();
     }

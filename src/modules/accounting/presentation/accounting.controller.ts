@@ -160,7 +160,11 @@ export class AccountingController {
     return this.service.automation(id, actor);
   }
   @Post('periods/:id/automation')
-  configureAutomation(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AutomationDto, @CurrentUserId() actor: string) {
+  configureAutomation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AutomationDto,
+    @CurrentUserId() actor: string,
+  ) {
     return this.service.configureAutomation(id, dto.enabled, actor);
   }
   @Get('periods/:id/pending')

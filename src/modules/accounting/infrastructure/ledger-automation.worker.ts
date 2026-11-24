@@ -17,12 +17,16 @@ export class LedgerAutomationWorker implements OnModuleInit, OnModuleDestroy {
 
   private tick() {
     if (this.active) return;
-    this.active = this.repository.runAutomaticCycle()
+    this.active = this.repository
+      .runAutomaticCycle()
       .then((result) => {
-        if (result.failed) this.logger.warn('Pièces comptables en attente de régularisation : ' + result.failed);
+        if (result.failed)
+          this.logger.warn('Pièces comptables en attente de régularisation : ' + result.failed);
       })
       .catch(() => this.logger.error('Échec du cycle comptable automatique.'))
-      .finally(() => { this.active = undefined; });
+      .finally(() => {
+        this.active = undefined;
+      });
   }
 
   async onModuleDestroy() {
