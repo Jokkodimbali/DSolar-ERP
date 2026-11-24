@@ -17,7 +17,10 @@ export function assertLocalIntegrationDatabase(env: NodeJS.ProcessEnv): void {
       !['postgres:', 'postgresql:'].includes(url.protocol) ||
       !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
       url.pathname !== '/dsolar_test' ||
-      [...url.searchParams.keys()].some((key) => !['schema', 'sslmode'].includes(key))
+      [...url.searchParams.keys()].some((key) => !['schema', 'sslmode'].includes(key)) ||
+      url.searchParams.getAll('schema').length > 1 ||
+      url.searchParams.getAll('sslmode').length > 1 ||
+      (url.searchParams.has('schema') && url.searchParams.get('schema') !== 'public')
     ) {
       throw new Error(message);
     }

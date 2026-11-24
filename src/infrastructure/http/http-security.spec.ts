@@ -21,6 +21,37 @@ describe('Sécurité HTTP transversale', () => {
     ]);
   });
 
+  it('ne divulgue pas une origine malformée dans les erreurs de configuration', () => {
+    const secret = 'secret-ne-pas-exposer';
+    expect(() => configuredOrigins(secret)).toThrow(
+      'CORS_ORIGINS doit contenir uniquement des origines HTTP(S) explicites.',
+    );
+    try {
+      configuredOrigins(secret);
+    } catch (error) {
+      expect(String(error)).not.toContain(secret);
+      expect(error).not.toHaveProperty('input');
+    }
+  });
+
+  it('applique une politique de contenu stricte en production', () => {
+    const previous = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      const response = { removeHeader: jest.fn(), setHeader: jest.fn() };
+      securityHeaders({} as Request, response as unknown as Response, jest.fn() as NextFunction);
+      expect(response.setHeader).toHaveBeenCalledWith('Strict-Transport-Security', 'max-age=31536000');
+      expect(response.setHeader).toHaveBeenCalledWith(
+        'Content-Security-Policy',
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      );
+      expect(() => configuredOrigins('http://example.test')).toThrow();
+    } finally {
+      if (previous === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous;
+    }
+  });
+
   it('ne fait confiance à aucun proxy par défaut', () => {
     expect(trustedProxyHops(undefined)).toBe(0);
     expect(trustedProxyHops('1')).toBe(1);

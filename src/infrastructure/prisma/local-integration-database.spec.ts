@@ -23,9 +23,25 @@ describe('Isolation de la base de tests', () => {
     'https://localhost/dsolar_test',
     'postgresql://localhost/production',
     'postgresql://localhost/dsolar_test?host=remote.example',
+    'postgresql://localhost/dsolar_test?schema=private',
+    'postgresql://localhost/dsolar_test?schema=public&schema=private',
+    'postgresql://localhost/dsolar_test?sslmode=require&sslmode=disable',
+    'postgresql://localhost/dsolar_test?options=-csearch_path%3Dprivate',
   ])('refuse une URL non autorisée : %s', (value) => {
     expect(() => assertLocalIntegrationDatabase({ ...env, DATABASE_URL: value })).toThrow();
     expect(() => assertLocalIntegrationDatabase({ ...env, DIRECT_URL: value })).toThrow();
+  });
+
+  it('masque les identifiants de connexion en cas d’URL invalide', () => {
+    const secret = 'secret-ne-pas-exposer';
+    try {
+      assertLocalIntegrationDatabase({ ...env, DATABASE_URL: secret });
+      throw new Error('La validation aurait dû échouer.');
+    } catch (error) {
+      expect(String(error)).not.toContain(secret);
+      expect(error).not.toHaveProperty('input');
+      expect(String(error)).toContain('dsolar_test');
+    }
   });
 
   it('refuse une exécution hors environnement de test', () => {

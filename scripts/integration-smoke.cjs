@@ -2,23 +2,11 @@
 // Never run this script against Neon, staging or production.
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const { assertLocalIntegrationDatabase } = require('./local-integration-database.cjs');
 const { PrismaClient, Prisma } = require('@prisma/client');
 
 async function main() {
-  const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
-    (value) => new URL(value || 'invalid:'),
-  );
-  if (
-    urls.some(
-      (url) =>
-        !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-        url.pathname !== '/dsolar_test' ||
-        !['postgres:', 'postgresql:'].includes(url.protocol),
-    ) ||
-    process.env.NODE_ENV !== 'test'
-  ) {
-    throw new Error('Integration tests require NODE_ENV=test and local database dsolar_test.');
-  }
+  assertLocalIntegrationDatabase(process.env);
 
   const prisma = new PrismaClient();
   const suffix = randomUUID().slice(0, 8);

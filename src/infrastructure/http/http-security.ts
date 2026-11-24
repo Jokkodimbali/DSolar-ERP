@@ -12,6 +12,7 @@ export function securityHeaders(_request: Request, response: Response, next: Nex
   response.setHeader('X-Request-Id', randomUUID());
   if (process.env.NODE_ENV === 'production') {
     response.setHeader('Strict-Transport-Security', 'max-age=31536000');
+    response.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
   }
   next();
 }
@@ -24,7 +25,12 @@ export function configuredOrigins(value: string | undefined): string[] {
         .map((item) => item.trim())
         .filter(Boolean)
         .map((item) => {
-          const url = new URL(item);
+          let url: URL;
+          try {
+            url = new URL(item);
+          } catch {
+            throw new Error('CORS_ORIGINS doit contenir uniquement des origines HTTP(S) explicites.');
+          }
           if (
             !['http:', 'https:'].includes(url.protocol) ||
             url.origin !== item ||
