@@ -36,8 +36,9 @@ export class LoginRateLimitGuard implements CanActivate {
     const endpoint = handler === 'refresh' || handler === 'logout' ? handler : 'login';
     await this.consume(endpoint + ':ip:' + ip, endpoint === 'login' ? 60 : 120);
     if (endpoint === 'login') {
-      const email =
-        typeof request.body?.email === 'string' ? request.body.email.trim().toLowerCase().slice(0, 254) : '';
+      const body: unknown = request.body;
+      const value = body && typeof body === 'object' && 'email' in body ? body.email : undefined;
+      const email = typeof value === 'string' ? value.trim().toLowerCase().slice(0, 254) : '';
       await this.consume('login:pair:' + ip + ':' + email, 10);
     }
     return true;

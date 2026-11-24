@@ -50,14 +50,22 @@ describe('PrismaSalesReportRepository', () => {
     });
     prisma.$queryRaw.mockResolvedValue([
       {
-        status: 'PARTIALLY_PAID', count: 2n, gross: new Prisma.Decimal('300.30'),
-        paid: new Prisma.Decimal('100.10'), credited: new Prisma.Decimal('20.10'),
-        outstanding: new Prisma.Decimal('180.10'), overpaid: new Prisma.Decimal('0'),
+        status: 'PARTIALLY_PAID',
+        count: 2n,
+        gross: new Prisma.Decimal('300.30'),
+        paid: new Prisma.Decimal('100.10'),
+        credited: new Prisma.Decimal('20.10'),
+        outstanding: new Prisma.Decimal('180.10'),
+        overpaid: new Prisma.Decimal('0'),
       },
       {
-        status: 'PAID', count: 1n, gross: new Prisma.Decimal('50.20'),
-        paid: new Prisma.Decimal('50.20'), credited: new Prisma.Decimal('0'),
-        outstanding: new Prisma.Decimal('0'), overpaid: new Prisma.Decimal('0'),
+        status: 'PAID',
+        count: 1n,
+        gross: new Prisma.Decimal('50.20'),
+        paid: new Prisma.Decimal('50.20'),
+        credited: new Prisma.Decimal('0'),
+        outstanding: new Prisma.Decimal('0'),
+        overpaid: new Prisma.Decimal('0'),
       },
     ]);
     prisma.invoice.aggregate.mockResolvedValue({

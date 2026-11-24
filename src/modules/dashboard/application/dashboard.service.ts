@@ -129,7 +129,12 @@ export class DashboardService {
     const total = groups.reduce((sum, group) => sum + cents(group.total), 0n);
     const paid = groups.reduce((sum, group) => sum + cents(group.paid), 0n);
     const credited = groups.reduce((sum, group) => sum + cents(group.credited ?? '0.00'), 0n);
-    const outstanding = groups.reduce((sum, group) => sum + (group.outstanding === undefined ? cents(group.total) - cents(group.paid) : cents(group.outstanding)), 0n);
+    const outstanding = groups.reduce(
+      (sum, group) =>
+        sum +
+        (group.outstanding === undefined ? cents(group.total) - cents(group.paid) : cents(group.outstanding)),
+      0n,
+    );
     const overpaid = groups.reduce((sum, group) => sum + cents(group.overpaid ?? '0.00'), 0n);
     return {
       currency: 'XOF',

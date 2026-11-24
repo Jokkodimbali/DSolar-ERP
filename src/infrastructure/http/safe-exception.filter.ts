@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
+import { Response } from 'express';
 
 @Catch()
 export class SafeExceptionFilter extends BaseExceptionFilter {
@@ -10,7 +11,7 @@ export class SafeExceptionFilter extends BaseExceptionFilter {
   }
 
   catch(exception: unknown, host: ArgumentsHost) {
-    const response = host.switchToHttp().getResponse();
+    const response = host.switchToHttp().getResponse<Response>();
     if (exception instanceof HttpException && exception.getStatus() < 500) {
       const status = exception.getStatus();
       const body: unknown = exception.getResponse();
