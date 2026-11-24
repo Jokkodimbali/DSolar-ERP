@@ -13,10 +13,17 @@ import { GoodsReceiptsService } from './application/goods-receipts.service';
 import { GOODS_RECEIPTS_REPOSITORY } from './application/goods-receipts.port';
 import { PrismaGoodsReceiptsRepository } from './infrastructure/prisma-goods-receipts.repository';
 
+import { SupplierPurchasesService } from './application/supplier-purchases.service';
+import { SUPPLIER_PURCHASES } from './application/supplier-purchases.port';
+import { PrismaSupplierPurchasesRepository } from './infrastructure/prisma-supplier-purchases.repository';
+import { SupplierPurchasesController } from './presentation/supplier-purchases.controller';
+
 @Module({
   imports: [PrismaModule, IdentityModule],
-  controllers: [SuppliersController, PurchaseOrdersController, GoodsReceiptsController],
+  controllers: [SuppliersController, PurchaseOrdersController, GoodsReceiptsController, SupplierPurchasesController],
   providers: [
+    SupplierPurchasesService,
+    { provide: SUPPLIER_PURCHASES, useClass: PrismaSupplierPurchasesRepository },
     SuppliersService,
     PurchaseOrdersService,
     PurchaseOrdersRepository,
