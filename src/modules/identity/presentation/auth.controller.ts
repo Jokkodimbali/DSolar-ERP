@@ -13,10 +13,10 @@ export class AuthController {
   @Post('login') @UseGuards(LoginRateLimitGuard) login(@Body() dto: LoginDto) {
     return this.useCases.login(dto.email, dto.password);
   }
-  @Post('refresh') refresh(@Body() dto: RefreshDto) {
+  @Post('refresh') @UseGuards(LoginRateLimitGuard) refresh(@Body() dto: RefreshDto) {
     return this.useCases.refresh(dto.refreshToken);
   }
-  @Post('logout') logout(@Body() dto: RefreshDto) {
+  @Post('logout') @UseGuards(LoginRateLimitGuard) logout(@Body() dto: RefreshDto) {
     return this.useCases.logout(dto.refreshToken);
   }
   @Get('me')

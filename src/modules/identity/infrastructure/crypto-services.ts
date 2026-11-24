@@ -18,7 +18,7 @@ export class ArgonPasswordService implements PasswordService {
 export class JwtTokenService implements TokenService {
   constructor(private readonly jwt: JwtService) {}
   signAccess(claims: AccessClaims): Promise<string> {
-    return this.jwt.signAsync(claims, { secret: this.secret('JWT_ACCESS_SECRET'), expiresIn: '15m' });
+    return this.jwt.signAsync(claims, { secret: this.secret('JWT_ACCESS_SECRET'), expiresIn: '15m', algorithm: 'HS256' });
   }
   signRefresh(claims: RefreshClaims): Promise<string> {
     return this.jwt.signAsync(
@@ -26,12 +26,14 @@ export class JwtTokenService implements TokenService {
       {
         secret: this.secret('JWT_REFRESH_SECRET'),
         expiresIn: '7d',
+        algorithm: 'HS256',
       },
     );
   }
   async verifyAccess(token: string): Promise<AccessClaims> {
     const claims = await this.jwt.verifyAsync<AccessClaims>(token, {
       secret: this.secret('JWT_ACCESS_SECRET'),
+      algorithms: ['HS256'],
     });
     if (claims.typ !== 'access' || !claims.sub || !Number.isInteger(claims.ver))
       throw new UnauthorizedException('Jeton invalide.');
@@ -40,6 +42,7 @@ export class JwtTokenService implements TokenService {
   async verifyRefresh(token: string): Promise<RefreshClaims> {
     const claims = await this.jwt.verifyAsync<RefreshClaims>(token, {
       secret: this.secret('JWT_REFRESH_SECRET'),
+      algorithms: ['HS256'],
     });
     if (claims.typ !== 'refresh' || !claims.sub || !claims.sid)
       throw new UnauthorizedException('Jeton invalide.');
@@ -49,6 +52,8 @@ export class JwtTokenService implements TokenService {
     const secret = process.env[name];
     if (!secret || secret.length < 32)
       throw new Error(`Configuration requise : ${name} (32 caractères minimum)`);
+    const other = process.env[name === 'JWT_ACCESS_SECRET' ? 'JWT_REFRESH_SECRET' : 'JWT_ACCESS_SECRET'];
+    if (secret === other) throw new Error('Les secrets JWT doivent être distincts.');
     return secret;
   }
 }
