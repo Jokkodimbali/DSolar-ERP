@@ -102,3 +102,26 @@ jobs:
         env:
           DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
           DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+      - name: Refuser le compte propriétaire au démarrage
+        run: npm test -- --runTestsByPath src/infrastructure/prisma/runtime-privileges.integration.spec.ts
+        env:
+          RUNTIME_ROLE_INTEGRATION: '1'
+          RUNTIME_ROLE_EXPECT_CHECK: ROLE_ATTRIBUTES
+      - name: Accepter le compte restreint au démarrage
+        run: npm test -- --runTestsByPath src/infrastructure/prisma/runtime-privileges.integration.spec.ts
+        env:
+          RUNTIME_ROLE_INTEGRATION: '1'
+          RUNTIME_ROLE_EXPECT_SAFE: 'true'
+          DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+          DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+      - name: Simuler une dérive des droits dans la base éphémère
+        env:
+          PGPASSWORD: dsolar_test
+        run: psql -h localhost -U dsolar_test -d dsolar_test -v ON_ERROR_STOP=1 -c 'GRANT UPDATE ON "AuditLog" TO dsolar_runtime_test'
+      - name: Refuser le démarrage après dérive des droits
+        run: npm test -- --runTestsByPath src/infrastructure/prisma/runtime-privileges.integration.spec.ts
+        env:
+          RUNTIME_ROLE_INTEGRATION: '1'
+          RUNTIME_ROLE_EXPECT_CHECK: AUDIT_OR_LEDGER_MUTATION
+          DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+          DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public

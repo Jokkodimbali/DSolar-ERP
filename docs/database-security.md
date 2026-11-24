@@ -21,3 +21,11 @@ Utiliser une connexion directe (non poolée) pour le provisionnement. Le script 
 - Les droits métier sont toujours contrôlés par NestJS ; le compte SQL partagé ne constitue pas une isolation utilisateur par utilisateur. Les tables métier modifiables conservent les droits CRUD nécessaires à cette version.
 - Le script réserve le journal d'audit, les mouvements de stock, les événements de transfert et les lignes comptables à SELECT/INSERT. Les rôles et permissions sont en lecture seule. Le compte applicatif ne reçoit pas TRUNCATE, TRIGGER ni accès à _prisma_migrations.
 - Tester les fonctionnalités de bout en bout et les sauvegardes/restaurations en préproduction avant changement des secrets. Le propriétaire et les opérateurs privilégiés peuvent toujours modifier les objets : sauvegardes indépendantes et supervision restent nécessaires.
+
+## Vérification au démarrage
+
+Après validation en préproduction, définir `DB_REQUIRE_RESTRICTED_ROLE=true` dans le backend uniquement (pas dans le job de migration ni dans le seed). NestJS contrôle les privilèges effectifs avant de démarrer. En cas de privilèges incompatibles, il refuse de démarrer.
+
+Cette vérification requiert PostgreSQL 15 ou ultérieur, le schéma public et les migrations à jour. Elle vérifie notamment les attributs du rôle, les affiliations, la propriété des objets, les droits DDL/TEMP, le contournement des triggers, les fonctions SECURITY DEFINER accessibles dans public, les droits de modification du journal et des lignes comptables ainsi que l'accès aux métadonnées de migration.
+
+Ce contrôle est une défense supplémentaire et non une preuve d'isolation totale. Il ne remplace ni le provisionnement explicite, ni la revue des nouvelles tables/fonctions et des droits dans les autres schémas, ni le contrôle d'autorisation métier. Il est exécuté au démarrage et ne détecte pas une modification des droits en cours d'exécution avant le redémarrage.

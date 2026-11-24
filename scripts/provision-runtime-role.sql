@@ -9,7 +9,7 @@ DECLARE
   account pg_roles%ROWTYPE;
   table_name text;
   relation record;
-  readonly_tables text[] := ARRAY['Role','Permission','RolePermission'];
+  readonly_tables text[] := ARRAY['Role','Permission','RolePermission','LedgerPendingSource'];
   append_tables text[] := ARRAY['AuditLog','StockMovement','StockTransferEvent','LedgerLine','CreditNoteLine'];
   update_tables text[] := ARRAY['LedgerAccount','LedgerJournal','LedgerPeriod','LedgerEntry','LedgerPostingRule',
     'LedgerAccountClassification','LedgerBankAccount','LedgerBankStatement','LedgerBankLine','LedgerAutomation'];
@@ -63,9 +63,17 @@ BEGIN
   FOREACH table_name IN ARRAY business_tables LOOP
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.%I TO %I', table_name, runtime);
   END LOOP;
-  EXECUTE format('GRANT SELECT ON TABLE public."LedgerPendingSource" TO %I', runtime);
   EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO %I', runtime);
 
+  IF has_parameter_privilege(runtime, 'session_replication_role', 'SET') THEN
+    RAISE EXCEPTION 'Runtime login can bypass replication-sensitive triggers';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.prosecdef AND has_function_privilege(runtime, p.oid, 'EXECUTE')
+  ) THEN
+    RAISE EXCEPTION 'Runtime login can execute a SECURITY DEFINER function in public';
+  END IF;
   -- Check effective privileges, including PUBLIC and any pre-existing column grants.
   FOR relation IN SELECT c.oid,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','f')
@@ -77,7 +85,8 @@ BEGIN
       OR has_table_privilege(runtime, relation.oid, 'SELECT WITH GRANT OPTION')
       OR has_table_privilege(runtime, relation.oid, 'INSERT WITH GRANT OPTION')
       OR has_table_privilege(runtime, relation.oid, 'UPDATE WITH GRANT OPTION')
-      OR has_table_privilege(runtime, relation.oid, 'DELETE WITH GRANT OPTION') THEN
+      OR has_table_privilege(runtime, relation.oid, 'DELETE WITH GRANT OPTION')
+      OR has_any_column_privilege(runtime, relation.oid, 'SELECT WITH GRANT OPTION, INSERT WITH GRANT OPTION, UPDATE WITH GRANT OPTION') THEN
       RAISE EXCEPTION 'Unexpected effective privileges on %', relation.relname;
     END IF;
     IF relation.relname = ANY(readonly_tables || append_tables || update_tables) AND
@@ -92,7 +101,7 @@ BEGIN
       (has_table_privilege(runtime, relation.oid, 'INSERT') OR has_any_column_privilege(runtime, relation.oid, 'INSERT')) THEN
       RAISE EXCEPTION 'Unexpected INSERT privilege on %', relation.relname;
     END IF;
-    IF NOT (relation.relname = ANY(readonly_tables || append_tables || update_tables || business_tables || ARRAY['LedgerPendingSource'])) AND
+    IF NOT (relation.relname = ANY(readonly_tables || append_tables || update_tables || business_tables)) AND
       (has_table_privilege(runtime, relation.oid, 'SELECT, INSERT, UPDATE, DELETE') OR
        has_any_column_privilege(runtime, relation.oid, 'SELECT, INSERT, UPDATE')) THEN
       RAISE EXCEPTION 'Unexpected privilege on unlisted object %', relation.relname;
