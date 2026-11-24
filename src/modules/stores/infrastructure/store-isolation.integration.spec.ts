@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ForbiddenException } from '@nestjs/common';
+import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PrismaStoreAccessRepository } from './prisma-store-access.repository';
 import { PrismaInventoryRepository } from '../../inventory/infrastructure/prisma-inventory.repository';
@@ -7,19 +8,7 @@ import { PrismaInventoryRepository } from '../../inventory/infrastructure/prisma
 const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : describe.skip;
 integration('Isolation des magasins PostgreSQL', () => {
   it('isole les magasins et révoque les sessions lors des changements d’accès', async () => {
-    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
-      (value) => new URL(value || 'invalid:'),
-    );
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      urls.some(
-        (url) =>
-          !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-          url.pathname !== '/dsolar_test' ||
-          !['postgres:', 'postgresql:'].includes(url.protocol),
-      )
-    )
-      throw new Error('Base locale de test requise.');
+    assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const access = new PrismaStoreAccessRepository(prisma);
     const inventory = new PrismaInventoryRepository(prisma);

@@ -1,23 +1,12 @@
 import { randomBytes } from 'node:crypto';
+import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/local-integration-database';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PrismaAuthRateLimitRepository } from './prisma-auth-rate-limit.repository';
 
 const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : describe.skip;
 integration('Limitation distribuée PostgreSQL', () => {
   it('respecte exactement le quota concurrent et réinitialise un compteur expiré', async () => {
-    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map(
-      (value) => new URL(value || 'invalid:'),
-    );
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      urls.some(
-        (url) =>
-          !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-          url.pathname !== '/dsolar_test' ||
-          !['postgres:', 'postgresql:'].includes(url.protocol),
-      )
-    )
-      throw new Error('Base locale de test requise.');
+    assertLocalIntegrationDatabase(process.env);
     const prisma = new PrismaService();
     const another = new PrismaService();
     const key = randomBytes(32).toString('hex');

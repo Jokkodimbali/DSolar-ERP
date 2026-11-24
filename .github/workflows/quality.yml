@@ -33,7 +33,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
-      - run: npm test -- --passWithNoTests
+      - run: npm test
+      - run: npm run build
+      - run: node --test scripts/local-integration-database.test.cjs
 
   dependency-security:
     runs-on: ubuntu-latest
@@ -83,6 +85,10 @@ jobs:
         run: npx prisma migrate status
       - name: Exécuter les tests d'intégration PostgreSQL
         run: npm run test:integration
+      - name: Tester le parcours commercial complet sur PostgreSQL
+        run: npm test -- --runTestsByPath src/modules/sales/infrastructure/sales-flow.integration.spec.ts
+        env:
+          TREASURY_INTEGRATION: '1'
       - name: Tester les opérations de trésorerie sur PostgreSQL
         run: npm test -- --runTestsByPath src/modules/treasury/infrastructure/treasury.integration.spec.ts src/modules/expenses/infrastructure/expenses.integration.spec.ts src/modules/supplier-returns/infrastructure/supplier-returns.integration.spec.ts src/modules/accounting/infrastructure/accounting.integration.spec.ts src/modules/accounting/infrastructure/bank.integration.spec.ts src/modules/identity/infrastructure/auth-rate-limit.integration.spec.ts src/modules/stores/infrastructure/store-isolation.integration.spec.ts
         env:

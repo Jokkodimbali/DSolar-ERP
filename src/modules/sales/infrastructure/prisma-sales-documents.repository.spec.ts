@@ -5,6 +5,8 @@ import { PrismaSalesDocumentsRepository } from './prisma-sales-documents.reposit
 describe('Accès aux justificatifs et livraisons PDF', () => {
   const tx = {
     user: { findFirst: jest.fn() },
+    userStoreAccess: { findMany: jest.fn() },
+    proforma: { findFirst: jest.fn() },
     payment: { findFirst: jest.fn() },
     deliveryNote: { findFirst: jest.fn() },
   };
@@ -13,8 +15,25 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     tx.user.findFirst.mockResolvedValue(null);
+    tx.userStoreAccess.findMany.mockResolvedValue([{ storeId: 'store' }]);
+    tx.proforma.findFirst.mockResolvedValue(null);
     tx.payment.findFirst.mockResolvedValue(null);
     tx.deliveryNote.findFirst.mockResolvedValue(null);
+  });
+  it('filtre les proformas sur les identifiants des magasins accessibles', async () => {
+    await repo.find('PROFORMA', 'proforma', 'actor');
+    expect(tx.userStoreAccess.findMany).toHaveBeenCalledWith({
+      where: { userId: 'actor', user: { status: 'ACTIVE' }, store: { status: 'ACTIVE' } },
+      select: { storeId: true },
+    });
+    expect(tx.proforma.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'proforma', lines: { some: {}, every: { storeId: { in: ['store'] } } } },
+    }));
+  });
+  it('ne lit aucun devis sans magasin accessible', async () => {
+    tx.userStoreAccess.findMany.mockResolvedValue([]);
+    await expect(repo.find('PROFORMA', 'proforma', 'actor')).resolves.toBeNull();
+    expect(tx.proforma.findFirst).not.toHaveBeenCalled();
   });
   it('contraint la livraison par la commande et les accès aux deux ensembles de lignes', async () => {
     await expect(repo.find('DELIVERY', 'delivery', 'actor', 'order')).resolves.toBeNull();

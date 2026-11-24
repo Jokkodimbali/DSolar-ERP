@@ -37,8 +37,13 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
     };
     return this.prisma.$transaction(async (tx) => {
       if (kind === 'PROFORMA') {
+        const access = await tx.userStoreAccess.findMany({
+          where: { userId: actorId, user: { status: 'ACTIVE' }, store: { status: 'ACTIVE' } },
+          select: { storeId: true },
+        });
+        if (!access.length) return null;
         const item = await tx.proforma.findFirst({
-          where: { id, ...scope },
+          where: { id, lines: { some: {}, every: { storeId: { in: access.map((row) => row.storeId) } } } },
           select: {
             number: true, status: true, issuedAt: true, expiresAt: true, total: true, customer,
             lines: { select: line, orderBy: { id: 'asc' } },
