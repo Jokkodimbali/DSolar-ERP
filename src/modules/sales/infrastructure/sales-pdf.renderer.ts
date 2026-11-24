@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SalesDocument, SalesPdfPort } from '../application/sales-documents.port';
+import { preparePdfImage } from '../../../shared/pdf-image';
 import { renderTextPdf } from './text-pdf';
 
 const TITLES = {
@@ -24,6 +25,8 @@ const METHODS: Record<string, string> = {
   CASH: 'Espèces',
   WAVE: 'Wave',
   ORANGE_MONEY: 'Orange Money',
+  MOBILE_MONEY: 'Paiement mobile',
+  OTHER: 'Autre mode de règlement',
   BANK_TRANSFER: 'Virement bancaire',
   CHECK: 'Chèque',
   CHEQUE: 'Chèque',
@@ -131,6 +134,7 @@ export class SalesPdfRenderer implements SalesPdfPort {
     // Short warning on every page, within the fixed-width heading area.
     const invalid = ['DRAFT', 'CANCELLED', 'EXPIRED', 'REVERSED'].includes(document.status);
     const heading = invalid ? title + ' - NON VALIDE' : title;
-    return Buffer.from(renderTextPdf(heading, rows), 'ascii');
+    const logo = document.logo ? preparePdfImage(document.logo.data, document.logo.mimeType) : undefined;
+    return Buffer.from(renderTextPdf(heading, rows, logo), 'ascii');
   }
 }

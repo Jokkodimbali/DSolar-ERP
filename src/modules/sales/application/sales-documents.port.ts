@@ -18,6 +18,7 @@ export interface CompanyDocumentIdentity {
 }
 
 interface DocumentBase {
+  logo?: { mimeType: string; data: Uint8Array } | null;
   company?: CompanyDocumentIdentity | null;
   number: string;
   status: string;

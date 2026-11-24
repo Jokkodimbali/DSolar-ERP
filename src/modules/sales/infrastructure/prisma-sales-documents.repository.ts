@@ -17,6 +17,7 @@ const companySettings = {
     bankName: true,
     bankAccount: true,
     documentFooter: true,
+    logoUrl: true,
   },
 } as const;
 
@@ -55,6 +56,14 @@ function documentLine(value: Line) {
 @Injectable()
 export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async logo(tx: Prisma.TransactionClient, url: string | undefined) {
+    if (!url || !/^\/api\/v1\/media\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url))
+      return null;
+    const id = url.split('/').pop();
+    if (!id) return null;
+    return tx.imageAsset.findFirst({ where: { id, kind: 'COMPANY_LOGO' }, select: { mimeType: true, data: true } });
+  }
 
   find(
     kind: SalesDocumentKind,
@@ -103,6 +112,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
               : item.status;
           return {
             kind,
+            logo: await this.logo(tx, item.companySettings?.logoUrl),
             company: item.companySettings,
             number: item.number,
             status,
@@ -132,6 +142,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
           if (!item) return null;
           return {
             kind,
+            logo: await this.logo(tx, item.companySettings?.logoUrl),
             company: item.companySettings,
             number: item.number,
             status: item.status,
@@ -172,6 +183,7 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
           if (!item) return null;
           return {
             kind,
+            logo: await this.logo(tx, item.companySettings?.logoUrl),
             company: item.companySettings,
             number: item.id,
             status: item.reversals.length ? 'REVERSED' : 'RECEIVED',
@@ -205,7 +217,8 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
         if (!item) return null;
         return {
           kind,
-          company: item.companySettings,
+          logo: await this.logo(tx, item.companySettings?.logoUrl),
+            company: item.companySettings,
           number: item.number,
           status: item.status,
           issuedAt: item.issuedAt,
