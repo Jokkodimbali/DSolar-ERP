@@ -485,6 +485,14 @@ integration('Comptabilité PostgreSQL', () => {
       ).toBe(0);
       await repo.postSource('INVOICE', disabledInvoice.id, admin.id);
       await repo.close(autoPeriod.id, admin.id);
+      const closedReport = await repo.statements(autoPeriod.id, admin.id);
+      expect(closedReport.closed).toBe(true);
+      expect(closedReport.priorOpenPeriods).toBeGreaterThan(0);
+      expect(closedReport.provisional).toBe(true);
+      // Closing the preceding period removes its contribution to the open-period count.
+      await repo.close(next.id, admin.id);
+      const updatedReport = await repo.statements(autoPeriod.id, admin.id);
+      expect(updatedReport.priorOpenPeriods).toBe(closedReport.priorOpenPeriods - 1);
       await expect(repo.configureAutomation(autoPeriod.id, true, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
       );

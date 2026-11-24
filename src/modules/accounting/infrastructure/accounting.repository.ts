@@ -330,6 +330,10 @@ export class AccountingRepository implements AccountingPort {
       const unposted = await tx.ledgerEntry.count({
         where: { date: { lte: period.endsAt }, postedAt: null },
       });
+      // Opening balances are mutable until every preceding period is closed.
+      const priorOpenPeriods = await tx.ledgerPeriod.count({
+        where: { endsAt: { lt: period.startsAt }, closedAt: null },
+      });
       const report = buildFinancialStatements(rows);
       return {
         periodId,
@@ -338,8 +342,10 @@ export class AccountingRepository implements AccountingPort {
         closed: !!period.closedAt,
         pendingSources: pending.count,
         unpostedEntries: unposted,
+        priorOpenPeriods,
         provisional:
           !period.closedAt ||
+          priorOpenPeriods !== 0 ||
           pending.count !== '0' ||
           unposted !== 0 ||
           !report.complete ||
