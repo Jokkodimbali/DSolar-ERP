@@ -4,6 +4,7 @@ import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { ProformaInput, ProformasRepository } from '../application/proformas.port';
 import { salesPricing } from './sales-pricing';
+import { assertSolarDiscounts, discountedProductIds } from '../domain/solar-discounts';
 
 @Injectable()
 export class PrismaProformasRepository implements ProformasRepository {
@@ -20,6 +21,17 @@ export class PrismaProformasRepository implements ProformasRepository {
       },
     });
     if (count !== ids.length) throw new ForbiddenException('Accès magasin refusé.');
+  }
+
+  private validateDiscounts(
+    lines: { productId: string; discount: number | Prisma.Decimal }[],
+    products: { id: string; isSolarPlant: boolean }[],
+  ): void {
+    try {
+      assertSolarDiscounts(lines.map((line) => ({ productId: line.productId, discount: String(line.discount) })), products);
+    } catch (error) {
+      throw new ConflictException(error instanceof Error ? error.message : 'Remise commerciale invalide.');
+    }
   }
 
   private async accessibleStores(actorId: string): Promise<string[]> {
@@ -88,10 +100,11 @@ export class PrismaProformasRepository implements ProformasRepository {
           throw new ConflictException('La date d’expiration doit être future.');
         const products = await tx.product.findMany({
           where: { id: { in: lines.map((line) => line.productId) }, active: true },
-          select: { id: true },
+          select: { id: true, isSolarPlant: true },
         });
         if (products.length !== new Set(lines.map((line) => line.productId)).size)
           throw new ConflictException('Produit inexistant ou inactif.');
+        this.validateDiscounts(lines, products);
         const stores = await tx.store.findMany({
           where: { id: { in: lines.map((line) => line.storeId) }, status: 'ACTIVE' },
           select: { id: true },
@@ -121,11 +134,16 @@ export class PrismaProformasRepository implements ProformasRepository {
             entityType: 'Proforma',
             entityId: created.id,
             ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
-            payload: { storeIds, customerId: input.customerId, lineCount: lines.length },
+            payload: {
+              storeIds, customerId: input.customerId, lineCount: lines.length,
+              discounts: lines.filter((line) => line.discount.gt(0)).map((line) => ({
+                productId: line.productId, storeId: line.storeId, amount: line.discount.toFixed(2),
+              })),
+            },
           },
         });
         return created;
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
         throw new ConflictException('Numéro de devis déjà utilisé.');
@@ -143,6 +161,16 @@ export class PrismaProformasRepository implements ProformasRepository {
         if (proforma.status !== DocumentStatus.DRAFT) throw new ConflictException('Devis déjà traité.');
         if (proforma.expiresAt && proforma.expiresAt <= new Date())
           throw new ConflictException('Devis expiré.');
+        const discountedIds = discountedProductIds(
+          proforma.lines.map((line) => ({ productId: line.productId, discount: line.discount.toFixed(2) })),
+        );
+        if (discountedIds.length) {
+          const products = await tx.product.findMany({
+            where: { id: { in: discountedIds }, active: true },
+            select: { id: true, isSolarPlant: true },
+          });
+          this.validateDiscounts(proforma.lines, products);
+        }
         const updated = await tx.proforma.update({
           where: { id },
           data: { status: DocumentStatus.ISSUED, issuedAt: new Date() },
@@ -192,10 +220,11 @@ export class PrismaProformasRepository implements ProformasRepository {
           throw new ConflictException('La date d’expiration doit être future.');
         const products = await tx.product.findMany({
           where: { id: { in: input.lines.map((line) => line.productId) }, active: true },
-          select: { id: true },
+          select: { id: true, isSolarPlant: true },
         });
         if (products.length !== new Set(input.lines.map((line) => line.productId)).size)
           throw new ConflictException('Produit inexistant ou inactif.');
+        this.validateDiscounts(input.lines, products);
         const stores = await tx.store.findMany({
           where: { id: { in: input.lines.map((line) => line.storeId) }, status: 'ACTIVE' },
           select: { id: true },
@@ -234,11 +263,16 @@ export class PrismaProformasRepository implements ProformasRepository {
             entityType: 'Proforma',
             entityId: id,
             ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
-            payload: { storeIds, customerId: input.customerId, lineCount: lines.length },
+            payload: {
+              storeIds, customerId: input.customerId, lineCount: lines.length,
+              discounts: lines.filter((line) => line.discount.gt(0)).map((line) => ({
+                productId: line.productId, storeId: line.storeId, amount: line.discount.toFixed(2),
+              })),
+            },
           },
         });
         return updated;
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
         throw new ConflictException('Numéro de devis déjà utilisé.');

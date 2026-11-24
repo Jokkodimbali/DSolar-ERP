@@ -9,7 +9,11 @@ describe('PrismaProformasRepository status transitions', () => {
   const actorId = '00000000-0000-4000-8000-000000000003';
   const tx = {
     $queryRaw: jest.fn(),
-    proforma: { findUnique: jest.fn(), update: jest.fn() },
+    proforma: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
+    product: { findMany: jest.fn() },
+    customer: { findUnique: jest.fn() },
+    store: { findMany: jest.fn() },
+    proformaLine: { findMany: jest.fn(), deleteMany: jest.fn() },
     userStoreAccess: { count: jest.fn() },
     auditLog: { create: jest.fn() },
   };
@@ -24,11 +28,16 @@ describe('PrismaProformasRepository status transitions', () => {
       id,
       status: DocumentStatus.DRAFT,
       expiresAt: null,
-      lines: [{ storeId }],
+      lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(0) }],
     });
     tx.proforma.update.mockResolvedValue({ id, status: DocumentStatus.ISSUED });
     tx.userStoreAccess.count.mockResolvedValue(1);
     tx.auditLog.create.mockResolvedValue({});
+    tx.customer.findUnique.mockResolvedValue({ id: 'customer' });
+    tx.store.findMany.mockResolvedValue([{ id: storeId }]);
+    tx.proformaLine.findMany.mockResolvedValue([{ storeId }]);
+    tx.product.findMany.mockResolvedValue([{ id: 'product', isSolarPlant: false }]);
+    tx.proforma.create.mockResolvedValue({ id });
   });
 
   it('émet un devis avec audit dans la transaction', async () => {
@@ -61,7 +70,7 @@ describe('PrismaProformasRepository status transitions', () => {
       id,
       status: DocumentStatus.ISSUED,
       expiresAt: null,
-      lines: [{ storeId }],
+      lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(0) }],
     });
     await expect(repository.issue(id, actorId)).rejects.toThrow(ConflictException);
     expect(tx.auditLog.create).not.toHaveBeenCalled();
@@ -72,7 +81,7 @@ describe('PrismaProformasRepository status transitions', () => {
       id,
       status: DocumentStatus.ISSUED,
       expiresAt: new Date('2020-01-01'),
-      lines: [{ storeId }],
+      lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(0) }],
     });
     await expect(repository.transition(id, DocumentStatus.ISSUED, 'ACCEPTED', actorId)).rejects.toThrow(
       ConflictException,
@@ -85,7 +94,7 @@ describe('PrismaProformasRepository status transitions', () => {
       id,
       status: DocumentStatus.ISSUED,
       expiresAt: null,
-      lines: [{ storeId }],
+      lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(0) }],
     });
     await repository.transition(id, DocumentStatus.ISSUED, 'ACCEPTED', actorId);
     expect(tx.auditLog.create).toHaveBeenCalledWith({
@@ -114,7 +123,7 @@ describe('PrismaProformasRepository status transitions', () => {
       id,
       status: DocumentStatus.CANCELLED,
       expiresAt: null,
-      lines: [{ storeId }],
+      lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(0) }],
     });
     await expect(repository.transition(id, DocumentStatus.CANCELLED, 'ACCEPTED', actorId)).rejects.toThrow(
       ConflictException,
@@ -134,5 +143,52 @@ describe('PrismaProformasRepository status transitions', () => {
       ConflictException,
     );
     expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  const input = {
+    customerId: 'customer',
+    lines: [{ productId: 'product', storeId, quantity: 2, unitPrice: 100, discount: 10, taxRate: 18 }],
+  };
+
+  it('refuse une remise sur un produit ordinaire lors de la création', async () => {
+    await expect(repository.create(input, actorId)).rejects.toThrow(ConflictException);
+    expect(tx.proforma.create).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('autorise une remise sur une centrale solaire et conserve la trace du montant', async () => {
+    tx.product.findMany.mockResolvedValue([{ id: 'product', isSolarPlant: true }]);
+    await repository.create(input, actorId);
+    expect(tx.proforma.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ total: new Prisma.Decimal('224.20') }),
+    }));
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        payload: expect.objectContaining({
+          discounts: [{ productId: 'product', storeId, amount: '10.00' }],
+        }),
+      }),
+    });
+  });
+
+  it('autorise la vente d’un produit ordinaire sans remise', async () => {
+    await expect(repository.create({
+      ...input, lines: [{ ...input.lines[0], discount: 0 }],
+    }, actorId)).resolves.toMatchObject({ id });
+  });
+
+  it('empêche le contournement par modification du brouillon', async () => {
+    await expect(repository.update(id, input, actorId)).rejects.toThrow(ConflictException);
+    expect(tx.proformaLine.deleteMany).not.toHaveBeenCalled();
+    expect(tx.proforma.update).not.toHaveBeenCalled();
+  });
+
+  it('contrôle à nouveau l’éligibilité du brouillon avant émission', async () => {
+    tx.proforma.findUnique.mockResolvedValue({
+      id, status: DocumentStatus.DRAFT, expiresAt: null,
+      lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(10) }],
+    });
+    await expect(repository.issue(id, actorId)).rejects.toThrow(ConflictException);
+    expect(tx.proforma.update).not.toHaveBeenCalled();
   });
 });
