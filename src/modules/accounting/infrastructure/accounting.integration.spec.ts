@@ -195,31 +195,61 @@ integration('Comptabilité PostgreSQL', () => {
       expect(batch.remaining.items).toHaveLength(0);
       expect((await repo.postPending(period.id, admin.id)).results).toHaveLength(0);
       // New issued documents without a date are rejected at the database boundary.
-      await expect(prisma.invoice.create({
-        data: { number: 'FAC-NODATE-' + suffix, customerId: customer.id, status: 'ISSUED',
-          totalHt: '1', totalTax: '0', totalTtc: '1' },
-      })).rejects.toThrow();
-      await expect(prisma.ledgerAccount.update({ where: { id: cash.id }, data: { code: 'MODIFIED-' + suffix } })).rejects.toThrow();
-      await expect(prisma.ledgerJournal.update({ where: { id: journal.id }, data: { name: 'Modified' } })).rejects.toThrow();
+      await expect(
+        prisma.invoice.create({
+          data: {
+            number: 'FAC-NODATE-' + suffix,
+            customerId: customer.id,
+            status: 'ISSUED',
+            totalHt: '1',
+            totalTax: '0',
+            totalTtc: '1',
+          },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.ledgerAccount.update({ where: { id: cash.id }, data: { code: 'MODIFIED-' + suffix } }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.ledgerJournal.update({ where: { id: journal.id }, data: { name: 'Modified' } }),
+      ).rejects.toThrow();
       const concurrentInvoice = await prisma.invoice.create({
-        data: { number: 'FAC-RACE-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2090-01-07T12:00:00Z'), totalHt: '2.01', totalTax: '0', totalTtc: '2.01' },
+        data: {
+          number: 'FAC-RACE-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          issuedAt: new Date('2090-01-07T12:00:00Z'),
+          totalHt: '2.01',
+          totalTax: '0',
+          totalTtc: '2.01',
+        },
       });
       const results = await Promise.allSettled([
         repo.postSource('INVOICE', concurrentInvoice.id, admin.id),
         repo.postSource('INVOICE', concurrentInvoice.id, admin.id),
       ]);
       expect(results.some((result) => result.status === 'fulfilled')).toBe(true);
-      expect(await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: concurrentInvoice.id } })).toBe(1);
+      expect(
+        await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: concurrentInvoice.id } }),
+      ).toBe(1);
       const late = prisma.invoice.create({
-        data: { number: 'FAC-CLOSE-RACE-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2090-01-08T12:00:00Z'), totalHt: '1', totalTax: '0', totalTtc: '1' },
+        data: {
+          number: 'FAC-CLOSE-RACE-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          issuedAt: new Date('2090-01-08T12:00:00Z'),
+          totalHt: '1',
+          totalTax: '0',
+          totalTtc: '1',
+        },
       });
       const race = await Promise.allSettled([late, repo.close(period.id, admin.id)]);
       expect(race.every((result) => result.status === 'fulfilled')).toBe(false);
       const lateInvoice = await prisma.invoice.findUnique({ where: { number: 'FAC-CLOSE-RACE-' + suffix } });
       if (lateInvoice) {
-        expect((await prisma.ledgerPeriod.findUniqueOrThrow({ where: { id: period.id } })).closedAt).toBeNull();
+        expect(
+          (await prisma.ledgerPeriod.findUniqueOrThrow({ where: { id: period.id } })).closedAt,
+        ).toBeNull();
         await repo.postSource('INVOICE', lateInvoice.id, admin.id);
       }
       await expect(
