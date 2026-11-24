@@ -87,3 +87,18 @@ jobs:
         run: npm test -- --runTestsByPath src/modules/treasury/infrastructure/treasury.integration.spec.ts src/modules/expenses/infrastructure/expenses.integration.spec.ts src/modules/supplier-returns/infrastructure/supplier-returns.integration.spec.ts src/modules/accounting/infrastructure/accounting.integration.spec.ts src/modules/accounting/infrastructure/bank.integration.spec.ts src/modules/identity/infrastructure/auth-rate-limit.integration.spec.ts src/modules/stores/infrastructure/store-isolation.integration.spec.ts
         env:
           TREASURY_INTEGRATION: '1'
+      - name: Provisionner un rôle applicatif non propriétaire
+        env:
+          PGPASSWORD: dsolar_test
+        run: |
+          psql -h localhost -U dsolar_test -d dsolar_test -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE dsolar_runtime_test LOGIN PASSWORD 'dsolar_runtime_test' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT;
+          REVOKE TEMPORARY ON DATABASE dsolar_test FROM PUBLIC;
+          REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+          SQL
+          psql -h localhost -U dsolar_test -d dsolar_test -v runtime_role=dsolar_runtime_test -f scripts/provision-runtime-role.sql
+      - name: Vérifier les droits du compte applicatif réel
+        run: node scripts/runtime-role-smoke.cjs
+        env:
+          DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+          DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
