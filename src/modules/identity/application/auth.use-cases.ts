@@ -90,12 +90,15 @@ export class AuthUseCases {
   }
 
   async logout(refreshToken: string): Promise<{ message: string }> {
+    let claims;
     try {
-      const claims = await this.tokens.verifyRefresh(refreshToken);
-      await this.sessions.revokeIfHash(claims.sid, hashToken(refreshToken));
+      claims = await this.tokens.verifyRefresh(refreshToken);
     } catch {
-      /* Déconnexion idempotente. */
+      // Un jeton invalide ne désigne aucune session authentifiée à révoquer.
+      return { message: 'Déconnexion effectuée.' };
     }
+    // Une panne de la base ne doit jamais être annoncée comme une révocation réussie.
+    await this.sessions.revokeIfHash(claims.sid, hashToken(refreshToken));
     return { message: 'Déconnexion effectuée.' };
   }
 

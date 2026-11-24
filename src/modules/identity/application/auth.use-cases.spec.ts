@@ -39,6 +39,16 @@ describe('AuthUseCases', () => {
     await expect(useCases.login('a@b.sn', 'secret')).rejects.toThrow(UnauthorizedException);
     expect(passwords.verify).not.toHaveBeenCalled();
   });
+  it('ne confirme pas une déconnexion lorsque la révocation en base échoue', async () => {
+    tokens.verifyRefresh.mockResolvedValue({ sub: 'user-1', sid: 'session-1', typ: 'refresh' });
+    sessions.revokeIfHash.mockRejectedValue(new Error('Database unavailable'));
+    await expect(useCases.logout('token-valide')).rejects.toThrow('Database unavailable');
+  });
+  it('reste idempotent avec un jeton invalide', async () => {
+    tokens.verifyRefresh.mockRejectedValue(new Error('Invalid token'));
+    await expect(useCases.logout('invalid')).resolves.toEqual({ message: 'Déconnexion effectuée.' });
+    expect(sessions.revokeIfHash).not.toHaveBeenCalled();
+  });
   it('révoque uniquement le refresh token correspondant lors de la déconnexion', async () => {
     tokens.verifyRefresh.mockResolvedValue({ sub: 'user-1', sid: 'session-1', typ: 'refresh' });
     sessions.revokeIfHash.mockResolvedValue(undefined);

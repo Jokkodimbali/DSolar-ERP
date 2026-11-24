@@ -1,4 +1,4 @@
-name: Remédiation contrôlée des dépendances
+name: Remédiation ciblée Prisma et validation PostgreSQL
 on:
   push:
     branches: [dev]
@@ -6,34 +6,63 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: dependency-remediation-dev
+  cancel-in-progress: false
 jobs:
   fix:
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dsolar_test
+          POSTGRES_PASSWORD: dsolar_test
+          POSTGRES_DB: dsolar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dsolar_test -d dsolar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      DIRECT_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Corriger les dépendances sans mise à niveau forcée
-        run: npm audit fix --package-lock-only --ignore-scripts --omit=dev --audit-level=high
-      - run: npm ci --no-audit --no-fund
+      - name: Résoudre les versions corrigées sous Prisma 6
+        run: |
+          npm pkg set 'overrides.@prisma/config.deepmerge-ts=^8.0.0' 'overrides.@prisma/config.effect=^3.22.1'
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --include=dev
+          node -e "const p=require('./package-lock.json').packages; for(const [k,v] of Object.entries(p)) if(/node_modules\/(prisma|@prisma\/client|@prisma\/config|deepmerge-ts|effect)$/.test(k)) console.log(k,v.version); if(!p['node_modules/prisma'].version.startsWith('6.') || !p['node_modules/@prisma/client'].version.startsWith('6.')) process.exit(1)"
+      - run: npm ci --no-audit --no-fund --include=dev
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run prisma:generate
-        env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/dsolar_test
-          DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_test
+      - run: npm run prisma:validate
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run format:check
       - run: npm test -- --passWithNoTests
-      - name: Enregistrer uniquement les fichiers de dépendances validés
+      - run: npm run prisma:deploy
+      - run: npx prisma migrate status
+      - run: npm run test:integration
+      - name: Tests financiers sur PostgreSQL éphémère
+        run: npm test -- --runTestsByPath src/modules/treasury/infrastructure/treasury.integration.spec.ts src/modules/expenses/infrastructure/expenses.integration.spec.ts src/modules/supplier-returns/infrastructure/supplier-returns.integration.spec.ts src/modules/accounting/infrastructure/accounting.integration.spec.ts src/modules/accounting/infrastructure/bank.integration.spec.ts
+        env:
+          TREASURY_INTEGRATION: '1'
+      - name: Enregistrer uniquement les dépendances validées
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
           if ! git diff --cached --quiet; then
-            git commit -m "fix(deps): remediate audited production dependencies"
-            git pull --rebase origin dev
+            git commit -m "fix(deps): validate targeted Prisma dependency overrides"
             git push origin HEAD:dev
           fi
