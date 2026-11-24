@@ -21,7 +21,8 @@ export class CreditNotesController {
 
   @Post()
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Avoir client émis.') issue(
+  @SuccessMessage('Avoir client émis.')
+  issue(
     @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
     @CurrentUserId() actorId: string,
     @Body() input: IssueCreditNoteDto,

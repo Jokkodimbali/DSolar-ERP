@@ -43,13 +43,23 @@ export function renderTextPdf(title: string, rows: string[], image?: PdfImage): 
   pages.forEach((page, i) => {
     const content =
       [
-        ...(image ? ['q ' + (image.width * scale).toFixed(3) + ' 0 0 ' + (image.height * scale).toFixed(3) + ' 45 755 cm /Logo Do Q'] : []),
+        ...(image
+          ? [
+              'q ' +
+                (image.width * scale).toFixed(3) +
+                ' 0 0 ' +
+                (image.height * scale).toFixed(3) +
+                ' 45 755 cm /Logo Do Q',
+            ]
+          : []),
         text(title, 45, image ? 730 : 800, 16),
         ...page.map((row, index) => text(row, 45, (image ? 700 : 770) - index * 14, 9)),
         text('Page ' + (i + 1) + ' / ' + pages.length, 45, 45, 9),
       ].join('\n') + '\n';
     objects.push(
-      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >>' + (image ? ' /XObject << /Logo ' + imageId + ' 0 R >>' : '') + ' >> /Contents ' +
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >>' +
+        (image ? ' /XObject << /Logo ' + imageId + ' 0 R >>' : '') +
+        ' >> /Contents ' +
         (5 + i * 2) +
         ' 0 R >>',
     );
@@ -58,12 +68,27 @@ export function renderTextPdf(title: string, rows: string[], image?: PdfImage): 
   if (image) {
     const stream = (data: Buffer, colors: number, filter: string, mask = '') => {
       const encoded = data.toString('hex') + '>\n';
-      return '<< /Type /XObject /Subtype /Image /Width ' + image.width + ' /Height ' + image.height +
-        ' /ColorSpace ' + (colors === 1 ? '/DeviceGray' : '/DeviceRGB') +
-        ' /BitsPerComponent 8 /Filter [/ASCIIHexDecode /' + filter + '] ' + mask +
-        ' /Length ' + encoded.length + ' >>\nstream\n' + encoded + 'endstream';
+      return (
+        '<< /Type /XObject /Subtype /Image /Width ' +
+        image.width +
+        ' /Height ' +
+        image.height +
+        ' /ColorSpace ' +
+        (colors === 1 ? '/DeviceGray' : '/DeviceRGB') +
+        ' /BitsPerComponent 8 /Filter [/ASCIIHexDecode /' +
+        filter +
+        '] ' +
+        mask +
+        ' /Length ' +
+        encoded.length +
+        ' >>\nstream\n' +
+        encoded +
+        'endstream'
+      );
     };
-    objects.push(stream(image.data, image.colors, image.filter, image.alpha ? '/SMask ' + (imageId + 1) + ' 0 R' : ''));
+    objects.push(
+      stream(image.data, image.colors, image.filter, image.alpha ? '/SMask ' + (imageId + 1) + ' 0 R' : ''),
+    );
     if (image.alpha) objects.push(stream(image.alpha, 1, 'FlateDecode'));
   }
   let pdf = '%PDF-1.4\n';

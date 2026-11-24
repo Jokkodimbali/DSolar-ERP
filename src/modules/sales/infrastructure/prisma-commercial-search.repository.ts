@@ -113,10 +113,24 @@ export class PrismaCommercialSearchRepository implements CommercialSearchPort {
             orderId: query.orderId,
             order: { ...visible, customerId: query.customerId },
             status: query.status as ReceiptStatus | undefined,
-            ...(contains ? { OR: [{ number: contains }, { order: { number: contains } }, { order: { customer: { name: contains } } }] } : {}),
+            ...(contains
+              ? {
+                  OR: [
+                    { number: contains },
+                    { order: { number: contains } },
+                    { order: { customer: { name: contains } } },
+                  ],
+                }
+              : {}),
           };
           const [items, total] = await Promise.all([
-            tx.deliveryNote.findMany({ where, include: { lines: true }, orderBy: [{ number: 'desc' }, { id: 'desc' }], skip, take: limit }),
+            tx.deliveryNote.findMany({
+              where,
+              include: { lines: true },
+              orderBy: [{ number: 'desc' }, { id: 'desc' }],
+              skip,
+              take: limit,
+            }),
             tx.deliveryNote.count({ where }),
           ]);
           return pageResult(items, total, page, limit);
@@ -126,30 +140,69 @@ export class PrismaCommercialSearchRepository implements CommercialSearchPort {
             where: { id: actorId, status: 'ACTIVE', roles: { some: { role: { code: 'ADMIN' } } } },
             select: { id: true },
           });
-          const orderScope = admin ? {
-            lines: { some: query.storeId ? { storeId: query.storeId } : {}, every: { store: { status: 'ACTIVE' as const } } },
-          } : visible;
+          const orderScope = admin
+            ? {
+                lines: {
+                  some: query.storeId ? { storeId: query.storeId } : {},
+                  every: { store: { status: 'ACTIVE' as const } },
+                },
+              }
+            : visible;
           const where: Prisma.PaymentWhereInput = {
             orderId: query.orderId,
             order: { ...orderScope, customerId: query.customerId },
             ...(query.status ? { reversals: query.status === 'ACTIVE' ? { none: {} } : { some: {} } } : {}),
-            ...(contains ? { OR: [{ externalReference: contains }, { order: { number: contains } }, { order: { customer: { name: contains } } }] } : {}),
+            ...(contains
+              ? {
+                  OR: [
+                    { externalReference: contains },
+                    { order: { number: contains } },
+                    { order: { customer: { name: contains } } },
+                  ],
+                }
+              : {}),
           };
           const [items, total] = await Promise.all([
-            tx.payment.findMany({ where, select: { id: true, orderId: true, amount: true, method: true, installmentNumber: true, receivedAt: true,
-              reversals: { select: { amount: true, createdAt: true } } }, orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }], skip, take: limit }),
+            tx.payment.findMany({
+              where,
+              select: {
+                id: true,
+                orderId: true,
+                amount: true,
+                method: true,
+                installmentNumber: true,
+                receivedAt: true,
+                reversals: { select: { amount: true, createdAt: true } },
+              },
+              orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+              skip,
+              take: limit,
+            }),
             tx.payment.count({ where }),
           ]);
-          return pageResult(items.map((item) => ({ ...item, status: item.reversals.length ? 'REVERSED' : 'ACTIVE' })), total, page, limit);
+          return pageResult(
+            items.map((item) => ({ ...item, status: item.reversals.length ? 'REVERSED' : 'ACTIVE' })),
+            total,
+            page,
+            limit,
+          );
         }
         if (kind === 'credit-notes') {
           const where: Prisma.CreditNoteWhereInput = {
             invoiceId: query.invoiceId,
             invoice: { customerId: query.customerId, order: visible },
-            ...(contains ? { OR: [{ number: contains }, { reason: contains }, { invoice: { number: contains } }] } : {}),
+            ...(contains
+              ? { OR: [{ number: contains }, { reason: contains }, { invoice: { number: contains } }] }
+              : {}),
           };
           const [items, total] = await Promise.all([
-            tx.creditNote.findMany({ where, include: { lines: true }, orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }], skip, take: limit }),
+            tx.creditNote.findMany({
+              where,
+              include: { lines: true },
+              orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
+              skip,
+              take: limit,
+            }),
             tx.creditNote.count({ where }),
           ]);
           return pageResult(items, total, page, limit);

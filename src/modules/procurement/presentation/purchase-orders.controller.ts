@@ -59,16 +59,16 @@ export class PurchaseOrdersController {
   ) {
     return this.orders.create(dto, actorId);
   }
-  @Post(':id/cancel') @RequirePermissions('inventory.manage') @SuccessMessage('Commande fournisseur annulée.') cancel(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  @Post(':id/cancel')
+  @RequirePermissions('inventory.manage')
+  @SuccessMessage('Commande fournisseur annulée.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.cancel(id, actorId);
   }
-  @Post(':id/confirm') @RequirePermissions('inventory.manage') @SuccessMessage('Commande fournisseur confirmée.') confirm(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  @Post(':id/confirm')
+  @RequirePermissions('inventory.manage')
+  @SuccessMessage('Commande fournisseur confirmée.')
+  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.confirm(id, actorId);
   }
 }

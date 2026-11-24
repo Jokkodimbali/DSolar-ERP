@@ -70,11 +70,13 @@ export class BankController {
     return this.service.accounts(actor);
   }
   @Post('accounts')
-  @SuccessMessage('Compte bancaire enregistré.') account(@Body() dto: BankAccountDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Compte bancaire enregistré.')
+  account(@Body() dto: BankAccountDto, @CurrentUserId() actor: string) {
     return this.service.createAccount(dto.accountId, dto.name, actor);
   }
   @Post('statements')
-  @SuccessMessage('Relevé bancaire importé.') importStatement(@Body() dto: StatementDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Relevé bancaire importé.')
+  importStatement(@Body() dto: StatementDto, @CurrentUserId() actor: string) {
     return this.service.importStatement(dto, actor);
   }
   @Get('accounts/:id/statements')
@@ -90,15 +92,18 @@ export class BankController {
     return this.service.suggestions(id, actor);
   }
   @Post('lines/:id/match')
-  @SuccessMessage('Ligne bancaire rapprochée.') match(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MatchDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Ligne bancaire rapprochée.')
+  match(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MatchDto, @CurrentUserId() actor: string) {
     return this.service.match(id, dto.ledgerLineId, actor);
   }
   @Post('lines/:id/unmatch')
-  @SuccessMessage('Rapprochement bancaire annulé.') unmatch(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+  @SuccessMessage('Rapprochement bancaire annulé.')
+  unmatch(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.unmatch(id, actor);
   }
   @Post('statements/:id/close')
-  @SuccessMessage('Rapprochement du relevé clôturé.') close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+  @SuccessMessage('Rapprochement du relevé clôturé.')
+  close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.close(id, actor);
   }
 }

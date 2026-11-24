@@ -36,13 +36,15 @@ export class NotificationsController {
 
   @Post('read-all')
   @AuthenticatedOnly()
-  @SuccessMessage('Toutes les notifications accessibles sont marquées comme lues.') readAll(@CurrentUserId() actorId: string) {
+  @SuccessMessage('Toutes les notifications accessibles sont marquées comme lues.')
+  readAll(@CurrentUserId() actorId: string) {
     return this.service.mark(actorId);
   }
 
   @Post(':id/read')
   @AuthenticatedOnly()
-  @SuccessMessage('Notification marquée comme lue.') read(@CurrentUserId() actorId: string, @Param('id', ParseUUIDPipe) id: string) {
+  @SuccessMessage('Notification marquée comme lue.')
+  read(@CurrentUserId() actorId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.mark(actorId, id);
   }
 }

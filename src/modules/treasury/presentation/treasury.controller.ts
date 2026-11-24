@@ -64,19 +64,22 @@ export class TreasuryController {
 
   @Post('registers')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Caisse créée.') create(@Body() dto: RegisterDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Caisse créée.')
+  create(@Body() dto: RegisterDto, @CurrentUserId() actor: string) {
     return this.service.create(dto.storeId, dto.name, actor);
   }
 
   @Post('registers/:id/open')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Session de caisse ouverte.') open(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Session de caisse ouverte.')
+  open(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
     return this.service.open(id, dto.amount, actor);
   }
 
   @Post('sessions/:id/movements')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Mouvement de caisse enregistré.') move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Mouvement de caisse enregistré.')
+  move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUserId() actor: string) {
     return this.service.move(id, dto.amount, dto.reason, dto.operationKey, actor);
   }
 
@@ -88,19 +91,22 @@ export class TreasuryController {
 
   @Post('sessions/:id/transfer')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Transfert de trésorerie enregistré.') transfer(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TransferDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Transfert de trésorerie enregistré.')
+  transfer(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TransferDto, @CurrentUserId() actor: string) {
     return this.service.transfer(id, dto.destinationId, dto.amount, dto.operationKey, actor);
   }
 
   @Post('movements/:id/reverse')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Mouvement de caisse contrepassé.') reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Mouvement de caisse contrepassé.')
+  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
     return this.service.reverse(id, dto.reason, dto.operationKey, actor);
   }
 
   @Post('sessions/:id/reconcile')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Encaissement rapproché avec la caisse.') reconcile(
+  @SuccessMessage('Encaissement rapproché avec la caisse.')
+  reconcile(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ReconcileDto,
     @CurrentUserId() actor: string,
@@ -110,7 +116,8 @@ export class TreasuryController {
 
   @Post('sessions/:id/close')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Session de caisse clôturée.') close(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Session de caisse clôturée.')
+  close(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AmountDto, @CurrentUserId() actor: string) {
     return this.service.close(id, dto.amount, actor);
   }
 }

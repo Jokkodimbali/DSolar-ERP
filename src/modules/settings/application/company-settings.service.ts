@@ -34,7 +34,9 @@ export class CompanySettingsService {
     try {
       new Intl.DateTimeFormat('fr-SN', { timeZone: normalized.timeZone });
     } catch {
-      throw new BadRequestException('Fuseau horaire invalide. Utilisez un identifiant IANA, par exemple Africa/Dakar.');
+      throw new BadRequestException(
+        'Fuseau horaire invalide. Utilisez un identifiant IANA, par exemple Africa/Dakar.',
+      );
     }
     if (
       normalized.logoUrl &&

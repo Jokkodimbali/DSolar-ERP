@@ -93,13 +93,15 @@ export class SupplierReturnsController {
 
   @Post()
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Retour fournisseur enregistré.') create(@Body() dto: ReturnDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Retour fournisseur enregistré.')
+  create(@Body() dto: ReturnDto, @CurrentUserId() actor: string) {
     return this.service.create(dto, actor);
   }
 
   @Post('receipt-lines/:id/serials')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Numéros de série enregistrés.') registerSerials(
+  @SuccessMessage('Numéros de série enregistrés.')
+  registerSerials(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RegisterSerialsDto,
     @CurrentUserId() actor: string,
@@ -109,19 +111,22 @@ export class SupplierReturnsController {
 
   @Post(':id/confirm')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Retour fournisseur confirmé.') confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+  @SuccessMessage('Retour fournisseur confirmé.')
+  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.confirm(id, actor);
   }
 
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Retour fournisseur annulé.') cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Retour fournisseur annulé.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @CurrentUserId() actor: string) {
     return this.service.cancel(id, dto.reason, actor);
   }
 
   @Post(':id/credit')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Avoir fournisseur enregistré.') credit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreditDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Avoir fournisseur enregistré.')
+  credit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreditDto, @CurrentUserId() actor: string) {
     return this.service.credit(id, dto.reference, actor);
   }
 }

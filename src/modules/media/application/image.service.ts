@@ -14,7 +14,9 @@ export class ImageService {
       try {
         preparePdfImage(data, mimeType);
       } catch {
-        throw new BadRequestException('Logo incompatible avec les documents PDF : choisissez un JPEG RVB ou un PNG 8 bits non entrelacé, de 4 mégapixels maximum.');
+        throw new BadRequestException(
+          'Logo incompatible avec les documents PDF : choisissez un JPEG RVB ou un PNG 8 bits non entrelacé, de 4 mégapixels maximum.',
+        );
       }
     }
     const image = await this.repository.save(actorId, { kind, productId, mimeType, data });

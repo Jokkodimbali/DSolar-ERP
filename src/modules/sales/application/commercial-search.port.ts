@@ -1,6 +1,7 @@
 import { ListCriteria, Page } from '../../../shared/pagination';
 export const COMMERCIAL_SEARCH = Symbol('COMMERCIAL_SEARCH');
-export type CommercialKind = 'customers' | 'proformas' | 'orders' | 'invoices' | 'deliveries' | 'payments' | 'credit-notes';
+export type CommercialKind =
+  'customers' | 'proformas' | 'orders' | 'invoices' | 'deliveries' | 'payments' | 'credit-notes';
 export interface CommercialCriteria extends ListCriteria {
   status?: string;
   customerId?: string;

@@ -22,14 +22,20 @@ export class StoresController {
   @Get('mine') @RequirePermissions('stores.read') mine(@CurrentUserId() userId: string) {
     return this.access.listForUser(userId);
   }
-  @Post(':id/users/:userId') @RequirePermissions('stores.manage') @SuccessMessage('Accès au magasin accordé.') grant(
+  @Post(':id/users/:userId')
+  @RequirePermissions('stores.manage')
+  @SuccessMessage('Accès au magasin accordé.')
+  grant(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @CurrentUserId() actorId: string,
   ) {
     return this.access.grant(id, userId, actorId);
   }
-  @Delete(':id/users/:userId') @RequirePermissions('stores.manage') @SuccessMessage('Accès au magasin retiré.') revoke(
+  @Delete(':id/users/:userId')
+  @RequirePermissions('stores.manage')
+  @SuccessMessage('Accès au magasin retiré.')
+  revoke(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @CurrentUserId() actorId: string,
@@ -48,7 +54,10 @@ export class StoresController {
   ) {
     return this.useCases.create(dto, actorId);
   }
-  @Patch(':id') @RequirePermissions('stores.manage') @SuccessMessage('Informations du magasin mises à jour.') update(
+  @Patch(':id')
+  @RequirePermissions('stores.manage')
+  @SuccessMessage('Informations du magasin mises à jour.')
+  update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateStoreDto,
     @CurrentUserId() actorId: string,
@@ -61,10 +70,10 @@ export class StoresController {
   ) {
     return this.useCases.setStatus(id, 'ACTIVE', actorId);
   }
-  @Patch(':id/deactivate') @RequirePermissions('stores.manage') @SuccessMessage('Magasin désactivé.') deactivate(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  @Patch(':id/deactivate')
+  @RequirePermissions('stores.manage')
+  @SuccessMessage('Magasin désactivé.')
+  deactivate(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUserId() actorId: string) {
     return this.useCases.setStatus(id, 'INACTIVE', actorId);
   }
 }

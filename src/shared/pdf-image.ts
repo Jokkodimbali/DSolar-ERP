@@ -14,8 +14,7 @@ function invalid(): never {
 }
 
 function dimensions(width: number, height: number) {
-  if (width < 1 || height < 1 || width > 4096 || height > 4096 || width * height > 4194304)
-    invalid();
+  if (width < 1 || height < 1 || width > 4096 || height > 4096 || width * height > 4194304) invalid();
 }
 
 function jpeg(data: Buffer): PdfImage {
@@ -41,21 +40,28 @@ function jpeg(data: Buffer): PdfImage {
 
 function paeth(a: number, b: number, c: number): number {
   const p = a + b - c;
-  const pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+  const pa = Math.abs(p - a),
+    pb = Math.abs(p - b),
+    pc = Math.abs(p - c);
   return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
 }
 
 function png(data: Buffer): PdfImage {
   if (data.length < 45 || !data.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))) invalid();
-  const width = data.readUInt32BE(16), height = data.readUInt32BE(20);
+  const width = data.readUInt32BE(16),
+    height = data.readUInt32BE(20);
   dimensions(width, height);
-  const depth = data[24], type = data[25];
+  const depth = data[24],
+    type = data[25];
   if (depth !== 8 || ![0, 2, 3, 4, 6].includes(type) || data[26] !== 0 || data[27] !== 0 || data[28] !== 0)
-    throw new Error('Le logo PNG doit être non entrelacé, en 8 bits par canal. Utilisez un PNG standard ou un JPEG.');
+    throw new Error(
+      'Le logo PNG doit être non entrelacé, en 8 bits par canal. Utilisez un PNG standard ou un JPEG.',
+    );
   const channels = type === 0 || type === 3 ? 1 : type === 2 ? 3 : type === 4 ? 2 : 4;
   const idat: Buffer[] = [];
   let palette: Buffer | undefined, transparency: Buffer | undefined;
-  let pos = 8, ended = false;
+  let pos = 8,
+    ended = false;
   while (pos + 12 <= data.length) {
     const length = data.readUInt32BE(pos);
     if (length > data.length - pos - 12) invalid();
@@ -65,9 +71,13 @@ function png(data: Buffer): PdfImage {
     if (name === 'PLTE') palette = body;
     if (name === 'tRNS') transparency = body;
     pos += length + 12;
-    if (name === 'IEND') { ended = true; break; }
+    if (name === 'IEND') {
+      ended = true;
+      break;
+    }
   }
-  if (!ended || pos !== data.length || !idat.length || (type === 3 && (!palette || palette.length % 3 !== 0))) invalid();
+  if (!ended || pos !== data.length || !idat.length || (type === 3 && (!palette || palette.length % 3 !== 0)))
+    invalid();
   const stride = width * channels;
   const expected = (stride + 1) * height;
   const raw = inflateSync(Buffer.concat(idat), { maxOutputLength: expected });
@@ -81,7 +91,16 @@ function png(data: Buffer): PdfImage {
       const a = x >= channels ? pixels[target - channels] : 0;
       const b = y ? pixels[target - stride] : 0;
       const c = y && x >= channels ? pixels[target - stride - channels] : 0;
-      const predictor = mode === 0 ? 0 : mode === 1 ? a : mode === 2 ? b : mode === 3 ? Math.floor((a + b) / 2) : paeth(a, b, c);
+      const predictor =
+        mode === 0
+          ? 0
+          : mode === 1
+            ? a
+            : mode === 2
+              ? b
+              : mode === 3
+                ? Math.floor((a + b) / 2)
+                : paeth(a, b, c);
       pixels[target] = (raw[y * (stride + 1) + 1 + x] + predictor) & 255;
     }
   }
@@ -98,20 +117,38 @@ function png(data: Buffer): PdfImage {
     } else {
       pixels.copy(color, i * colors, offset, offset + colors);
       if (type === 4 || type === 6) alpha[i] = pixels[offset + colors];
-      else if (type === 0 && transparency?.length === 2 && transparency.readUInt16BE(0) === pixels[offset]) alpha[i] = 0;
-      else if (type === 2 && transparency?.length === 6 &&
-          [0, 1, 2].every((c) => transparency.readUInt16BE(c * 2) === pixels[offset + c])) alpha[i] = 0;
+      else if (type === 0 && transparency?.length === 2 && transparency.readUInt16BE(0) === pixels[offset])
+        alpha[i] = 0;
+      else if (
+        type === 2 &&
+        transparency?.length === 6 &&
+        [0, 1, 2].every((c) => transparency.readUInt16BE(c * 2) === pixels[offset + c])
+      )
+        alpha[i] = 0;
     }
   }
-  return { width, height, colors, filter: 'FlateDecode', data: deflateSync(color),
-    ...(alpha.some((value) => value !== 255) ? { alpha: deflateSync(alpha) } : {}) };
+  return {
+    width,
+    height,
+    colors,
+    filter: 'FlateDecode',
+    data: deflateSync(color),
+    ...(alpha.some((value) => value !== 255) ? { alpha: deflateSync(alpha) } : {}),
+  };
 }
 
 export function preparePdfImage(data: Uint8Array, mime: string): PdfImage {
   const buffer = Buffer.from(data);
   if (buffer.length > 2 * 1024 * 1024) invalid();
   if (mime === 'image/jpeg') {
-    if (buffer.length < 20 || buffer[0] !== 255 || buffer[1] !== 216 || buffer.at(-2) !== 255 || buffer.at(-1) !== 217) invalid();
+    if (
+      buffer.length < 20 ||
+      buffer[0] !== 255 ||
+      buffer[1] !== 216 ||
+      buffer.at(-2) !== 255 ||
+      buffer.at(-1) !== 217
+    )
+      invalid();
     return jpeg(buffer);
   }
   if (mime === 'image/png') return png(buffer);

@@ -42,7 +42,8 @@ export class InventoryController {
   }
   @Post('adjustments')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Ajustement de stock enregistré.') adjust(@Body() dto: AdjustStockDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Ajustement de stock enregistré.')
+  adjust(@Body() dto: AdjustStockDto, @CurrentUserId() actorId: string) {
     return this.inventory.adjust({ ...dto, actorId });
   }
 }

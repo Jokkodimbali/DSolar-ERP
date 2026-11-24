@@ -15,7 +15,8 @@ export class StockCountController {
 
   @Post('stores/:storeId')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Inventaire ouvert.') start(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Inventaire ouvert.')
+  start(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.counts.start(storeId, actorId);
   }
 
@@ -27,7 +28,8 @@ export class StockCountController {
 
   @Post(':id/lines')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Quantités comptées enregistrées.') record(
+  @SuccessMessage('Quantités comptées enregistrées.')
+  record(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RecordCountDto,
     @CurrentUserId() actorId: string,
@@ -37,13 +39,15 @@ export class StockCountController {
 
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Inventaire annulé.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Inventaire annulé.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.counts.cancel(id, actorId);
   }
 
   @Post(':id/validate')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Inventaire validé et stock mis à jour.') validate(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Inventaire validé et stock mis à jour.')
+  validate(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.counts.validate(id, actorId);
   }
 }

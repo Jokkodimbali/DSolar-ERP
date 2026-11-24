@@ -14,7 +14,8 @@ export class TransfersController {
   constructor(private readonly transfers: TransfersService) {}
   @Post()
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Transfert de stock créé.') create(@Body() dto: CreateTransferDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Transfert de stock créé.')
+  create(@Body() dto: CreateTransferDto, @CurrentUserId() actorId: string) {
     return this.transfers.create({ ...dto, actorId });
   }
   @Get(':id')
@@ -24,17 +25,20 @@ export class TransfersController {
   }
   @Post(':id/approve')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Transfert approuvé.') approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Transfert approuvé.')
+  approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.transfers.approve(id, actorId);
   }
   @Post(':id/ship')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Expédition du transfert enregistrée.') ship(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Expédition du transfert enregistrée.')
+  ship(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.transfers.ship(id, actorId);
   }
   @Post(':id/receive')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Réception du transfert enregistrée.') receive(
+  @SuccessMessage('Réception du transfert enregistrée.')
+  receive(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() actorId: string,
     @Body() dto: ReceiveTransferDto,
@@ -43,7 +47,8 @@ export class TransfersController {
   }
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Transfert annulé.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Transfert annulé.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.transfers.cancel(id, actorId);
   }
 }

@@ -52,17 +52,20 @@ export class GoodsReceiptsController {
   }
   @Post()
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Bon de réception créé.') create(@Body() dto: CreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Bon de réception créé.')
+  create(@Body() dto: CreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
     return this.receipts.create(dto, actorId);
   }
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Bon de réception annulé.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Bon de réception annulé.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.receipts.cancel(id, actorId);
   }
   @Post(':id/confirm')
   @RequirePermissions('inventory.manage')
-  @SuccessMessage('Réception confirmée et stock mis à jour.') confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Réception confirmée et stock mis à jour.')
+  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.receipts.confirm(id, actorId);
   }
 }

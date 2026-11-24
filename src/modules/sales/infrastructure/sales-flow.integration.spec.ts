@@ -146,12 +146,23 @@ integration('Parcours commercial réel PostgreSQL', () => {
         const result = await search.search(kind, actor.id, { customerId: customer.id, page: 1, limit: 1 });
         expect(result.items).toHaveLength(1);
         expect(result.pagination.total).toBe(kind === 'payments' ? 2 : 1);
-        expect((await search.search(kind, outsider.id, { customerId: customer.id })).pagination.total).toBe(0);
+        expect((await search.search(kind, outsider.id, { customerId: customer.id })).pagination.total).toBe(
+          0,
+        );
       }
-      const searched = await search.search('orders', actor.id, { customerId: customer.id, search: order.number, status: 'DELIVERED' });
+      const searched = await search.search('orders', actor.id, {
+        customerId: customer.id,
+        search: order.number,
+        status: 'DELIVERED',
+      });
       expect(searched.pagination.total).toBe(1);
-      expect((await search.search('orders', actor.id, { customerId: customer.id, status: 'DRAFT' })).pagination.total).toBe(0);
-      expect((await search.search('payments', actor.id, { customerId: customer.id, page: 2, limit: 1 })).items).toHaveLength(1);
+      expect(
+        (await search.search('orders', actor.id, { customerId: customer.id, status: 'DRAFT' })).pagination
+          .total,
+      ).toBe(0);
+      expect(
+        (await search.search('payments', actor.id, { customerId: customer.id, page: 2, limit: 1 })).items,
+      ).toHaveLength(1);
       expect(await prisma.payment.count({ where: { orderId: order.id } })).toBe(2);
       expect(await prisma.stockMovement.count({ where: { referenceId: note.id } })).toBe(1);
     } finally {
