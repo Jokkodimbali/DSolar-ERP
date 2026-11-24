@@ -196,38 +196,69 @@ integration('Comptabilité PostgreSQL', () => {
       expect((await repo.postPending(period.id, admin.id)).results).toHaveLength(0);
       // The database must reject closing independently of the NestJS service.
       const missingDate = await prisma.invoice.create({
-        data: { number: 'FAC-NODATE-' + suffix, customerId: customer.id, status: 'ISSUED',
-          totalHt: '1', totalTax: '0', totalTtc: '1' },
+        data: {
+          number: 'FAC-NODATE-' + suffix,
+          customerId: customer.id,
+          status: 'ISSUED',
+          totalHt: '1',
+          totalTax: '0',
+          totalTtc: '1',
+        },
       });
       await expect(repo.close(period.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
-      await expect(prisma.ledgerPeriod.update({
-        where: { id: period.id }, data: { closedAt: new Date(), closedBy: admin.id },
-      })).rejects.toThrow();
+      await expect(
+        prisma.ledgerPeriod.update({
+          where: { id: period.id },
+          data: { closedAt: new Date(), closedBy: admin.id },
+        }),
+      ).rejects.toThrow();
       await prisma.invoice.delete({ where: { id: missingDate.id } });
-      await expect(prisma.invoice.update({
-        where: { id: invoice.id }, data: { totalHt: '101', totalTtc: '119' },
-      })).rejects.toThrow();
+      await expect(
+        prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { totalHt: '101', totalTtc: '119' },
+        }),
+      ).rejects.toThrow();
       await repo.close(period.id, admin.id);
-      await expect(prisma.invoice.create({
-        data: { number: 'FAC-LATE-' + suffix, customerId: customer.id, status: 'ISSUED',
-          issuedAt: new Date('2090-01-06T12:00:00Z'), totalHt: '1', totalTax: '0', totalTtc: '1' },
-      })).rejects.toThrow();
+      await expect(
+        prisma.invoice.create({
+          data: {
+            number: 'FAC-LATE-' + suffix,
+            customerId: customer.id,
+            status: 'ISSUED',
+            issuedAt: new Date('2090-01-06T12:00:00Z'),
+            totalHt: '1',
+            totalTax: '0',
+            totalTtc: '1',
+          },
+        }),
+      ).rejects.toThrow();
       await expect(repo.post({ ...input, operationKey: randomUUID() }, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
       );
       const next = await repo.period('CI-next-' + suffix, '2091-01-01', '2091-12-31', admin.id);
-      await expect(prisma.$transaction(async (tx) => {
-        const invalid = await tx.ledgerEntry.create({
-          data: { journalId: journal.id, periodId: next.id, date: new Date('2091-01-01'),
-            description: 'Contrepassation incorrecte', operationKey: randomUUID(), actorId: admin.id,
-            reversalOfId: entry.id },
-        });
-        await tx.ledgerLine.createMany({ data: [
-          { entryId: invalid.id, accountId: cash.id, debit: '0', credit: '1' },
-          { entryId: invalid.id, accountId: income.id, debit: '1', credit: '0' },
-        ] });
-        await tx.ledgerEntry.update({ where: { id: invalid.id }, data: { postedAt: new Date() } });
-      })).rejects.toThrow();
+      await expect(
+        prisma.$transaction(async (tx) => {
+          const invalid = await tx.ledgerEntry.create({
+            data: {
+              journalId: journal.id,
+              periodId: next.id,
+              date: new Date('2091-01-01'),
+              description: 'Contrepassation incorrecte',
+              operationKey: randomUUID(),
+              actorId: admin.id,
+              reversalOfId: entry.id,
+            },
+          });
+          await tx.ledgerLine.createMany({
+            data: [
+              { entryId: invalid.id, accountId: cash.id, debit: '0', credit: '1' },
+              { entryId: invalid.id, accountId: income.id, debit: '1', credit: '0' },
+            ],
+          });
+          await tx.ledgerEntry.update({ where: { id: invalid.id }, data: { postedAt: new Date() } });
+        }),
+      ).rejects.toThrow();
       const reversed = await repo.reverse(
         entry.id,
         next.id,
