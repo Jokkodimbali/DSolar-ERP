@@ -23,17 +23,17 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
     "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.0.0",
     "@prisma/client": "^6.0.0",
+    "argon2": "^0.41.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "@nestjs/jwt": "^11.0.0",
-    "argon2": "^0.41.1"
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
@@ -41,17 +41,17 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^22.0.0",
-    "jest": "^29.7.0",
-    "prisma": "^6.0.0",
-    "supertest": "^7.0.0",
-    "ts-jest": "^29.2.0",
-    "typescript": "^5.7.0",
-    "eslint": "^9.0.0",
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.0.0",
-    "prettier": "^3.0.0"
+    "jest": "^29.7.0",
+    "prettier": "^3.0.0",
+    "prisma": "^6.0.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.0",
+    "typescript": "^5.7.0"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -65,5 +65,11 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "^8.0.0",
+      "effect": "^3.22.1"
+    }
   }
 }
