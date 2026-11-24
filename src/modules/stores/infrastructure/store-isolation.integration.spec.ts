@@ -70,6 +70,19 @@ integration('Isolation des magasins PostgreSQL', () => {
       );
       await expect(inventory.listStoreStock(b.id, user.id)).rejects.toBeInstanceOf(ForbiddenException);
       expect((await inventory.getBalance(a.id, product.id, user.id)).quantity).toBe('0.000');
+      const command = { storeId: a.id, productId: product.id, actorId: user.id,
+        operationKey: randomUUID(), direction: 'IN' as const, quantity: '2.125', reason: 'Ajustement CI' };
+      expect((await inventory.adjust(command)).quantity).toBe('2.125');
+      expect((await inventory.adjust(command)).quantity).toBe('2.125');
+      const movement = await prisma.stockMovement.findUniqueOrThrow({ where: { operationKey: command.operationKey } });
+      expect(movement.actorId).toBe(user.id);
+      const events = await prisma.auditLog.findMany({ where: { entityType: 'StockMovement', entityId: movement.id } });
+      expect(events).toHaveLength(1);
+      expect(events[0].actorId).toBe(user.id);
+      await expect(prisma.auditLog.update({ where: { id: events[0].id }, data: { action: 'FAKE' } })).rejects.toThrow();
+      await expect(prisma.auditLog.delete({ where: { id: events[0].id } })).rejects.toThrow();
+      await expect(prisma.$executeRaw`TRUNCATE TABLE "AuditLog"`).rejects.toThrow();
+      expect((await prisma.auditLog.findUniqueOrThrow({ where: { id: events[0].id } })).action).toBe('STOCK_MANUAL_ADJUSTMENT');
       const renewed = await prisma.refreshSession.create({
         data: { userId: user.id, tokenHash: randomUUID(), expiresAt: new Date(Date.now() + 60000) },
       });

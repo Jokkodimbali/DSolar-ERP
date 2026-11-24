@@ -595,6 +595,9 @@ model AuditLog {
   payload Json?
   createdAt DateTime @default(now())
   @@index([entityType,entityId,createdAt])
+  @@index([createdAt, id])
+  @@index([actorId, createdAt, id])
+  @@index([storeId, createdAt, id])
 }
 model IdempotencyKey {
   key String @id

@@ -63,6 +63,11 @@ describe('AuditService', () => {
     );
   });
 
+  it('rejette les paramètres multiples ou structurés au lieu de provoquer une erreur serveur', () => {
+    expect(() => service.list('actor', { action: ['A','B'] as unknown as string })).toThrow(BadRequestException);
+    expect(() => service.list('actor', { limit: ['10'] as unknown as string })).toThrow(BadRequestException);
+  });
+
   it('rejette les filtres vides', async () => {
     expect(() => service.list('actor', { action: '  ' })).toThrow(BadRequestException);
   });

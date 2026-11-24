@@ -103,6 +103,9 @@ export class PrismaInventoryRepository implements InventoryRepository {
           const prior = await tx.stockMovement.findUnique({ where: { operationKey } });
           if (prior) {
             if (
+              prior.referenceType !== 'MANUAL_ADJUSTMENT' ||
+              prior.type !== MovementType.INVENTORY_ADJUSTMENT ||
+              (prior.actorId !== null && prior.actorId !== actorId) ||
               prior.storeId !== storeId ||
               prior.productId !== productId ||
               !prior.quantity.equals(signed) ||
@@ -137,7 +140,7 @@ export class PrismaInventoryRepository implements InventoryRepository {
           if (changed.count !== 1) {
             throw new ConflictException('Stock insuffisant ou stock réservé : ajustement refusé.');
           }
-          await tx.stockMovement.create({
+          const movement = await tx.stockMovement.create({
             data: {
               storeId,
               productId,
@@ -146,11 +149,26 @@ export class PrismaInventoryRepository implements InventoryRepository {
               type: MovementType.INVENTORY_ADJUSTMENT,
               referenceType: 'MANUAL_ADJUSTMENT',
               referenceId: operationKey,
+              actorId,
               reason: command.reason,
             },
           });
           const updated = await tx.storeStock.findUniqueOrThrow({
             where: { storeId_productId: { storeId, productId } },
+          });
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              storeId,
+              action: 'STOCK_MANUAL_ADJUSTMENT',
+              entityType: 'StockMovement',
+              entityId: movement.id,
+              payload: {
+                productId, operationKey, direction: command.direction,
+                quantity: amount.toFixed(3), resultingQuantity: updated.quantity.toFixed(3),
+                resultingReserved: updated.reserved.toFixed(3),
+              },
+            },
           });
           return this.format(storeId, productId, updated.quantity, updated.reserved);
         },

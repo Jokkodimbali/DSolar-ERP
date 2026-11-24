@@ -507,9 +507,11 @@ async function main() {
       1,
       'Successful receipt transaction must persist exactly one audit event',
     );
-    await prisma.auditLog.deleteMany({
+    // Audit history is immutable; the ephemeral CI database is discarded after the run.
+    await assert.rejects(prisma.auditLog.deleteMany({
       where: { entityType: 'GoodsReceipt', entityId: auditEntityId },
-    });
+    }));
+    assert.equal(await prisma.auditLog.count({ where: { entityType: 'GoodsReceipt', entityId: auditEntityId } }), 1);
     console.log('PASS PostgreSQL: stock concurrency, rollback, physical count and audit movement');
     console.log('PASS PostgreSQL: purchase order confirmation and draft receipt cancellation');
   } finally {
