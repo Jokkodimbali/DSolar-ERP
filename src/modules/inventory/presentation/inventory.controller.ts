@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
@@ -41,7 +42,7 @@ export class InventoryController {
   }
   @Post('adjustments')
   @RequirePermissions('inventory.manage')
-  adjust(@Body() dto: AdjustStockDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Ajustement de stock enregistré.') adjust(@Body() dto: AdjustStockDto, @CurrentUserId() actorId: string) {
     return this.inventory.adjust({ ...dto, actorId });
   }
 }

@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
@@ -13,7 +14,7 @@ export class TransfersController {
   constructor(private readonly transfers: TransfersService) {}
   @Post()
   @RequirePermissions('inventory.manage')
-  create(@Body() dto: CreateTransferDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Transfert de stock créé.') create(@Body() dto: CreateTransferDto, @CurrentUserId() actorId: string) {
     return this.transfers.create({ ...dto, actorId });
   }
   @Get(':id')
@@ -23,17 +24,17 @@ export class TransfersController {
   }
   @Post(':id/approve')
   @RequirePermissions('inventory.manage')
-  approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Transfert approuvé.') approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.transfers.approve(id, actorId);
   }
   @Post(':id/ship')
   @RequirePermissions('inventory.manage')
-  ship(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Expédition du transfert enregistrée.') ship(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.transfers.ship(id, actorId);
   }
   @Post(':id/receive')
   @RequirePermissions('inventory.manage')
-  receive(
+  @SuccessMessage('Réception du transfert enregistrée.') receive(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() actorId: string,
     @Body() dto: ReceiveTransferDto,
@@ -42,7 +43,7 @@ export class TransfersController {
   }
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Transfert annulé.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.transfers.cancel(id, actorId);
   }
 }

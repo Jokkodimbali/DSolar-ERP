@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
@@ -52,19 +53,19 @@ export class PurchaseOrdersController {
   ) {
     return this.orders.progress(id);
   }
-  @Post() @RequirePermissions('inventory.manage') create(
+  @Post() @RequirePermissions('inventory.manage') @SuccessMessage('Commande fournisseur créée.') create(
     @Body() dto: CreatePurchaseOrderDto,
     @CurrentUserId() actorId: string,
   ) {
     return this.orders.create(dto, actorId);
   }
-  @Post(':id/cancel') @RequirePermissions('inventory.manage') cancel(
+  @Post(':id/cancel') @RequirePermissions('inventory.manage') @SuccessMessage('Commande fournisseur annulée.') cancel(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() actorId: string,
   ) {
     return this.orders.cancel(id, actorId);
   }
-  @Post(':id/confirm') @RequirePermissions('inventory.manage') confirm(
+  @Post(':id/confirm') @RequirePermissions('inventory.manage') @SuccessMessage('Commande fournisseur confirmée.') confirm(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() actorId: string,
   ) {

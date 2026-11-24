@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -20,7 +21,7 @@ export class CreditNotesController {
 
   @Post()
   @RequirePermissions('sales.manage')
-  issue(
+  @SuccessMessage('Avoir client émis.') issue(
     @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
     @CurrentUserId() actorId: string,
     @Body() input: IssueCreditNoteDto,

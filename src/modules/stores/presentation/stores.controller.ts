@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
@@ -21,14 +22,14 @@ export class StoresController {
   @Get('mine') @RequirePermissions('stores.read') mine(@CurrentUserId() userId: string) {
     return this.access.listForUser(userId);
   }
-  @Post(':id/users/:userId') @RequirePermissions('stores.manage') grant(
+  @Post(':id/users/:userId') @RequirePermissions('stores.manage') @SuccessMessage('Accès au magasin accordé.') grant(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @CurrentUserId() actorId: string,
   ) {
     return this.access.grant(id, userId, actorId);
   }
-  @Delete(':id/users/:userId') @RequirePermissions('stores.manage') revoke(
+  @Delete(':id/users/:userId') @RequirePermissions('stores.manage') @SuccessMessage('Accès au magasin retiré.') revoke(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @CurrentUserId() actorId: string,
@@ -41,26 +42,26 @@ export class StoresController {
   ) {
     return this.access.getAccessible(id, userId);
   }
-  @Post() @RequirePermissions('stores.manage') create(
+  @Post() @RequirePermissions('stores.manage') @SuccessMessage('Magasin créé.') create(
     @Body() dto: CreateStoreDto,
     @CurrentUserId() actorId: string,
   ) {
     return this.useCases.create(dto, actorId);
   }
-  @Patch(':id') @RequirePermissions('stores.manage') update(
+  @Patch(':id') @RequirePermissions('stores.manage') @SuccessMessage('Informations du magasin mises à jour.') update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateStoreDto,
     @CurrentUserId() actorId: string,
   ) {
     return this.useCases.update(id, dto, actorId);
   }
-  @Patch(':id/activate') @RequirePermissions('stores.manage') activate(
+  @Patch(':id/activate') @RequirePermissions('stores.manage') @SuccessMessage('Magasin activé.') activate(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUserId() actorId: string,
   ) {
     return this.useCases.setStatus(id, 'ACTIVE', actorId);
   }
-  @Patch(':id/deactivate') @RequirePermissions('stores.manage') deactivate(
+  @Patch(':id/deactivate') @RequirePermissions('stores.manage') @SuccessMessage('Magasin désactivé.') deactivate(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUserId() actorId: string,
   ) {

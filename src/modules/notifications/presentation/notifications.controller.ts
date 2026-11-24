@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Sse, UseGuards } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
@@ -35,13 +36,13 @@ export class NotificationsController {
 
   @Post('read-all')
   @AuthenticatedOnly()
-  readAll(@CurrentUserId() actorId: string) {
+  @SuccessMessage('Toutes les notifications accessibles sont marquées comme lues.') readAll(@CurrentUserId() actorId: string) {
     return this.service.mark(actorId);
   }
 
   @Post(':id/read')
   @AuthenticatedOnly()
-  read(@CurrentUserId() actorId: string, @Param('id', ParseUUIDPipe) id: string) {
+  @SuccessMessage('Notification marquée comme lue.') read(@CurrentUserId() actorId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.mark(actorId, id);
   }
 }

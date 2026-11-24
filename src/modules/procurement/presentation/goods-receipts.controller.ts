@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -51,17 +52,17 @@ export class GoodsReceiptsController {
   }
   @Post()
   @RequirePermissions('inventory.manage')
-  create(@Body() dto: CreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Bon de réception créé.') create(@Body() dto: CreateGoodsReceiptDto, @CurrentUserId() actorId: string) {
     return this.receipts.create(dto, actorId);
   }
   @Post(':id/cancel')
   @RequirePermissions('inventory.manage')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Bon de réception annulé.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.receipts.cancel(id, actorId);
   }
   @Post(':id/confirm')
   @RequirePermissions('inventory.manage')
-  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Réception confirmée et stock mis à jour.') confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.receipts.confirm(id, actorId);
   }
 }

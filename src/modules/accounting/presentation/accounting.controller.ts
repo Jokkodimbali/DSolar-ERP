@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -124,19 +125,19 @@ export class AccountingController {
     return this.service.setup(actor);
   }
   @Post('rules')
-  rule(@Body() dto: RuleDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Règle de comptabilisation enregistrée.') rule(@Body() dto: RuleDto, @CurrentUserId() actor: string) {
     return this.service.rule(dto, actor);
   }
   @Post('sources')
-  source(@Body() dto: SourceDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Comptabilisation de la source effectuée.') source(@Body() dto: SourceDto, @CurrentUserId() actor: string) {
     return this.service.postSource(dto.type, dto.id, actor);
   }
   @Post('accounts')
-  account(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Compte comptable créé.') account(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
     return this.service.account(dto.code, dto.name, actor);
   }
   @Post('accounts/:id/classify')
-  classify(
+  @SuccessMessage('Classification du compte enregistrée.') classify(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ClassificationDto,
     @CurrentUserId() actor: string,
@@ -148,11 +149,11 @@ export class AccountingController {
     return this.service.statements(id, actor);
   }
   @Post('journals')
-  journal(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Journal comptable créé.') journal(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
     return this.service.journal(dto.code, dto.name, actor);
   }
   @Post('periods')
-  period(@Body() dto: PeriodDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Période comptable créée.') period(@Body() dto: PeriodDto, @CurrentUserId() actor: string) {
     return this.service.period(dto.name, dto.start, dto.end, actor);
   }
   @Get('periods/:id/automation')
@@ -160,7 +161,7 @@ export class AccountingController {
     return this.service.automation(id, actor);
   }
   @Post('periods/:id/automation')
-  configureAutomation(
+  @SuccessMessage('Paramètres de comptabilisation automatique enregistrés.') configureAutomation(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AutomationDto,
     @CurrentUserId() actor: string,
@@ -172,19 +173,19 @@ export class AccountingController {
     return this.service.pending(id, actor);
   }
   @Post('periods/:id/post-pending')
-  postPending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+  @SuccessMessage('Traitement des écritures en attente terminé. Consultez le bilan du traitement.') postPending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.postPending(id, actor);
   }
   @Post('periods/:id/close')
-  close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+  @SuccessMessage('Période comptable clôturée.') close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.close(id, actor);
   }
   @Post('entries')
-  post(@Body() dto: PostingDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Écriture comptable enregistrée.') post(@Body() dto: PostingDto, @CurrentUserId() actor: string) {
     return this.service.post(dto, actor);
   }
   @Post('entries/:id/reverse')
-  reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
+  @SuccessMessage('Écriture comptable contrepassée.') reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string) {
     return this.service.reverse(id, dto.periodId, dto.date, dto.reason, dto.operationKey, actor);
   }
   @Get('periods/:id/entries')

@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
@@ -17,19 +18,19 @@ export class CatalogueController {
   @Get('categories') @RequirePermissions('products.read') categories() {
     return this.catalogue.list('category');
   }
-  @Post('categories') @RequirePermissions('products.manage') createCategory(@Body() dto: CreateCategoryDto) {
+  @Post('categories') @RequirePermissions('products.manage') @SuccessMessage('Catégorie créée.') createCategory(@Body() dto: CreateCategoryDto) {
     return this.catalogue.createCategory(dto);
   }
   @Get('brands') @RequirePermissions('products.read') brands() {
     return this.catalogue.list('brand');
   }
-  @Post('brands') @RequirePermissions('products.manage') createBrand(@Body() dto: CreateBrandDto) {
+  @Post('brands') @RequirePermissions('products.manage') @SuccessMessage('Marque créée.') createBrand(@Body() dto: CreateBrandDto) {
     return this.catalogue.createBrand(dto);
   }
   @Get('tax-regimes') @RequirePermissions('products.read') taxRegimes() {
     return this.catalogue.list('taxRegime');
   }
-  @Post('tax-regimes') @RequirePermissions('products.manage') createTaxRegime(
+  @Post('tax-regimes') @RequirePermissions('products.manage') @SuccessMessage('Régime fiscal créé.') createTaxRegime(
     @Body() dto: CreateTaxRegimeDto,
   ) {
     return this.catalogue.createTaxRegime(dto);
@@ -39,7 +40,7 @@ export class CatalogueController {
   ) {
     return this.catalogue.prices(id);
   }
-  @Post('products/:id/prices') @RequirePermissions('products.manage') setPrice(
+  @Post('products/:id/prices') @RequirePermissions('products.manage') @SuccessMessage('Tarif produit enregistré.') setPrice(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: SetProductPriceDto,
   ) {

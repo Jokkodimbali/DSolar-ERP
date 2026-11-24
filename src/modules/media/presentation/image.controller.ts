@@ -1,3 +1,4 @@
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import {
   Controller,
   Get,
@@ -34,7 +35,7 @@ export class ImageController {
   @RequirePermissions('users.manage')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', uploadLimits))
-  logo(@CurrentUserId() actorId: string, @UploadedFile() file?: UploadedImage) {
+  @SuccessMessage('Logo téléversé avec succès.') logo(@CurrentUserId() actorId: string, @UploadedFile() file?: UploadedImage) {
     return this.images.upload(actorId, 'COMPANY_LOGO', file?.buffer);
   }
 
@@ -42,7 +43,7 @@ export class ImageController {
   @RequirePermissions('products.manage')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', uploadLimits))
-  photo(
+  @SuccessMessage('Photo du produit téléversée avec succès.') photo(
     @CurrentUserId() actorId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file?: UploadedImage,
