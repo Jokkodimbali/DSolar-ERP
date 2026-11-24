@@ -1,4 +1,12 @@
-import { CanActivate, ExecutionContext, Injectable, Inject, HttpException, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Inject,
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { createHash } from 'node:crypto';
 import { AUTH_RATE_LIMIT, AuthRateLimit } from '../application/auth-rate-limit.port';
@@ -28,7 +36,8 @@ export class LoginRateLimitGuard implements CanActivate {
     const endpoint = handler === 'refresh' || handler === 'logout' ? handler : 'login';
     await this.consume(endpoint + ':ip:' + ip, endpoint === 'login' ? 60 : 120);
     if (endpoint === 'login') {
-      const email = typeof request.body?.email === 'string' ? request.body.email.trim().toLowerCase().slice(0,254) : '';
+      const email =
+        typeof request.body?.email === 'string' ? request.body.email.trim().toLowerCase().slice(0, 254) : '';
       await this.consume('login:pair:' + ip + ':' + email, 10);
     }
     return true;
