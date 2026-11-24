@@ -1,0 +1,39 @@
+name: Remédiation contrôlée des dépendances
+on:
+  push:
+    branches: [dev]
+    paths: ['.github/workflows/security-dependencies-fix.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Corriger les dépendances sans mise à niveau forcée
+        run: npm audit fix --package-lock-only --ignore-scripts --omit=dev --audit-level=high
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/dsolar_test
+          DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_test
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- --passWithNoTests
+      - name: Enregistrer uniquement les fichiers de dépendances validés
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(deps): remediate audited production dependencies"
+            git pull --rebase origin dev
+            git push origin HEAD:dev
+          fi

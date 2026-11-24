@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SetMetadata } from '@nestjs/common';
-import { TOKEN_SERVICE, TokenService, USER_REPOSITORY, UserRepository } from '../application/ports';
+import { SESSION_REPOSITORY, SessionRepository, TOKEN_SERVICE, TokenService, USER_REPOSITORY, UserRepository } from '../application/ports';
 import { AuthenticatedRequest } from './current-user.decorator';
 
 export const REQUIRED_PERMISSIONS = 'required_permissions';
@@ -20,11 +20,12 @@ export class AccessGuard implements CanActivate {
     private readonly reflector: Reflector,
     @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
+    @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepository,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const header = request.headers.authorization;
-    if (typeof header !== 'string' || !/^Bearer [^\s]+$/.test(header)) {
+    if (typeof header !== 'string' || header.length > 4103 || !/^Bearer [^\s]+$/.test(header)) {
       throw new UnauthorizedException('Authentification requise.');
     }
     let claims;
@@ -36,6 +37,10 @@ export class AccessGuard implements CanActivate {
     const user = await this.users.findById(claims.sub);
     if (!user || user.status !== 'ACTIVE' || user.tokenVersion !== claims.ver)
       throw new UnauthorizedException('Compte ou session invalide.');
+    if (!claims.sid) throw new UnauthorizedException('Session invalide.');
+    const session = await this.sessions.findById(claims.sid);
+    if (!session || session.userId !== user.id || session.revokedAt || session.expiresAt <= new Date())
+      throw new UnauthorizedException('Session expirée ou révoquée.');
     const required =
       this.reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS, [
         context.getHandler(),

@@ -24,6 +24,7 @@ export interface PasswordService {
 export interface AccessClaims {
   sub: string;
   ver: number;
+  sid: string;
   typ: 'access';
 }
 export interface RefreshClaims {

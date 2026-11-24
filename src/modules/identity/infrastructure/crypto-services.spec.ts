@@ -18,6 +18,14 @@ describe('JwtTokenService', () => {
     else process.env.JWT_REFRESH_SECRET = previousRefreshSecret;
   });
 
+  it('lie le JWT d’accès à sa session et refuse les anciens jetons sans sid', async () => {
+    const claims = { sub: 'user-id', sid: 'session-id', ver: 0, typ: 'access' as const };
+    await expect(service.verifyAccess(await service.signAccess(claims))).resolves.toMatchObject(claims);
+    const old = await new JwtService().signAsync({ sub: 'user-id', ver: 0, typ: 'access' },
+      { secret: process.env.JWT_ACCESS_SECRET, algorithm: 'HS256', expiresIn: '15m' });
+    await expect(service.verifyAccess(old)).rejects.toThrow();
+  });
+
   it('signe et valide un refresh token contenant un jti', async () => {
     const token = await service.signRefresh({
       sub: 'user-id',

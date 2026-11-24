@@ -1,4 +1,4 @@
-name: Formatage et sécurité HTTP
+name: Formatage et révocation des sessions
 on:
   push:
     branches: [dev]

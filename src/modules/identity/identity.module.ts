@@ -34,6 +34,6 @@ import { AuthController } from './presentation/auth.controller';
     { provide: PASSWORD_SERVICE, useClass: ArgonPasswordService },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },
   ],
-  exports: [AccessGuard, USER_REPOSITORY, TOKEN_SERVICE, BootstrapService],
+  exports: [AccessGuard, USER_REPOSITORY, TOKEN_SERVICE, SESSION_REPOSITORY, BootstrapService],
 })
 export class IdentityModule {}

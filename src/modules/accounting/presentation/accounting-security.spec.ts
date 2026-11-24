@@ -7,7 +7,7 @@ import { BankController } from './bank.controller';
 import { AccountingService } from '../application/accounting.service';
 import { BankService } from '../application/bank.service';
 import { AccessGuard } from '../../identity/presentation/access.guard';
-import { TOKEN_SERVICE, USER_REPOSITORY } from '../../identity/application/ports';
+import { SESSION_REPOSITORY, TOKEN_SERVICE, USER_REPOSITORY } from '../../identity/application/ports';
 
 describe('Sécurité HTTP de la comptabilité', () => {
   let app: INestApplication;
@@ -15,6 +15,7 @@ describe('Sécurité HTTP de la comptabilité', () => {
   const id = '00000000-0000-4000-8000-000000000002';
   const token = { verifyAccess: jest.fn() };
   const users = { findById: jest.fn() };
+  const sessions = { findById: jest.fn() };
   const ledger = { setup: jest.fn(), post: jest.fn(), configureAutomation: jest.fn() };
   const bank = { accounts: jest.fn(), close: jest.fn() };
 
@@ -25,6 +26,7 @@ describe('Sécurité HTTP de la comptabilité', () => {
         AccessGuard,
         { provide: TOKEN_SERVICE, useValue: token },
         { provide: USER_REPOSITORY, useValue: users },
+        { provide: SESSION_REPOSITORY, useValue: sessions },
         { provide: AccountingService, useValue: ledger },
         { provide: BankService, useValue: bank },
       ],
@@ -41,13 +43,14 @@ describe('Sécurité HTTP de la comptabilité', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    token.verifyAccess.mockResolvedValue({ sub: actor, ver: 1 });
+    token.verifyAccess.mockResolvedValue({ sub: actor, ver: 1, sid: id });
     users.findById.mockResolvedValue({
       id: actor,
       status: 'ACTIVE',
       tokenVersion: 1,
       permissions: ['users.manage'],
     });
+    sessions.findById.mockResolvedValue({ userId: actor, revokedAt: null, expiresAt: new Date(Date.now() + 60000) });
     ledger.setup.mockResolvedValue({ accounts: [] });
     ledger.configureAutomation.mockResolvedValue({ enabled: false });
   });
@@ -106,6 +109,12 @@ describe('Sécurité HTTP de la comptabilité', () => {
       .get('/api/v1/accounting/setup')
       .set('Authorization', 'Bearer valid')
       .expect(401);
+    expect(ledger.setup).not.toHaveBeenCalled();
+  });
+
+  it('refuse immédiatement un jeton d’accès après révocation de sa session', async () => {
+    sessions.findById.mockResolvedValue({ userId: actor, revokedAt: new Date(), expiresAt: new Date(Date.now() + 60000) });
+    await request(app.getHttpServer()).get('/api/v1/accounting/setup').set('Authorization','Bearer valid').expect(401);
     expect(ledger.setup).not.toHaveBeenCalled();
   });
 
