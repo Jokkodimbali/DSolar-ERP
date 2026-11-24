@@ -139,6 +139,7 @@ export class AccountingRepository implements AccountingPort {
     // Each source gets an independent serializable transaction, allowing progress despite a missing rule.
     for (const item of pending.items.slice(0, 25)) {
       try {
+        if (!item.date) throw new ConflictException('Date comptable manquante sur la pièce.');
         const entry = await this.postSource(item.type, item.id, actor);
         results.push({ type: item.type, id: item.id, entryId: entry.id });
       } catch (error) {
@@ -335,17 +336,18 @@ export class AccountingRepository implements AccountingPort {
     return this.transaction(actor, async (tx) => {
       if (!(await tx.ledgerPeriod.findUnique({ where: { id: periodId } })))
         throw new NotFoundException('Période introuvable.');
-      const groups = await tx.ledgerLine.groupBy({
-        by: ['accountId'],
-        where: { entry: { periodId, postedAt: { not: null } } },
-        _sum: { debit: true, credit: true },
-      });
+      const groups = await tx.$queryRaw<{ accountId: string; debit: string; credit: string }[]>`
+        SELECT l."accountId", sum(l.debit)::text AS debit, sum(l.credit)::text AS credit
+        FROM "LedgerLine" l JOIN "LedgerEntry" e ON e.id = l."entryId"
+        WHERE e."periodId" = ${periodId}::uuid AND e."postedAt" IS NOT NULL
+        GROUP BY l."accountId"
+      `;
       const accounts = await tx.ledgerAccount.findMany({ orderBy: { code: 'asc' } });
       const byAccount = new Map(groups.map((group) => [group.accountId, group]));
       const rows = accounts.map((account) => {
         const group = byAccount.get(account.id);
-        const debit = aggregateCents(group?._sum.debit?.toFixed(2) ?? '0');
-        const credit = aggregateCents(group?._sum.credit?.toFixed(2) ?? '0');
+        const debit = aggregateCents(group?.debit ?? '0');
+        const credit = aggregateCents(group?.credit ?? '0');
         return {
           ...account,
           debit: moneyText(debit),

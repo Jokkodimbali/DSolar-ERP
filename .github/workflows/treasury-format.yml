@@ -1,4 +1,4 @@
-name: Formatage ponctuel et contrôles comptables
+name: Formatage et validation des protections comptables
 on:
   push:
     branches: [dev]
