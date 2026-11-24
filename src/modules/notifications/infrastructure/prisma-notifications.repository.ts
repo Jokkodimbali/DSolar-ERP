@@ -68,6 +68,7 @@ export class PrismaNotificationsRepository implements NotificationsPort {
         const result = await tx.notificationRead.createMany({
           data: rows.map((row) => ({ userId: actorId, auditId: row.id })), skipDuplicates: true,
         });
+        if (result.count === 0) throw new Error('Impossible de marquer les notifications.');
         marked += result.count;
         if (rows.length < 1000 || id) return marked;
       }
