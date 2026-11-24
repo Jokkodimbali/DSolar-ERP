@@ -51,6 +51,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
     }
     return this.prisma.$transaction(
       async (tx) => {
+        await tx.$queryRaw`SELECT o.id FROM "SalesOrder" o JOIN "Invoice" i ON i."orderId" = o.id WHERE i.id = ${invoiceId}::uuid FOR UPDATE OF o`;
         await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId}::uuid FOR UPDATE`;
         const invoice = await tx.invoice.findUnique({
           where: { id: invoiceId },
@@ -86,9 +87,11 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           (sum, allocation) => sum.plus(allocation.amount),
           new Prisma.Decimal(0),
         );
-        const available = invoice.totalTtc.minus(credited).minus(allocated);
+        const available = invoice.totalTtc.minus(credited).minus(
+          Prisma.Decimal.max(allocated, invoice.order.amountPaid),
+        );
         if (amount.greaterThan(available)) {
-          throw new ConflictException('Avoir supérieur au solde non réglé de la facture.');
+          throw new ConflictException('Avoir supérieur au solde non encaissé de la facture. Régularisez les règlements avant de créer cet avoir.');
         }
         let detail: ReturnType<typeof allocateCredit> | undefined;
         if (lines) {
@@ -137,6 +140,8 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
           },
           include: { lines: true },
         });
+        // Publish a new order row version to serialize concurrent payments and credits.
+        await tx.salesOrder.update({ where: { id: invoice.order.id }, data: { amountPaid: invoice.order.amountPaid } });
         await tx.auditLog.create({
           data: {
             actorId,

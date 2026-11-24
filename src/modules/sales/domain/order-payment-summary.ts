@@ -4,6 +4,7 @@ export interface OrderPaymentSnapshot {
   paymentStatus: string;
   total: string;
   amountPaid: string;
+  creditTotal?: string;
   payments: {
     id: string;
     installmentNumber: number;
@@ -28,6 +29,8 @@ function money(value: bigint): string {
 export function summarizeOrderPayments(snapshot: OrderPaymentSnapshot) {
   const total = cents(snapshot.total);
   const declared = cents(snapshot.amountPaid);
+  const credited = cents(snapshot.creditTotal ?? '0.00');
+  const netTotal = total - credited;
   let paid = 0n;
   let activeInstallments = 0;
   let valid = true;
@@ -53,10 +56,11 @@ export function summarizeOrderPayments(snapshot: OrderPaymentSnapshot) {
       reversedAt: payment.reversals[0]?.createdAt ?? null,
     };
   });
-  const remaining = total - paid;
+  const remaining = netTotal - paid;
   const expectedStatus = paid === 0n ? 'UNPAID' : paid === total ? 'PAID' : 'PARTIALLY_PAID';
   const consistent =
     valid &&
+    credited <= total &&
     paid === declared &&
     paid >= 0n &&
     remaining >= 0n &&
@@ -71,10 +75,13 @@ export function summarizeOrderPayments(snapshot: OrderPaymentSnapshot) {
   return {
     orderId: snapshot.orderId,
     currency: 'XOF',
-    basis: 'SALES_ORDER_BEFORE_INVOICE_CREDITS',
+    basis: 'SALES_ORDER_NET_OF_INVOICE_CREDITS',
     orderStatus: snapshot.orderStatus,
     paymentStatus: snapshot.paymentStatus,
     total: money(total),
+    credited: money(credited),
+    netTotal: money(netTotal),
+    netPaymentStatus: remaining === 0n ? 'PAID' : paid === 0n ? 'UNPAID' : 'PARTIALLY_PAID',
     paid: money(paid),
     remaining: money(remaining),
     activeInstallments,

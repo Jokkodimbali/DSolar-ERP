@@ -115,6 +115,8 @@ export class PrismaInvoicesRepository implements InvoicesRepository {
           throw new ForbiddenException('Accès insuffisant aux magasins.');
         }
         if (invoice.status !== 'DRAFT') throw new ConflictException('Facture déjà traitée.');
+        if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(invoice.order.status))
+          throw new ConflictException('La commande doit être confirmée et non annulée pour émettre la facture.');
         const updated = await tx.invoice.update({
           where: { id },
           data: { status: 'ISSUED', issuedAt: new Date() },

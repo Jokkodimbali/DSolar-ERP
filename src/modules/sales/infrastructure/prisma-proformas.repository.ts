@@ -37,51 +37,43 @@ export class PrismaProformasRepository implements ProformasRepository {
     }
   }
 
-  private async accessibleStores(actorId: string): Promise<string[]> {
-    const access = await this.prisma.userStoreAccess.findMany({
-      where: {
-        userId: actorId,
-        user: { status: 'ACTIVE' },
-        store: { status: 'ACTIVE' },
-      },
+  private async accessibleStores(tx: Prisma.TransactionClient, actorId: string): Promise<string[]> {
+    const access = await tx.userStoreAccess.findMany({
+      where: { userId: actorId, user: { status: 'ACTIVE' }, store: { status: 'ACTIVE' } },
       select: { storeId: true },
     });
     return access.map((item) => item.storeId);
   }
 
+  private effectiveStatus<T extends { status: DocumentStatus; expiresAt: Date | null }>(item: T, now: Date): T {
+    return item.status === DocumentStatus.ISSUED && item.expiresAt && item.expiresAt <= now
+      ? { ...item, status: DocumentStatus.EXPIRED }
+      : item;
+  }
+
   async list(actorId: string) {
-    const ids = await this.accessibleStores(actorId);
-    if (!ids.length) return [];
-    await this.expireOverdue();
-    return this.prisma.proforma.findMany({
-      where: {
-        lines: { some: {}, every: { storeId: { in: ids } } },
-      },
-      include: { lines: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const ids = await this.accessibleStores(tx, actorId);
+      if (!ids.length) return [];
+      const rows = await tx.proforma.findMany({
+        where: { lines: { some: {}, every: { storeId: { in: ids } } } },
+        include: { lines: true }, orderBy: { createdAt: 'desc' },
+      });
+      const now = new Date();
+      return rows.map((item) => this.effectiveStatus(item, now));
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
+
   async find(id: string, actorId: string) {
-    const ids = await this.accessibleStores(actorId);
-    if (!ids.length) return null;
-    await this.expireOverdue(id);
-    return this.prisma.proforma.findFirst({
-      where: {
-        id,
-        lines: { some: {}, every: { storeId: { in: ids } } },
-      },
-      include: { lines: true },
-    });
-  }
-  private async expireOverdue(id?: string): Promise<void> {
-    await this.prisma.proforma.updateMany({
-      where: {
-        ...(id ? { id } : {}),
-        status: DocumentStatus.ISSUED,
-        expiresAt: { lte: new Date() },
-      },
-      data: { status: DocumentStatus.EXPIRED },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const ids = await this.accessibleStores(tx, actorId);
+      if (!ids.length) return null;
+      const item = await tx.proforma.findFirst({
+        where: { id, lines: { some: {}, every: { storeId: { in: ids } } } },
+        include: { lines: true },
+      });
+      return item ? this.effectiveStatus(item, new Date()) : null;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
   async create(input: ProformaInput, actorId: string) {
     const pricing = salesPricing(input.lines);
@@ -308,7 +300,13 @@ export class PrismaProformasRepository implements ProformasRepository {
         if (!proforma) throw new NotFoundException('Devis introuvable.');
         const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
         await this.assertAccess(tx, storeIds, actorId);
-        if (proforma.status !== from) throw new ConflictException('Transition de statut impossible.');
+        if (proforma.status === DocumentStatus.EXPIRED && to === 'EXPIRED') return proforma;
+        if (proforma.status !== from) throw new ConflictException('Le statut de la proforma a changé. Rechargez le document.');
+        const overdue = proforma.expiresAt !== null && proforma.expiresAt <= new Date();
+        if (to === 'EXPIRED' && !overdue)
+          throw new ConflictException('La proforma ne peut expirer qu’après sa date de validité.');
+        if (from === DocumentStatus.ISSUED && overdue && to !== 'EXPIRED')
+          throw new ConflictException('La proforma a expiré. Enregistrez son expiration avant toute autre opération.');
         const allowed =
           (from === DocumentStatus.ISSUED && (to === 'ACCEPTED' || to === 'CANCELLED' || to === 'EXPIRED')) ||
           (from === DocumentStatus.DRAFT && to === 'CANCELLED');

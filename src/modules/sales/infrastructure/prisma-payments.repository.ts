@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { reverseReconciledCashPayment } from '../../treasury/infrastructure/cash-payment-reversal';
+import { summarizeOrderPayments } from '../domain/order-payment-summary';
 import { PaymentsRepository, RecordPaymentInput } from '../application/payments.port';
 
 @Injectable()
@@ -27,6 +28,13 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       where: { userId: actorId, storeId: { in: stores }, store: { status: 'ACTIVE' } },
     });
     if (allowed !== stores.length) throw new ForbiddenException('Accès magasin refusé.');
+  }
+
+  private async credited(tx: Prisma.TransactionClient, orderId: string): Promise<Prisma.Decimal> {
+    const result = await tx.creditNote.aggregate({
+      where: { invoice: { orderId, status: 'ISSUED' } }, _sum: { amount: true },
+    });
+    return result._sum.amount ?? new Prisma.Decimal(0);
   }
 
   async list(orderId: string, actorId: string) {
@@ -80,6 +88,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           paymentStatus: order.paymentStatus,
           total: order.total.toFixed(2),
           amountPaid: order.amountPaid.toFixed(2),
+          creditTotal: (await this.credited(tx, orderId)).toFixed(2),
           payments: payments.map((payment) => ({
             ...payment,
             amount: payment.amount.toFixed(2),
@@ -138,12 +147,24 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         if (activePayments.length >= 2) {
           throw new ConflictException('Deux encaissements actifs maximum par commande.');
         }
-        const remaining = order.total.minus(order.amountPaid);
+        const credited = await this.credited(tx, orderId);
+        const snapshot = summarizeOrderPayments({
+          orderId, orderStatus: order.status, paymentStatus: order.paymentStatus,
+          total: order.total.toFixed(2), amountPaid: order.amountPaid.toFixed(2),
+          creditTotal: credited.toFixed(2),
+          payments: order.payments.map((payment) => ({
+            ...payment, amount: payment.amount.toFixed(2),
+            reversals: payment.reversals.map((reversal) => ({ ...reversal, amount: reversal.amount.toFixed(2) })),
+          })),
+        });
+        if (!snapshot.consistent)
+          throw new ConflictException('Les règlements ou avoirs historiques sont incohérents. Régularisez la commande avant tout encaissement.');
+        const remaining = order.total.minus(credited).minus(order.amountPaid);
         if (amount.greaterThan(remaining)) {
-          throw new ConflictException('Montant supérieur au solde de la commande.');
+          throw new ConflictException('Montant supérieur au solde après avoirs : ' + remaining.toFixed(2) + ' FCFA.');
         }
         if (activePayments.length === 1 && !amount.equals(remaining)) {
-          throw new ConflictException('La deuxième tranche doit solder la commande.');
+          throw new ConflictException('La deuxième tranche doit être égale au solde de ' + remaining.toFixed(2) + ' FCFA.');
         }
         const nextPaid = order.amountPaid.plus(amount);
         const payment = await tx.payment.create({
@@ -286,9 +307,6 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         });
         if (!invoice) {
           throw new ConflictException('Facture émise liée à la commande introuvable.');
-        }
-        if (invoice.creditNotes.length) {
-          throw new ConflictException('Facture avec avoir : affectation manuelle bloquée.');
         }
         const paymentAllocated = payment.allocations.reduce(
           (sum, allocation) => sum.plus(allocation.amount),

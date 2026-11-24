@@ -54,8 +54,6 @@ export class ProformasService {
     return this.proformas.transition(id, current.status, 'CANCELLED', actorId);
   }
   async expire(id: string, actorId: string) {
-    const current = await this.get(id, actorId);
-    if (current.status !== 'ISSUED') throw new ConflictException('Devis non émis.');
     return this.proformas.transition(id, 'ISSUED', 'EXPIRED', actorId);
   }
 

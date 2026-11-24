@@ -10,6 +10,7 @@ describe('PrismaCreditNotesRepository', () => {
   const tx = {
     $queryRaw: jest.fn(),
     invoice: { findUnique: jest.fn() },
+    salesOrder: { update: jest.fn() },
     userStoreAccess: { count: jest.fn() },
     creditNote: { create: jest.fn() },
     auditLog: { create: jest.fn() },
@@ -23,7 +24,7 @@ describe('PrismaCreditNotesRepository', () => {
     totalTtc: decimal('118.00'),
     totalTax: decimal('0.00'),
     lines: [],
-    order: { lines: [{ storeId: 'store-1' }] },
+    order: { id: 'order', amountPaid: decimal('50'), lines: [{ storeId: 'store-1' }] },
     creditNotes: [{ amount: decimal('18.00'), lines: [] }],
     allocations: [{ amount: decimal('50.00') }],
   };
@@ -51,7 +52,7 @@ describe('PrismaCreditNotesRepository', () => {
   it('conserve les magasins dans le journal pour une facture multi-magasins', async () => {
     tx.invoice.findUnique.mockResolvedValue({
       ...invoice,
-      order: { lines: [{ storeId: 'store-1' }, { storeId: 'store-2' }] },
+      order: { ...invoice.order, lines: [{ storeId: 'store-1' }, { storeId: 'store-2' }] },
     });
     tx.userStoreAccess.count.mockResolvedValue(2);
     await repository.issue(invoiceId, actorId, '10.00', 'Correction de prix');
@@ -67,6 +68,11 @@ describe('PrismaCreditNotesRepository', () => {
     expect(tx.creditNote.create).not.toHaveBeenCalled();
   });
 
+  it('refuse un avoir qui dépasserait le solde après un règlement non affecté', async () => {
+    tx.invoice.findUnique.mockResolvedValue({ ...invoice, order: { ...invoice.order, amountPaid: decimal('90') }, allocations: [] });
+    await expect(repository.issue(invoiceId, actorId, '10.01', 'Correction de prix')).rejects.toThrow(ConflictException);
+    expect(tx.creditNote.create).not.toHaveBeenCalled();
+  });
   it('exige une ventilation pour un avoir partiel taxable', async () => {
     tx.invoice.findUnique.mockResolvedValue({ ...invoice, totalTax: decimal('18.00') });
     await expect(repository.issue(invoiceId, actorId, '10.00', 'Correction de prix')).rejects.toThrow(

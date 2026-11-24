@@ -50,6 +50,16 @@ describe('Synthèse des deux tranches de règlement', () => {
     ).toMatchObject({ remaining: '0.00', consistent: true, canRecord: false });
   });
 
+  it('déduit les avoirs du solde et des deux tranches', () => {
+    expect(summarizeOrderPayments({
+      ...initial, creditTotal: '20.01', paymentStatus: 'PARTIALLY_PAID',
+      amountPaid: '40.00', payments: [payment('40.00')],
+    })).toMatchObject({ total: '100.01', credited: '20.01', netTotal: '80.00', remaining: '40.00', consistent: true });
+    expect(summarizeOrderPayments({
+      ...initial, creditTotal: '20.01', paymentStatus: 'PARTIALLY_PAID',
+      amountPaid: '80.00', payments: [payment('40.00'), payment('40.00', 2)],
+    })).toMatchObject({ remaining: '0.00', netPaymentStatus: 'PAID', consistent: true, canRecord: false });
+  });
   it('exclut un encaissement intégralement contrepassé', () => {
     const result = summarizeOrderPayments({
       ...initial,

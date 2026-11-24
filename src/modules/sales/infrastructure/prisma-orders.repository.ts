@@ -131,7 +131,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
         await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${id}::uuid FOR UPDATE`;
         const order = await tx.salesOrder.findUnique({
           where: { id },
-          include: { lines: true, deliveries: true, payments: true },
+          include: { lines: true, deliveries: true, payments: true, invoices: true },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
         const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
@@ -148,6 +148,9 @@ export class PrismaOrdersRepository implements OrdersRepository {
         }
         if (order.status !== 'DRAFT' && order.status !== 'CONFIRMED') {
           throw new ConflictException('Cette commande ne peut plus être annulée.');
+        }
+        if (order.invoices?.some((invoice) => invoice.status !== 'CANCELLED')) {
+          throw new ConflictException('Annulez la facture brouillon avant la commande. Une facture émise interdit cette annulation.');
         }
         if (order.deliveries.length || order.payments.length) {
           throw new ConflictException('Annulation interdite après livraison ou paiement.');

@@ -6,6 +6,7 @@ import { PaymentsService } from '../application/payments.service';
 import { ProformasService } from '../application/proformas.service';
 import { SalesDocumentsService } from '../application/sales-documents.service';
 import { PrismaProformasRepository } from './prisma-proformas.repository';
+import { PrismaCreditNotesRepository } from './prisma-credit-notes.repository';
 import { PrismaOrdersRepository } from './prisma-orders.repository';
 import { PrismaPaymentsRepository } from './prisma-payments.repository';
 import { PrismaInvoicesRepository } from './prisma-invoices.repository';
@@ -82,6 +83,10 @@ integration('Parcours commercial réel PostgreSQL', () => {
           where: { storeId_productId: { storeId: store.id, productId: product.id } },
         });
       expect((await balance()).reserved.toFixed(3)).toBe('2.000');
+      const invoice = await invoices.createFromOrder(order.id, actor.id);
+      await expect(orders.cancel(order.id, actor.id)).rejects.toBeInstanceOf(ConflictException);
+      await invoices.issue(invoice.id, actor.id);
+      await expect(orders.cancel(order.id, actor.id)).rejects.toBeInstanceOf(ConflictException);
       const first = { amount: '100.00', method: 'CASH' as const, idempotencyKey: randomUUID() };
       await payments.record(order.id, actor.id, first);
       await payments.record(order.id, actor.id, first);
@@ -99,16 +104,20 @@ integration('Parcours commercial réel PostgreSQL', () => {
           amount: '1.00',
         }),
       ).rejects.toBeInstanceOf(ConflictException);
-      await payments.record(order.id, actor.id, { ...first, amount: '124.20', idempotencyKey: randomUUID() });
+      const line = await prisma.invoiceLine.findFirstOrThrow({ where: { invoiceId: invoice.id } });
+      const credits = new PrismaCreditNotesRepository(prisma);
+      await credits.issue(invoice.id, actor.id, '11.80', 'Correction tarifaire CI', [{ invoiceLineId: line.id, netAmount: '10.00' }]);
+      await expect(payments.record(order.id, actor.id, { ...first, amount: '124.20', idempotencyKey: randomUUID() })).rejects.toBeInstanceOf(ConflictException);
+      await payments.record(order.id, actor.id, { ...first, amount: '112.40', idempotencyKey: randomUUID() });
       expect(await payments.summary(order.id, actor.id)).toMatchObject({
-        paid: '224.20',
+        paid: '212.40',
+        credited: '11.80',
+        netPaymentStatus: 'PAID',
         remaining: '0.00',
         activeInstallments: 2,
         consistent: true,
         canRecord: false,
       });
-      const invoice = await invoices.createFromOrder(order.id, actor.id);
-      await invoices.issue(invoice.id, actor.id);
       expect(invoice.totalHt.toFixed(2)).toBe('190.00');
       expect(invoice.totalTax.toFixed(2)).toBe('34.20');
       expect(invoice.totalTtc.toFixed(2)).toBe(order.total.toFixed(2));
