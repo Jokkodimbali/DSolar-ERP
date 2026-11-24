@@ -1,4 +1,4 @@
-name: Formatage et contrôle des privilèges SQL
+name: Formatage et intégrité des sources comptables
 on:
   push:
     branches: [dev]

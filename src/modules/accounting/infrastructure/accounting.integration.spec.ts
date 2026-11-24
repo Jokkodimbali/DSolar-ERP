@@ -178,6 +178,26 @@ integration('Comptabilité PostgreSQL', () => {
       await expect(repo.postSource('CASH_MOVEMENT', debitMovement.id, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
       );
+      // A new movement may not be attached to an already published transfer.
+      await expect(prisma.cashMovement.create({
+        data: { sessionId: targetSession.id, amount: '1', reason: 'Ligne supplémentaire interdite',
+          operationKey: randomUUID(), transferKey, actorId: admin.id, createdAt: new Date('2090-01-04T12:00:00Z') },
+      })).rejects.toThrow();
+      expect(await prisma.cashMovement.count({ where: { transferKey } })).toBe(2);
+      // A balanced but fictitious source entry must not be published.
+      await expect(prisma.$transaction(async (tx) => {
+        const fake = await tx.ledgerEntry.create({
+          data: { journalId: journal.id, periodId: period.id, date: new Date('2090-01-04'),
+            description: 'Source inexistante', operationKey: randomUUID(), actorId: admin.id,
+            sourceType: 'INVOICE', sourceId: randomUUID(),
+            lines: { create: [{ accountId: cash.id, debit: '1', credit: '0' }, { accountId: income.id, debit: '0', credit: '1' }] } },
+        });
+        await tx.ledgerEntry.update({ where: { id: fake.id }, data: { postedAt: new Date() } });
+      })).rejects.toThrow();
+      await expect(prisma.ledgerPeriod.create({
+        data: { name: 'CLOSED-' + suffix, startsAt: new Date('2180-01-01'), endsAt: new Date('2180-12-31'),
+          closedAt: new Date(), closedBy: admin.id },
+      })).rejects.toThrow();
       const pending = await repo.pending(period.id, admin.id);
       expect(pending.items.some((item) => item.id === partial.id)).toBe(true);
       await expect(repo.close(period.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
