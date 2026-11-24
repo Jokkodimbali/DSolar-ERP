@@ -56,9 +56,6 @@ export class PrismaOrdersRepository implements OrdersRepository {
           include: { lines: true },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
-        if (order.status !== 'DRAFT')
-          throw new ConflictException('Seule une commande brouillon peut être confirmée.');
-        if (!order.lines.length) throw new ConflictException('La commande ne contient aucune ligne.');
         const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
         const authorized = await tx.userStoreAccess.count({
           where: {
@@ -68,11 +65,15 @@ export class PrismaOrdersRepository implements OrdersRepository {
             store: { status: 'ACTIVE' },
           },
         });
-        if (authorized !== storeIds.length)
+        if (!storeIds.length || authorized !== storeIds.length)
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
 
+        if (order.status !== 'DRAFT')
+          throw new ConflictException('Seule une commande brouillon peut être confirmée.');
         const totals = new Map<string, { storeId: string; productId: string; quantity: Prisma.Decimal }>();
         for (const line of order.lines) {
+          if (!line.quantity.isFinite() || !line.quantity.greaterThan(0))
+            throw new ConflictException('Quantité de commande invalide.');
           const key = `${line.storeId}:${line.productId}`;
           const current = totals.get(key);
           if (current) current.quantity = current.quantity.plus(line.quantity);
@@ -132,12 +133,6 @@ export class PrismaOrdersRepository implements OrdersRepository {
           include: { lines: true, deliveries: true, payments: true },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
-        if (order.status !== 'DRAFT' && order.status !== 'CONFIRMED') {
-          throw new ConflictException('Cette commande ne peut plus être annulée.');
-        }
-        if (order.deliveries.length || order.payments.length) {
-          throw new ConflictException('Annulation interdite après livraison ou paiement.');
-        }
         const storeIds = [...new Set(order.lines.map((line) => line.storeId))];
         const authorized = await tx.userStoreAccess.count({
           where: {
@@ -147,16 +142,24 @@ export class PrismaOrdersRepository implements OrdersRepository {
             store: { status: 'ACTIVE' },
           },
         });
-        if (authorized !== storeIds.length) {
+        if (!storeIds.length || authorized !== storeIds.length) {
           throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
+        }
+        if (order.status !== 'DRAFT' && order.status !== 'CONFIRMED') {
+          throw new ConflictException('Cette commande ne peut plus être annulée.');
+        }
+        if (order.deliveries.length || order.payments.length) {
+          throw new ConflictException('Annulation interdite après livraison ou paiement.');
         }
         if (order.status === 'CONFIRMED') {
           const releases = new Map<string, Prisma.Decimal>();
           for (const line of order.lines) {
+            if (!line.quantity.isFinite() || !line.quantity.greaterThan(0))
+              throw new ConflictException('Quantité de commande invalide.');
             const key = `${line.storeId}:${line.productId}`;
             releases.set(key, (releases.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
           }
-          for (const [key, quantity] of releases) {
+          for (const [key, quantity] of [...releases].sort(([a], [b]) => a.localeCompare(b))) {
             const [storeId, productId] = key.split(':');
             const changed = await tx.storeStock.updateMany({
               where: {
@@ -203,11 +206,6 @@ export class PrismaOrdersRepository implements OrdersRepository {
             include: { lines: true },
           });
           if (!proforma) throw new NotFoundException('Devis proforma introuvable.');
-          if (proforma.status !== DocumentStatus.ACCEPTED)
-            throw new ConflictException('Seul un devis accepté peut être converti.');
-          if (proforma.lines.length === 0) throw new ConflictException('Le devis ne contient aucune ligne.');
-          const existing = await tx.salesOrder.findFirst({ where: { proformaId } });
-          if (existing) throw new ConflictException('Ce devis a déjà été converti.');
           const storeIds = [...new Set(proforma.lines.map((line) => line.storeId))];
           const authorized = await tx.userStoreAccess.count({
             where: {
@@ -217,8 +215,12 @@ export class PrismaOrdersRepository implements OrdersRepository {
             store: { status: 'ACTIVE' },
           },
           });
-          if (authorized !== storeIds.length)
+          if (!storeIds.length || authorized !== storeIds.length)
             throw new ForbiddenException('Accès insuffisant aux magasins du devis.');
+          if (proforma.status !== DocumentStatus.ACCEPTED)
+            throw new ConflictException('Seul un devis accepté peut être converti.');
+          const existing = await tx.salesOrder.findFirst({ where: { proformaId } });
+          if (existing) throw new ConflictException('Ce devis a déjà été converti.');
           const order = await tx.salesOrder.create({
             data: {
               number: `CMD-${randomUUID().slice(0, 12).toUpperCase()}`,

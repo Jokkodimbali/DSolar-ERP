@@ -60,9 +60,6 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           include: { lines: true, deliveries: { where: { status: 'CONFIRMED' }, include: { lines: true } } },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
-        if (order.status !== 'CONFIRMED' && order.status !== 'PARTIALLY_DELIVERED') {
-          throw new ConflictException('La commande doit être confirmée.');
-        }
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
           where: {
@@ -74,6 +71,9 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         });
         if (!stores.length || allowed !== stores.length)
           throw new ForbiddenException('Accès magasin refusé.');
+        if (order.status !== 'CONFIRMED' && order.status !== 'PARTIALLY_DELIVERED') {
+          throw new ConflictException('La commande doit être confirmée.');
+        }
         const ordered = new Map<string, Prisma.Decimal>();
         for (const line of order.lines) {
           const key = `${line.storeId}:${line.productId}`;
@@ -144,13 +144,6 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           include: { lines: true, deliveries: { include: { lines: true } } },
         });
         if (!order) throw new NotFoundException('Commande introuvable.');
-        if (order.status !== 'CONFIRMED' && order.status !== 'PARTIALLY_DELIVERED') {
-          throw new ConflictException('Commande non livrable.');
-        }
-        const note = order.deliveries.find((item) => item.id === deliveryId);
-        if (!note) throw new NotFoundException('Bon de livraison introuvable.');
-        if (note.status !== 'DRAFT') throw new ConflictException('Bon déjà traité.');
-        if (!note.lines.length) throw new ConflictException('Bon de livraison sans lignes.');
         const stores = [...new Set(order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
           where: {
@@ -162,6 +155,13 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         });
         if (!stores.length || allowed !== stores.length)
           throw new ForbiddenException('Accès magasin refusé.');
+        if (order.status !== 'CONFIRMED' && order.status !== 'PARTIALLY_DELIVERED') {
+          throw new ConflictException('Commande non livrable.');
+        }
+        const note = order.deliveries.find((item) => item.id === deliveryId);
+        if (!note) throw new NotFoundException('Bon de livraison introuvable.');
+        if (note.status !== 'DRAFT') throw new ConflictException('Bon déjà traité.');
+        if (!note.lines.length) throw new ConflictException('Bon de livraison sans lignes.');
         const ordered = new Map<string, Prisma.Decimal>();
         for (const line of order.lines) {
           const key = `${line.storeId}:${line.productId}`;
@@ -176,6 +176,8 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         }
         const current = new Map<string, Prisma.Decimal>();
         for (const line of note.lines) {
+          if (!line.quantity.isFinite() || !line.quantity.greaterThan(0))
+            throw new ConflictException('Quantité de livraison invalide.');
           const key = `${line.storeId}:${line.productId}`;
           current.set(key, (current.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
         }
@@ -250,7 +252,6 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
           include: { order: { include: { lines: true } } },
         });
         if (!note) throw new NotFoundException('Bon de livraison introuvable.');
-        if (note.status !== 'DRAFT') throw new ConflictException('Seul un brouillon peut être annulé.');
         const stores = [...new Set(note.order.lines.map((line) => line.storeId))];
         const allowed = await tx.userStoreAccess.count({
           where: {
@@ -262,6 +263,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         });
         if (!stores.length || allowed !== stores.length)
           throw new ForbiddenException('Accès magasin refusé.');
+        if (note.status !== 'DRAFT') throw new ConflictException('Seul un brouillon peut être annulé.');
         const updated = await tx.deliveryNote.update({
           where: { id: deliveryId },
           data: { status: 'CANCELLED' },
