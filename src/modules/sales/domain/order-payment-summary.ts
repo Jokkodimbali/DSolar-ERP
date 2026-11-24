@@ -22,7 +22,7 @@ function cents(value: string): bigint {
 
 function money(value: bigint): string {
   const absolute = value < 0n ? -value : value;
-  return (value < 0n ? '-' : '') + (absolute / 100n) + '.' + String(absolute % 100n).padStart(2, '0');
+  return (value < 0n ? '-' : '') + absolute / 100n + '.' + String(absolute % 100n).padStart(2, '0');
 }
 
 export function summarizeOrderPayments(snapshot: OrderPaymentSnapshot) {
@@ -34,7 +34,10 @@ export function summarizeOrderPayments(snapshot: OrderPaymentSnapshot) {
   const payments = snapshot.payments.map((payment) => {
     const amount = cents(payment.amount);
     const reversed = payment.reversals.reduce((sum, reversal) => sum + cents(reversal.amount), 0n);
-    if (amount <= 0n || (payment.reversals.length > 0 && (payment.reversals.length !== 1 || reversed !== amount)))
+    if (
+      amount <= 0n ||
+      (payment.reversals.length > 0 && (payment.reversals.length !== 1 || reversed !== amount))
+    )
       valid = false;
     const active = payment.reversals.length === 0;
     if (active) activeInstallments++;
@@ -53,12 +56,18 @@ export function summarizeOrderPayments(snapshot: OrderPaymentSnapshot) {
   const remaining = total - paid;
   const expectedStatus = paid === 0n ? 'UNPAID' : paid === total ? 'PAID' : 'PARTIALLY_PAID';
   const consistent =
-    valid && paid === declared && paid >= 0n && remaining >= 0n &&
-    activeInstallments <= 2 && (activeInstallments !== 2 || remaining === 0n) &&
+    valid &&
+    paid === declared &&
+    paid >= 0n &&
+    remaining >= 0n &&
+    activeInstallments <= 2 &&
+    (activeInstallments !== 2 || remaining === 0n) &&
     snapshot.paymentStatus === expectedStatus;
   const canRecord =
-    consistent && ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(snapshot.orderStatus) &&
-    remaining > 0n && activeInstallments < 2;
+    consistent &&
+    ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(snapshot.orderStatus) &&
+    remaining > 0n &&
+    activeInstallments < 2;
   return {
     orderId: snapshot.orderId,
     currency: 'XOF',

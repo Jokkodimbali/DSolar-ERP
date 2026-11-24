@@ -29,7 +29,8 @@ export class PaymentsController {
 
   @Post()
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Règlement enregistré avec succès.') record(
+  @SuccessMessage('Règlement enregistré avec succès.')
+  record(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @CurrentUserId() actorId: string,
     @Body() input: RecordPaymentDto,
@@ -38,7 +39,8 @@ export class PaymentsController {
   }
   @Post(':paymentId/reverse')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Règlement contrepassé.') reverse(
+  @SuccessMessage('Règlement contrepassé.')
+  reverse(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @CurrentUserId() actorId: string,
@@ -48,7 +50,8 @@ export class PaymentsController {
   }
   @Post(':paymentId/allocations/:allocationId/cancel')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Affectation du règlement annulée.') cancelAllocation(
+  @SuccessMessage('Affectation du règlement annulée.')
+  cancelAllocation(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @Param('allocationId', ParseUUIDPipe) allocationId: string,
@@ -59,7 +62,8 @@ export class PaymentsController {
   }
   @Post(':paymentId/allocations')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Règlement affecté à la facture.') allocate(
+  @SuccessMessage('Règlement affecté à la facture.')
+  allocate(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @CurrentUserId() actorId: string,

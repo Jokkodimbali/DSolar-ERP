@@ -26,19 +26,22 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Commande annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Commande annulée.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.cancel(id, actorId);
   }
 
   @Post(':id/confirm')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Commande confirmée et stock réservé.') confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Commande confirmée et stock réservé.')
+  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.confirm(id, actorId);
   }
 
   @Post('from-proforma/:id')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Commande créée à partir de la proforma.') convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Commande créée à partir de la proforma.')
+  convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.orders.convert(id, actorId);
   }
 }

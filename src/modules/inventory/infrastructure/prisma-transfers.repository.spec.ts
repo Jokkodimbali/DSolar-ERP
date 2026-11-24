@@ -59,7 +59,10 @@ describe('PrismaTransfersRepository receipt validation', () => {
 
   function fixture(overrides: Partial<typeof transfer> = {}) {
     const tx = {
-      stockTransfer: { findUnique: jest.fn().mockResolvedValue({ ...transfer, ...overrides }), update: jest.fn() },
+      stockTransfer: {
+        findUnique: jest.fn().mockResolvedValue({ ...transfer, ...overrides }),
+        update: jest.fn(),
+      },
       user: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE', roles: [] }) },
       store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
       userStoreAccess: { findUnique: jest.fn().mockResolvedValue({ userId: 'actor' }) },

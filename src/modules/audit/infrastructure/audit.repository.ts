@@ -109,7 +109,10 @@ export class AuditRepository {
         return {
           total,
           byAction: byAction.map((item) => ({ action: item.action, count: item._count._all })),
-          byEntityType: byEntityType.map((item) => ({ entityType: item.entityType, count: item._count._all })),
+          byEntityType: byEntityType.map((item) => ({
+            entityType: item.entityType,
+            count: item._count._all,
+          })),
         };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },

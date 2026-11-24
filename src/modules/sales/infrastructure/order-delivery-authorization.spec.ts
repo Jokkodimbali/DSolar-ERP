@@ -90,9 +90,7 @@ describe('Sécurité des commandes et des livraisons', () => {
         },
       ],
     });
-    await expect(deliveries.confirm('order', 'delivery', 'actor')).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(deliveries.confirm('order', 'delivery', 'actor')).rejects.toBeInstanceOf(ConflictException);
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
     expect(tx.stockMovement.create).not.toHaveBeenCalled();
   });

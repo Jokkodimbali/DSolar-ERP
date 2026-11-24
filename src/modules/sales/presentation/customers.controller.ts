@@ -35,12 +35,14 @@ export class CustomersController {
   }
   @Post()
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Client créé avec succès.') create(@Body() dto: CreateCustomerDto) {
+  @SuccessMessage('Client créé avec succès.')
+  create(@Body() dto: CreateCustomerDto) {
     return this.customers.create(dto);
   }
   @Patch(':id')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Informations du client mises à jour.') update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCustomerDto) {
+  @SuccessMessage('Informations du client mises à jour.')
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCustomerDto) {
     return this.customers.update(id, dto);
   }
 }

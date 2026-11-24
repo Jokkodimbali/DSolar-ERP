@@ -69,10 +69,14 @@ export class ProformasService {
       seen.add(key);
     }
     try {
-      calculateSalesTotals(input.lines.map((line) => ({
-        quantity: String(line.quantity), unitPrice: String(line.unitPrice),
-        discount: String(line.discount), taxRate: String(line.taxRate),
-      })));
+      calculateSalesTotals(
+        input.lines.map((line) => ({
+          quantity: String(line.quantity),
+          unitPrice: String(line.unitPrice),
+          discount: String(line.discount),
+          taxRate: String(line.taxRate),
+        })),
+      );
     } catch (error) {
       throw new BadRequestException(error instanceof Error ? error.message : 'Montants invalides.');
     }

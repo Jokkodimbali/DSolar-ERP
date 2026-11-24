@@ -23,9 +23,7 @@ describe('Configuration JWT', () => {
   });
 
   it('refuse des secrets identiques', () => {
-    expect(() =>
-      validatedJwtSecrets({ ...env, JWT_REFRESH_SECRET: env.JWT_ACCESS_SECRET }),
-    ).toThrow();
+    expect(() => validatedJwtSecrets({ ...env, JWT_REFRESH_SECRET: env.JWT_ACCESS_SECRET })).toThrow();
   });
 
   it('ne divulgue pas le secret dans le message d’erreur', () => {

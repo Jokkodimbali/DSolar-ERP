@@ -21,7 +21,9 @@ export class PrismaSupplierPurchasesRepository implements SupplierPurchasesPort 
         });
         if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
         // Independent aggregates avoid multiplying amounts through one-to-many joins.
-        const [amounts] = await tx.$queryRaw<Omit<SupplierPurchasesSnapshot, 'supplierId' | 'supplierName' | 'active'>[]>`
+        const [amounts] = await tx.$queryRaw<
+          Omit<SupplierPurchasesSnapshot, 'supplierId' | 'supplierName' | 'active'>[]
+        >`
           WITH receipts AS (
             SELECT r.id FROM "GoodsReceipt" r
             JOIN "PurchaseOrder" p ON p.id = r."purchaseOrderId"

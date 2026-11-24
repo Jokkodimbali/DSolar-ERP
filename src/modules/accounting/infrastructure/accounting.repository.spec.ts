@@ -31,7 +31,9 @@ describe('Cohérence des échecs de comptabilisation automatique', () => {
     prisma.$queryRaw.mockResolvedValue([item]);
     tx.user.findFirst.mockResolvedValue({ id: item.actorId });
     tx.ledgerAutomation.findUnique.mockResolvedValue({
-      enabled: true, revision: item.revision, actorId: item.actorId,
+      enabled: true,
+      revision: item.revision,
+      actorId: item.actorId,
     });
     tx.ledgerPeriod.findUnique.mockResolvedValue({ id: item.periodId, closedAt: null });
     tx.ledgerEntry.findUnique.mockResolvedValue(null);
@@ -74,17 +76,22 @@ describe('Cohérence des échecs de comptabilisation automatique', () => {
   it('enregistre un échec réel dans une transaction sérialisable sans détail technique', async () => {
     jest.spyOn(repo, 'postSource').mockRejectedValue(new Error('secret technique'));
     await repo.runAutomaticCycle();
-    expect(transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    }));
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(tx.ledgerAutomationFailure.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      create: expect.objectContaining({
-        periodId: item.periodId,
-        sourceId: item.id,
-        lastError: 'Échec technique de la comptabilisation automatique.',
+    expect(transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       }),
-    }));
+    );
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.ledgerAutomationFailure.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          periodId: item.periodId,
+          sourceId: item.id,
+          lastError: 'Échec technique de la comptabilisation automatique.',
+        }),
+      }),
+    );
   });
 
   it('nettoie l’échec dans la transaction de répétition d’une écriture déjà validée', async () => {

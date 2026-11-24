@@ -53,7 +53,10 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         const order = await tx.salesOrder.findUnique({
           where: { id: orderId },
           select: {
-            status: true, paymentStatus: true, total: true, amountPaid: true,
+            status: true,
+            paymentStatus: true,
+            total: true,
+            amountPaid: true,
             lines: { select: { storeId: true } },
           },
         });
@@ -62,7 +65,11 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         const payments = await tx.payment.findMany({
           where: { orderId },
           select: {
-            id: true, installmentNumber: true, amount: true, method: true, receivedAt: true,
+            id: true,
+            installmentNumber: true,
+            amount: true,
+            method: true,
+            receivedAt: true,
             reversals: { select: { amount: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
           },
           orderBy: { installmentNumber: 'asc' },
@@ -77,7 +84,8 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
             ...payment,
             amount: payment.amount.toFixed(2),
             reversals: payment.reversals.map((reversal) => ({
-              ...reversal, amount: reversal.amount.toFixed(2),
+              ...reversal,
+              amount: reversal.amount.toFixed(2),
             })),
           })),
         };

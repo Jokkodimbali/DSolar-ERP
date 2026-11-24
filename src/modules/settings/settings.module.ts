@@ -9,6 +9,9 @@ import { CompanySettingsController } from './presentation/company-settings.contr
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [CompanySettingsController],
-  providers: [CompanySettingsService, { provide: COMPANY_SETTINGS, useClass: PrismaCompanySettingsRepository }],
+  providers: [
+    CompanySettingsService,
+    { provide: COMPANY_SETTINGS, useClass: PrismaCompanySettingsRepository },
+  ],
 })
 export class SettingsModule {}

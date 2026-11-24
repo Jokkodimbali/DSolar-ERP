@@ -26,9 +26,11 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
       where: { userId: 'actor', user: { status: 'ACTIVE' }, store: { status: 'ACTIVE' } },
       select: { storeId: true },
     });
-    expect(tx.proforma.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'proforma', lines: { some: {}, every: { storeId: { in: ['store'] } } } },
-    }));
+    expect(tx.proforma.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'proforma', lines: { some: {}, every: { storeId: { in: ['store'] } } } },
+      }),
+    );
   });
   it('ne lit aucun devis sans magasin accessible', async () => {
     tx.userStoreAccess.findMany.mockResolvedValue([]);
@@ -40,7 +42,10 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
     const where = tx.deliveryNote.findFirst.mock.calls[0][0].where;
     expect(where).toMatchObject({ id: 'delivery', orderId: 'order' });
     expect(where.lines).toEqual(where.order.lines);
-    expect(where.lines.every.store.userAccess.some).toMatchObject({ userId: 'actor', user: { status: 'ACTIVE' } });
+    expect(where.lines.every.store.userAccess.some).toMatchObject({
+      userId: 'actor',
+      user: { status: 'ACTIVE' },
+    });
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
     });
@@ -48,9 +53,14 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
   it('contraint les paiements du magasinier à tous les magasins actifs autorisés', async () => {
     await repo.find('PAYMENT', 'payment', 'actor', 'order');
     expect(tx.payment.findFirst.mock.calls[0][0].where).toMatchObject({
-      id: 'payment', orderId: 'order', order: { lines: {
-        some: {}, every: { store: { status: 'ACTIVE', userAccess: { some: { userId: 'actor' } } } },
-      } },
+      id: 'payment',
+      orderId: 'order',
+      order: {
+        lines: {
+          some: {},
+          every: { store: { status: 'ACTIVE', userAccess: { some: { userId: 'actor' } } } },
+        },
+      },
     });
   });
   it('applique la règle administrateur des paiements sans autoriser les magasins inactifs', async () => {

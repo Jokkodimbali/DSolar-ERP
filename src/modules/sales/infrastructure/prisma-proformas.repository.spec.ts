@@ -159,9 +159,11 @@ describe('PrismaProformasRepository status transitions', () => {
   it('autorise une remise sur une centrale solaire et conserve la trace du montant', async () => {
     tx.product.findMany.mockResolvedValue([{ id: 'product', isSolarPlant: true }]);
     await repository.create(input, actorId);
-    expect(tx.proforma.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ total: new Prisma.Decimal('224.20') }),
-    }));
+    expect(tx.proforma.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ total: new Prisma.Decimal('224.20') }),
+      }),
+    );
     expect(tx.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         payload: expect.objectContaining({
@@ -172,9 +174,15 @@ describe('PrismaProformasRepository status transitions', () => {
   });
 
   it('autorise la vente d’un produit ordinaire sans remise', async () => {
-    await expect(repository.create({
-      ...input, lines: [{ ...input.lines[0], discount: 0 }],
-    }, actorId)).resolves.toMatchObject({ id });
+    await expect(
+      repository.create(
+        {
+          ...input,
+          lines: [{ ...input.lines[0], discount: 0 }],
+        },
+        actorId,
+      ),
+    ).resolves.toMatchObject({ id });
   });
 
   it('empêche le contournement par modification du brouillon', async () => {
@@ -185,7 +193,9 @@ describe('PrismaProformasRepository status transitions', () => {
 
   it('contrôle à nouveau l’éligibilité du brouillon avant émission', async () => {
     tx.proforma.findUnique.mockResolvedValue({
-      id, status: DocumentStatus.DRAFT, expiresAt: null,
+      id,
+      status: DocumentStatus.DRAFT,
+      expiresAt: null,
       lines: [{ storeId, productId: 'product', discount: new Prisma.Decimal(10) }],
     });
     await expect(repository.issue(id, actorId)).rejects.toThrow(ConflictException);

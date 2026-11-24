@@ -9,6 +9,9 @@ import { OperationalSearchController } from './presentation/operational-search.c
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [OperationalSearchController],
-  providers: [OperationalSearchService, { provide: OPERATIONAL_SEARCH, useClass: PrismaOperationalSearchRepository }],
+  providers: [
+    OperationalSearchService,
+    { provide: OPERATIONAL_SEARCH, useClass: PrismaOperationalSearchRepository },
+  ],
 })
 export class OperationalSearchModule {}

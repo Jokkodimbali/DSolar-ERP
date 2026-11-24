@@ -21,16 +21,18 @@ describe('Synthèse des achats fournisseurs', () => {
     transaction.mockImplementation((work) => work(tx));
     tx.user.findFirst.mockResolvedValue({ id: 'admin' });
     tx.supplier.findUnique.mockResolvedValue({ id: 'supplier', name: 'Fournisseur', active: false });
-    tx.$queryRaw.mockResolvedValue([{
-      confirmedReceipts: '2',
-      confirmedReturns: '1',
-      recordedCredits: '1',
-      receivedValue: '1000.25',
-      returnedValue: '100.10',
-      creditValue: '100.10',
-      netReceivedValue: '900.15',
-      returnsAwaitingCredit: '0',
-    }]);
+    tx.$queryRaw.mockResolvedValue([
+      {
+        confirmedReceipts: '2',
+        confirmedReturns: '1',
+        recordedCredits: '1',
+        receivedValue: '1000.25',
+        returnedValue: '100.10',
+        creditValue: '100.10',
+        netReceivedValue: '900.15',
+        returnsAwaitingCredit: '0',
+      },
+    ]);
   });
 
   it('interdit la lecture financière aux non-administrateurs', async () => {

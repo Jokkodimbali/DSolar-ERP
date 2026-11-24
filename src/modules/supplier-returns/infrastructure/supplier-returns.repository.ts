@@ -71,7 +71,10 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         !serials.length ||
         serials.length > 100 ||
         new Set(serials).size !== serials.length ||
-        serials.some((serial) => typeof serial !== 'string' || !serial.trim() || serial !== serial.trim() || serial.length > 150)
+        serials.some(
+          (serial) =>
+            typeof serial !== 'string' || !serial.trim() || serial !== serial.trim() || serial.length > 150,
+        )
       )
         throw new ConflictException('Numéros de série invalides.');
       const line = await tx.goodsReceiptLine.findUnique({
@@ -164,7 +167,14 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         input.lines.map(async (line) => {
           const original = receipt.lines.find((item) => item.id === line.receiptLineId);
           const quantity = new Prisma.Decimal(line.quantity);
-          if (!original || !original.quantity.isFinite() || original.quantity.lte(0) || quantity.gt(original.quantity) || !original.unitCost.isFinite() || original.unitCost.lt(0))
+          if (
+            !original ||
+            !original.quantity.isFinite() ||
+            original.quantity.lte(0) ||
+            quantity.gt(original.quantity) ||
+            !original.unitCost.isFinite() ||
+            original.unitCost.lt(0)
+          )
             throw new ConflictException('Quantité supérieure à la réception ou ligne inconnue.');
           const total = quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
           const serialIds = line.serialIds ?? [];
@@ -260,7 +270,9 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         });
         if ((returned._sum.quantity ?? new Prisma.Decimal(0)).plus(line.quantity).gt(original.quantity))
           throw new ConflictException('Quantité cumulée retournée supérieure à la réception.');
-        const receivedValue = original.quantity.mul(original.unitCost).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        const receivedValue = original.quantity
+          .mul(original.unitCost)
+          .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
         const priorValue = returned._sum.total ?? new Prisma.Decimal(0);
         if (priorValue.lt(0) || priorValue.plus(line.total).gt(receivedValue))
           throw new ConflictException('Valorisation cumulée supérieure à la réception.');

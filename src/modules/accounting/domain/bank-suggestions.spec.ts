@@ -36,16 +36,23 @@ describe('Suggestions de rapprochement bancaire', () => {
   });
 
   it('conserve les ambiguïtés au-delà de la limite d’affichage', () => {
-    const result = run([candidate('bank')], Array.from({ length: 6 }, (_, i) => candidate(String(i))));
+    const result = run(
+      [candidate('bank')],
+      Array.from({ length: 6 }, (_, i) => candidate(String(i))),
+    );
     expect(result.items[0]).toMatchObject({
-      status: 'AMBIGUOUS', candidateCount: 6, hasMoreCandidates: true,
+      status: 'AMBIGUOUS',
+      candidateCount: 6,
+      hasMoreCandidates: true,
     });
     expect(result.items[0].candidates).toHaveLength(5);
   });
 
   it('compare exactement des montants négatifs et de grande précision', () => {
     expect(run([candidate('bank', '-0.01')], [candidate('ledger', '-0.01')]).unique).toBe(1);
-    expect(run([candidate('bank', '9999999999999999.99')], [candidate('ledger', '9999999999999999.98')]).noMatch).toBe(1);
+    expect(
+      run([candidate('bank', '9999999999999999.99')], [candidate('ledger', '9999999999999999.98')]).noMatch,
+    ).toBe(1);
   });
 
   it('retourne une synthèse vide en l’absence de lignes à rapprocher', () => {

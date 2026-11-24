@@ -15,10 +15,16 @@ export class UsersController {
   @Get() list() {
     return this.service.list();
   }
-  @Post() @SuccessMessage('Utilisateur créé avec succès.') create(@Body() dto: CreateUserDto, @CurrentUserId() actorId: string) {
+  @Post() @SuccessMessage('Utilisateur créé avec succès.') create(
+    @Body() dto: CreateUserDto,
+    @CurrentUserId() actorId: string,
+  ) {
     return this.service.create(dto, actorId);
   }
-  @Patch(':id/disable') @SuccessMessage('Utilisateur désactivé.') disable(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @Patch(':id/disable') @SuccessMessage('Utilisateur désactivé.') disable(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actorId: string,
+  ) {
     return this.service.disable(id, actorId);
   }
   @Patch(':id/access') @SuccessMessage('Autorisations de l’utilisateur mises à jour.') replaceAccess(

@@ -1,7 +1,13 @@
 import { CreateProduct, ProductRecord, UpdateProduct } from '../domain/product';
 export interface ProductSearch {
-  page?: number; limit?: number; search?: string; active?: boolean;
-  categoryId?: string; brandId?: string; taxRegimeId?: string; isSolarPlant?: boolean;
+  page?: number;
+  limit?: number;
+  search?: string;
+  active?: boolean;
+  categoryId?: string;
+  brandId?: string;
+  taxRegimeId?: string;
+  isSolarPlant?: boolean;
 }
 import { PageResult } from '../../../infrastructure/http/page-query.dto';
 

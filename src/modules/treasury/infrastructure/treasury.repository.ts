@@ -109,7 +109,8 @@ export class TreasuryRepository implements TreasuryPort {
 
   move(id: string, amount: string, reason: string, key: string, actor: string) {
     return this.transaction(actor, async (tx) => {
-      if (!validCashAmount(amount, true, false)) throw new ConflictException('Montant du mouvement invalide.');
+      if (!validCashAmount(amount, true, false))
+        throw new ConflictException('Montant du mouvement invalide.');
       const value = new Prisma.Decimal(amount);
       const existing = await tx.cashMovement.findUnique({
         where: { operationKey: key },
@@ -209,7 +210,11 @@ export class TreasuryRepository implements TreasuryPort {
       });
       if (!original) throw new NotFoundException('Mouvement introuvable.');
       if (
-        original.transferKey || original.reversalOfId || original.paymentId || original.expensePayment || original.expenseRefund
+        original.transferKey ||
+        original.reversalOfId ||
+        original.paymentId ||
+        original.expensePayment ||
+        original.expenseRefund
       )
         throw new ConflictException('Mouvement non contrepassable individuellement.');
       const session = await this.session(tx, original.sessionId);

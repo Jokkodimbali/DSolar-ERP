@@ -96,12 +96,7 @@ export class AccountingRepository implements AccountingPort {
     });
   }
 
-  postSource(
-    type: SourceType,
-    id: string,
-    actor: string,
-    scope?: { periodId: string; revision?: number },
-  ) {
+  postSource(type: SourceType, id: string, actor: string, scope?: { periodId: string; revision?: number }) {
     return this.transaction(actor, async (tx) => {
       if (scope?.revision !== undefined) {
         await tx.$queryRaw`SELECT "periodId" FROM "LedgerAutomation" WHERE "periodId" = ${scope.periodId}::uuid FOR UPDATE`;

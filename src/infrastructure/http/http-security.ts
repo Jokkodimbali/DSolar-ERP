@@ -12,7 +12,10 @@ export function securityHeaders(_request: Request, response: Response, next: Nex
   response.setHeader('X-Request-Id', randomUUID());
   if (process.env.NODE_ENV === 'production') {
     response.setHeader('Strict-Transport-Security', 'max-age=31536000');
-    response.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    response.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    );
   }
   next();
 }

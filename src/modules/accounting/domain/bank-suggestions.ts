@@ -38,7 +38,10 @@ export function suggestReconciliations(snapshot: ReconciliationSnapshot) {
       }))
       .filter((candidate) => candidate.daysApart <= MAX_DAYS)
       .sort(
-        (a, b) => a.daysApart - b.daysApart || a.date.localeCompare(b.date) || a.ledgerLineId.localeCompare(b.ledgerLineId),
+        (a, b) =>
+          a.daysApart - b.daysApart ||
+          a.date.localeCompare(b.date) ||
+          a.ledgerLineId.localeCompare(b.ledgerLineId),
       );
     for (const candidate of candidates) {
       reverseCounts.set(candidate.ledgerLineId, (reverseCounts.get(candidate.ledgerLineId) ?? 0) + 1);

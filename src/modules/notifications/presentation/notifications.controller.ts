@@ -35,7 +35,9 @@ export class NotificationsController {
 
   @Post('read-all')
   @AuthenticatedOnly()
-  readAll(@CurrentUserId() actorId: string) { return this.service.mark(actorId); }
+  readAll(@CurrentUserId() actorId: string) {
+    return this.service.mark(actorId);
+  }
 
   @Post(':id/read')
   @AuthenticatedOnly()

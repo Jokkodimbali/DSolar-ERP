@@ -15,7 +15,8 @@ export function validSessionClaims(value: unknown, type: 'access' | 'refresh', n
     c.exp <= now ||
     c.exp <= c.iat ||
     c.exp - c.iat > (type === 'access' ? 900 : 604800)
-  ) return false;
+  )
+    return false;
   return type === 'access'
     ? typeof c.ver === 'number' && Number.isSafeInteger(c.ver) && c.ver >= 0
     : nonEmpty(c.jti);

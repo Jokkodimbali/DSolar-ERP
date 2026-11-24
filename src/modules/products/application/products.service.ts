@@ -13,7 +13,9 @@ export class ProductsService {
   list(active?: boolean) {
     return this.repository.list(active);
   }
-  search(query: ProductSearch) { return this.repository.search(query); }
+  search(query: ProductSearch) {
+    return this.repository.search(query);
+  }
   async get(id: string) {
     const product = await this.repository.findById(id);
     if (!product) throw new NotFoundException('Produit introuvable.');

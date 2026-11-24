@@ -25,7 +25,13 @@ import { ProcurementSearchController } from './presentation/procurement-search.c
 
 @Module({
   imports: [PrismaModule, IdentityModule],
-  controllers: [ProcurementSearchController, SuppliersController, PurchaseOrdersController, GoodsReceiptsController, SupplierPurchasesController],
+  controllers: [
+    ProcurementSearchController,
+    SuppliersController,
+    PurchaseOrdersController,
+    GoodsReceiptsController,
+    SupplierPurchasesController,
+  ],
   providers: [
     ProcurementSearchService,
     { provide: PROCUREMENT_SEARCH, useClass: PrismaProcurementSearchRepository },

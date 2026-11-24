@@ -45,16 +45,16 @@ export class SuppliersController {
   ) {
     return this.suppliers.update(id, dto, actorId);
   }
-  @Post(':id/activate') @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur activé.') activate(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  @Post(':id/activate')
+  @RequirePermissions('inventory.manage')
+  @SuccessMessage('Fournisseur activé.')
+  activate(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.suppliers.activate(id, actorId);
   }
-  @Post(':id/deactivate') @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur désactivé.') deactivate(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUserId() actorId: string,
-  ) {
+  @Post(':id/deactivate')
+  @RequirePermissions('inventory.manage')
+  @SuccessMessage('Fournisseur désactivé.')
+  deactivate(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.suppliers.deactivate(id, actorId);
   }
 }

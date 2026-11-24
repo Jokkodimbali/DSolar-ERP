@@ -36,7 +36,10 @@ export class AuthUseCases {
   async login(email: string, password: string): Promise<AuthResult> {
     const user = await this.users.findByEmail(email.trim().toLowerCase());
     const active = user?.status === 'ACTIVE';
-    const matches = await this.passwords.verify(active && user ? user.passwordHash : dummyPasswordHash, password);
+    const matches = await this.passwords.verify(
+      active && user ? user.passwordHash : dummyPasswordHash,
+      password,
+    );
     if (!user || !active || !matches) throw unauthorized();
     const sid = randomBytes(16).toString('hex');
     // Le refresh est signé avec l'identifiant de session créé en base.

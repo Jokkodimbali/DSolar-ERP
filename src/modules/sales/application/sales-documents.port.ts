@@ -29,8 +29,14 @@ export interface CommercialDocument extends DocumentBase {
   kind: 'PROFORMA' | 'INVOICE';
   expiresAt?: Date | null;
   lines: {
-    sku: string; name: string; quantity: string; unitPrice: string; discount: string;
-    taxRate: string; taxAmount?: string; total: string;
+    sku: string;
+    name: string;
+    quantity: string;
+    unitPrice: string;
+    discount: string;
+    taxRate: string;
+    taxAmount?: string;
+    total: string;
   }[];
   totalHt?: string;
   totalTax?: string;

@@ -27,7 +27,12 @@ export class CompanySettingsService {
       documentFooter: input.documentFooter.trim(),
     };
     if (!normalized.legalName) throw new BadRequestException('Raison sociale obligatoire.');
-    if (normalized.logoUrl && !/^\/api\/v1\/media\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized.logoUrl))
+    if (
+      normalized.logoUrl &&
+      !/^\/api\/v1\/media\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        normalized.logoUrl,
+      )
+    )
       throw new BadRequestException('Le logo doit être téléversé depuis le formulaire de l’entreprise.');
     for (const value of [normalized.website]) {
       if (!value) continue;

@@ -1,5 +1,10 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { OPERATIONAL_SEARCH, OperationalCriteria, OperationalKind, OperationalSearchPort } from './operational-search.port';
+import {
+  OPERATIONAL_SEARCH,
+  OperationalCriteria,
+  OperationalKind,
+  OperationalSearchPort,
+} from './operational-search.port';
 
 const statuses: Record<OperationalKind, readonly string[]> = {
   stores: ['ACTIVE', 'INACTIVE'],

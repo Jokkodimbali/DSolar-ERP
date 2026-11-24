@@ -28,7 +28,10 @@ export class PrismaProformasRepository implements ProformasRepository {
     products: { id: string; isSolarPlant: boolean }[],
   ): void {
     try {
-      assertSolarDiscounts(lines.map((line) => ({ productId: line.productId, discount: String(line.discount) })), products);
+      assertSolarDiscounts(
+        lines.map((line) => ({ productId: line.productId, discount: String(line.discount) })),
+        products,
+      );
     } catch (error) {
       throw new ConflictException(error instanceof Error ? error.message : 'Remise commerciale invalide.');
     }
@@ -93,57 +96,66 @@ export class PrismaProformasRepository implements ProformasRepository {
     }));
     const total = new Prisma.Decimal(pricing.totalTtc);
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
-        if (!customer) throw new NotFoundException('Client introuvable.');
-        if (input.expiresAt && new Date(input.expiresAt).getTime() <= Date.now())
-          throw new ConflictException('La date d’expiration doit être future.');
-        const products = await tx.product.findMany({
-          where: { id: { in: lines.map((line) => line.productId) }, active: true },
-          select: { id: true, isSolarPlant: true },
-        });
-        if (products.length !== new Set(lines.map((line) => line.productId)).size)
-          throw new ConflictException('Produit inexistant ou inactif.');
-        this.validateDiscounts(lines, products);
-        const stores = await tx.store.findMany({
-          where: { id: { in: lines.map((line) => line.storeId) }, status: 'ACTIVE' },
-          select: { id: true },
-        });
-        if (stores.length !== new Set(lines.map((line) => line.storeId)).size)
-          throw new ConflictException('Magasin inexistant ou inactif.');
-        await this.assertAccess(
-          tx,
-          lines.map((line) => line.storeId),
-          actorId,
-        );
-        const created = await tx.proforma.create({
-          data: {
-            number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
-            customerId: input.customerId,
-            total,
-            ...(input.expiresAt ? { expiresAt: new Date(input.expiresAt) } : {}),
-            lines: { create: lines },
-          },
-          include: { lines: true },
-        });
-        const storeIds = [...new Set(lines.map((line) => line.storeId))];
-        await tx.auditLog.create({
-          data: {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
+          if (!customer) throw new NotFoundException('Client introuvable.');
+          if (input.expiresAt && new Date(input.expiresAt).getTime() <= Date.now())
+            throw new ConflictException('La date d’expiration doit être future.');
+          const products = await tx.product.findMany({
+            where: { id: { in: lines.map((line) => line.productId) }, active: true },
+            select: { id: true, isSolarPlant: true },
+          });
+          if (products.length !== new Set(lines.map((line) => line.productId)).size)
+            throw new ConflictException('Produit inexistant ou inactif.');
+          this.validateDiscounts(lines, products);
+          const stores = await tx.store.findMany({
+            where: { id: { in: lines.map((line) => line.storeId) }, status: 'ACTIVE' },
+            select: { id: true },
+          });
+          if (stores.length !== new Set(lines.map((line) => line.storeId)).size)
+            throw new ConflictException('Magasin inexistant ou inactif.');
+          await this.assertAccess(
+            tx,
+            lines.map((line) => line.storeId),
             actorId,
-            action: 'PROFORMA_CREATED',
-            entityType: 'Proforma',
-            entityId: created.id,
-            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
-            payload: {
-              storeIds, customerId: input.customerId, lineCount: lines.length,
-              discounts: lines.filter((line) => line.discount.gt(0)).map((line) => ({
-                productId: line.productId, storeId: line.storeId, amount: line.discount.toFixed(2),
-              })),
+          );
+          const created = await tx.proforma.create({
+            data: {
+              number: input.number ?? `PF-${randomUUID().slice(0, 12).toUpperCase()}`,
+              customerId: input.customerId,
+              total,
+              ...(input.expiresAt ? { expiresAt: new Date(input.expiresAt) } : {}),
+              lines: { create: lines },
             },
-          },
-        });
-        return created;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+            include: { lines: true },
+          });
+          const storeIds = [...new Set(lines.map((line) => line.storeId))];
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              action: 'PROFORMA_CREATED',
+              entityType: 'Proforma',
+              entityId: created.id,
+              ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+              payload: {
+                storeIds,
+                customerId: input.customerId,
+                lineCount: lines.length,
+                discounts: lines
+                  .filter((line) => line.discount.gt(0))
+                  .map((line) => ({
+                    productId: line.productId,
+                    storeId: line.storeId,
+                    amount: line.discount.toFixed(2),
+                  })),
+              },
+            },
+          });
+          return created;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
         throw new ConflictException('Numéro de devis déjà utilisé.');
@@ -194,85 +206,94 @@ export class PrismaProformasRepository implements ProformasRepository {
 
   async update(id: string, input: ProformaInput, actorId: string) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
-        const existing = await tx.proforma.findUnique({ where: { id } });
-        if (!existing) throw new NotFoundException('Devis introuvable.');
-        const currentLines = await tx.proformaLine.findMany({
-          where: { proformaId: id },
-          select: { storeId: true },
-        });
-        await this.assertAccess(
-          tx,
-          currentLines.map((line) => line.storeId),
-          actorId,
-        );
-        await this.assertAccess(
-          tx,
-          input.lines.map((line) => line.storeId),
-          actorId,
-        );
-        if (existing.status !== DocumentStatus.DRAFT)
-          throw new ConflictException('Seul un brouillon est modifiable.');
-        const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
-        if (!customer) throw new NotFoundException('Client introuvable.');
-        if (input.expiresAt && new Date(input.expiresAt).getTime() <= Date.now())
-          throw new ConflictException('La date d’expiration doit être future.');
-        const products = await tx.product.findMany({
-          where: { id: { in: input.lines.map((line) => line.productId) }, active: true },
-          select: { id: true, isSolarPlant: true },
-        });
-        if (products.length !== new Set(input.lines.map((line) => line.productId)).size)
-          throw new ConflictException('Produit inexistant ou inactif.');
-        this.validateDiscounts(input.lines, products);
-        const stores = await tx.store.findMany({
-          where: { id: { in: input.lines.map((line) => line.storeId) }, status: 'ACTIVE' },
-          select: { id: true },
-        });
-        if (stores.length !== new Set(input.lines.map((line) => line.storeId)).size)
-          throw new ConflictException('Magasin inexistant ou inactif.');
-        const pricing = salesPricing(input.lines);
-        const lines = input.lines.map((line, index) => ({
-          productId: line.productId,
-          storeId: line.storeId,
-          quantity: new Prisma.Decimal(line.quantity),
-          unitPrice: new Prisma.Decimal(line.unitPrice),
-          discount: new Prisma.Decimal(line.discount),
-          taxRate: new Prisma.Decimal(line.taxRate),
-          lineTotal: new Prisma.Decimal(pricing.lines[index].total),
-        }));
-        await tx.proformaLine.deleteMany({ where: { proformaId: id } });
-        const updated = await tx.proforma.update({
-          where: { id },
-          data: {
-            number: input.number ?? existing.number,
-            customerId: input.customerId,
-            expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-            total: new Prisma.Decimal(pricing.totalTtc),
-            lines: { create: lines },
-          },
-          include: { lines: true },
-        });
-        const storeIds = [
-          ...new Set([...currentLines.map((line) => line.storeId), ...lines.map((line) => line.storeId)]),
-        ];
-        await tx.auditLog.create({
-          data: {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM "Proforma" WHERE id = ${id}::uuid FOR UPDATE`;
+          const existing = await tx.proforma.findUnique({ where: { id } });
+          if (!existing) throw new NotFoundException('Devis introuvable.');
+          const currentLines = await tx.proformaLine.findMany({
+            where: { proformaId: id },
+            select: { storeId: true },
+          });
+          await this.assertAccess(
+            tx,
+            currentLines.map((line) => line.storeId),
             actorId,
-            action: 'PROFORMA_UPDATED',
-            entityType: 'Proforma',
-            entityId: id,
-            ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
-            payload: {
-              storeIds, customerId: input.customerId, lineCount: lines.length,
-              discounts: lines.filter((line) => line.discount.gt(0)).map((line) => ({
-                productId: line.productId, storeId: line.storeId, amount: line.discount.toFixed(2),
-              })),
+          );
+          await this.assertAccess(
+            tx,
+            input.lines.map((line) => line.storeId),
+            actorId,
+          );
+          if (existing.status !== DocumentStatus.DRAFT)
+            throw new ConflictException('Seul un brouillon est modifiable.');
+          const customer = await tx.customer.findUnique({ where: { id: input.customerId } });
+          if (!customer) throw new NotFoundException('Client introuvable.');
+          if (input.expiresAt && new Date(input.expiresAt).getTime() <= Date.now())
+            throw new ConflictException('La date d’expiration doit être future.');
+          const products = await tx.product.findMany({
+            where: { id: { in: input.lines.map((line) => line.productId) }, active: true },
+            select: { id: true, isSolarPlant: true },
+          });
+          if (products.length !== new Set(input.lines.map((line) => line.productId)).size)
+            throw new ConflictException('Produit inexistant ou inactif.');
+          this.validateDiscounts(input.lines, products);
+          const stores = await tx.store.findMany({
+            where: { id: { in: input.lines.map((line) => line.storeId) }, status: 'ACTIVE' },
+            select: { id: true },
+          });
+          if (stores.length !== new Set(input.lines.map((line) => line.storeId)).size)
+            throw new ConflictException('Magasin inexistant ou inactif.');
+          const pricing = salesPricing(input.lines);
+          const lines = input.lines.map((line, index) => ({
+            productId: line.productId,
+            storeId: line.storeId,
+            quantity: new Prisma.Decimal(line.quantity),
+            unitPrice: new Prisma.Decimal(line.unitPrice),
+            discount: new Prisma.Decimal(line.discount),
+            taxRate: new Prisma.Decimal(line.taxRate),
+            lineTotal: new Prisma.Decimal(pricing.lines[index].total),
+          }));
+          await tx.proformaLine.deleteMany({ where: { proformaId: id } });
+          const updated = await tx.proforma.update({
+            where: { id },
+            data: {
+              number: input.number ?? existing.number,
+              customerId: input.customerId,
+              expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+              total: new Prisma.Decimal(pricing.totalTtc),
+              lines: { create: lines },
             },
-          },
-        });
-        return updated;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+            include: { lines: true },
+          });
+          const storeIds = [
+            ...new Set([...currentLines.map((line) => line.storeId), ...lines.map((line) => line.storeId)]),
+          ];
+          await tx.auditLog.create({
+            data: {
+              actorId,
+              action: 'PROFORMA_UPDATED',
+              entityType: 'Proforma',
+              entityId: id,
+              ...(storeIds.length === 1 ? { storeId: storeIds[0] } : {}),
+              payload: {
+                storeIds,
+                customerId: input.customerId,
+                lineCount: lines.length,
+                discounts: lines
+                  .filter((line) => line.discount.gt(0))
+                  .map((line) => ({
+                    productId: line.productId,
+                    storeId: line.storeId,
+                    amount: line.discount.toFixed(2),
+                  })),
+              },
+            },
+          });
+          return updated;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
         throw new ConflictException('Numéro de devis déjà utilisé.');

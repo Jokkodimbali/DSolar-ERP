@@ -16,7 +16,8 @@ export class SalesDocumentsController {
   @Get('proformas/:id/pdf')
   async proforma(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return new StreamableFile(await this.service.download('PROFORMA', id, actorId), {
-      type: 'application/pdf', disposition: 'attachment; filename="proforma-' + id + '.pdf"',
+      type: 'application/pdf',
+      disposition: 'attachment; filename="proforma-' + id + '.pdf"',
     });
   }
 
@@ -27,7 +28,8 @@ export class SalesDocumentsController {
     @CurrentUserId() actorId: string,
   ) {
     return new StreamableFile(await this.service.download('DELIVERY', id, actorId, orderId), {
-      type: 'application/pdf', disposition: 'attachment; filename="livraison-' + id + '.pdf"',
+      type: 'application/pdf',
+      disposition: 'attachment; filename="livraison-' + id + '.pdf"',
     });
   }
 
@@ -38,14 +40,16 @@ export class SalesDocumentsController {
     @CurrentUserId() actorId: string,
   ) {
     return new StreamableFile(await this.service.download('PAYMENT', id, actorId, orderId), {
-      type: 'application/pdf', disposition: 'attachment; filename="reglement-' + id + '.pdf"',
+      type: 'application/pdf',
+      disposition: 'attachment; filename="reglement-' + id + '.pdf"',
     });
   }
 
   @Get('invoices/:id/pdf')
   async invoice(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return new StreamableFile(await this.service.download('INVOICE', id, actorId), {
-      type: 'application/pdf', disposition: 'attachment; filename="facture-' + id + '.pdf"',
+      type: 'application/pdf',
+      disposition: 'attachment; filename="facture-' + id + '.pdf"',
     });
   }
 }

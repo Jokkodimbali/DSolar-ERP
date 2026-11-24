@@ -75,6 +75,13 @@ describe('Inventaire automatique des routes du backend', () => {
       'POST /auth/logout',
       'POST /auth/refresh',
     ]);
-    expect(identityRoutes).toEqual(['GET /auth/me']);
+    expect(identityRoutes).toEqual([
+      'GET /auth/me',
+      'GET /media/images/:id',
+      'GET /notifications',
+      'GET /notifications/stream',
+      'POST /notifications/read-all',
+      'POST /notifications/:id/read',
+    ]);
   });
 });

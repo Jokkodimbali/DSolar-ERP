@@ -43,12 +43,12 @@ integration('Trésorerie sur PostgreSQL réel', () => {
       await expect(repo.open(first.id, '0.001', admin.id)).rejects.toBeInstanceOf(ConflictException);
       const source = await repo.open(first.id, '100.00', admin.id);
       const target = await repo.open(second.id, '0.00', admin.id);
-      await expect(repo.move(source.id, '0.001', 'Arrondi interdit', randomUUID(), admin.id)).rejects.toBeInstanceOf(
-        ConflictException,
-      );
-      await expect(repo.transfer(source.id, target.id, '0.001', randomUUID(), admin.id)).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        repo.move(source.id, '0.001', 'Arrondi interdit', randomUUID(), admin.id),
+      ).rejects.toBeInstanceOf(ConflictException);
+      await expect(
+        repo.transfer(source.id, target.id, '0.001', randomUUID(), admin.id),
+      ).rejects.toBeInstanceOf(ConflictException);
       await expect(repo.close(source.id, '-1', admin.id)).rejects.toBeInstanceOf(ConflictException);
       expect((await repo.summary(source.id, admin.id)).expected.toString()).toBe('100');
       await expect(repo.open(first.id, '0', admin.id)).rejects.toBeInstanceOf(ConflictException);

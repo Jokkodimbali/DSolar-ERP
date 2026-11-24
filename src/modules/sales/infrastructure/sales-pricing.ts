@@ -11,12 +11,14 @@ type PricingLine = {
 
 export function salesPricing(lines: PricingLine[]) {
   try {
-    return calculateSalesTotals(lines.map((line) => ({
-      quantity: String(line.quantity),
-      unitPrice: String(line.unitPrice),
-      discount: String(line.discount),
-      taxRate: String(line.taxRate),
-    })));
+    return calculateSalesTotals(
+      lines.map((line) => ({
+        quantity: String(line.quantity),
+        unitPrice: String(line.unitPrice),
+        discount: String(line.discount),
+        taxRate: String(line.taxRate),
+      })),
+    );
   } catch (error) {
     throw new ConflictException(error instanceof Error ? error.message : 'Calcul commercial invalide.');
   }
@@ -27,7 +29,10 @@ export function assertStoredSalesPricing(
   total: Prisma.Decimal,
 ) {
   const pricing = salesPricing(lines);
-  if (!total.eq(pricing.totalTtc) || lines.some((line, index) => !line.lineTotal.eq(pricing.lines[index].total)))
+  if (
+    !total.eq(pricing.totalTtc) ||
+    lines.some((line, index) => !line.lineTotal.eq(pricing.lines[index].total))
+  )
     throw new ConflictException('Montants historiques incohérents : régularisation du document requise.');
   return pricing;
 }

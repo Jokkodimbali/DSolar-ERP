@@ -1,6 +1,7 @@
 import { pageBounds, pageResult } from './pagination';
 describe('Pagination', () => {
-  it('applique les limites par défaut', () => expect(pageBounds({})).toEqual({ page: 1, limit: 25, skip: 0 }));
+  it('applique les limites par défaut', () =>
+    expect(pageBounds({})).toEqual({ page: 1, limit: 25, skip: 0 }));
   it('calcule les pages et le décalage', () => {
     expect(pageBounds({ page: 3, limit: 10 }).skip).toBe(20);
     expect(pageResult([], 21, 3, 10).pagination.pages).toBe(3);

@@ -35,10 +35,12 @@ export class ProductsController {
       throw new BadRequestException('Le filtre active doit être true ou false.');
     return this.products.list(active === undefined ? undefined : active === 'true');
   }
-  @Get('search') @RequirePermissions('products.read')
+  @Get('search')
+  @RequirePermissions('products.read')
   search(@Query() query: ProductSearchDto) {
     const { active, isSolarPlant, ...filters } = query;
-    return this.products.search({ ...filters,
+    return this.products.search({
+      ...filters,
       active: active === undefined ? undefined : active === 'true',
       isSolarPlant: isSolarPlant === undefined ? undefined : isSolarPlant === 'true',
     });
@@ -46,7 +48,9 @@ export class ProductsController {
   @Get(':id') @RequirePermissions('products.read') get(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.products.get(id);
   }
-  @Post() @RequirePermissions('products.manage') @SuccessMessage('Produit créé avec succès.') create(@Body() dto: CreateProductDto) {
+  @Post() @RequirePermissions('products.manage') @SuccessMessage('Produit créé avec succès.') create(
+    @Body() dto: CreateProductDto,
+  ) {
     return this.products.create(dto);
   }
   @Patch(':id') @RequirePermissions('products.manage') @SuccessMessage('Produit mis à jour.') update(
@@ -60,9 +64,10 @@ export class ProductsController {
   ) {
     return this.products.setActive(id, true);
   }
-  @Patch(':id/deactivate') @RequirePermissions('products.manage') @SuccessMessage('Produit désactivé.') deactivate(
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ) {
+  @Patch(':id/deactivate')
+  @RequirePermissions('products.manage')
+  @SuccessMessage('Produit désactivé.')
+  deactivate(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.products.setActive(id, false);
   }
 }

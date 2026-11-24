@@ -26,5 +26,9 @@ export interface CompanySettingsRevision extends CompanySettingsInput {
 
 export interface CompanySettingsPort {
   current(actorId: string): Promise<CompanySettingsRevision | null>;
-  save(actorId: string, expectedRevision: number, input: CompanySettingsInput): Promise<CompanySettingsRevision>;
+  save(
+    actorId: string,
+    expectedRevision: number,
+    input: CompanySettingsInput,
+  ): Promise<CompanySettingsRevision>;
 }

@@ -63,7 +63,8 @@ export class ExpensesRepository implements ExpensesPort {
 
   create(input: NewExpense, actor: string) {
     return this.transaction(actor, async (tx) => {
-      if (!validCashAmount(input.amount, false, false)) throw new ConflictException('Montant de dépense invalide.');
+      if (!validCashAmount(input.amount, false, false))
+        throw new ConflictException('Montant de dépense invalide.');
       const existing = await tx.expense.findUnique({ where: { operationKey: input.operationKey } });
       if (existing) {
         if (

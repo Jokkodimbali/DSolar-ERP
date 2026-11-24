@@ -3,18 +3,30 @@ import { SalesDocument, SalesPdfPort } from '../application/sales-documents.port
 import { renderTextPdf } from './text-pdf';
 
 const TITLES = {
-  INVOICE: 'FACTURE', PROFORMA: 'PROFORMA', DELIVERY: 'BON DE LIVRAISON', PAYMENT: 'JUSTIFICATIF DE PAIEMENT',
+  INVOICE: 'FACTURE',
+  PROFORMA: 'PROFORMA',
+  DELIVERY: 'BON DE LIVRAISON',
+  PAYMENT: 'JUSTIFICATIF DE PAIEMENT',
 };
 
 const STATUS: Record<string, string> = {
-  DRAFT: 'BROUILLON - NON VALIDE', ISSUED: 'ÉMIS', ACCEPTED: 'ACCEPTÉ',
-  CANCELLED: 'ANNULÉ - NON VALIDE', EXPIRED: 'EXPIRÉ - NON VALIDE',
-  CONFIRMED: 'CONFIRMÉ', RECEIVED: 'ENCAISSÉ', REVERSED: 'CONTREPASSÉ - NON VALIDE',
+  DRAFT: 'BROUILLON - NON VALIDE',
+  ISSUED: 'ÉMIS',
+  ACCEPTED: 'ACCEPTÉ',
+  CANCELLED: 'ANNULÉ - NON VALIDE',
+  EXPIRED: 'EXPIRÉ - NON VALIDE',
+  CONFIRMED: 'CONFIRMÉ',
+  RECEIVED: 'ENCAISSÉ',
+  REVERSED: 'CONTREPASSÉ - NON VALIDE',
 };
 
 const METHODS: Record<string, string> = {
-  CASH: 'Espèces', WAVE: 'Wave', ORANGE_MONEY: 'Orange Money',
-  BANK_TRANSFER: 'Virement bancaire', CHECK: 'Chèque', CHEQUE: 'Chèque',
+  CASH: 'Espèces',
+  WAVE: 'Wave',
+  ORANGE_MONEY: 'Orange Money',
+  BANK_TRANSFER: 'Virement bancaire',
+  CHECK: 'Chèque',
+  CHEQUE: 'Chèque',
 };
 
 function date(value: Date | null): string {
@@ -26,13 +38,16 @@ function detail(document: SalesDocument): string[] {
     case 'DELIVERY':
       return [
         'Commande : ' + document.orderNumber,
-        '', 'DÉTAIL DES PRODUITS',
+        '',
+        'DÉTAIL DES PRODUITS',
         ...document.lines.flatMap((line, index) => [
-          '', (index + 1) + '. ' + line.sku + ' | ' + line.name,
+          '',
+          index + 1 + '. ' + line.sku + ' | ' + line.name,
           'Magasin : ' + line.store,
           'Quantité : ' + line.quantity,
         ]),
-        '', 'Réceptionnaire : __________________________',
+        '',
+        'Réceptionnaire : __________________________',
         'Date et signature : ________________________',
       ];
     case 'PAYMENT':
@@ -41,17 +56,23 @@ function detail(document: SalesDocument): string[] {
         'N° historique du versement : ' + document.installmentNumber,
         'Mode de règlement : ' + (METHODS[document.method] ?? document.method),
         ...(document.externalReference ? ['Référence externe : ' + document.externalReference] : []),
-        '', 'MONTANT ENREGISTRÉ : ' + document.amount + ' FCFA',
-        ...document.reversals.map((row) => 'Contrepassation du ' + date(row.createdAt) + ' : ' + row.amount + ' FCFA'),
+        '',
+        'MONTANT ENREGISTRÉ : ' + document.amount + ' FCFA',
+        ...document.reversals.map(
+          (row) => 'Contrepassation du ' + date(row.createdAt) + ' : ' + row.amount + ' FCFA',
+        ),
         ...(document.reversals.length ? ['Ce justificatif ne prouve plus un encaissement actif.'] : []),
-        '', 'Justificatif interne du règlement enregistré ; ne remplace pas la facture.',
+        '',
+        'Justificatif interne du règlement enregistré ; ne remplace pas la facture.',
       ];
     default:
       return [
         ...(document.expiresAt ? ['Expiration : ' + date(document.expiresAt)] : []),
-        '', 'DÉTAIL DES PRODUITS (FCFA / XOF)',
+        '',
+        'DÉTAIL DES PRODUITS (FCFA / XOF)',
         ...document.lines.flatMap((line, index) => [
-          '', (index + 1) + '. ' + line.sku + ' | ' + line.name,
+          '',
+          index + 1 + '. ' + line.sku + ' | ' + line.name,
           'Quantité : ' + line.quantity + ' | Prix unitaire HT : ' + line.unitPrice,
           'Remise HT : ' + line.discount + ' | TVA : ' + line.taxRate + ' %',
           ...(line.taxAmount === undefined ? [] : ['Montant TVA : ' + line.taxAmount]),
@@ -72,13 +93,20 @@ export class SalesPdfRenderer implements SalesPdfPort {
     const status = STATUS[document.status] ?? document.status;
     const rows = [
       document.company?.legalName || 'DSolar-ERP',
-      ...(document.company ? [
-        document.company.tradeName && document.company.tradeName !== document.company.legalName ? document.company.tradeName : '',
-        document.company.legalForm,
-        document.company.taxId ? 'NINEA : ' + document.company.taxId : '',
-        document.company.registrationNumber ? 'RCCM : ' + document.company.registrationNumber : '',
-        document.company.address, document.company.phone, document.company.email, document.company.website,
-      ].filter(Boolean) : ['Identité entreprise historique non renseignée.']),
+      ...(document.company
+        ? [
+            document.company.tradeName && document.company.tradeName !== document.company.legalName
+              ? document.company.tradeName
+              : '',
+            document.company.legalForm,
+            document.company.taxId ? 'NINEA : ' + document.company.taxId : '',
+            document.company.registrationNumber ? 'RCCM : ' + document.company.registrationNumber : '',
+            document.company.address,
+            document.company.phone,
+            document.company.email,
+            document.company.website,
+          ].filter(Boolean)
+        : ['Identité entreprise historique non renseignée.']),
       title + ' : ' + document.number,
       'Statut : ' + status,
       'Date : ' + date(document.issuedAt),
@@ -89,12 +117,15 @@ export class SalesPdfRenderer implements SalesPdfPort {
       ...(document.customer.phone ? ['Téléphone : ' + document.customer.phone] : []),
       '',
       ...detail(document),
-      ...(document.kind === 'INVOICE' || document.kind === 'PROFORMA' ? [
-        document.company?.bankName ? 'Banque : ' + document.company.bankName : '',
-        document.company?.bankAccount ? 'Compte : ' + document.company.bankAccount : '',
-      ].filter(Boolean) : []),
+      ...(document.kind === 'INVOICE' || document.kind === 'PROFORMA'
+        ? [
+            document.company?.bankName ? 'Banque : ' + document.company.bankName : '',
+            document.company?.bankAccount ? 'Compte : ' + document.company.bankAccount : '',
+          ].filter(Boolean)
+        : []),
       ...(document.company?.documentFooter ? [document.company.documentFooter] : []),
-      '', 'Document interne généré depuis les données enregistrées.',
+      '',
+      'Document interne généré depuis les données enregistrées.',
       'Libellés et coordonnées issus des fiches actuelles.',
     ];
     // Short warning on every page, within the fixed-width heading area.

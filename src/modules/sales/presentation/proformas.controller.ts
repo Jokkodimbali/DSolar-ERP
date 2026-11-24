@@ -56,18 +56,21 @@ export class ProformasController {
   }
   @Post()
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Proforma créée avec succès.') create(@Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma créée avec succès.')
+  create(@Body() dto: CreateProformaDto, @CurrentUserId() actorId: string) {
     return this.proformas.create(dto, actorId);
   }
   @Post(':id/issue')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Proforma émise avec succès.') issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma émise avec succès.')
+  issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.issue(id, actorId);
   }
 
   @Put(':id')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Proforma mise à jour.') update(
+  @SuccessMessage('Proforma mise à jour.')
+  update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateProformaDto,
     @CurrentUserId() actorId: string,
@@ -76,17 +79,20 @@ export class ProformasController {
   }
   @Post(':id/accept')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Proforma acceptée.') accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma acceptée.')
+  accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.accept(id, actorId);
   }
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Proforma annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma annulée.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.cancel(id, actorId);
   }
   @Post(':id/expire')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Proforma expirée.') expire(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Proforma expirée.')
+  expire(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.proformas.expire(id, actorId);
   }
 }

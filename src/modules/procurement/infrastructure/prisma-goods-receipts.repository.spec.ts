@@ -708,11 +708,13 @@ describe('PrismaGoodsReceiptsRepository.confirm', () => {
           storeId: 'store-id',
           status: 'DRAFT',
           purchaseOrderId: 'order-id',
-          lines: [{ productId: 'product-id', quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(10) }],
+          lines: [
+            { productId: 'product-id', quantity: new Prisma.Decimal(1), unitCost: new Prisma.Decimal(10) },
+          ],
         }),
-        findMany: jest.fn().mockResolvedValue([
-          { lines: [{ productId, quantity: new Prisma.Decimal(quantity) }] },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ lines: [{ productId, quantity: new Prisma.Decimal(quantity) }] }]),
         update: jest.fn(),
       },
       store: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },

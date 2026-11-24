@@ -20,8 +20,11 @@ describe('Protection des mouvements de caisse', () => {
 
   it('refuse de réutiliser un mouvement de dépense en mouvement manuel', async () => {
     tx.cashMovement.findUnique.mockResolvedValue({
-      sessionId: 'session', amount: new Prisma.Decimal('-10'), reason: 'Dépense',
-      actorId: 'actor', expensePayment: { id: 'expense' },
+      sessionId: 'session',
+      amount: new Prisma.Decimal('-10'),
+      reason: 'Dépense',
+      actorId: 'actor',
+      expensePayment: { id: 'expense' },
     });
     await expect(repo.move('session', '-10', 'Dépense', 'key', 'actor')).rejects.toThrow(ConflictException);
     expect(tx.cashMovement.create).not.toHaveBeenCalled();
@@ -29,10 +32,15 @@ describe('Protection des mouvements de caisse', () => {
 
   it('refuse un transfert historique avec un crédit différent du débit', async () => {
     tx.cashMovement.findUnique.mockResolvedValue({
-      transferKey: 'key', sessionId: 'source', amount: new Prisma.Decimal('-10'), actorId: 'actor',
+      transferKey: 'key',
+      sessionId: 'source',
+      amount: new Prisma.Decimal('-10'),
+      actorId: 'actor',
     });
     tx.cashMovement.findFirst.mockResolvedValue({
-      sessionId: 'target', amount: new Prisma.Decimal('9'), actorId: 'actor',
+      sessionId: 'target',
+      amount: new Prisma.Decimal('9'),
+      actorId: 'actor',
     });
     await expect(repo.transfer('source', 'target', '10', 'key', 'actor')).rejects.toThrow(ConflictException);
     expect(tx.cashMovement.create).not.toHaveBeenCalled();

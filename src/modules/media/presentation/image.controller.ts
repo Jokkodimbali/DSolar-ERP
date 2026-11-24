@@ -1,4 +1,14 @@
-import { Controller, Get, Param, ParseUUIDPipe, Post, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  StreamableFile,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
@@ -7,7 +17,9 @@ import { CurrentUserId } from '../../identity/presentation/current-user.decorato
 import { ImageService } from '../application/image.service';
 import { MAX_IMAGE_BYTES } from '../domain/image-validation';
 
-interface UploadedImage { buffer: Buffer; }
+interface UploadedImage {
+  buffer: Buffer;
+}
 
 const uploadLimits = { limits: { fileSize: MAX_IMAGE_BYTES, files: 1, fields: 0, parts: 1 } };
 
@@ -30,7 +42,11 @@ export class ImageController {
   @RequirePermissions('products.manage')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', uploadLimits))
-  photo(@CurrentUserId() actorId: string, @Param('id', ParseUUIDPipe) id: string, @UploadedFile() file?: UploadedImage) {
+  photo(
+    @CurrentUserId() actorId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file?: UploadedImage,
+  ) {
     return this.images.upload(actorId, 'PRODUCT_PHOTO', file?.buffer, id);
   }
 

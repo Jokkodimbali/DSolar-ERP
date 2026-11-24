@@ -109,10 +109,15 @@ describe('PrismaInvoicesRepository', () => {
     tx.salesOrder.findUnique.mockResolvedValue({
       ...order,
       total: decimal('0.04'),
-      lines: [{
-        ...order.lines[0], quantity: decimal('0.025'), unitPrice: decimal('1'),
-        taxRate: decimal('18'), lineTotal: decimal('0.04'),
-      }],
+      lines: [
+        {
+          ...order.lines[0],
+          quantity: decimal('0.025'),
+          unitPrice: decimal('1'),
+          taxRate: decimal('18'),
+          lineTotal: decimal('0.04'),
+        },
+      ],
     });
     await repository.createFromOrder(orderId, actorId);
     const data = tx.invoice.create.mock.calls[0][0].data;
@@ -123,7 +128,8 @@ describe('PrismaInvoicesRepository', () => {
 
   it('refuse un total de ligne historique incohérent', async () => {
     tx.salesOrder.findUnique.mockResolvedValue({
-      ...order, lines: [{ ...order.lines[0], lineTotal: decimal('117') }],
+      ...order,
+      lines: [{ ...order.lines[0], lineTotal: decimal('117') }],
     });
     await expect(repository.createFromOrder(orderId, actorId)).rejects.toThrow(ConflictException);
     expect(tx.invoice.create).not.toHaveBeenCalled();

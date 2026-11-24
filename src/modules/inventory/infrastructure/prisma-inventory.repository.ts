@@ -85,7 +85,9 @@ export class PrismaInventoryRepository implements InventoryRepository {
     return this.prisma.$transaction(
       async (tx) => {
         await this.authorize(tx, storeId, productId, actorId);
-        const stock = await tx.storeStock.findUnique({ where: { storeId_productId: { storeId, productId } } });
+        const stock = await tx.storeStock.findUnique({
+          where: { storeId_productId: { storeId, productId } },
+        });
         return this.format(
           storeId,
           productId,

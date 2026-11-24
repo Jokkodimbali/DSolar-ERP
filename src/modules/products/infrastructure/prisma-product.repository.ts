@@ -17,20 +17,35 @@ export class PrismaProductRepository implements ProductRepository {
     const limit = query.limit ?? 25;
     const search = query.search?.trim();
     const where: Prisma.ProductWhereInput = {
-      active: query.active, categoryId: query.categoryId, brandId: query.brandId,
-      taxRegimeId: query.taxRegimeId, isSolarPlant: query.isSolarPlant,
-      ...(search ? { OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } },
-      ] } : {}),
+      active: query.active,
+      categoryId: query.categoryId,
+      brandId: query.brandId,
+      taxRegimeId: query.taxRegimeId,
+      isSolarPlant: query.isSolarPlant,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { sku: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
     };
-    return this.prisma.$transaction(async (tx) => {
-      const [items, total] = await Promise.all([
-        tx.product.findMany({ where, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
-        tx.product.count({ where }),
-      ]);
-      return { items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const [items, total] = await Promise.all([
+          tx.product.findMany({
+            where,
+            orderBy: [{ name: 'asc' }, { id: 'asc' }],
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+          tx.product.count({ where }),
+        ]);
+        return { items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
   findById(id: string) {
     return this.prisma.product.findUnique({ where: { id } });

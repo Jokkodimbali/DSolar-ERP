@@ -40,7 +40,8 @@ export class CompanySettingsController {
   }
 
   @Put()
-  @SuccessMessage('Paramètres de l’entreprise enregistrés avec succès.') save(@CurrentUserId() actorId: string, @Body() body: CompanySettingsDto) {
+  @SuccessMessage('Paramètres de l’entreprise enregistrés avec succès.')
+  save(@CurrentUserId() actorId: string, @Body() body: CompanySettingsDto) {
     const { expectedRevision, ...input } = body;
     return this.service.save(actorId, expectedRevision, input);
   }

@@ -67,11 +67,19 @@ integration('Rapprochement bancaire PostgreSQL', () => {
         ConflictException,
       );
       const line = statement.lines[0];
-      await expect(bankService.suggestions(statement.id, randomUUID())).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(bankService.suggestions(statement.id, randomUUID())).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       const suggestions = await bankService.suggestions(statement.id, admin.id);
       expect(suggestions).toMatchObject({ unique: 1, ambiguous: 0, noMatch: 0 });
-      expect(suggestions.items[0]).toMatchObject({ bankLineId: line.id, status: 'UNIQUE', candidates: [{ ledgerLineId: ledgerLine.id, daysApart: 1 }] });
-      expect((await prisma.ledgerBankLine.findUniqueOrThrow({ where: { id: line.id } })).ledgerLineId).toBeNull();
+      expect(suggestions.items[0]).toMatchObject({
+        bankLineId: line.id,
+        status: 'UNIQUE',
+        candidates: [{ ledgerLineId: ledgerLine.id, daysApart: 1 }],
+      });
+      expect(
+        (await prisma.ledgerBankLine.findUniqueOrThrow({ where: { id: line.id } })).ledgerLineId,
+      ).toBeNull();
       await expect(repo.close(statement.id, admin.id)).rejects.toBeInstanceOf(ConflictException);
       await expect(
         repo.match(line.id, entry.lines.find((item) => item.accountId === revenue.id)!.id, admin.id),

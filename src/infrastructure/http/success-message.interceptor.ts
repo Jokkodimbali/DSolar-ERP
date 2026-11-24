@@ -14,10 +14,13 @@ export class SuccessMessageInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<Request>();
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next.handle();
     const response = context.switchToHttp().getResponse<Response>();
-    const message = this.reflector.get<string>(SUCCESS_MESSAGE, context.getHandler()) ?? 'Opération effectuée avec succès.';
-    return next.handle().pipe(tap(() => {
-      if (!response.headersSent && response.statusCode >= 200 && response.statusCode < 300)
-        response.setHeader('X-Success-Message', encodeURIComponent(message));
-    }));
+    const message =
+      this.reflector.get<string>(SUCCESS_MESSAGE, context.getHandler()) ?? 'Opération effectuée avec succès.';
+    return next.handle().pipe(
+      tap(() => {
+        if (!response.headersSent && response.statusCode >= 200 && response.statusCode < 300)
+          response.setHeader('X-Success-Message', encodeURIComponent(message));
+      }),
+    );
   }
 }

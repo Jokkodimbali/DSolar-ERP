@@ -354,13 +354,15 @@ describe('PrismaStockCountRepository', () => {
         entityId: 'session-id',
         storeId: 'store-id',
         payload: {
-          lines: [{
-            productId: 'a',
-            previous: '2.000',
-            previousReason: 'Ancien motif',
-            counted: '3.125',
-            reason: 'Recomptage',
-          }],
+          lines: [
+            {
+              productId: 'a',
+              previous: '2.000',
+              previousReason: 'Ancien motif',
+              counted: '3.125',
+              reason: 'Recomptage',
+            },
+          ],
         },
       },
     });

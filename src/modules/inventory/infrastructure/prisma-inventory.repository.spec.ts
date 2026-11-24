@@ -15,8 +15,13 @@ describe('Protection des ajustements manuels', () => {
   const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
   const repository = new PrismaInventoryRepository({ $transaction: transaction } as unknown as PrismaService);
   const input = {
-    storeId: 'store', productId: 'product', actorId: 'actor', operationKey: 'key',
-    direction: 'IN' as const, quantity: '1', reason: 'Correction stock',
+    storeId: 'store',
+    productId: 'product',
+    actorId: 'actor',
+    operationKey: 'key',
+    direction: 'IN' as const,
+    quantity: '1',
+    reason: 'Correction stock',
   };
 
   beforeEach(() => {
@@ -38,7 +43,10 @@ describe('Protection des ajustements manuels', () => {
 
   it.each([null, 'other-actor'])('refuse une clé sans propriétaire correspondant : %s', async (actorId) => {
     tx.stockMovement.findUnique.mockResolvedValue({
-      ...input, actorId, type: 'INVENTORY_ADJUSTMENT', referenceType: 'MANUAL_ADJUSTMENT',
+      ...input,
+      actorId,
+      type: 'INVENTORY_ADJUSTMENT',
+      referenceType: 'MANUAL_ADJUSTMENT',
       quantity: new Prisma.Decimal('1'),
     });
     await expect(repository.adjust(input)).rejects.toThrow(ConflictException);

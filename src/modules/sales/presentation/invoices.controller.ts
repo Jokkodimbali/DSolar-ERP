@@ -26,19 +26,22 @@ export class InvoicesController {
 
   @Post('from-order/:orderId')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Facture créée à partir de la commande.') createFromOrder(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Facture créée à partir de la commande.')
+  createFromOrder(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
     return this.invoices.createFromOrder(orderId, actorId);
   }
 
   @Post(':id/issue')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Facture émise avec succès.') issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Facture émise avec succès.')
+  issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.invoices.issue(id, actorId);
   }
 
   @Post(':id/cancel')
   @RequirePermissions('sales.manage')
-  @SuccessMessage('Facture annulée.') cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+  @SuccessMessage('Facture annulée.')
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return this.invoices.cancel(id, actorId);
   }
 }
