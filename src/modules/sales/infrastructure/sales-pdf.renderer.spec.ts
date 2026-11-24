@@ -30,7 +30,7 @@ describe('Documents PDF commerciaux', () => {
   it('produit un PDF avec les montants stockés et un statut brouillon', () => {
     const data = new SalesPdfRenderer().render(doc).toString('ascii');
     expect(data.startsWith('%PDF-1.4')).toBe(true);
-    expect(data).toContain(Buffer.from('TOTAL TTC : 118.00 FCFA', 'latin1').toString('hex'));
+    expect(data).toContain(Buffer.from('TOTAL TTC : 118,00 FCFA', 'latin1').toString('hex'));
     expect(data).toContain(Buffer.from('BROUILLON - NON VALIDE', 'latin1').toString('hex'));
   });
   it('intègre le logo téléversé comme image PDF sans modifier les montants', () => {
@@ -43,7 +43,7 @@ describe('Documents PDF commerciaux', () => {
       .toString('ascii');
     expect(data).toContain('/Subtype /Image');
     expect(data).toContain('/Logo Do');
-    expect(data).toContain(Buffer.from('TOTAL TTC : 118.00 FCFA', 'latin1').toString('hex'));
+    expect(data).toContain(Buffer.from('TOTAL TTC : 118,00 FCFA', 'latin1').toString('hex'));
   });
   it('pagine les lignes et conserve les offsets xref exacts', () => {
     const data = renderTextPdf(
@@ -75,7 +75,7 @@ describe('Documents PDF commerciaux', () => {
         lines: [{ sku: 'SOL', name: 'Centrale', quantity: '2.000', store: 'M1 - Dakar' }],
       })
       .toString('ascii');
-    expect(data).toContain(Buffer.from('Quantité : 2.000', 'latin1').toString('hex'));
+    expect(data).toContain(Buffer.from('Quantité : 2,000', 'latin1').toString('hex'));
     expect(data).not.toContain(Buffer.from('Prix unitaire', 'latin1').toString('hex'));
   });
   it('marque un règlement contrepassé comme non valide', () => {
@@ -95,9 +95,9 @@ describe('Documents PDF commerciaux', () => {
       })
       .toString('ascii');
     expect(data).toContain(Buffer.from('JUSTIFICATIF DE PAIEMENT - NON VALIDE', 'latin1').toString('hex'));
-    expect(data).toContain(Buffer.from('MONTANT ENREGISTRÉ : 15000.00 FCFA', 'latin1').toString('hex'));
+    expect(data).toContain(Buffer.from('MONTANT ENREGISTRÉ : 15 000,00 FCFA', 'latin1').toString('hex'));
     expect(data).toContain(
-      Buffer.from('Contrepassation du 2026-11-02 : 15000.00 FCFA', 'latin1').toString('hex'),
+      Buffer.from('Contrepassation du 02/11/2026 : 15 000,00 FCFA', 'latin1').toString('hex'),
     );
   });
   it('refuse un document rattaché à une commande sans identifiant de commande', async () => {

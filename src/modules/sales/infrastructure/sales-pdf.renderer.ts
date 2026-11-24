@@ -32,8 +32,13 @@ const METHODS: Record<string, string> = {
   CHEQUE: 'Chèque',
 };
 
-function date(value: Date | null): string {
-  return value ? value.toISOString().slice(0, 10) : 'Non émis';
+function date(value: Date | null, timeZone = 'Africa/Dakar'): string {
+  return value ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone }).format(value) : 'Non émis';
+}
+
+function numberFr(value: string): string {
+  const [whole, decimals] = value.split('.');
+  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (decimals === undefined ? '' : ',' + decimals);
 }
 
 function detail(document: SalesDocument): string[] {
@@ -47,7 +52,7 @@ function detail(document: SalesDocument): string[] {
           '',
           index + 1 + '. ' + line.sku + ' | ' + line.name,
           'Magasin : ' + line.store,
-          'Quantité : ' + line.quantity,
+          'Quantité : ' + numberFr(line.quantity),
         ]),
         '',
         'Réceptionnaire : __________________________',
@@ -60,9 +65,9 @@ function detail(document: SalesDocument): string[] {
         'Mode de règlement : ' + (METHODS[document.method] ?? document.method),
         ...(document.externalReference ? ['Référence externe : ' + document.externalReference] : []),
         '',
-        'MONTANT ENREGISTRÉ : ' + document.amount + ' FCFA',
+        'MONTANT ENREGISTRÉ : ' + numberFr(document.amount) + ' FCFA',
         ...document.reversals.map(
-          (row) => 'Contrepassation du ' + date(row.createdAt) + ' : ' + row.amount + ' FCFA',
+          (row) => 'Contrepassation du ' + date(row.createdAt, document.company?.timeZone) + ' : ' + numberFr(row.amount) + ' FCFA',
         ),
         ...(document.reversals.length ? ['Ce justificatif ne prouve plus un encaissement actif.'] : []),
         '',
@@ -70,21 +75,21 @@ function detail(document: SalesDocument): string[] {
       ];
     default:
       return [
-        ...(document.expiresAt ? ['Expiration : ' + date(document.expiresAt)] : []),
+        ...(document.expiresAt ? ['Expiration : ' + date(document.expiresAt, document.company?.timeZone)] : []),
         '',
         'DÉTAIL DES PRODUITS (FCFA / XOF)',
         ...document.lines.flatMap((line, index) => [
           '',
           index + 1 + '. ' + line.sku + ' | ' + line.name,
-          'Quantité : ' + line.quantity + ' | Prix unitaire HT : ' + line.unitPrice,
-          'Remise HT : ' + line.discount + ' | TVA : ' + line.taxRate + ' %',
-          ...(line.taxAmount === undefined ? [] : ['Montant TVA : ' + line.taxAmount]),
-          'Total ligne TTC : ' + line.total,
+          'Quantité : ' + numberFr(line.quantity) + ' | Prix unitaire HT : ' + numberFr(line.unitPrice),
+          'Remise HT : ' + numberFr(line.discount) + ' | TVA : ' + numberFr(line.taxRate) + ' %',
+          ...(line.taxAmount === undefined ? [] : ['Montant TVA : ' + numberFr(line.taxAmount)]),
+          'Total ligne TTC : ' + numberFr(line.total),
         ]),
         '',
-        ...(document.totalHt === undefined ? [] : ['TOTAL HT : ' + document.totalHt + ' FCFA']),
-        ...(document.totalTax === undefined ? [] : ['TOTAL TVA : ' + document.totalTax + ' FCFA']),
-        'TOTAL TTC : ' + document.totalTtc + ' FCFA',
+        ...(document.totalHt === undefined ? [] : ['TOTAL HT : ' + numberFr(document.totalHt) + ' FCFA']),
+        ...(document.totalTax === undefined ? [] : ['TOTAL TVA : ' + numberFr(document.totalTax) + ' FCFA']),
+        'TOTAL TTC : ' + numberFr(document.totalTtc) + ' FCFA',
       ];
   }
 }
@@ -112,7 +117,7 @@ export class SalesPdfRenderer implements SalesPdfPort {
         : ['Identité entreprise historique non renseignée.']),
       title + ' : ' + document.number,
       'Statut : ' + status,
-      'Date : ' + date(document.issuedAt),
+      'Date : ' + date(document.issuedAt, document.company?.timeZone),
       '',
       'CLIENT : ' + document.customer.name,
       ...(document.customer.address ? ['Adresse : ' + document.customer.address] : []),

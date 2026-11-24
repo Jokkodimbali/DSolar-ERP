@@ -19,21 +19,51 @@ function dimensions(width: number, height: number) {
 
 function jpeg(data: Buffer): PdfImage {
   let i = 2;
-  while (i + 4 < data.length && data[i] === 255) {
+  let frame: Pick<PdfImage, 'width' | 'height' | 'colors'> | undefined;
+  let scanned = false;
+  let hasQuantization = false;
+  let hasHuffman = false;
+  while (i < data.length) {
+    if (data[i++] !== 255) invalid();
     while (i < data.length && data[i] === 255) i++;
     const marker = data[i++];
-    if (marker === 0xda || marker === 0xd9 || i + 2 > data.length) break;
+    if (marker === 0xd9) {
+      if (!frame || !scanned || i !== data.length || !hasQuantization || !hasHuffman) invalid();
+      return { ...frame, filter: 'DCTDecode', data };
+    }
+    if (marker === 0 || marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd7) || i + 2 > data.length) invalid();
     const length = data.readUInt16BE(i);
     if (length < 2 || i + length > data.length) invalid();
-    if ([0xc0, 0xc1, 0xc2].includes(marker) && length >= 8) {
+    if ([0xc0, 0xc1, 0xc2].includes(marker)) {
+      if (frame || length < 8) invalid();
       const height = data.readUInt16BE(i + 3);
       const width = data.readUInt16BE(i + 5);
       const colors = data[i + 7];
       dimensions(width, height);
-      if (data[i + 2] !== 8 || (colors !== 1 && colors !== 3)) invalid();
-      return { width, height, colors, filter: 'DCTDecode', data };
+      if (data[i + 2] !== 8 || (colors !== 1 && colors !== 3) || length !== 8 + 3 * colors) invalid();
+      frame = { width, height, colors };
     }
-    i += length;
+    if (marker === 0xdb) hasQuantization = true;
+    if (marker === 0xc4) hasHuffman = true;
+    if (marker === 0xda) {
+      if (!frame || length < 8 || length !== 6 + 2 * data[i + 2] || !data[i + 2] || data[i + 2] > frame.colors) invalid();
+      i += length;
+      let scanBytes = 0;
+      while (i < data.length) {
+        if (data[i] !== 255) { i++; scanBytes++; continue; }
+        const markerStart = i;
+        while (i < data.length && data[i] === 255) i++;
+        const next = data[i];
+        if (next === 0) { i++; scanBytes++; continue; }
+        if (next >= 0xd0 && next <= 0xd7) { i++; continue; }
+        i = markerStart;
+        break;
+      }
+      if (!scanBytes || i >= data.length) invalid();
+      scanned = true;
+    } else {
+      i += length;
+    }
   }
   return invalid();
 }
@@ -46,8 +76,21 @@ function paeth(a: number, b: number, c: number): number {
   return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
 }
 
+const crcTable = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let i = 0; i < 8; i++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+
+function crc32(data: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of data) crc = crcTable[(crc ^ byte) & 255] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
 function png(data: Buffer): PdfImage {
   if (data.length < 45 || !data.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))) invalid();
+  if (data.readUInt32BE(8) !== 13 || data.toString('ascii', 12, 16) !== 'IHDR') invalid();
   const width = data.readUInt32BE(16),
     height = data.readUInt32BE(20);
   dimensions(width, height);
@@ -62,16 +105,36 @@ function png(data: Buffer): PdfImage {
   let palette: Buffer | undefined, transparency: Buffer | undefined;
   let pos = 8,
     ended = false;
+  let seenHeader = false;
+  let dataEnded = false;
   while (pos + 12 <= data.length) {
     const length = data.readUInt32BE(pos);
     if (length > data.length - pos - 12) invalid();
     const name = data.toString('ascii', pos + 4, pos + 8);
     const body = data.subarray(pos + 8, pos + 8 + length);
-    if (name === 'IDAT') idat.push(body);
-    if (name === 'PLTE') palette = body;
-    if (name === 'tRNS') transparency = body;
+    if (crc32(data.subarray(pos + 4, pos + 8 + length)) !== data.readUInt32BE(pos + 8 + length)) invalid();
+    if (name === 'IHDR') {
+      if (seenHeader || pos !== 8 || length !== 13) invalid();
+      seenHeader = true;
+    } else if (!seenHeader) invalid();
+    if (name === 'IDAT') {
+      if (dataEnded || (type === 3 && !palette)) invalid();
+      idat.push(body);
+    } else if (idat.length) dataEnded = true;
+    if (name === 'PLTE') {
+      if (palette || idat.length || !length || length > 768 || length % 3 !== 0) invalid();
+      palette = body;
+    }
+    if (name === 'tRNS') {
+      if (transparency || idat.length || type === 4 || type === 6 ||
+          (type === 0 && length !== 2) || (type === 2 && length !== 6) ||
+          (type === 3 && (!palette || !length || length > palette.length / 3))) invalid();
+      transparency = body;
+    }
+    if (!['IHDR','IDAT','PLTE','IEND','tRNS'].includes(name) && /^[A-Z]/.test(name)) invalid();
     pos += length + 12;
     if (name === 'IEND') {
+      if (length !== 0) invalid();
       ended = true;
       break;
     }

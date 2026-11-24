@@ -15,6 +15,7 @@ export interface CompanyDocumentIdentity {
   bankName: string;
   bankAccount: string;
   documentFooter: string;
+  timeZone?: string;
 }
 
 interface DocumentBase {

@@ -10,12 +10,12 @@ export class ImageService {
   async upload(actorId: string, kind: ImageKind, data?: Buffer, productId?: string) {
     const mimeType = validateImage(data);
     if (!data) throw new Error('Image manquante après validation.');
-    if (kind === 'COMPANY_LOGO') {
+    {
       try {
         preparePdfImage(data, mimeType);
       } catch {
         throw new BadRequestException(
-          'Logo incompatible avec les documents PDF : choisissez un JPEG RVB ou un PNG 8 bits non entrelacé, de 4 mégapixels maximum.',
+          'Image corrompue ou incompatible : utilisez un JPEG RVB ou un PNG 8 bits non entrelacé, de 4 mégapixels maximum.',
         );
       }
     }

@@ -18,6 +18,7 @@ const companySettings = {
     bankAccount: true,
     documentFooter: true,
     logoUrl: true,
+    timeZone: true,
   },
 } as const;
 
