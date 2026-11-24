@@ -78,7 +78,7 @@ integration('Parcours commercial réel PostgreSQL', () => {
       expect(invoice.totalTtc.toFixed(2)).toBe(order.total.toFixed(2));
       await expect(documents.download('INVOICE', invoice.id, outsider.id)).rejects.toBeInstanceOf(NotFoundException);
       const note = await deliveries.create(order.id, actor.id, {
-        lines: [{ storeId: store.id, productId: product.id, quantity: 2 }],
+        lines: [{ storeId: store.id, productId: product.id, quantity: '2.000' }],
       });
       await deliveries.confirm(order.id, note.id, actor.id);
       expect((await balance()).quantity.toFixed(3)).toBe('8.000');
