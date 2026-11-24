@@ -2,6 +2,8 @@
 
 API interne NestJS / Prisma / PostgreSQL, réservée aux utilisateurs autorisés.
 
+**[Documentation technique complète du backend](docs/README.md)** : architecture, modules, flux métier, sécurité, API, données, exploitation et tests.
+
 ## Démarrage local
 
 Depuis ce dossier :
