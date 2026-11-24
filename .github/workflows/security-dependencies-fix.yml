@@ -1,6 +1,9 @@
 name: Remédiation ciblée Prisma et validation PostgreSQL
 on:
   workflow_dispatch:
+defaults:
+  run:
+    working-directory: backend
 permissions:
   contents: write
 concurrency:
@@ -34,6 +37,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: backend/package-lock.json
       - name: Résoudre les versions corrigées sous Prisma 6
         run: |
           npm pkg set 'overrides.@prisma/config.deepmerge-ts=^8.0.0' 'overrides.@prisma/config.effect=^3.22.1'

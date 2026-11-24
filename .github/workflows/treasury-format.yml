@@ -1,10 +1,9 @@
 name: Formatage et intégrité des sources comptables
 on:
-  push:
-    branches: [dev]
-    paths:
-      - '.github/workflows/treasury-format.yml'
   workflow_dispatch:
+defaults:
+  run:
+    working-directory: backend
 permissions:
   contents: write
 jobs:
@@ -17,6 +16,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: backend/package-lock.json
       - run: npm ci --no-audit --no-fund
       - name: Appliquer le formatage Prettier officiel
         run: npx prettier --write 'src/modules/treasury/**/*.ts' 'src/modules/expenses/**/*.ts' 'src/modules/supplier-returns/**/*.ts' 'src/modules/accounting/**/*.ts' 'src/modules/sales/**/*.ts' src/app.module.ts src/main.ts src/health.controller.ts 'src/infrastructure/http/**/*.ts' 'src/infrastructure/prisma/**/*.ts' 'src/modules/identity/**/*.ts' 'src/modules/stores/**/*.ts' 'src/modules/audit/**/*.ts' 'src/modules/inventory/**/*.ts' src/modules/sales/infrastructure/prisma-payments.repository.ts scripts/integration-smoke.cjs

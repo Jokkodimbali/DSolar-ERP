@@ -10,6 +10,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Vérifier la présence des migrations versionnées
         run: |
-          test -s prisma/migrations/20261112_initial/migration.sql
-          test -s prisma/migrations/migration_lock.toml
+          test -s backend/prisma/migrations/20261112_initial/migration.sql
+          test -s backend/prisma/migrations/migration_lock.toml
           echo "Les migrations déjà versionnées ne doivent jamais être régénérées."

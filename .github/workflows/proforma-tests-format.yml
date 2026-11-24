@@ -1,13 +1,14 @@
 name: One-time proforma tests formatting
 on:
-  push:
-    branches: [dev]
-    paths:
-      - '.github/workflows/proforma-tests-format.yml'
+  workflow_dispatch:
+defaults:
+  run:
+    working-directory: backend
 permissions:
   contents: write
 jobs:
   format:
+    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,6 +16,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: backend/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npx prettier --write src/modules/sales/infrastructure/prisma-proformas.repository.spec.ts
       - run: npm run format:check
