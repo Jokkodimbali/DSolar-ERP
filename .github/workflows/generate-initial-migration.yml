@@ -1,33 +1,15 @@
-name: Générer migration Prisma initiale
+name: Vérifier la migration initiale Prisma
 on:
-  push:
-    branches: [dev]
-    paths:
-      - '.github/workflows/generate-initial-migration.yml'
-      - 'prisma/schema.prisma'
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  generate:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm ci
-      - name: Générer SQL depuis le schéma Prisma
+      - name: Vérifier la présence des migrations versionnées
         run: |
-          mkdir -p prisma/migrations/20261112_initial
-          npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/20261112_initial/migration.sql
           test -s prisma/migrations/20261112_initial/migration.sql
-          printf 'provider = "postgresql"\n' > prisma/migrations/migration_lock.toml
-      - name: Publier la migration sur dev
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add prisma/migrations
-          if ! git diff --cached --quiet; then
-            git commit -m "db: generate initial Prisma migration"
-            git push
-          fi
+          test -s prisma/migrations/migration_lock.toml
+          echo "Les migrations déjà versionnées ne doivent jamais être régénérées."

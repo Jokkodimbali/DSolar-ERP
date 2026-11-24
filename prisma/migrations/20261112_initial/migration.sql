@@ -566,43 +566,6 @@ CREATE TABLE "IdempotencyKey" (
     CONSTRAINT "IdempotencyKey_pkey" PRIMARY KEY ("key")
 );
 
--- CreateTable
-CREATE TABLE "CashRegister" (
-    "id" UUID NOT NULL,
-    "storeId" UUID NOT NULL,
-    "name" VARCHAR(100) NOT NULL,
-
-    CONSTRAINT "CashRegister_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "CashSession" (
-    "id" UUID NOT NULL,
-    "registerId" UUID NOT NULL,
-    "opening" DECIMAL(18,2) NOT NULL,
-    "openedBy" UUID NOT NULL,
-    "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "closedAt" TIMESTAMP(3),
-    "closedBy" UUID,
-    "counted" DECIMAL(18,2),
-    "expected" DECIMAL(18,2),
-
-    CONSTRAINT "CashSession_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "CashMovement" (
-    "id" UUID NOT NULL,
-    "sessionId" UUID NOT NULL,
-    "amount" DECIMAL(18,2) NOT NULL,
-    "reason" VARCHAR(200) NOT NULL,
-    "operationKey" UUID NOT NULL,
-    "actorId" UUID NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "CashMovement_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateIndex
 CREATE UNIQUE INDEX "Store_code_key" ON "Store"("code");
 
@@ -704,18 +667,6 @@ CREATE UNIQUE INDEX "DocumentSequence_type_period_key" ON "DocumentSequence"("ty
 
 -- CreateIndex
 CREATE INDEX "AuditLog_entityType_entityId_createdAt_idx" ON "AuditLog"("entityType", "entityId", "createdAt");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CashRegister_storeId_name_key" ON "CashRegister"("storeId", "name");
-
--- CreateIndex
-CREATE INDEX "CashSession_registerId_closedAt_idx" ON "CashSession"("registerId", "closedAt");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CashMovement_operationKey_key" ON "CashMovement"("operationKey");
-
--- CreateIndex
-CREATE INDEX "CashMovement_sessionId_createdAt_idx" ON "CashMovement"("sessionId", "createdAt");
 
 -- AddForeignKey
 ALTER TABLE "Product" ADD CONSTRAINT "Product_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -881,13 +832,4 @@ ALTER TABLE "DiscountApproval" ADD CONSTRAINT "DiscountApproval_orderId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "CashRegister" ADD CONSTRAINT "CashRegister_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "CashSession" ADD CONSTRAINT "CashSession_registerId_fkey" FOREIGN KEY ("registerId") REFERENCES "CashRegister"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "CashMovement" ADD CONSTRAINT "CashMovement_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "CashSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
