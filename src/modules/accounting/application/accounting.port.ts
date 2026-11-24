@@ -1,4 +1,5 @@
 import { PostingRuleInput, SourceType } from '../domain/source-types';
+import { AccountClass } from '../domain/financial-statements';
 import { PostingLine } from '../domain/ledger-policy';
 
 export const ACCOUNTING = Symbol('ACCOUNTING');
@@ -17,6 +18,8 @@ export interface AccountingPort {
   postSource(type: SourceType, id: string, actor: string): Promise<unknown>;
   pending(periodId: string, actor: string): Promise<unknown>;
   postPending(periodId: string, actor: string): Promise<unknown>;
+  classify(accountId: string, category: AccountClass, actor: string): Promise<unknown>;
+  statements(periodId: string, actor: string): Promise<unknown>;
   setup(actor: string): Promise<unknown>;
   account(code: string, name: string, actor: string): Promise<unknown>;
   journal(code: string, name: string, actor: string): Promise<unknown>;

@@ -14,6 +14,7 @@ import {
 } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
+import { ACCOUNT_CLASSES, AccountClass } from '../domain/financial-statements';
 import { SOURCE_TYPES, SourceType } from '../domain/source-types';
 import { AccountingService } from '../application/accounting.service';
 
@@ -24,6 +25,10 @@ class CodeDto {
   @IsString()
   @MaxLength(160)
   name!: string;
+}
+class ClassificationDto {
+  @IsIn([...ACCOUNT_CLASSES])
+  category!: AccountClass;
 }
 class PeriodDto {
   @IsString()
@@ -124,6 +129,14 @@ export class AccountingController {
   @Post('accounts')
   account(@Body() dto: CodeDto, @CurrentUserId() actor: string) {
     return this.service.account(dto.code, dto.name, actor);
+  }
+  @Post('accounts/:id/classify')
+  classify(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ClassificationDto, @CurrentUserId() actor: string) {
+    return this.service.classify(id, dto.category, actor);
+  }
+  @Get('periods/:id/statements')
+  statements(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.statements(id, actor);
   }
   @Post('journals')
   journal(@Body() dto: CodeDto, @CurrentUserId() actor: string) {

@@ -754,6 +754,7 @@ model LedgerAccount {
   code String @unique @db.VarChar(30)
   name String @db.VarChar(160)
   lines LedgerLine[]
+  classification LedgerAccountClassification?
   debitRules LedgerPostingRule[] @relation("RuleDebit")
   creditRules LedgerPostingRule[] @relation("RuleCredit")
   taxRules LedgerPostingRule[] @relation("RuleTax")
@@ -823,4 +824,20 @@ model LedgerPostingRule {
   taxAccountId String? @db.Uuid
   taxAccount LedgerAccount? @relation("RuleTax", fields: [taxAccountId], references: [id], onDelete: Restrict)
   updatedAt DateTime @updatedAt
+}
+
+enum LedgerAccountClass {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+model LedgerAccountClassification {
+  accountId String @id @db.Uuid
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category LedgerAccountClass
+  classifiedBy String @db.Uuid
+  classifiedAt DateTime @default(now())
 }

@@ -9,6 +9,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingPort, PostingInput } from '../application/accounting.port';
+import { AccountClass, buildFinancialStatements, StatementAccount } from '../domain/financial-statements';
 import { aggregateCents, assertBalanced, calendarDate, moneyText } from '../domain/ledger-policy';
 import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
 import { buildSourcePosting } from './source-posting';
@@ -48,7 +49,7 @@ export class AccountingRepository implements AccountingPort {
   setup(actor: string) {
     return this.transaction(actor, async (tx) => ({
       rules: await tx.ledgerPostingRule.findMany({ orderBy: { key: 'asc' } }),
-      accounts: await tx.ledgerAccount.findMany({ orderBy: { code: 'asc' } }),
+      accounts: await tx.ledgerAccount.findMany({ orderBy: { code: 'asc' }, include: { classification: true } }),
       journals: await tx.ledgerJournal.findMany({ orderBy: { code: 'asc' } }),
       periods: await tx.ledgerPeriod.findMany({ orderBy: { startsAt: 'desc' } }),
     }));
@@ -157,6 +158,57 @@ export class AccountingRepository implements AccountingPort {
       const result = await tx.ledgerAccount.create({ data: { code, name } });
       await this.audit(tx, actor, 'LEDGER_ACCOUNT_CREATED', result.id);
       return result;
+    });
+  }
+
+  classify(accountId: string, category: AccountClass, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "LedgerAccount" WHERE id = ${accountId}::uuid FOR UPDATE`;
+      if (!(await tx.ledgerAccount.findUnique({ where: { id: accountId } })))
+        throw new NotFoundException('Compte introuvable.');
+      const existing = await tx.ledgerAccountClassification.findUnique({ where: { accountId } });
+      if (existing?.category === category) return existing;
+      if (existing && await tx.ledgerLine.count({ where: { accountId, entry: { postedAt: { not: null } } } }))
+        throw new ConflictException('Classification déjà utilisée dans une écriture validée.');
+      const result = await tx.ledgerAccountClassification.upsert({
+        where: { accountId }, create: { accountId, category, classifiedBy: actor },
+        update: { category, classifiedBy: actor, classifiedAt: new Date() },
+      });
+      await tx.auditLog.create({ data: { actorId: actor, entityType: 'Accounting', entityId: accountId,
+        action: 'LEDGER_ACCOUNT_CLASSIFIED', payload: { previous: existing?.category ?? null, category } } });
+      return result;
+    });
+  }
+
+  statements(periodId: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const period = await tx.ledgerPeriod.findUnique({ where: { id: periodId } });
+      if (!period) throw new NotFoundException('Période introuvable.');
+      const rows = await tx.$queryRaw<StatementAccount[]>`
+        SELECT a.id AS "accountId", a.code, a.name, c.category::text AS category,
+          coalesce(sum(l.debit) FILTER (WHERE e.date < ${period.startsAt}::date), 0)::text AS "openingDebit",
+          coalesce(sum(l.credit) FILTER (WHERE e.date < ${period.startsAt}::date), 0)::text AS "openingCredit",
+          coalesce(sum(l.debit) FILTER (WHERE e.date BETWEEN ${period.startsAt}::date AND ${period.endsAt}::date), 0)::text AS "periodDebit",
+          coalesce(sum(l.credit) FILTER (WHERE e.date BETWEEN ${period.startsAt}::date AND ${period.endsAt}::date), 0)::text AS "periodCredit"
+        FROM "LedgerAccount" a
+        LEFT JOIN "LedgerAccountClassification" c ON c."accountId" = a.id
+        LEFT JOIN "LedgerLine" l ON l."accountId" = a.id
+        LEFT JOIN "LedgerEntry" e ON e.id = l."entryId" AND e."postedAt" IS NOT NULL
+        GROUP BY a.id, c.category ORDER BY a.code
+      `;
+      const [pending] = await tx.$queryRaw<{ count: string }[]>`
+        SELECT count(*)::text AS count FROM "LedgerPendingSource"
+        WHERE date IS NULL OR date < (${period.endsAt}::date + 1)
+      `;
+      const unposted = await tx.ledgerEntry.count({ where: { date: { lte: period.endsAt }, postedAt: null } });
+      const report = buildFinancialStatements(rows);
+      return {
+        periodId, startsAt: period.startsAt, endsAt: period.endsAt, closed: !!period.closedAt,
+        pendingSources: pending.count, unpostedEntries: unposted,
+        provisional: !period.closedAt || pending.count !== '0' || unposted !== 0 || !report.complete ||
+          (report.complete && !report.balanceSheet.balanced),
+        ...report,
+      };
     });
   }
 

@@ -5,12 +5,9 @@ const { randomUUID } = require('node:crypto');
 const { PrismaClient, Prisma } = require('@prisma/client');
 
 async function main() {
-  const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error('DIRECT_URL/DATABASE_URL is required.');
-  const url = new URL(databaseUrl);
+  const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map((value) => new URL(value || 'invalid:'));
   if (
-    !['localhost', '127.0.0.1', '::1'].includes(url.hostname) ||
-    url.pathname !== '/dsolar_test' ||
+    urls.some((url) => !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.pathname !== '/dsolar_test' || !['postgres:', 'postgresql:'].includes(url.protocol)) ||
     process.env.NODE_ENV !== 'test'
   ) {
     throw new Error('Integration tests require NODE_ENV=test and local database dsolar_test.');
@@ -227,7 +224,7 @@ async function main() {
         });
         await tx.goodsReceipt.update({
           where: { id: receiptId },
-          data: { status: 'CONFIRMED' },
+          data: { status: 'CONFIRMED', receivedAt: new Date() },
         });
         throw new Error('simulated audit failure');
       }),
@@ -336,7 +333,7 @@ async function main() {
                 if (received.plus(3).greaterThan(ordered)) return false;
                 await tx.goodsReceipt.update({
                   where: { id },
-                  data: { status: 'CONFIRMED' },
+                  data: { status: 'CONFIRMED', receivedAt: new Date() },
                 });
                 await tx.storeStock.update({
                   where: { storeId_productId: { storeId, productId } },
@@ -417,7 +414,7 @@ async function main() {
         prisma.$transaction(async (tx) => {
           const updated = await tx.goodsReceipt.updateMany({
             where: { id: duplicateDraft.id, status: 'DRAFT' },
-            data: { status: 'CONFIRMED' },
+            data: { status: 'CONFIRMED', receivedAt: new Date() },
           });
           if (updated.count === 0) return false;
           await tx.storeStock.update({
@@ -474,7 +471,7 @@ async function main() {
         });
         await tx.goodsReceipt.update({
           where: { id: receiptId },
-          data: { status: 'CONFIRMED' },
+          data: { status: 'CONFIRMED', receivedAt: new Date() },
         });
         throw new Error('audit transaction aborted');
       }),

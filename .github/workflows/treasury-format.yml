@@ -1,4 +1,4 @@
-name: Formatage et validation de la concurrence comptable
+name: Formatage et validation des états financiers
 on:
   push:
     branches: [dev]
@@ -19,7 +19,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Appliquer le formatage Prettier officiel
-        run: npx prettier --write 'src/modules/treasury/**/*.ts' 'src/modules/expenses/**/*.ts' 'src/modules/supplier-returns/**/*.ts' 'src/modules/accounting/**/*.ts' src/app.module.ts src/modules/sales/infrastructure/prisma-payments.repository.ts
+        run: npx prettier --write 'src/modules/treasury/**/*.ts' 'src/modules/expenses/**/*.ts' 'src/modules/supplier-returns/**/*.ts' 'src/modules/accounting/**/*.ts' src/app.module.ts src/modules/sales/infrastructure/prisma-payments.repository.ts scripts/integration-smoke.cjs
       - run: npm run format:check
       - run: npm run prisma:generate
         env:

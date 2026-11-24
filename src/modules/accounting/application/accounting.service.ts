@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ACCOUNT_CLASSES, AccountClass } from '../domain/financial-statements';
 import { assertBalanced, calendarDate } from '../domain/ledger-policy';
 import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
 import { ACCOUNTING, AccountingPort, PostingInput } from './accounting.port';
@@ -43,6 +44,15 @@ export class AccountingService {
 
   postPending(periodId: string, actor: string) {
     return this.repository.postPending(periodId, actor);
+  }
+
+  classify(accountId: string, category: AccountClass, actor: string) {
+    if (!ACCOUNT_CLASSES.includes(category)) throw new BadRequestException('Classe comptable invalide.');
+    return this.repository.classify(accountId, category, actor);
+  }
+
+  statements(periodId: string, actor: string) {
+    return this.repository.statements(periodId, actor);
   }
 
   setup(actor: string) {

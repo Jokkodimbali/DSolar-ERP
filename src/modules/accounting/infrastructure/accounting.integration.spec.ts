@@ -7,11 +7,10 @@ const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : descri
 
 integration('Comptabilité PostgreSQL', () => {
   it('protège les écritures, les périodes et les contrepassations', async () => {
-    const url = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL || 'invalid:');
+    const urls = [process.env.DATABASE_URL, process.env.DIRECT_URL].map((value) => new URL(value || 'invalid:'));
     if (
       process.env.NODE_ENV !== 'test' ||
-      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-      url.pathname !== '/dsolar_test'
+      urls.some((url) => !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.pathname !== '/dsolar_test' || !['postgres:', 'postgresql:'].includes(url.protocol))
     )
       throw new Error('Base locale de test requise.');
     const prisma = new PrismaService();
@@ -312,6 +311,18 @@ integration('Comptabilité PostgreSQL', () => {
       ).rejects.toBeInstanceOf(ConflictException);
       expect((await repo.trialBalance(next.id, admin.id)).balanced).toBe(true);
       expect((await repo.entries(next.id, admin.id, cash.id)).entries).toHaveLength(1);
+      expect((await repo.statements(next.id, admin.id)).complete).toBe(false);
+      await repo.classify(cash.id, 'ASSET', admin.id);
+      await repo.classify(targetCash.id, 'ASSET', admin.id);
+      await repo.classify(income.id, 'REVENUE', admin.id);
+      await repo.classify(tax.id, 'LIABILITY', admin.id);
+      await expect(repo.classify(cash.id, 'EXPENSE', admin.id)).rejects.toBeInstanceOf(ConflictException);
+      const statements = await repo.statements(next.id, admin.id);
+      expect(statements.complete).toBe(true);
+      if (!statements.complete) throw new Error('Unclassified accounts');
+      expect(statements.incomeStatement.result).toBe('-100.50');
+      expect(statements.balanceSheet.balanced).toBe(true);
+      expect(statements.provisional).toBe(true);
     } finally {
       await prisma.$disconnect();
     }
