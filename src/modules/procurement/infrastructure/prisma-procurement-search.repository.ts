@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OrderStatus, Prisma, ReceiptStatus } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { pageBounds, pageResult } from '../../../shared/pagination';
@@ -52,10 +52,12 @@ export class PrismaProcurementSearchRepository implements ProcurementSearchPort 
           where: { id: actorId, status: 'ACTIVE', roles: { some: { role: { code: 'ADMIN' } } } },
           select: { id: true },
         });
-        if (!admin)
-          throw new ForbiddenException('Recherche des réceptions réservée au super administrateur.');
+        const storeScope: Prisma.StoreWhereInput = admin
+          ? { status: 'ACTIVE' }
+          : { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } };
         const where: Prisma.GoodsReceiptWhereInput = {
           storeId: query.storeId,
+          store: storeScope,
           status: query.status as ReceiptStatus | undefined,
           ...(query.supplierId ? { purchaseOrder: { supplierId: query.supplierId } } : {}),
           ...(contains

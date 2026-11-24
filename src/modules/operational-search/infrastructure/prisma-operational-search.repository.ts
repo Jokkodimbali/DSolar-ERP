@@ -125,9 +125,10 @@ export class PrismaOperationalSearchRepository implements OperationalSearchPort 
           const where: Prisma.StockTransferWhereInput = {
             AND: [
               {
-                origin: activeStore,
-                destination: activeStore,
+                origin: { status: 'ACTIVE' },
+                destination: { status: 'ACTIVE' },
                 status: query.status as TransferStatus | undefined,
+                OR: [{ origin: activeStore }, { destination: activeStore }],
               },
               ...(query.storeId
                 ? [{ OR: [{ originId: query.storeId }, { destinationId: query.storeId }] }]

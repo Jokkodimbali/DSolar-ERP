@@ -4,6 +4,7 @@ import { assertLocalIntegrationDatabase } from '../../../infrastructure/prisma/l
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { CompanySettingsInput } from '../application/company-settings.port';
 import { PrismaCompanySettingsRepository } from './prisma-company-settings.repository';
+import { PrismaProcurementSearchRepository } from '../../procurement/infrastructure/prisma-procurement-search.repository';
 import { PrismaNotificationsRepository } from '../../notifications/infrastructure/prisma-notifications.repository';
 
 const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : describe.skip;
@@ -118,6 +119,21 @@ integration('Paramètres et notifications PostgreSQL', () => {
       const events = await prisma.auditLog.findMany({ where: { action: 'LOW_STOCK', entityId: stock.id } });
       expect(events).toHaveLength(1);
       const id = events[0].id;
+      const transfer = await prisma.stockTransfer.create({
+        data: { number: 'TR-' + suffix, originId: store.id, destinationId: foreign.id, createdById: admin.id },
+      });
+      const transferEvent = await prisma.auditLog.create({ data: {
+        actorId: admin.id, action: 'TRANSFER_SHIPPED', entityType: 'StockTransfer', entityId: transfer.id,
+        storeId: store.id, payload: { originId: store.id, destinationId: foreign.id },
+      } });
+      expect((await notifications.feed(worker.id, { action: 'TRANSFER_SHIPPED' })).items).toContainEqual(expect.objectContaining({ id: transferEvent.id }));
+      expect((await notifications.feed(other.id, { storeId: foreign.id })).items).toContainEqual(expect.objectContaining({ id: transferEvent.id }));
+      const procurement = new PrismaProcurementSearchRepository(prisma);
+      const supplier = await prisma.supplier.create({ data: { name: 'Fournisseur ' + suffix } });
+      const purchase = await prisma.purchaseOrder.create({ data: { number: 'PO-' + suffix, supplierId: supplier.id } });
+      await prisma.goodsReceipt.create({ data: { number: 'BR-' + suffix, purchaseOrderId: purchase.id, storeId: store.id } });
+      expect((await procurement.search('receipts', worker.id, { search: 'BR-' + suffix })).pagination.total).toBe(1);
+      expect((await procurement.search('receipts', other.id, { search: 'BR-' + suffix })).pagination.total).toBe(0);
       const feed = await notifications.feed(worker.id);
       expect(feed.items).toContainEqual(expect.objectContaining({ id, read: false, storeId: store.id }));
       expect((await notifications.feed(other.id)).items.some((item) => item.id === id)).toBe(false);

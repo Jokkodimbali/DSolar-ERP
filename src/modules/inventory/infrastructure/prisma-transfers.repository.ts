@@ -125,7 +125,22 @@ export class PrismaTransfersRepository implements TransferRepository {
     });
   }
   get(id: string, actorId: string) {
-    return this.atomic((tx) => this.load(tx, id, actorId));
+    return this.prisma.$transaction(async (tx) => {
+      const transfer = await tx.stockTransfer.findFirst({
+        where: { id, origin: { status: 'ACTIVE' }, destination: { status: 'ACTIVE' } },
+        include: { lines: true },
+      });
+      if (!transfer) throw new NotFoundException('Transfert introuvable ou magasin inactif.');
+      const user = await tx.user.findUnique({
+        where: { id: actorId },
+        select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } },
+      });
+      if (!user || user.status !== 'ACTIVE') throw new ForbiddenException('Compte inactif.');
+      if (!user.roles.length && !await tx.userStoreAccess.count({
+        where: { userId: actorId, storeId: { in: [transfer.originId, transfer.destinationId] } },
+      })) throw new ForbiddenException('Accès au transfert non autorisé.');
+      return transfer;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
   async approve(id: string, actorId: string) {
     return this.atomic(async (tx) => {

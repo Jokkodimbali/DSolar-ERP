@@ -7,12 +7,16 @@ export const STORE_EVENTS = {
   PAYMENT_REVERSED: 'Règlement contrepassé',
 } as const;
 
-export const ADMIN_EVENTS = {
-  ...STORE_EVENTS,
+export const TRANSFER_EVENTS = {
   TRANSFER_APPROVED: 'Transfert approuvé',
   TRANSFER_SHIPPED: 'Transfert expédié',
   TRANSFER_RECEIVED: 'Transfert réceptionné',
   TRANSFER_CLOSED_WITH_DISCREPANCY: 'Écart constaté lors du transfert',
+} as const;
+
+export const ADMIN_EVENTS = {
+  ...STORE_EVENTS,
+  ...TRANSFER_EVENTS,
   EXPENSE_CREATED: 'Nouvelle dépense à traiter',
   LEDGER_ENTRY_REVERSED: 'Écriture comptable contrepassée',
 } as const;

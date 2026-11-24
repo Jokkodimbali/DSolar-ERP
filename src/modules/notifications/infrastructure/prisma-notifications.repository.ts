@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { NotificationsPort, NotificationFeed, NotificationQuery } from '../application/notifications.port';
-import { ADMIN_EVENTS, STORE_EVENTS, notificationTitle } from '../domain/notification-events';
+import { ADMIN_EVENTS, STORE_EVENTS, TRANSFER_EVENTS, notificationTitle } from '../domain/notification-events';
 
 @Injectable()
 export class PrismaNotificationsRepository implements NotificationsPort {
@@ -33,7 +33,18 @@ export class PrismaNotificationsRepository implements NotificationsPort {
         ? permissions.has('inventory.read')
         : permissions.has('sales.read'),
     );
-    return { action: { in: actions }, storeId: { in: user.stores.map((row) => row.storeId) } };
+    const stores = user.stores.map((row) => row.storeId);
+    return { OR: [
+      { action: { in: actions }, storeId: { in: stores } },
+      ...(permissions.has('inventory.read') && stores.length ? [{
+        action: { in: Object.keys(TRANSFER_EVENTS) },
+        entityType: 'StockTransfer',
+        OR: [
+          { storeId: { in: stores } },
+          ...stores.map((storeId) => ({ payload: { path: ['destinationId'], equals: storeId } })),
+        ],
+      }] : []),
+    ] };
   }
 
   feed(actorId: string, query?: NotificationQuery): Promise<NotificationFeed> {
@@ -44,9 +55,12 @@ export class PrismaNotificationsRepository implements NotificationsPort {
           orderBy: { revision: 'desc' },
           select: { notificationsEnabled: true },
         });
-        if (settings?.notificationsEnabled === false) return { enabled: false, unread: 0, items: [] };
         const page = query?.page ?? 1;
         const limit = query?.limit ?? 50;
+        if (settings?.notificationsEnabled === false) return {
+          enabled: false, unread: 0, items: [],
+          ...(query ? { pagination: { page, limit, total: 0, pages: 0 } } : {}),
+        };
         const search = query?.search?.trim();
         const matchingActions = search
           ? Object.entries(ADMIN_EVENTS)
@@ -59,7 +73,11 @@ export class PrismaNotificationsRepository implements NotificationsPort {
           AND: [
             where,
             ...(query?.action ? [{ action: query.action }] : []),
-            ...(query?.storeId ? [{ storeId: query.storeId }] : []),
+            ...(query?.storeId ? [{ OR: [
+              { storeId: query.storeId },
+              { entityType: 'StockTransfer', action: { in: Object.keys(TRANSFER_EVENTS) },
+                payload: { path: ['destinationId'], equals: query.storeId } },
+            ] }] : []),
             ...(query?.read === undefined
               ? []
               : [

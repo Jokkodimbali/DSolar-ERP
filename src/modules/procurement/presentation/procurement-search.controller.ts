@@ -34,7 +34,7 @@ export class ProcurementSearchController {
     return this.service.search('purchase-orders', actor, criteria(query));
   }
   @Get('goods-receipts/search')
-  @RequirePermissions('users.manage')
+  @RequirePermissions('inventory.read')
   receipts(@CurrentUserId() actor: string, @Query() query: ProcurementQueryDto) {
     return this.service.search('receipts', actor, criteria(query));
   }
