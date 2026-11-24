@@ -40,9 +40,15 @@ import { SALES_DOCUMENTS, SALES_PDF } from './application/sales-documents.port';
 import { PrismaSalesDocumentsRepository } from './infrastructure/prisma-sales-documents.repository';
 import { SalesPdfRenderer } from './infrastructure/sales-pdf.renderer';
 
+import { COMMERCIAL_SEARCH } from './application/commercial-search.port';
+import { CommercialSearchService } from './application/commercial-search.service';
+import { PrismaCommercialSearchRepository } from './infrastructure/prisma-commercial-search.repository';
+import { CommercialSearchController } from './presentation/commercial-search.controller';
+
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [
+    CommercialSearchController,
     SalesDocumentsController,
     CustomersController,
     ProformasController,
@@ -54,6 +60,8 @@ import { SalesPdfRenderer } from './infrastructure/sales-pdf.renderer';
     SalesReportController,
   ],
   providers: [
+    CommercialSearchService,
+    { provide: COMMERCIAL_SEARCH, useClass: PrismaCommercialSearchRepository },
     SalesDocumentsService,
     { provide: SALES_DOCUMENTS, useClass: PrismaSalesDocumentsRepository },
     { provide: SALES_PDF, useClass: SalesPdfRenderer },

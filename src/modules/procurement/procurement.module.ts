@@ -18,10 +18,17 @@ import { SUPPLIER_PURCHASES } from './application/supplier-purchases.port';
 import { PrismaSupplierPurchasesRepository } from './infrastructure/prisma-supplier-purchases.repository';
 import { SupplierPurchasesController } from './presentation/supplier-purchases.controller';
 
+import { PROCUREMENT_SEARCH } from './application/procurement-search.port';
+import { ProcurementSearchService } from './application/procurement-search.service';
+import { PrismaProcurementSearchRepository } from './infrastructure/prisma-procurement-search.repository';
+import { ProcurementSearchController } from './presentation/procurement-search.controller';
+
 @Module({
   imports: [PrismaModule, IdentityModule],
-  controllers: [SuppliersController, PurchaseOrdersController, GoodsReceiptsController, SupplierPurchasesController],
+  controllers: [ProcurementSearchController, SuppliersController, PurchaseOrdersController, GoodsReceiptsController, SupplierPurchasesController],
   providers: [
+    ProcurementSearchService,
+    { provide: PROCUREMENT_SEARCH, useClass: PrismaProcurementSearchRepository },
     SupplierPurchasesService,
     { provide: SUPPLIER_PURCHASES, useClass: PrismaSupplierPurchasesRepository },
     SuppliersService,

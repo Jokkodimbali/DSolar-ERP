@@ -29,7 +29,7 @@ export class PrismaImageRepository implements ImageRepository {
           !await tx.product.findUnique({ where: { id: input.productId }, select: { id: true } })))
         throw new NotFoundException('Produit introuvable.');
       const image = await tx.imageAsset.create({
-        data: { kind: input.kind, productId: input.productId, mimeType: input.mimeType, data: input.data },
+        data: { kind: input.kind, productId: input.productId, mimeType: input.mimeType, data: Uint8Array.from(input.data) },
         select: metadata,
       });
       await tx.auditLog.create({

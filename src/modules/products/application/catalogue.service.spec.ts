@@ -13,6 +13,7 @@ const repository = (): jest.Mocked<CatalogueRepository> => ({
 });
 const products = (): jest.Mocked<ProductRepository> => ({
   list: jest.fn(),
+  search: jest.fn(),
   findById: jest.fn(),
   findBySku: jest.fn(),
   create: jest.fn(),
