@@ -99,6 +99,7 @@ model User {
   sessions RefreshSession[]
   auditLogs AuditLog[]
   payments Payment[]
+  notificationReads NotificationRead[]
 }
 
 model Role {
@@ -594,6 +595,7 @@ model AuditLog {
   storeId String? @db.Uuid
   payload Json?
   createdAt DateTime @default(now())
+  notificationReads NotificationRead[]
   @@index([entityType,entityId,createdAt])
   @@index([createdAt, id])
   @@index([actorId, createdAt, id])
@@ -935,4 +937,35 @@ model AuthRateLimitBucket {
   count Int
   expiresAt DateTime
   @@index([expiresAt])
+}
+
+model CompanySettings {
+  id String @id @default(uuid()) @db.Uuid
+  revision Int @unique
+  legalName String @db.VarChar(180)
+  tradeName String @db.VarChar(180)
+  taxId String @db.VarChar(80)
+  registrationNumber String @db.VarChar(100)
+  legalForm String @db.VarChar(100)
+  address String @db.VarChar(500)
+  phone String @db.VarChar(60)
+  email String @db.VarChar(254)
+  website String @db.VarChar(300)
+  logoUrl String @db.VarChar(500)
+  bankName String @db.VarChar(180)
+  bankAccount String @db.VarChar(180)
+  documentFooter String @db.VarChar(500)
+  notificationsEnabled Boolean @default(true)
+  lowStockThreshold Int @default(5)
+  createdAt DateTime @default(now())
+}
+
+model NotificationRead {
+  userId String @db.Uuid
+  auditId String @db.Uuid
+  readAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  audit AuditLog @relation(fields: [auditId], references: [id], onDelete: Restrict)
+  @@id([userId, auditId])
+  @@index([auditId])
 }
