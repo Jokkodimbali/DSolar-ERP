@@ -96,8 +96,14 @@ export class AccountingRepository implements AccountingPort {
     });
   }
 
-  postSource(type: SourceType, id: string, actor: string) {
+  postSource(type: SourceType, id: string, actor: string, automatic?: { periodId: string; revision: number }) {
     return this.transaction(actor, async (tx) => {
+      if (automatic) {
+        await tx.$queryRaw`SELECT "periodId" FROM "LedgerAutomation" WHERE "periodId" = ${automatic.periodId}::uuid FOR UPDATE`;
+        const configuration = await tx.ledgerAutomation.findUnique({ where: { periodId: automatic.periodId } });
+        if (!configuration?.enabled || configuration.actorId !== actor || configuration.revision !== automatic.revision)
+          throw new ConflictException('Automatisation désactivée ou configuration modifiée.');
+      }
       const previous = await tx.ledgerEntry.findUnique({
         where: { sourceType_sourceId: { sourceType: type, sourceId: id } },
         include: { lines: true },
@@ -111,7 +117,8 @@ export class AccountingRepository implements AccountingPort {
       const period = await tx.ledgerPeriod.findFirst({
         where: { startsAt: { lte: day }, endsAt: { gte: day }, closedAt: null },
       });
-      if (!period) throw new ConflictException('Aucune période ouverte à la date de la pièce.');
+      if (!period || (automatic && period.id !== automatic.periodId))
+        throw new ConflictException('Aucune période ouverte autorisée à la date de la pièce.');
       return this.write(
         tx,
         {
@@ -127,6 +134,72 @@ export class AccountingRepository implements AccountingPort {
         { sourceType: type, sourceId: id },
       );
     });
+  }
+
+  automation(periodId: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const period = await tx.ledgerPeriod.findUnique({ where: { id: periodId } });
+      if (!period) throw new NotFoundException('Période introuvable.');
+      const config = await tx.ledgerAutomation.findUnique({ where: { periodId } });
+      const failures = await tx.ledgerAutomationFailure.findMany({
+        where: { periodId }, orderBy: [{ updatedAt: 'desc' }, { sourceId: 'asc' }], take: 100,
+      });
+      return { enabled: config?.enabled ?? false, closed: !!period.closedAt, configuration: config, failures };
+    });
+  }
+
+  configureAutomation(periodId: string, enabled: boolean, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const period = await tx.ledgerPeriod.findUnique({ where: { id: periodId } });
+      if (!period) throw new NotFoundException('Période introuvable.');
+      if (period.closedAt && enabled) throw new ConflictException('Période clôturée.');
+      const config = await tx.ledgerAutomation.upsert({
+        where: { periodId }, create: { periodId, enabled, actorId: actor },
+        update: { enabled, actorId: actor, revision: { increment: 1 } },
+      });
+      await this.audit(tx, actor, enabled ? 'LEDGER_AUTOMATION_ENABLED' : 'LEDGER_AUTOMATION_DISABLED', periodId);
+      return config;
+    });
+  }
+
+  async runAutomaticCycle() {
+    const candidates = await this.prisma.$queryRaw<{
+      periodId: string; actorId: string; revision: number; type: SourceType; id: string;
+    }[]>`
+      SELECT a."periodId", a."actorId", a.revision, s.type, s.id
+      FROM "LedgerAutomation" a JOIN "LedgerPeriod" p ON p.id = a."periodId"
+      JOIN "User" u ON u.id = a."actorId"
+      JOIN "LedgerPendingSource" s ON s.date >= p."startsAt" AND s.date < p."endsAt" + 1
+      LEFT JOIN "LedgerAutomationFailure" f ON f."periodId" = p.id AND f."sourceType" = s.type AND f."sourceId" = s.id
+      WHERE a.enabled AND p."closedAt" IS NULL AND u.status = 'ACTIVE'
+        AND EXISTS (SELECT 1 FROM "UserRole" ur JOIN "Role" r ON r.id = ur."roleId" WHERE ur."userId" = u.id AND r.code = 'ADMIN')
+        AND (f."nextAttemptAt" IS NULL OR f."nextAttemptAt" <= CURRENT_TIMESTAMP)
+      ORDER BY s.priority, s.date, s.type, s.id LIMIT 25
+    `;
+    let processed = 0;
+    let failed = 0;
+    for (const item of candidates) {
+      const key = { periodId: item.periodId, sourceType: item.type, sourceId: item.id };
+      try {
+        await this.postSource(item.type, item.id, item.actorId, { periodId: item.periodId, revision: item.revision });
+        await this.prisma.ledgerAutomationFailure.deleteMany({ where: key });
+        processed++;
+      } catch (error) {
+        failed++;
+        const config = await this.prisma.ledgerAutomation.findUnique({ where: { periodId: item.periodId } });
+        if (!config?.enabled || config.revision !== item.revision) continue;
+        if (await this.prisma.ledgerEntry.findUnique({ where: { sourceType_sourceId: { sourceType: item.type, sourceId: item.id } } })) continue;
+        const lastError = error instanceof HttpException && [404, 409].includes(error.getStatus())
+          ? error.message.slice(0, 500) : 'Échec technique de la comptabilisation automatique.';
+        const nextAttemptAt = new Date(Date.now() + 5 * 60 * 1000);
+        await this.prisma.ledgerAutomationFailure.upsert({
+          where: { periodId_sourceType_sourceId: key },
+          create: { ...key, lastError, nextAttemptAt },
+          update: { attempts: { increment: 1 }, lastError, nextAttemptAt },
+        });
+      }
+    }
+    return { processed, failed };
   }
 
   pending(periodId: string, actor: string) {
@@ -349,6 +422,7 @@ export class AccountingRepository implements AccountingPort {
       data: { postedAt: new Date() },
       include: { lines: true },
     });
+    if (source) await tx.ledgerAutomationFailure.deleteMany({ where: { periodId: input.periodId, ...source } });
     await this.audit(tx, actor, reversalOfId ? 'LEDGER_ENTRY_REVERSED' : 'LEDGER_ENTRY_POSTED', entry.id);
     return posted;
   }

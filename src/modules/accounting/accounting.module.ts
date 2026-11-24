@@ -11,11 +11,14 @@ import { BankService } from './application/bank.service';
 import { BankRepository } from './infrastructure/bank.repository';
 import { BankController } from './presentation/bank.controller';
 
+import { LedgerAutomationWorker } from './infrastructure/ledger-automation.worker';
+
 @Module({
   imports: [PrismaModule, IdentityModule],
   controllers: [AccountingController, BankController],
   providers: [
     AccountingService,
+    LedgerAutomationWorker,
     { provide: ACCOUNTING, useClass: AccountingRepository },
     BankService,
     { provide: BANK_RECONCILIATION, useClass: BankRepository },

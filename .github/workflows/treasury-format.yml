@@ -1,4 +1,4 @@
-name: Formatage et validation du rapprochement bancaire
+name: Formatage et validation de l’automatisation comptable
 on:
   push:
     branches: [dev]

@@ -5,6 +5,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -29,6 +30,10 @@ class CodeDto {
 class ClassificationDto {
   @IsIn([...ACCOUNT_CLASSES])
   category!: AccountClass;
+}
+class AutomationDto {
+  @IsBoolean()
+  enabled!: boolean;
 }
 class PeriodDto {
   @IsString()
@@ -149,6 +154,14 @@ export class AccountingController {
   @Post('periods')
   period(@Body() dto: PeriodDto, @CurrentUserId() actor: string) {
     return this.service.period(dto.name, dto.start, dto.end, actor);
+  }
+  @Get('periods/:id/automation')
+  automation(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.automation(id, actor);
+  }
+  @Post('periods/:id/automation')
+  configureAutomation(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AutomationDto, @CurrentUserId() actor: string) {
+    return this.service.configureAutomation(id, dto.enabled, actor);
   }
   @Get('periods/:id/pending')
   pending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {

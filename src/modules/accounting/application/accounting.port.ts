@@ -20,6 +20,9 @@ export interface AccountingPort {
   postPending(periodId: string, actor: string): Promise<unknown>;
   classify(accountId: string, category: AccountClass, actor: string): Promise<unknown>;
   statements(periodId: string, actor: string): Promise<unknown>;
+  automation(periodId: string, actor: string): Promise<unknown>;
+  configureAutomation(periodId: string, enabled: boolean, actor: string): Promise<unknown>;
+  runAutomaticCycle(): Promise<{ processed: number; failed: number }>;
   setup(actor: string): Promise<unknown>;
   account(code: string, name: string, actor: string): Promise<unknown>;
   journal(code: string, name: string, actor: string): Promise<unknown>;

@@ -776,6 +776,7 @@ model LedgerPeriod {
   endsAt DateTime @db.Date
   closedAt DateTime?
   closedBy String? @db.Uuid
+  automation LedgerAutomation?
   entries LedgerEntry[]
 }
 
@@ -885,4 +886,27 @@ model LedgerBankLine {
   matchedAt DateTime?
   @@unique([statementId, reference])
   @@index([statementId, date])
+}
+
+model LedgerAutomation {
+  periodId String @id @db.Uuid
+  period LedgerPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  enabled Boolean @default(false)
+  actorId String @db.Uuid
+  revision Int @default(0)
+  updatedAt DateTime @updatedAt
+  failures LedgerAutomationFailure[]
+}
+
+model LedgerAutomationFailure {
+  periodId String @db.Uuid
+  automation LedgerAutomation @relation(fields: [periodId], references: [periodId], onDelete: Restrict)
+  sourceType String @db.VarChar(40)
+  sourceId String @db.Uuid
+  attempts Int @default(1)
+  lastError String @db.VarChar(500)
+  nextAttemptAt DateTime
+  updatedAt DateTime @updatedAt
+  @@id([periodId, sourceType, sourceId])
+  @@index([periodId, nextAttemptAt])
 }

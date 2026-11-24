@@ -55,6 +55,14 @@ export class AccountingService {
     return this.repository.statements(periodId, actor);
   }
 
+  automation(periodId: string, actor: string) {
+    return this.repository.automation(periodId, actor);
+  }
+
+  configureAutomation(periodId: string, enabled: boolean, actor: string) {
+    return this.repository.configureAutomation(periodId, enabled, actor);
+  }
+
   setup(actor: string) {
     return this.repository.setup(actor);
   }
