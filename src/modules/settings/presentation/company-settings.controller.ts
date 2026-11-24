@@ -1,7 +1,7 @@
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { CompanySettingsInput } from '../application/company-settings.port';
@@ -22,6 +22,7 @@ class CompanySettingsDto implements CompanySettingsInput {
   @IsString() @MaxLength(180) bankName!: string;
   @IsString() @MaxLength(180) bankAccount!: string;
   @IsString() @MaxLength(500) documentFooter!: string;
+  @IsOptional() @IsString() @MaxLength(80) timeZone?: string;
   @IsBoolean() notificationsEnabled!: boolean;
   @IsInt() @Min(0) @Max(1000000) lowStockThreshold!: number;
 }

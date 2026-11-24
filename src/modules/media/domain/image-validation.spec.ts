@@ -3,7 +3,7 @@ import { validateImage, MAX_IMAGE_BYTES } from './image-validation';
 describe('Validation des fichiers image', () => {
   it('accepte un PNG de 1 pixel', () => {
     const png = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWQAAAABJRU5ErkJggg==',
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg==',
       'base64',
     );
     expect(validateImage(png)).toBe('image/png');

@@ -34,7 +34,7 @@ describe('Documents PDF commerciaux', () => {
     expect(data).toContain(Buffer.from('BROUILLON - NON VALIDE', 'latin1').toString('hex'));
   });
   it('intègre le logo téléversé comme image PDF sans modifier les montants', () => {
-    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWQAAAABJRU5ErkJggg==', 'base64');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg==', 'base64');
     const data = new SalesPdfRenderer().render({ ...doc, logo: { mimeType: 'image/png', data: png } }).toString('ascii');
     expect(data).toContain('/Subtype /Image');
     expect(data).toContain('/Logo Do');

@@ -14,6 +14,7 @@ export interface CompanySettingsInput {
   bankName: string;
   bankAccount: string;
   documentFooter: string;
+  timeZone?: string;
   notificationsEnabled: boolean;
   lowStockThreshold: number;
 }

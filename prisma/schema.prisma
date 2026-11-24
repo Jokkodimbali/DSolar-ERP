@@ -968,6 +968,7 @@ model CompanySettings {
   bankName String @db.VarChar(180)
   bankAccount String @db.VarChar(180)
   documentFooter String @db.VarChar(500)
+  timeZone String @default("Africa/Dakar") @db.VarChar(80)
   notificationsEnabled Boolean @default(true)
   lowStockThreshold Int @default(5)
   createdAt DateTime @default(now())
