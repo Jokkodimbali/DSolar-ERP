@@ -35,56 +35,114 @@ describe('Sécurité HTTP de la comptabilité', () => {
     await app.init();
   });
 
-  afterAll(async () => { await app.close(); });
+  afterAll(async () => {
+    await app.close();
+  });
 
   beforeEach(() => {
     jest.resetAllMocks();
     token.verifyAccess.mockResolvedValue({ sub: actor, ver: 1 });
-    users.findById.mockResolvedValue({ id: actor, status: 'ACTIVE', tokenVersion: 1, permissions: ['users.manage'] });
+    users.findById.mockResolvedValue({
+      id: actor,
+      status: 'ACTIVE',
+      tokenVersion: 1,
+      permissions: ['users.manage'],
+    });
     ledger.setup.mockResolvedValue({ accounts: [] });
     ledger.configureAutomation.mockResolvedValue({ enabled: false });
   });
 
-  it.each(['/api/v1/accounting/setup','/api/v1/accounting/bank/accounts'])('refuse une lecture publique : %s', async (path) => {
-    await request(app.getHttpServer()).get(path).expect(401);
-    expect(ledger.setup).not.toHaveBeenCalled();
-    expect(bank.accounts).not.toHaveBeenCalled();
-  });
+  it.each(['/api/v1/accounting/setup', '/api/v1/accounting/bank/accounts'])(
+    'refuse une lecture publique : %s',
+    async (path) => {
+      await request(app.getHttpServer()).get(path).expect(401);
+      expect(ledger.setup).not.toHaveBeenCalled();
+      expect(bank.accounts).not.toHaveBeenCalled();
+    },
+  );
 
   it('refuse les écritures et clôtures d’un magasinier', async () => {
-    users.findById.mockResolvedValue({ id: actor, status: 'ACTIVE', tokenVersion: 1,
-      permissions: ['inventory.read','inventory.manage','stores.read','products.read'] });
-    await request(app.getHttpServer()).get('/api/v1/accounting/setup').set('Authorization','Bearer valid').expect(403);
-    await request(app.getHttpServer()).post('/api/v1/accounting/entries').set('Authorization','Bearer valid').send({}).expect(403);
-    await request(app.getHttpServer()).post('/api/v1/accounting/bank/statements/' + id + '/close').set('Authorization','Bearer valid').expect(403);
+    users.findById.mockResolvedValue({
+      id: actor,
+      status: 'ACTIVE',
+      tokenVersion: 1,
+      permissions: ['inventory.read', 'inventory.manage', 'stores.read', 'products.read'],
+    });
+    await request(app.getHttpServer())
+      .get('/api/v1/accounting/setup')
+      .set('Authorization', 'Bearer valid')
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/v1/accounting/entries')
+      .set('Authorization', 'Bearer valid')
+      .send({})
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/v1/accounting/bank/statements/' + id + '/close')
+      .set('Authorization', 'Bearer valid')
+      .expect(403);
     expect(ledger.post).not.toHaveBeenCalled();
     expect(bank.close).not.toHaveBeenCalled();
   });
 
   it('refuse un jeton révoqué et un compte désactivé', async () => {
-    users.findById.mockResolvedValue({ id: actor, status: 'ACTIVE', tokenVersion: 2, permissions: ['users.manage'] });
-    await request(app.getHttpServer()).get('/api/v1/accounting/setup').set('Authorization','Bearer valid').expect(401);
-    users.findById.mockResolvedValue({ id: actor, status: 'INACTIVE', tokenVersion: 1, permissions: ['users.manage'] });
-    await request(app.getHttpServer()).get('/api/v1/accounting/setup').set('Authorization','Bearer valid').expect(401);
+    users.findById.mockResolvedValue({
+      id: actor,
+      status: 'ACTIVE',
+      tokenVersion: 2,
+      permissions: ['users.manage'],
+    });
+    await request(app.getHttpServer())
+      .get('/api/v1/accounting/setup')
+      .set('Authorization', 'Bearer valid')
+      .expect(401);
+    users.findById.mockResolvedValue({
+      id: actor,
+      status: 'INACTIVE',
+      tokenVersion: 1,
+      permissions: ['users.manage'],
+    });
+    await request(app.getHttpServer())
+      .get('/api/v1/accounting/setup')
+      .set('Authorization', 'Bearer valid')
+      .expect(401);
     expect(ledger.setup).not.toHaveBeenCalled();
   });
 
   it('rejette l’injection de champs et la conversion ambiguë des booléens', async () => {
     const path = '/api/v1/accounting/periods/' + id + '/automation';
-    await request(app.getHttpServer()).post(path).set('Authorization','Bearer valid').send({ enabled: false, actorId: id }).expect(400);
-    await request(app.getHttpServer()).post(path).set('Authorization','Bearer valid').send({ enabled: 'false' }).expect(400);
+    await request(app.getHttpServer())
+      .post(path)
+      .set('Authorization', 'Bearer valid')
+      .send({ enabled: false, actorId: id })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post(path)
+      .set('Authorization', 'Bearer valid')
+      .send({ enabled: 'false' })
+      .expect(400);
     expect(ledger.configureAutomation).not.toHaveBeenCalled();
-    await request(app.getHttpServer()).post(path).set('Authorization','Bearer valid').send({ enabled: false }).expect(201);
+    await request(app.getHttpServer())
+      .post(path)
+      .set('Authorization', 'Bearer valid')
+      .send({ enabled: false })
+      .expect(201);
     expect(ledger.configureAutomation).toHaveBeenCalledWith(id, false, actor);
   });
 
   it('rejette un identifiant invalide avant l’appel du service', async () => {
-    await request(app.getHttpServer()).post('/api/v1/accounting/bank/statements/not-a-uuid/close').set('Authorization','Bearer valid').expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/accounting/bank/statements/not-a-uuid/close')
+      .set('Authorization', 'Bearer valid')
+      .expect(400);
     expect(bank.close).not.toHaveBeenCalled();
   });
 
   it('utilise uniquement l’identité authentifiée pour les lectures', async () => {
-    await request(app.getHttpServer()).get('/api/v1/accounting/setup?actorId=' + id).set('Authorization','Bearer valid').expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/accounting/setup?actorId=' + id)
+      .set('Authorization', 'Bearer valid')
+      .expect(200);
     expect(ledger.setup).toHaveBeenCalledWith(actor);
   });
 });

@@ -236,16 +236,34 @@ integration('Comptabilité PostgreSQL', () => {
         prisma.invoiceLine.update({ where: { id: detailedInvoice.lines[0].id }, data: { taxAmount: '1' } }),
       ).rejects.toThrow();
       // A direct database write must not falsify the tax allocation even if its total is balanced.
-      await expect(prisma.creditNote.create({
-        data: { number: 'AV-BAD-TAX-' + suffix, invoiceId: detailedInvoice.id, amount: '10.01', netAmount: '10', taxAmount: '0.01',
-          reason: 'Ventilation incorrecte CI', issuedAt: new Date('2090-01-05T14:00:00Z'),
-          lines: { create: [{ invoiceLineId: detailedInvoice.lines[0].id, netAmount: '10', taxAmount: '0.01' }] } },
-      })).rejects.toThrow();
+      await expect(
+        prisma.creditNote.create({
+          data: {
+            number: 'AV-BAD-TAX-' + suffix,
+            invoiceId: detailedInvoice.id,
+            amount: '10.01',
+            netAmount: '10',
+            taxAmount: '0.01',
+            reason: 'Ventilation incorrecte CI',
+            issuedAt: new Date('2090-01-05T14:00:00Z'),
+            lines: {
+              create: [{ invoiceLineId: detailedInvoice.lines[0].id, netAmount: '10', taxAmount: '0.01' }],
+            },
+          },
+        }),
+      ).rejects.toThrow();
       expect(await prisma.creditNote.count({ where: { invoiceId: detailedInvoice.id } })).toBe(1);
-      await expect(prisma.creditNote.create({
-        data: { number: 'AV-BAD-LEGACY-' + suffix, invoiceId: detailedInvoice.id, amount: '1',
-          reason: 'Avoir sans ventilation CI', issuedAt: new Date('2090-01-05T14:00:00Z') },
-      })).rejects.toThrow();
+      await expect(
+        prisma.creditNote.create({
+          data: {
+            number: 'AV-BAD-LEGACY-' + suffix,
+            invoiceId: detailedInvoice.id,
+            amount: '1',
+            reason: 'Avoir sans ventilation CI',
+            issuedAt: new Date('2090-01-05T14:00:00Z'),
+          },
+        }),
+      ).rejects.toThrow();
       const otherInvoice = await prisma.invoice.create({
         data: {
           number: 'FAC2-' + suffix,
