@@ -1,4 +1,4 @@
-name: Formatage et validation des protections comptables
+name: Formatage et validation de la concurrence comptable
 on:
   push:
     branches: [dev]

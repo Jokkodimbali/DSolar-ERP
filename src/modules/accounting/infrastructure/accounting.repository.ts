@@ -12,6 +12,7 @@ import { AccountingPort, PostingInput } from '../application/accounting.port';
 import { aggregateCents, assertBalanced, calendarDate, moneyText } from '../domain/ledger-policy';
 import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
 import { buildSourcePosting } from './source-posting';
+import { lockSource } from './source-lock';
 import { pendingSources } from './pending-sources';
 
 @Injectable()
@@ -99,6 +100,7 @@ export class AccountingRepository implements AccountingPort {
       });
       if (previous?.postedAt) return previous;
       if (previous) throw new ConflictException('Écriture source non validée.');
+      await lockSource(tx, type, id);
       const posting = await buildSourcePosting(tx, type, id);
       const date = posting.date.toISOString().slice(0, 10);
       const day = calendarDate(date);
