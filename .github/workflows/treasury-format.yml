@@ -1,4 +1,4 @@
-name: Formatage et révocation des sessions
+name: Formatage et limitation distribuée des accès
 on:
   push:
     branches: [dev]

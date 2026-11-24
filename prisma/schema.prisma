@@ -926,3 +926,10 @@ model CreditNoteLine {
   @@unique([creditNoteId, invoiceLineId])
   @@index([invoiceLineId])
 }
+
+model AuthRateLimitBucket {
+  key String @id @db.VarChar(64)
+  count Int
+  expiresAt DateTime
+  @@index([expiresAt])
+}

@@ -15,6 +15,8 @@ import { PrismaSessionRepository } from './infrastructure/prisma-session.reposit
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
 import { AccessGuard } from './presentation/access.guard';
 import { LoginRateLimitGuard } from './presentation/login-rate-limit.guard';
+import { AUTH_RATE_LIMIT } from './application/auth-rate-limit.port';
+import { PrismaAuthRateLimitRepository } from './infrastructure/prisma-auth-rate-limit.repository';
 import { AuthController } from './presentation/auth.controller';
 
 @Module({
@@ -27,6 +29,7 @@ import { AuthController } from './presentation/auth.controller';
     { provide: BOOTSTRAP_REPOSITORY, useClass: PrismaBootstrapRepository },
     AccessGuard,
     LoginRateLimitGuard,
+    { provide: AUTH_RATE_LIMIT, useClass: PrismaAuthRateLimitRepository },
     PrismaUserRepository,
     { provide: USER_MANAGEMENT_REPOSITORY, useClass: PrismaUserManagementRepository },
     { provide: USER_REPOSITORY, useExisting: PrismaUserRepository },
