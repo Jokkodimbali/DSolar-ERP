@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { reverseReconciledCashPayment } from '../../treasury/infrastructure/cash-payment-reversal';
 import { PaymentsRepository, RecordPaymentInput } from '../application/payments.port';
 
 @Injectable()
@@ -166,6 +167,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         if (order.amountPaid.lessThan(payment.amount)) {
           throw new ConflictException('Solde encaissé incohérent.');
         }
+        await reverseReconciledCashPayment(tx, payment.id, actorId, normalizedReason);
         const reversal = await tx.paymentReversal.create({
           data: { paymentId, amount: payment.amount, reason: normalizedReason },
         });

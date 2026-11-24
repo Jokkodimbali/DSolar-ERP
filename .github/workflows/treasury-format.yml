@@ -19,7 +19,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Appliquer le formatage Prettier officiel
-        run: npx prettier --write 'src/modules/treasury/**/*.ts'
+        run: npx prettier --write 'src/modules/treasury/**/*.ts' src/modules/sales/infrastructure/prisma-payments.repository.ts
       - run: npm run format:check
       - run: npm run prisma:generate
         env:
@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/modules/treasury
+          git add src/modules/treasury src/modules/sales/infrastructure/prisma-payments.repository.ts
           if ! git diff --cached --quiet; then
             git commit -m "style(treasury): apply Prettier to treasury module"
             git push origin HEAD:dev

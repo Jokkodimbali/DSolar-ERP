@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { PrismaPaymentsRepository } from '../../sales/infrastructure/prisma-payments.repository';
 import { TreasuryRepository } from './treasury.repository';
 
 const integration = process.env.TREASURY_INTEGRATION === '1' ? describe : describe.skip;
@@ -81,6 +82,65 @@ integration('Trésorerie sur PostgreSQL réel', () => {
       );
       expect((await repo.summary(target.id, admin.id)).expected.toString()).toBe('40');
       expect(await prisma.cashMovement.count({ where: { transferKey: key } })).toBe(2);
+
+      const customer = await prisma.customer.create({ data: { name: 'Client CI' } });
+      const product = await prisma.product.create({
+        data: { sku: 'CASH-' + suffix, name: 'Produit CI' },
+      });
+      const order = await prisma.salesOrder.create({
+        data: {
+          number: 'CASH-' + suffix,
+          customerId: customer.id,
+          total: '30',
+          status: 'CONFIRMED',
+          lines: {
+            create: [
+              {
+                storeId: store.id,
+                productId: product.id,
+                quantity: '1',
+                unitPrice: '30',
+                lineTotal: '30',
+              },
+            ],
+          },
+        },
+      });
+      const payments = new PrismaPaymentsRepository(prisma);
+      const payment = await payments.record(order.id, admin.id, {
+        amount: '30',
+        method: 'CASH',
+        idempotencyKey: randomUUID(),
+      });
+      const received = await repo.reconcile(target.id, payment.id, randomUUID(), admin.id);
+      expect((await repo.summary(target.id, admin.id)).expected.toString()).toBe('70');
+      await expect(
+        repo.reconcile(target.id, payment.id, randomUUID(), admin.id),
+      ).rejects.toBeInstanceOf(ConflictException);
+      await repo.move(target.id, '-60', 'Sortie CI', randomUUID(), admin.id);
+      await expect(
+        payments.reverse(order.id, payment.id, admin.id, 'Remboursement client CI'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(await prisma.paymentReversal.count({ where: { paymentId: payment.id } })).toBe(0);
+      expect((await prisma.salesOrder.findUniqueOrThrow({ where: { id: order.id } })).amountPaid.toString()).toBe(
+        '30',
+      );
+      await repo.close(target.id, '10', admin.id);
+      await expect(
+        payments.reverse(order.id, payment.id, admin.id, 'Remboursement client CI'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      const refundSession = await repo.open(second.id, '50', admin.id);
+      await payments.reverse(order.id, payment.id, admin.id, 'Remboursement client CI');
+      const refund = await prisma.cashMovement.findUniqueOrThrow({
+        where: { reversalOfId: received.id },
+      });
+      expect(refund.sessionId).toBe(refundSession.id);
+      expect(refund.amount.toString()).toBe('-30');
+      expect((await repo.summary(refundSession.id, admin.id)).expected.toString()).toBe('20');
+      expect((await repo.summary(target.id, admin.id)).expected.toString()).toBe('10');
+      expect((await prisma.salesOrder.findUniqueOrThrow({ where: { id: order.id } })).paymentStatus).toBe(
+        'UNPAID',
+      );
     } finally {
       await prisma.$disconnect();
     }
