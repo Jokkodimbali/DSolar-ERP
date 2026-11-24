@@ -17,6 +17,7 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MediaModule } from './modules/media/media.module';
+import { OperationalSearchModule } from './modules/operational-search/operational-search.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -36,6 +37,7 @@ import { MediaModule } from './modules/media/media.module';
     SettingsModule,
     NotificationsModule,
     MediaModule,
+    OperationalSearchModule,
   ],
   controllers: [HealthController],
 })
