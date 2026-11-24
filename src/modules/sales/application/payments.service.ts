@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PAYMENTS_REPOSITORY, PaymentsRepository, RecordPaymentInput } from './payments.port';
+import { summarizeOrderPayments } from '../domain/order-payment-summary';
 
 @Injectable()
 export class PaymentsService {
@@ -7,6 +8,10 @@ export class PaymentsService {
 
   list(orderId: string, actorId: string) {
     return this.payments.list(orderId, actorId);
+  }
+
+  async summary(orderId: string, actorId: string) {
+    return summarizeOrderPayments(await this.payments.summarySnapshot(orderId, actorId));
   }
 
   record(orderId: string, actorId: string, input: RecordPaymentInput) {

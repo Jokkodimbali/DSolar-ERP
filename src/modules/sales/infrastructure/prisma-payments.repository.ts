@@ -47,6 +47,45 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     );
   }
 
+  summarySnapshot(orderId: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          select: {
+            status: true, paymentStatus: true, total: true, amountPaid: true,
+            lines: { select: { storeId: true } },
+          },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        await this.assertStoreAccess(tx, [...new Set(order.lines.map((line) => line.storeId))], actorId);
+        const payments = await tx.payment.findMany({
+          where: { orderId },
+          select: {
+            id: true, installmentNumber: true, amount: true, method: true, receivedAt: true,
+            reversals: { select: { amount: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+          },
+          orderBy: { installmentNumber: 'asc' },
+        });
+        return {
+          orderId,
+          orderStatus: order.status,
+          paymentStatus: order.paymentStatus,
+          total: order.total.toFixed(2),
+          amountPaid: order.amountPaid.toFixed(2),
+          payments: payments.map((payment) => ({
+            ...payment,
+            amount: payment.amount.toFixed(2),
+            reversals: payment.reversals.map((reversal) => ({
+              ...reversal, amount: reversal.amount.toFixed(2),
+            })),
+          })),
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+  }
+
   async record(orderId: string, actorId: string, input: RecordPaymentInput) {
     return this.prisma.$transaction(
       async (tx) => {

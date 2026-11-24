@@ -58,6 +58,12 @@ describe('Isolation des paiements par magasin', () => {
     expect(tx.payment.findMany).not.toHaveBeenCalled();
   });
 
+  it('protège aussi la synthèse contre un accès partiel aux magasins', async () => {
+    tx.userStoreAccess.count.mockResolvedValue(1);
+    await expect(repository.summarySnapshot('order', 'actor')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(tx.payment.findMany).not.toHaveBeenCalled();
+  });
+
   it('contrôle les magasins avant de révéler le statut de la commande', async () => {
     tx.userStoreAccess.count.mockResolvedValue(1);
     const input = {

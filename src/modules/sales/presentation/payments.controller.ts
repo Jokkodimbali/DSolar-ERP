@@ -20,6 +20,12 @@ export class PaymentsController {
     return this.payments.list(orderId, actorId);
   }
 
+  @Get('summary')
+  @RequirePermissions('sales.read')
+  summary(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
+    return this.payments.summary(orderId, actorId);
+  }
+
   @Post()
   @RequirePermissions('sales.manage')
   record(
