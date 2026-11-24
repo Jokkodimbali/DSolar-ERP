@@ -754,6 +754,9 @@ model LedgerAccount {
   code String @unique @db.VarChar(30)
   name String @db.VarChar(160)
   lines LedgerLine[]
+  debitRules LedgerPostingRule[] @relation("RuleDebit")
+  creditRules LedgerPostingRule[] @relation("RuleCredit")
+  taxRules LedgerPostingRule[] @relation("RuleTax")
 }
 
 model LedgerJournal {
@@ -761,6 +764,7 @@ model LedgerJournal {
   code String @unique @db.VarChar(30)
   name String @db.VarChar(160)
   entries LedgerEntry[]
+  postingRules LedgerPostingRule[]
 }
 
 model LedgerPeriod {
@@ -788,7 +792,10 @@ model LedgerEntry {
   reversalOfId String? @unique @db.Uuid
   reversalOf LedgerEntry? @relation("LedgerReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
   reversal LedgerEntry? @relation("LedgerReversal")
+  sourceType String? @db.VarChar(40)
+  sourceId String? @db.Uuid
   lines LedgerLine[]
+  @@unique([sourceType, sourceId])
   @@index([periodId, date, id])
   @@index([journalId, date])
 }
@@ -803,4 +810,17 @@ model LedgerLine {
   credit Decimal @db.Decimal(18,2)
   @@index([entryId])
   @@index([accountId])
+}
+
+model LedgerPostingRule {
+  key String @id @db.VarChar(120)
+  journalId String @db.Uuid
+  journal LedgerJournal @relation(fields: [journalId], references: [id], onDelete: Restrict)
+  debitAccountId String @db.Uuid
+  debitAccount LedgerAccount @relation("RuleDebit", fields: [debitAccountId], references: [id], onDelete: Restrict)
+  creditAccountId String @db.Uuid
+  creditAccount LedgerAccount @relation("RuleCredit", fields: [creditAccountId], references: [id], onDelete: Restrict)
+  taxAccountId String? @db.Uuid
+  taxAccount LedgerAccount? @relation("RuleTax", fields: [taxAccountId], references: [id], onDelete: Restrict)
+  updatedAt DateTime @updatedAt
 }

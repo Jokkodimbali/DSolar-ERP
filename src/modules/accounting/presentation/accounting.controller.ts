@@ -5,6 +5,8 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsIn,
+  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
@@ -12,6 +14,7 @@ import {
 } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
+import { SOURCE_TYPES, SourceType } from '../domain/source-types';
 import { AccountingService } from '../application/accounting.service';
 
 class CodeDto {
@@ -63,6 +66,28 @@ class PostingDto {
   @Type(() => LineDto)
   lines!: LineDto[];
 }
+class RuleDto {
+  @IsString()
+  @MaxLength(120)
+  key!: string;
+  @IsUUID()
+  journalId!: string;
+  @IsUUID()
+  debitAccountId!: string;
+  @IsUUID()
+  creditAccountId!: string;
+  @IsOptional()
+  @IsUUID()
+  taxAccountId?: string;
+}
+
+class SourceDto {
+  @IsIn([...SOURCE_TYPES])
+  type!: SourceType;
+  @IsUUID()
+  id!: string;
+}
+
 class ReverseDto {
   @IsUUID()
   periodId!: string;
@@ -87,6 +112,14 @@ export class AccountingController {
   @Get('setup')
   setup(@CurrentUserId() actor: string) {
     return this.service.setup(actor);
+  }
+  @Post('rules')
+  rule(@Body() dto: RuleDto, @CurrentUserId() actor: string) {
+    return this.service.rule(dto, actor);
+  }
+  @Post('sources')
+  source(@Body() dto: SourceDto, @CurrentUserId() actor: string) {
+    return this.service.postSource(dto.type, dto.id, actor);
   }
   @Post('accounts')
   account(@Body() dto: CodeDto, @CurrentUserId() actor: string) {

@@ -1,4 +1,4 @@
-name: Formatage ponctuel des modules financiers et retours
+name: Formatage ponctuel des modules financiers
 on:
   push:
     branches: [dev]

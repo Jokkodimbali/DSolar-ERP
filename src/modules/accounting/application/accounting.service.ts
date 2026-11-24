@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { assertBalanced, calendarDate } from '../domain/ledger-policy';
+import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
 import { ACCOUNTING, AccountingPort, PostingInput } from './accounting.port';
 
 @Injectable()
@@ -18,6 +19,18 @@ export class AccountingService {
     } catch (error) {
       throw new BadRequestException(error instanceof Error ? error.message : 'Données invalides.');
     }
+  }
+
+  rule(input: PostingRuleInput, actor: string) {
+    if (!validRuleKey(input.key)) throw new BadRequestException('Clé de règle invalide.');
+    const ids = [input.debitAccountId, input.creditAccountId, ...(input.taxAccountId ? [input.taxAccountId] : [])];
+    if (new Set(ids).size !== ids.length || (input.taxAccountId && input.key !== 'INVOICE'))
+      throw new BadRequestException('Comptes distincts requis ; taxe réservée aux factures.');
+    return this.repository.rule(input, actor);
+  }
+
+  postSource(type: SourceType, id: string, actor: string) {
+    return this.repository.postSource(type, id, actor);
   }
 
   setup(actor: string) {

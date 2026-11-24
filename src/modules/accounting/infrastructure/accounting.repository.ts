@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { AccountingPort, PostingInput } from '../application/accounting.port';
 import { assertBalanced, calendarDate } from '../domain/ledger-policy';
+import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
+import { buildSourcePosting } from './source-posting';
 
 @Injectable()
 export class AccountingRepository implements AccountingPort {
@@ -36,10 +39,53 @@ export class AccountingRepository implements AccountingPort {
 
   setup(actor: string) {
     return this.transaction(actor, async (tx) => ({
+      rules: await tx.ledgerPostingRule.findMany({ orderBy: { key: 'asc' } }),
       accounts: await tx.ledgerAccount.findMany({ orderBy: { code: 'asc' } }),
       journals: await tx.ledgerJournal.findMany({ orderBy: { code: 'asc' } }),
       periods: await tx.ledgerPeriod.findMany({ orderBy: { startsAt: 'desc' } }),
     }));
+  }
+
+  rule(input: PostingRuleInput, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      if (!validRuleKey(input.key)) throw new ConflictException('Clé de règle invalide.');
+      const ids = [input.debitAccountId, input.creditAccountId, ...(input.taxAccountId ? [input.taxAccountId] : [])];
+      if (new Set(ids).size !== ids.length || (input.taxAccountId && input.key !== 'INVOICE'))
+        throw new ConflictException('Imputation invalide.');
+      if ((await tx.ledgerAccount.count({ where: { id: { in: ids } } })) !== ids.length)
+        throw new NotFoundException('Compte introuvable.');
+      if (!(await tx.ledgerJournal.findUnique({ where: { id: input.journalId } })))
+        throw new NotFoundException('Journal introuvable.');
+      const data = { journalId: input.journalId, debitAccountId: input.debitAccountId,
+        creditAccountId: input.creditAccountId, taxAccountId: input.taxAccountId ?? null };
+      const rule = await tx.ledgerPostingRule.upsert({
+        where: { key: input.key }, update: data, create: { key: input.key, ...data },
+      });
+      await tx.auditLog.create({ data: { actorId: actor, action: 'LEDGER_RULE_UPDATED', entityType: 'Accounting',
+        entityId: input.key, payload: data } });
+      return rule;
+    });
+  }
+
+  postSource(type: SourceType, id: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const previous = await tx.ledgerEntry.findUnique({
+        where: { sourceType_sourceId: { sourceType: type, sourceId: id } }, include: { lines: true },
+      });
+      if (previous?.postedAt) return previous;
+      if (previous) throw new ConflictException('Écriture source non validée.');
+      const posting = await buildSourcePosting(tx, type, id);
+      const date = posting.date.toISOString().slice(0, 10);
+      const day = calendarDate(date);
+      const period = await tx.ledgerPeriod.findFirst({
+        where: { startsAt: { lte: day }, endsAt: { gte: day }, closedAt: null },
+      });
+      if (!period) throw new ConflictException('Aucune période ouverte à la date de la pièce.');
+      return this.write(tx, {
+        journalId: posting.journalId, periodId: period.id, date, description: posting.description,
+        operationKey: randomUUID(), lines: posting.lines,
+      }, actor, posting.reversalOfId, { sourceType: type, sourceId: id });
+    });
   }
 
   account(code: string, name: string, actor: string) {
@@ -94,6 +140,7 @@ export class AccountingRepository implements AccountingPort {
     input: PostingInput,
     actor: string,
     reversalOfId?: string,
+    source?: { sourceType: SourceType; sourceId: string },
   ) {
     try {
       assertBalanced(input.lines);
@@ -149,6 +196,7 @@ export class AccountingRepository implements AccountingPort {
         operationKey: input.operationKey,
         actorId: actor,
         reversalOfId,
+        ...source,
       },
     });
     await tx.ledgerLine.createMany({ data: input.lines.map((line) => ({ ...line, entryId: entry.id })) });
@@ -168,7 +216,7 @@ export class AccountingRepository implements AccountingPort {
   reverse(id: string, periodId: string, date: string, reason: string, key: string, actor: string) {
     return this.transaction(actor, async (tx) => {
       const original = await tx.ledgerEntry.findUnique({ where: { id }, include: { lines: true } });
-      if (!original?.postedAt || original.reversalOfId || calendarDate(date) < original.date)
+      if (!original?.postedAt || original.reversalOfId || original.sourceType || calendarDate(date) < original.date)
         throw new ConflictException('Écriture non contrepassable.');
       return this.write(
         tx,
