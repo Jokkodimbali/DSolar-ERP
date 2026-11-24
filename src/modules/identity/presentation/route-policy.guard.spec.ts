@@ -11,34 +11,48 @@ import { SESSION_REPOSITORY, TOKEN_SERVICE, USER_REPOSITORY } from '../applicati
 @Controller('policy-test')
 class PolicyTestController {
   @Get('forgotten')
-  forgotten() { return { secret: 'not public' }; }
+  forgotten() {
+    return { secret: 'not public' };
+  }
 
   @Get('missing-permission')
   @UseGuards(AccessGuard)
-  missingPermission() { return { secret: 'not public' }; }
+  missingPermission() {
+    return { secret: 'not public' };
+  }
 
   @Get('permission-without-guard')
   @RequirePermissions('sales.read')
-  missingGuard() { return { secret: 'not public' }; }
+  missingGuard() {
+    return { secret: 'not public' };
+  }
 
   @Get('unknown-permission')
   @UseGuards(AccessGuard)
   @RequirePermissions('nonexistent.permission')
-  unknownPermission() { return { secret: 'not public' }; }
+  unknownPermission() {
+    return { secret: 'not public' };
+  }
 
   @Get('protected')
   @UseGuards(AccessGuard)
   @RequirePermissions('sales.read')
-  protectedRoute() { return { ok: true }; }
+  protectedRoute() {
+    return { ok: true };
+  }
 
   @Get('identity')
   @UseGuards(AccessGuard)
   @AuthenticatedOnly()
-  identity() { return { ok: true }; }
+  identity() {
+    return { ok: true };
+  }
 
   @Get('public')
   @PublicRoute()
-  publicRoute() { return { ok: true }; }
+  publicRoute() {
+    return { ok: true };
+  }
 }
 
 describe('Politique globale des routes HTTP', () => {
@@ -49,31 +63,61 @@ describe('Politique globale des routes HTTP', () => {
     const module = await Test.createTestingModule({
       controllers: [PolicyTestController],
       providers: [
-        Reflector, AccessGuard,
+        Reflector,
+        AccessGuard,
         { provide: APP_GUARD, useClass: RoutePolicyGuard },
-        { provide: TOKEN_SERVICE, useValue: { verifyAccess: async () => ({ sub: 'user', ver: 1, sid: 'session' }) } },
+        {
+          provide: TOKEN_SERVICE,
+          useValue: { verifyAccess: async () => ({ sub: 'user', ver: 1, sid: 'session' }) },
+        },
         { provide: USER_REPOSITORY, useValue: users },
-        { provide: SESSION_REPOSITORY, useValue: { findById: async () => ({ userId: 'user', revokedAt: null, expiresAt: new Date(Date.now() + 60000) }) } },
+        {
+          provide: SESSION_REPOSITORY,
+          useValue: {
+            findById: async () => ({
+              userId: 'user',
+              revokedAt: null,
+              expiresAt: new Date(Date.now() + 60000),
+            }),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
     await app.init();
   });
-  afterAll(async () => { await app.close(); });
+  afterAll(async () => {
+    await app.close();
+  });
   beforeEach(() => users.findById.mockResolvedValue(user));
 
-  it.each(['forgotten','missing-permission','permission-without-guard','unknown-permission'])(
-    'bloque une route mal configurée : %s', async (path) => {
-      await request(app.getHttpServer()).get('/policy-test/' + path).expect(403);
-      await request(app.getHttpServer()).get('/policy-test/' + path).set('Authorization','Bearer valid').expect(403);
+  it.each(['forgotten', 'missing-permission', 'permission-without-guard', 'unknown-permission'])(
+    'bloque une route mal configurée : %s',
+    async (path) => {
+      await request(app.getHttpServer())
+        .get('/policy-test/' + path)
+        .expect(403);
+      await request(app.getHttpServer())
+        .get('/policy-test/' + path)
+        .set('Authorization', 'Bearer valid')
+        .expect(403);
     },
   );
   it('conserve la vérification réelle du garde d’accès', async () => {
     await request(app.getHttpServer()).get('/policy-test/protected').expect(401);
-    await request(app.getHttpServer()).get('/policy-test/protected').set('Authorization','Bearer valid').expect(200);
+    await request(app.getHttpServer())
+      .get('/policy-test/protected')
+      .set('Authorization', 'Bearer valid')
+      .expect(200);
     users.findById.mockResolvedValue({ ...user, permissions: [] });
-    await request(app.getHttpServer()).get('/policy-test/protected').set('Authorization','Bearer valid').expect(403);
-    await request(app.getHttpServer()).get('/policy-test/identity').set('Authorization','Bearer valid').expect(200);
+    await request(app.getHttpServer())
+      .get('/policy-test/protected')
+      .set('Authorization', 'Bearer valid')
+      .expect(403);
+    await request(app.getHttpServer())
+      .get('/policy-test/identity')
+      .set('Authorization', 'Bearer valid')
+      .expect(200);
     await request(app.getHttpServer()).get('/policy-test/identity').expect(401);
     await request(app.getHttpServer()).get('/policy-test/public').expect(200);
   });

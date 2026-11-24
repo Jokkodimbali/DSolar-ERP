@@ -21,8 +21,12 @@ export class RoutePolicyGuard implements CanActivate {
     if (isPublic && !authOnly && !required?.length && !guards.includes(AccessGuard)) return true;
     if (!isPublic && guards.includes(AccessGuard)) {
       if (authOnly && !required?.length) return true;
-      if (!authOnly && required?.length && required.every((permission) =>
-        INTERNAL_PERMISSIONS.some((allowed) => allowed === permission))) return true;
+      if (
+        !authOnly &&
+        required?.length &&
+        required.every((permission) => INTERNAL_PERMISSIONS.some((allowed) => allowed === permission))
+      )
+        return true;
     }
     // Fail closed even when a new controller accidentally omits AccessGuard.
     throw new ForbiddenException('Politique d’accès de la route invalide.');

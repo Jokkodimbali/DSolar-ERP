@@ -28,16 +28,31 @@ describe('Inventaire automatique des routes du backend', () => {
       const exports: Record<string, unknown> = await import(file);
       for (const candidate of Object.values(exports)) {
         if (typeof candidate !== 'function' || !Reflect.hasMetadata(PATH_METADATA, candidate)) continue;
-        const controller = candidate as { new (...args: never[]): unknown; prototype: Record<string, unknown> };
+        const controller = candidate as {
+          new (...args: never[]): unknown;
+          prototype: Record<string, unknown>;
+        };
         for (const name of new MetadataScanner().getAllMethodNames(controller.prototype)) {
           const handler = controller.prototype[name];
           if (typeof handler !== 'function' || !Reflect.hasMetadata(METHOD_METADATA, handler)) continue;
-          const context = { getHandler: () => handler, getClass: () => controller } as unknown as ExecutionContext;
+          const context = {
+            getHandler: () => handler,
+            getClass: () => controller,
+          } as unknown as ExecutionContext;
           const method = RequestMethod[Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod];
-          const path = [Reflect.getMetadata(PATH_METADATA, controller), Reflect.getMetadata(PATH_METADATA, handler)]
-            .join('/').split('/').filter(Boolean).join('/');
+          const path = [
+            Reflect.getMetadata(PATH_METADATA, controller),
+            Reflect.getMetadata(PATH_METADATA, handler),
+          ]
+            .join('/')
+            .split('/')
+            .filter(Boolean)
+            .join('/');
           const label = method + ' /' + path;
-          expect({ route: label, allowed: policy.canActivate(context) }).toEqual({ route: label, allowed: true });
+          expect({ route: label, allowed: policy.canActivate(context) }).toEqual({
+            route: label,
+            allowed: true,
+          });
           count++;
           const guards = [
             ...(reflector.get(GUARDS_METADATA, controller) ?? []),
@@ -54,7 +69,12 @@ describe('Inventaire automatique des routes du backend', () => {
       }
     }
     expect(count).toBeGreaterThan(100);
-    expect(publicRoutes.sort()).toEqual(['GET /health','POST /auth/login','POST /auth/logout','POST /auth/refresh']);
+    expect(publicRoutes.sort()).toEqual([
+      'GET /health',
+      'POST /auth/login',
+      'POST /auth/logout',
+      'POST /auth/refresh',
+    ]);
     expect(identityRoutes).toEqual(['GET /auth/me']);
   });
 });
