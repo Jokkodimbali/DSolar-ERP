@@ -56,7 +56,11 @@ const schemas: Record<string, Schema> = {
     revenue: money,
     collected: money,
     orders: integer,
-    variations: object({ revenue: { ...text, nullable: true }, collected: { ...text, nullable: true }, orders: { ...text, nullable: true } }),
+    variations: object({
+      revenue: { ...text, nullable: true },
+      collected: { ...text, nullable: true },
+      orders: { ...text, nullable: true },
+    }),
     days: array(object({ day: integer, revenue: money, orders: integer })),
   }),
   ApiAuthResult: object({
@@ -129,7 +133,8 @@ export function swaggerEnabled(env: NodeJS.ProcessEnv): boolean {
 
 function successSchema(path: string, method: string): Schema | undefined {
   if (path === '/api/v1/auth/login' || path === '/api/v1/auth/refresh') return ref('ApiAuthResult');
-  if (path === '/api/v1/auth/browser/login' || path === '/api/v1/auth/browser/refresh') return ref('ApiBrowserAuthResult');
+  if (path === '/api/v1/auth/browser/login' || path === '/api/v1/auth/browser/refresh')
+    return ref('ApiBrowserAuthResult');
   if (path === '/api/v1/auth/browser/logout') return ref('ApiMessage');
   if (path === '/api/v1/dashboard/period') return ref('ApiDashboardPeriod');
   if (path === '/api/v1/auth/logout') return ref('ApiMessage');

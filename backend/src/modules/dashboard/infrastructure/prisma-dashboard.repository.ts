@@ -199,10 +199,12 @@ export class PrismaDashboardRepository implements DashboardRepository {
       const amount = (value: Prisma.Decimal | null): string => (value ?? new Prisma.Decimal(0)).toFixed(2);
       const events: DashboardPeriodEvent[] = [];
       for (const row of invoices) {
-        if (row.issuedAt) events.push({ date: row.issuedAt, kind: 'invoice', amount: amount(row._sum.totalTtc), count: 0 });
+        if (row.issuedAt)
+          events.push({ date: row.issuedAt, kind: 'invoice', amount: amount(row._sum.totalTtc), count: 0 });
       }
       for (const row of credits) {
-        if (row.issuedAt) events.push({ date: row.issuedAt, kind: 'credit', amount: amount(row._sum.amount), count: 0 });
+        if (row.issuedAt)
+          events.push({ date: row.issuedAt, kind: 'credit', amount: amount(row._sum.amount), count: 0 });
       }
       for (const row of payments) {
         events.push({ date: row.receivedAt, kind: 'payment', amount: amount(row._sum.amount), count: 0 });

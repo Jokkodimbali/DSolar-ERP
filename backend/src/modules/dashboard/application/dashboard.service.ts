@@ -186,7 +186,9 @@ export class DashboardService {
       const difference = (value - before) * 1000n;
       const absolute = difference < 0n ? -difference : difference;
       const rounded = (absolute + before / 2n) / before;
-      return (difference < 0n && rounded !== 0n ? '-' : '') + String(rounded / 10n) + '.' + String(rounded % 10n);
+      return (
+        (difference < 0n && rounded !== 0n ? '-' : '') + String(rounded / 10n) + '.' + String(rounded % 10n)
+      );
     };
     return {
       month,

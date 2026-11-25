@@ -1,9 +1,22 @@
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import {
-  Body, Controller, Get, Header, Post, Req, Res, UnauthorizedException, UseGuards,
+  Body,
+  Controller,
+  Get,
+  Header,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { browserRefreshToken, clearBrowserSession, requireBrowserRequest, setBrowserSession } from './browser-session-cookie';
+import {
+  browserRefreshToken,
+  clearBrowserSession,
+  requireBrowserRequest,
+  setBrowserSession,
+} from './browser-session-cookie';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthUseCases } from '../application/auth.use-cases';
 import { AccessGuard } from './access.guard';
@@ -40,7 +53,11 @@ export class AuthController {
   @UseGuards(LoginRateLimitGuard)
   @Header('Cache-Control', 'no-store')
   @SuccessMessage('Connexion réussie.')
-  async browserLogin(@Body() dto: LoginDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
+  async browserLogin(
+    @Body() dto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     requireBrowserRequest(request);
     const { jetonRenouvellement, ...result } = await this.useCases.login(dto.email, dto.password);
     setBrowserSession(response, jetonRenouvellement);
