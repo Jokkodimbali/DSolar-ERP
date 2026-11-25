@@ -71,19 +71,22 @@ export class StockWorkflowsPage {
   readonly countReady = computed(() => {
     const target = this.count();
     const fields = this.counted();
-    return !!target?.lines.length && target.lines.every((line) => {
-      const field = fields[line.productId];
-      if (line.counted === null || !field) return false;
-      try {
-        const normalize = (value: string) => {
-          const [whole, fraction = ''] = quantityInput(value).split('.');
-          return whole + '.' + fraction.padEnd(3, '0');
-        };
-        return normalize(field.counted) === normalize(line.counted) && field.reason.trim() === line.reason;
-      } catch {
-        return false;
-      }
-    });
+    return (
+      !!target?.lines.length &&
+      target.lines.every((line) => {
+        const field = fields[line.productId];
+        if (line.counted === null || !field) return false;
+        try {
+          const normalize = (value: string) => {
+            const [whole, fraction = ''] = quantityInput(value).split('.');
+            return whole + '.' + fraction.padEnd(3, '0');
+          };
+          return normalize(field.counted) === normalize(line.counted) && field.reason.trim() === line.reason;
+        } catch {
+          return false;
+        }
+      })
+    );
   });
   readonly manageable = computed(() => this.session.can('inventory.manage'));
   readonly title = this.mode === 'counts' ? 'Inventaires physiques' : 'Transferts de stock';
