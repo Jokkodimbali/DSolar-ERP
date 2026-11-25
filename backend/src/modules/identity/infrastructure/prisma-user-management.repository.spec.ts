@@ -12,6 +12,7 @@ describe('PrismaUserManagementRepository audit transactionnel', () => {
     auditLog: { create: jest.fn() },
   };
   const prisma = {
+    user: { findMany: jest.fn() },
     $transaction: jest.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
   };
   const identity = { findById: jest.fn() };
@@ -22,6 +23,21 @@ describe('PrismaUserManagementRepository audit transactionnel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     tx.auditLog.create.mockResolvedValue({});
+  });
+
+  it('projette uniquement les champs administratifs et les rôles explicites', async () => {
+    prisma.user.findMany.mockResolvedValue([
+      {
+        id: 'user-1', email: 'a@b.sn', fullName: 'A', status: 'DISABLED',
+        roles: [{ role: { code: 'MAGASINIER', permissions: [{ permission: { code: 'stores.read' } }] } }],
+        stores: [{ storeId: 'store-1' }],
+      },
+    ]);
+    expect(await repository.list()).toEqual([
+      { id: 'user-1', email: 'a@b.sn', nomComplet: 'A', status: 'DISABLED', roleCodes: ['MAGASINIER'], permissions: ['stores.read'], magasinsAutorises: ['store-1'] },
+    ]);
+    expect(prisma.user.findMany.mock.calls[0][0].select).not.toHaveProperty('passwordHash');
+    expect(identity.findById).not.toHaveBeenCalled();
   });
 
   it('journalise une création sans enregistrer le mot de passe', async () => {

@@ -8,6 +8,7 @@ import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/d
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
+import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 
 // Ce test Vitest s’exécute exclusivement dans Node.js.
@@ -133,12 +134,22 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const created = await request('/users', 'POST', account, admin.jetonAcces);
     expect(created.status).toBe(201);
     expect(hasPermissions(parseIdentity(created.data), ['inventory.read', 'inventory.manage'])).toBe(true);
+    const listed = await request('/users', 'GET', undefined, admin.jetonAcces);
+    expect(listed.status).toBe(200);
+    expect(parseUsers(listed.data)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ email: account.email, role: 'MAGASINIER', status: 'ACTIVE' })]),
+    );
+    expect(JSON.stringify(listed.data)).not.toContain('passwordHash');
+    expect(JSON.stringify(listed.data)).not.toContain('tokenVersion');
+    const adminPath = '/users/' + admin.utilisateur.id;
+    expect((await request(adminPath + '/access', 'PATCH', accessInput('MAGASINIER', []), admin.jetonAcces)).status).toBe(403);
     const login = await request('/auth/login', 'POST', { email: account.email, password });
     expect(login.status).toBe(201);
     const keeper = parseAuthResult(login.data);
     expect(hasPermissions(keeper.utilisateur, ['users.manage'])).toBe(false);
     expect((await request('/auth/me', 'GET', undefined, keeper.jetonAcces)).status).toBe(200);
     expect((await request('/users', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect((await request('/users/' + keeper.utilisateur.id + '/access', 'PATCH', accessInput('ADMIN', []), keeper.jetonAcces)).status).toBe(403);
     for (const definition of reports) {
       const response = await request(reportPath(definition.path), 'GET', undefined, keeper.jetonAcces);
       expect(response.status, definition.path).toBe(403);

@@ -45,3 +45,9 @@ Le sélecteur mensuel pilote les indicateurs financiers et le graphique quotidie
 ## Charte obligatoire pour chaque écran
 
 Les pages métier réutilisent PageHeader, les panneaux .panel, les champs .ui-field, les tableaux .ui-table, les actions .primary/.secondary, les statuts textuels et EmptyState. Les tokens --ui-radius, --ui-control-radius, --ui-panel-border, --ui-panel-shadow et --ui-gap dans shared/ui/ui.css définissent la densité commune. Ne pas réintroduire de styles de boutons, titres ou tableaux propres à un module. La connexion reprend la palette claire et le logo officiel. Les pages d'accueil, compte, accès refusé, magasins, ventes, commandes, alertes et activité utilisent cette même base. Les variations spécifiques au graphique restent dans son module. Les contrôles d'accès et calculs restent inchangés. Les captures à 1440, 1024 et 390 pixels doivent couvrir les pages métier, pas uniquement le dashboard.
+
+## Utilisateurs et menus déroulants
+
+Le module Utilisateurs (permission users.manage) réutilise les primitives partagées. GET /users retourne explicitement status et roleCodes en plus de l'identité publique. La création et les modifications utilisent les DTO NestJS existants, avec les seuls rôles ADMIN et MAGASINIER. La désactivation est définitive dans l'interface actuelle : le backend ne fournit pas de route de réactivation. La désactivation de son propre compte n'est pas proposée. Les droits, révocations de sessions et protections du dernier administrateur sont appliqués au serveur. Aucun secret de compte n'est exposé par la liste.
+
+La directive appDismissOutside ferme les panneaux transitoires lors d'un clic extérieur ou d'Échap, avec restauration du focus sur le déclencheur pour Échap. Les déclencheurs externes explicitement déclarés sont exclus du clic extérieur de leur panneau. Les nouveaux menus doivent réutiliser cette directive ; les filtres natifs select conservent le comportement du navigateur.

@@ -103,6 +103,7 @@ try {
   await page.getByRole('region', { name: 'Résultats de recherche' }).waitFor({ state: 'hidden' });
   // Les pages métier partagent les mêmes primitives et doivent rester responsive.
   for (const [slug, route, heading] of [
+    ['utilisateurs', '/utilisateurs', 'Utilisateurs'],
     ['magasins', '/magasins', 'Magasins'],
     ['commandes', '/ventes/commandes', 'Commandes'],
     ['alertes', '/stocks/alertes', 'Alertes de stock'],
@@ -134,6 +135,10 @@ try {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
   }
+  await page.goto('http://localhost:4200/utilisateurs');
+  await page.getByRole('region', { name: 'Liste des utilisateurs' }).getByText('Magasinier CI', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Nouvel utilisateur' }).click();
+  await page.getByRole('button', { name: 'Annuler' }).click();
   await page.goto('http://localhost:4200/tableau-de-bord');
   await page.locator('.new-sale-action').click();
   await page.waitForURL('**/ventes/nouvelle');
