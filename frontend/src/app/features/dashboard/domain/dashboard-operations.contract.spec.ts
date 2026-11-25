@@ -25,6 +25,7 @@ describe('Contrats opérationnels du tableau de bord', () => {
     const order = {
       id,
       number: 'CMD-01',
+      customer: { name: 'Client CI' },
       total: '9007199254740993.01',
       status: 'CONFIRMED',
       paymentStatus: 'UNPAID',
@@ -32,6 +33,7 @@ describe('Contrats opérationnels du tableau de bord', () => {
     };
     const result = parseRecentOrders({ items: [order] })[0];
     expect(result?.total).toBe('9\u202f007\u202f199\u202f254\u202f740\u202f993,01 FCFA');
+    expect(result?.customerName).toBe('Client CI');
     expect(result?.status).toBe('Confirmée');
     expect(result?.paymentStatus).toBe('Impayée');
     expect(() => parseRecentOrders({ items: [{ ...order, paymentStatus: 'UNKNOWN' }] })).toThrow();

@@ -14,7 +14,7 @@ import { DashboardOperationsApi } from '../infrastructure/dashboard-operations.a
   imports: [PageHeaderComponent, FeedbackComponent, ProductThumbnailComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-page-header heading="Alertes de stock" description="Disponibilité actuelle par magasin actif. Seuil : 5 unités.">
+    <app-page-header eyebrow="STOCKS" heading="Alertes de stock" description="Disponibilité actuelle par magasin actif. Seuil : 5 unités.">
       <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
     </app-page-header>
     <app-feedback [message]="error()" kind="error" />
