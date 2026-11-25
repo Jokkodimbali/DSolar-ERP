@@ -2,10 +2,12 @@
 
 :root {
   color-scheme: light;
-  --accent: #cf1751;
-  --ink: #161d2e;
+  --accent: #cf1051;
+  --accent-soft: #fce7ed;
+  --shadow: 0 2px 8px #111d2c08;
+  --ink: #101c33;
   --surface: #fff;
-  --canvas: #f5f4ef;
+  --canvas: #faf8f6;
   --line: #e1e7ef;
   --muted: #64748b;
   --danger: #a81e36;
@@ -178,12 +180,14 @@ h2 {
 }
 .workspace {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: 236px minmax(0, 1fr);
   min-height: 100dvh;
 }
 .sidebar {
-  background: var(--ink);
-  color: white;
+  background: var(--surface);
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
   padding: 26px 16px;
   display: flex;
   flex-direction: column;
@@ -198,13 +202,13 @@ h2 {
 }
 .brand small,
 .sidebar-footer small {
-  color: #a7b2c3;
+  color: var(--muted);
   font-size: 0.72rem;
 }
 .nav-label {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #a7b2c3;
+  color: var(--muted);
   letter-spacing: 0.1em;
   padding: 0 10px;
 }
@@ -215,20 +219,23 @@ h2 {
 .sidebar nav a {
   padding: 13px 12px;
   border-radius: 8px;
-  color: #cbd5e1;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .sidebar nav a.active {
-  background: var(--accent);
-  color: white;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-weight: 650;
 }
 .sidebar nav a:hover:not(.active) {
-  background: #283143;
+  background: var(--canvas);
 }
 .sidebar-footer {
   margin-top: auto;
   padding: 16px 10px;
-  border-top: 1px solid #364050;
+  border-top: 1px solid var(--line);
   line-height: 1.6;
 }
 .workspace-main {
@@ -262,7 +269,7 @@ h2 {
   display: none;
 }
 .page {
-  padding: clamp(16px, 3vw, 36px);
+  padding: clamp(16px, 2.5vw, 32px);
   max-width: 1600px;
   margin: auto;
 }
@@ -276,8 +283,10 @@ h2 {
   background: white;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 22px;
-  margin-bottom: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+  margin-bottom: 16px;
 }
 .kpi-grid {
   display: grid;
@@ -404,4 +413,130 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 6px;
   font-size: 0.85rem;
+}
+
+/* Structure claire issue de la proposition UI/UX DSolar ERP. */
+.brand .brand-mark {
+  font-size: 1.55rem;
+}
+.brand .brand-mark span,
+.brand-accent {
+  color: var(--accent);
+}
+.account-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.account-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+app-ui-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.mobile-nav {
+  display: none;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.dashboard-grid > *,
+.dashboard-reports > * {
+  min-width: 0;
+}
+.dashboard-reports {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1100px) {
+  .dashboard-grid,
+  .dashboard-reports {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title {
+    display: block;
+  }
+  .page {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .mobile-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .mobile-nav a {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .mobile-nav a.active {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .account-chip > span:last-child {
+    display: none;
+  }
+  .account-chip {
+    border: 0;
+    padding: 0;
+  }
+}
+@media (max-width: 540px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .topbar-title {
+    font-size: 0.9rem;
+  }
+  .user-actions {
+    gap: 6px;
+  }
+  .user-actions button {
+    padding-inline: 8px;
+    font-size: 0.75rem;
+  }
 }

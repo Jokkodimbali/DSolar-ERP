@@ -6,11 +6,12 @@ import { type Overview, formatMoney } from '../domain/dashboard.contract';
 import { DashboardReportComponent } from './dashboard-report.component';
 import { reports } from '../domain/dashboard-reports.contract';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { KpiCardComponent } from '../../../shared/ui/kpi-card.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { errorMessage } from '../../../core/api/http-error';
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DashboardReportComponent, PageHeaderComponent, FeedbackComponent],
+  imports: [DashboardReportComponent, PageHeaderComponent, FeedbackComponent, KpiCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <app-page-header eyebrow="VUE D’ENSEMBLE" heading="Tableau de bord" description="Indicateurs réels de votre activité.">
       <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
@@ -19,22 +20,10 @@ import { errorMessage } from '../../../core/api/http-error';
     <app-feedback [message]="error()" kind="error" />
     @if (data(); as d) {
       <div class="kpi-grid">
-        <article class="panel kpi">
-          <span>Facturation nette</span><strong>{{ money(d.netInvoiced) }}</strong
-          ><small>Après déduction des avoirs</small>
-        </article>
-        <article class="panel kpi">
-          <span>Encaissements</span><strong>{{ money(d.collected) }}</strong
-          ><small>Montant enregistré</small>
-        </article>
-        <article class="panel kpi">
-          <span>Commandes confirmées</span><strong>{{ d.confirmedOrders }}</strong
-          ><small>Selon le backend</small>
-        </article>
-        <article class="panel kpi">
-          <span>Magasins</span><strong>{{ d.stores }}</strong
-          ><small>Vue globale</small>
-        </article>
+        <app-kpi-card icon="trend" label="Facturation nette" [value]="money(d.netInvoiced)" description="Après déduction des avoirs" />
+        <app-kpi-card icon="box" tone="blue" label="Commandes confirmées" [value]="d.confirmedOrders" description="Vue globale" />
+        <app-kpi-card icon="store" tone="orange" label="Magasins" [value]="d.stores" description="Vue globale" />
+        <app-kpi-card icon="wallet" tone="green" label="Encaissements" [value]="money(d.collected)" description="Montant enregistré" />
       </div>
       <section class="panel">
         <h2>Activité de l'entreprise</h2>
@@ -66,9 +55,16 @@ import { errorMessage } from '../../../core/api/http-error';
         </dl>
       </section>
     }
-    @for (report of reports; track report.path) {
-      <app-dashboard-report [definition]="report" />
-    }`,
+    <div class="dashboard-grid">
+      @for (report of featuredReports; track report.path) {
+        <app-dashboard-report [definition]="report" />
+      }
+    </div>
+    <div class="dashboard-reports">
+      @for (report of otherReports; track report.path) {
+        <app-dashboard-report [definition]="report" />
+      }
+    </div>`,
 })
 export class DashboardPage {
   private readonly api = inject(DashboardApi);
@@ -77,7 +73,9 @@ export class DashboardPage {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly money = formatMoney;
-  readonly reports = reports;
+  readonly featuredReports = ['monthly-revenue', 'overview', 'store-sales', 'recent-activity']
+    .flatMap((path) => reports.filter((report) => report.path === path));
+  readonly otherReports = reports.filter((report) => !this.featuredReports.includes(report));
   constructor() {
     this.load();
   }

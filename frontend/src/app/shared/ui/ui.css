@@ -110,3 +110,47 @@
     justify-content: space-between;
   }
 }
+
+.ui-kpi {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  height: calc(100% - 16px);
+}
+.ui-kpi-icon {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.ui-kpi-icon[data-tone='blue'] {
+  color: #245de8;
+  background: #e9efff;
+}
+.ui-kpi-icon[data-tone='orange'] {
+  color: #a94708;
+  background: #fff0df;
+}
+.ui-kpi-icon[data-tone='green'] {
+  color: var(--success);
+  background: #e7f8ed;
+}
+.ui-kpi-content {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.ui-kpi-content span,
+.ui-kpi-content small {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.ui-kpi-content strong {
+  font-size: clamp(1rem, 1.5vw, 1.35rem);
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
