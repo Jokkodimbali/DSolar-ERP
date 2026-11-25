@@ -24,7 +24,7 @@ const validQuantity = (value: Prisma.Decimal) =>
 @Injectable()
 export class PrismaTransfersRepository implements TransferRepository {
   constructor(private readonly prisma: PrismaService) {}
-  private async access(tx: Prisma.TransactionClient, storeId: string, userId: string) {
+  private async access(tx: Prisma.TransactionClient, storeId: string, userId: string, readOnly = false) {
     const [user, store, access] = await Promise.all([
       tx.user.findUnique({
         where: { id: userId },
@@ -35,7 +35,7 @@ export class PrismaTransfersRepository implements TransferRepository {
     ]);
     if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
       throw new ForbiddenException('Accès au magasin interdit.');
-    if (!store || store.status !== 'ACTIVE') throw new ConflictException('Magasin inexistant ou inactif.');
+    if (!store || (!readOnly && store.status !== 'ACTIVE')) throw new ConflictException('Magasin inexistant ou inactif.');
   }
   private async load(
     tx: Prisma.TransactionClient,
@@ -143,11 +143,9 @@ export class PrismaTransfersRepository implements TransferRepository {
     const { page, limit, skip } = pageBounds(query);
     return this.prisma.$transaction(
       async (tx) => {
-        await this.access(tx, storeId, actorId);
+        await this.access(tx, storeId, actorId, true);
         const search = query.search?.trim();
         const where: Prisma.StockTransferWhereInput = {
-          origin: { status: 'ACTIVE' },
-          destination: { status: 'ACTIVE' },
           OR: [{ originId: storeId }, { destinationId: storeId }],
           ...(search ? { number: { contains: search, mode: 'insensitive' } } : {}),
         };
@@ -165,8 +163,8 @@ export class PrismaTransfersRepository implements TransferRepository {
               originId: true,
               destinationId: true,
               createdAt: true,
-              origin: { select: { name: true } },
-              destination: { select: { name: true } },
+              origin: { select: { name: true, status: true } },
+              destination: { select: { name: true, status: true } },
             },
           }),
         ]);
@@ -180,10 +178,10 @@ export class PrismaTransfersRepository implements TransferRepository {
     return this.prisma.$transaction(
       async (tx) => {
         const transfer = await tx.stockTransfer.findFirst({
-          where: { id, origin: { status: 'ACTIVE' }, destination: { status: 'ACTIVE' } },
+          where: { id },
           include: {
-            origin: { select: { name: true } },
-            destination: { select: { name: true } },
+            origin: { select: { name: true, status: true } },
+            destination: { select: { name: true, status: true } },
             lines: { include: { product: { select: { name: true, sku: true, unit: true } } } },
             events: {
               orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -191,7 +189,7 @@ export class PrismaTransfersRepository implements TransferRepository {
             },
           },
         });
-        if (!transfer) throw new NotFoundException('Transfert introuvable ou magasin inactif.');
+        if (!transfer) throw new NotFoundException('Transfert introuvable.');
         const user = await tx.user.findUnique({
           where: { id: actorId },
           select: { status: true, roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } } },

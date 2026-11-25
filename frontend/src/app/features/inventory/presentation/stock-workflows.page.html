@@ -8,7 +8,7 @@
   <button
     class="primary"
     type="button"
-    [disabled]="busy() || loading() || !store() || (mode === 'transfers' && stores().length < 2)"
+    [disabled]="busy() || loading() || !selectedActive() || (mode === 'transfers' && activeStores().length < 2)"
     (click)="create()"
   >
     {{ mode === 'counts' ? '+ Nouvel inventaire' : '+ Nouveau transfert' }}
@@ -26,7 +26,7 @@
         @if (!stores().length) {
         <option value="">Aucun magasin actif</option>
         } @for (item of stores(); track item.id) {
-        <option [value]="item.id" [selected]="item.id === store()">{{ item.name }}</option>
+        <option [value]="item.id" [selected]="item.id === store()">{{ item.name }}{{ item.status === 'INACTIVE' ? ' (inactif)' : '' }}</option>
         }
       </select></label
     >
@@ -150,7 +150,7 @@
     >Magasin destinataire
     <select #dest [disabled]="!!draft() || busy()" (change)="destination.set(dest.value)">
       <option value="">Choisir un magasin</option>
-      @for (item of stores(); track item.id) { @if (item.id !== store()) {
+      @for (item of activeStores(); track item.id) { @if (item.id !== store()) {
       <option [value]="item.id">{{ item.name }}</option>
       } }
     </select></label
@@ -234,7 +234,7 @@
     <h2>{{ target.number }}</h2>
     <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
   </div>
-  <p>{{ target.origin }} → {{ target.destination }} · <strong>{{ labels[target.status] }}</strong></p>
+  <p>{{ target.origin }}{{ target.originStatus === 'INACTIVE' ? ' (inactif)' : '' }} → {{ target.destination }}{{ target.destinationStatus === 'INACTIVE' ? ' (inactif)' : '' }} · <strong>{{ labels[target.status] }}</strong></p>
   <div class="ui-table" role="region" aria-label="Détail du transfert" tabindex="0">
     <table>
       <thead>

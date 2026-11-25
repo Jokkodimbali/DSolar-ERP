@@ -7,8 +7,8 @@ const row = {
   status: 'SHIPPED',
   originId: id,
   destinationId: id,
-  origin: { name: 'Dakar' },
-  destination: { name: 'Thiès' },
+  origin: { name: 'Dakar', status: 'ACTIVE' },
+  destination: { name: 'Thiès', status: 'ACTIVE' },
   createdAt: '2026-11-25T00:00:00Z',
 };
 describe('Contrats des opérations de stock', () => {

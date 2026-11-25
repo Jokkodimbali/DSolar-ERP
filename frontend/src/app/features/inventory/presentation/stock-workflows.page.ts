@@ -89,10 +89,12 @@ export class StockWorkflowsPage {
     );
   });
   readonly manageable = computed(() => this.session.can('inventory.manage'));
+  readonly activeStores = computed(() => this.stores().filter((store) => store.status === 'ACTIVE'));
+  readonly selectedActive = computed(() => this.activeStores().some((store) => store.id === this.store()));
   readonly title = this.mode === 'counts' ? 'Inventaires physiques' : 'Transferts de stock';
-  readonly canOrigin = computed(() => this.stores().some((store) => store.id === this.transfer()?.originId));
+  readonly canOrigin = computed(() => this.stores().some((store) => store.id === this.transfer()?.originId && store.status === 'ACTIVE'));
   readonly canDestination = computed(() =>
-    this.stores().some((store) => store.id === this.transfer()?.destinationId),
+    this.stores().some((store) => store.id === this.transfer()?.destinationId && store.status === 'ACTIVE'),
   );
 
   constructor() {
@@ -105,7 +107,7 @@ export class StockWorkflowsPage {
       )
       .subscribe({
         next: (stores) => {
-          this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
+          this.stores.set(this.mode === 'transfers' ? stores : stores.filter((store) => store.status === 'ACTIVE'));
           this.store.set(this.stores()[0]?.id ?? '');
           this.loading.set(false);
           this.load(1);
@@ -200,7 +202,7 @@ export class StockWorkflowsPage {
       });
   }
   create(): void {
-    if (this.busy() || this.loading() || !this.manageable() || !this.store()) return;
+    if (this.busy() || this.loading() || !this.manageable() || !this.selectedActive()) return;
     this.close();
     if (this.mode === 'counts') {
       this.confirmation.set('start');
@@ -233,7 +235,7 @@ export class StockWorkflowsPage {
         if (
           !this.destination() ||
           this.destination() === this.store() ||
-          !this.stores().some((store) => store.id === this.destination())
+          !this.activeStores().some((store) => store.id === this.destination())
         )
           throw new Error('Choisissez un magasin destinataire différent.');
         const lines = this.lines().map((line) => {

@@ -48,7 +48,9 @@ export function parseTransfer(value: unknown) {
     originId: storeId(row['originId']),
     destinationId: storeId(row['destinationId']),
     origin: text(record(row['origin'])['name']),
+    originStatus: status(record(row['origin'])['status'], ['ACTIVE', 'INACTIVE'] as const),
     destination: text(record(row['destination'])['name']),
+    destinationStatus: status(record(row['destination'])['status'], ['ACTIVE', 'INACTIVE'] as const),
     createdAt: date(row['createdAt']),
   };
 }
