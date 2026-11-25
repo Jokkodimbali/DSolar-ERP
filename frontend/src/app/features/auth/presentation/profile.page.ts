@@ -13,7 +13,11 @@ import type { PublicIdentity } from '../domain/auth.contract';
   imports: [PageHeaderComponent, FeedbackComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-page-header eyebrow="MON ESPACE" heading="Mon compte" description="Identité et droits retournés par le serveur.">
+    <app-page-header
+      eyebrow="MON ESPACE"
+      heading="Mon compte"
+      description="Identité et droits retournés par le serveur."
+    >
       <button class="secondary" type="button" [disabled]="loading()" (click)="load()">Actualiser</button>
     </app-page-header>
     <app-feedback [message]="loading() ? 'Vérification du compte…' : ''" />

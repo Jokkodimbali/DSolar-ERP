@@ -1,4 +1,8 @@
-<app-page-header eyebrow="ORGANISATION" heading="Magasins" description="Consultez les magasins et gérez leurs informations et accès.">
+<app-page-header
+  eyebrow="ORGANISATION"
+  heading="Magasins"
+  description="Consultez les magasins et gérez leurs informations et accès."
+>
   @if (session.can('stores.manage')) {
   <button class="primary" type="button" [disabled]="busy() || loading()" (click)="edit('new')">
     Nouveau magasin
@@ -43,12 +47,12 @@
 </section>
 } @if (pendingStatus(); as store) {
 <app-confirm
-    [heading]="(store.status === 'ACTIVE' ? 'Désactiver ' : 'Activer ') + store.name + ' ?'"
-    description="La modification du statut peut affecter les opérations et les accès au magasin."
-    [busy]="busy()"
-    (confirmed)="confirmStatus()"
-    (cancelled)="close()"
-  />
+  [heading]="(store.status === 'ACTIVE' ? 'Désactiver ' : 'Activer ') + store.name + ' ?'"
+  description="La modification du statut peut affecter les opérations et les accès au magasin."
+  [busy]="busy()"
+  (confirmed)="confirmStatus()"
+  (cancelled)="close()"
+/>
 } @if (selected(); as store) {
 <section class="panel">
   <div class="page-heading">
@@ -77,7 +81,10 @@
     </button>
   </div>
   } @empty { @if (!busy()) {
-  <app-empty-state heading="Aucun autre utilisateur disponible" description="Les utilisateurs affectables apparaîtront ici." />
+  <app-empty-state
+    heading="Aucun autre utilisateur disponible"
+    description="Les utilisateurs affectables apparaîtront ici."
+  />
   } }
 </section>
 }
@@ -148,7 +155,10 @@
     </table>
   </div>
   @if (!filtered().length) {
-  <app-empty-state heading="Aucun magasin correspondant" description="Modifiez les filtres ou créez un magasin si vous y êtes autorisé." />
+  <app-empty-state
+    heading="Aucun magasin correspondant"
+    description="Modifiez les filtres ou créez un magasin si vous y êtes autorisé."
+  />
   }
   <app-pagination [page]="page()" [pages]="pageCount()" [disabled]="busy()" (change)="movePage($event)" />
   }

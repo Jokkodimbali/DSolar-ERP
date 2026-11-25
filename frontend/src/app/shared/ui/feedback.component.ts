@@ -5,8 +5,14 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (message()) {
-      <p class="ui-feedback" [class.ui-error]="kind() === 'error'" [class.ui-success]="kind() === 'success'"
-        [attr.role]="kind() === 'error' ? 'alert' : 'status'">{{ message() }}</p>
+      <p
+        class="ui-feedback"
+        [class.ui-error]="kind() === 'error'"
+        [class.ui-success]="kind() === 'success'"
+        [attr.role]="kind() === 'error' ? 'alert' : 'status'"
+      >
+        {{ message() }}
+      </p>
     }
   `,
 })

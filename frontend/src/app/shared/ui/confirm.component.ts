@@ -8,8 +8,12 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       <h2>{{ heading() }}</h2>
       <p class="muted">{{ description() }}</p>
       <div class="ui-actions">
-        <button type="button" class="primary" [disabled]="busy()" (click)="confirmed.emit()">{{ confirmLabel() }}</button>
-        <button type="button" class="secondary" [disabled]="busy()" (click)="cancelled.emit()">Annuler</button>
+        <button type="button" class="primary" [disabled]="busy()" (click)="confirmed.emit()">
+          {{ confirmLabel() }}
+        </button>
+        <button type="button" class="secondary" [disabled]="busy()" (click)="cancelled.emit()">
+          Annuler
+        </button>
       </div>
     </section>
   `,

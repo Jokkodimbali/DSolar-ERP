@@ -13,17 +13,44 @@ import { errorMessage } from '../../../core/api/http-error';
   selector: 'app-dashboard-page',
   imports: [DashboardReportComponent, PageHeaderComponent, FeedbackComponent, KpiCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: ` <app-page-header eyebrow="VUE D’ENSEMBLE" heading="Tableau de bord" description="Indicateurs réels de votre activité.">
+  template: ` <app-page-header
+      eyebrow="VUE D’ENSEMBLE"
+      heading="Tableau de bord"
+      description="Indicateurs réels de votre activité."
+    >
       <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
     </app-page-header>
     <app-feedback [message]="loading() ? 'Chargement des indicateurs…' : ''" />
     <app-feedback [message]="error()" kind="error" />
     @if (data(); as d) {
       <div class="kpi-grid">
-        <app-kpi-card icon="trend" label="Facturation nette" [value]="money(d.netInvoiced)" description="Après déduction des avoirs" />
-        <app-kpi-card icon="box" tone="blue" label="Commandes confirmées" [value]="d.confirmedOrders" description="Vue globale" />
-        <app-kpi-card icon="store" tone="orange" label="Magasins" [value]="d.stores" description="Vue globale" />
-        <app-kpi-card icon="wallet" tone="green" label="Encaissements" [value]="money(d.collected)" description="Montant enregistré" />
+        <app-kpi-card
+          icon="trend"
+          label="Facturation nette"
+          [value]="money(d.netInvoiced)"
+          description="Après déduction des avoirs"
+        />
+        <app-kpi-card
+          icon="box"
+          tone="blue"
+          label="Commandes confirmées"
+          [value]="d.confirmedOrders"
+          description="Vue globale"
+        />
+        <app-kpi-card
+          icon="store"
+          tone="orange"
+          label="Magasins"
+          [value]="d.stores"
+          description="Vue globale"
+        />
+        <app-kpi-card
+          icon="wallet"
+          tone="green"
+          label="Encaissements"
+          [value]="money(d.collected)"
+          description="Montant enregistré"
+        />
       </div>
       <section class="panel">
         <h2>Activité de l'entreprise</h2>
@@ -73,8 +100,9 @@ export class DashboardPage {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly money = formatMoney;
-  readonly featuredReports = ['monthly-revenue', 'overview', 'store-sales', 'recent-activity']
-    .flatMap((path) => reports.filter((report) => report.path === path));
+  readonly featuredReports = ['monthly-revenue', 'overview', 'store-sales', 'recent-activity'].flatMap(
+    (path) => reports.filter((report) => report.path === path),
+  );
   readonly otherReports = reports.filter((report) => !this.featuredReports.includes(report));
   constructor() {
     this.load();

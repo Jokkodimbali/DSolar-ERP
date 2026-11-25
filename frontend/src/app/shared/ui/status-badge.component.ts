@@ -4,7 +4,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   selector: 'app-status-badge',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span class="ui-status" [class.ui-status-active]="active()">{{ active() ? activeLabel() : inactiveLabel() }}</span>
+    <span class="ui-status" [class.ui-status-active]="active()">{{
+      active() ? activeLabel() : inactiveLabel()
+    }}</span>
   `,
 })
 export class StatusBadgeComponent {
