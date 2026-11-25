@@ -71,6 +71,9 @@ describe('Inventaire automatique des routes du backend', () => {
     expect(count).toBeGreaterThan(100);
     expect(publicRoutes.sort()).toEqual([
       'GET /health',
+      'POST /auth/browser/login',
+      'POST /auth/browser/logout',
+      'POST /auth/browser/refresh',
       'POST /auth/login',
       'POST /auth/logout',
       'POST /auth/refresh',

@@ -30,7 +30,13 @@ try {
   await page.waitForURL('**/tableau-de-bord');
   await page.locator('app-kpi-card').last().waitFor();
   await page.locator('.revenue-chart').waitFor();
-  assert.equal(await page.locator('app-dashboard-report select').first().inputValue(), String(new Date().getFullYear()));
+  const month = new Date().toISOString().slice(0, 7);
+  assert.equal(await page.locator('input[type="month"]').inputValue(), month);
+  const [year, selected] = month.split('-').map(Number);
+  const dayCount = new Date(Date.UTC(year, selected, 0)).getUTCDate();
+  await page.getByRole('button', { name: 'Commandes', exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: 'Commandes', exact: true }).getAttribute('aria-pressed'), 'true');
+  await page.getByRole('button', { name: 'Facturation', exact: true }).click();
   await page.locator('.stock-alert-item').first().waitFor();
   await page.locator('.recent-activity-list article').first().waitFor();
   assert.equal(await page.locator('app-kpi-card').count(), 4);
@@ -39,9 +45,10 @@ try {
   await page.locator('#dashboard-detail-reports').waitFor();
   await page.getByRole('button', { name: 'Masquer les rapports détaillés' }).click();
   assert.equal(await page.locator('#dashboard-detail-reports').isVisible(), false);
-  assert.equal(await page.locator('.revenue-column').count(), 12);
+  assert.equal(await page.locator('.dashboard-primary .revenue-column').count(), dayCount);
   assert.equal(await page.locator('.dashboard-primary > section').count(), 2);
-  assert.equal(await page.locator('.dashboard-primary > app-dashboard-report').count(), 2);
+  assert.equal(await page.locator('.dashboard-primary > app-dashboard-report').count(), 1);
+  assert.equal(await page.locator('.dashboard-primary > app-period-chart').count(), 1);
   assert.equal(await page.locator('app-kpi-card').nth(2).innerText().then((s) => s.includes('Alertes de stock')), true);
   assert.equal(await page.locator('.company-logo').evaluate((img) => img.complete && img.naturalWidth > 0), true);
   for (const [name, width, height] of [

@@ -47,6 +47,18 @@ const schemas: Record<string, Schema> = {
     permissions: array(text),
     magasinsAutorises: array(uuid),
   }),
+  ApiBrowserAuthResult: object({ jetonAcces: text, utilisateur: ref('ApiPublicIdentity') }),
+  ApiDashboardPeriod: object({
+    month: text,
+    currency: { ...text, enum: ['XOF'] },
+    basis: { ...text, enum: ['NET_ISSUED_INVOICES_AND_RECORDED_PAYMENTS'] },
+    comparison: { ...text, enum: ['PREVIOUS_CALENDAR_MONTH'] },
+    revenue: money,
+    collected: money,
+    orders: integer,
+    variations: object({ revenue: { ...text, nullable: true }, collected: { ...text, nullable: true }, orders: { ...text, nullable: true } }),
+    days: array(object({ day: integer, revenue: money, orders: integer })),
+  }),
   ApiAuthResult: object({
     jetonAcces: text,
     jetonRenouvellement: text,
@@ -117,6 +129,9 @@ export function swaggerEnabled(env: NodeJS.ProcessEnv): boolean {
 
 function successSchema(path: string, method: string): Schema | undefined {
   if (path === '/api/v1/auth/login' || path === '/api/v1/auth/refresh') return ref('ApiAuthResult');
+  if (path === '/api/v1/auth/browser/login' || path === '/api/v1/auth/browser/refresh') return ref('ApiBrowserAuthResult');
+  if (path === '/api/v1/auth/browser/logout') return ref('ApiMessage');
+  if (path === '/api/v1/dashboard/period') return ref('ApiDashboardPeriod');
   if (path === '/api/v1/auth/logout') return ref('ApiMessage');
   if (path === '/api/v1/auth/me') return ref('ApiPublicIdentity');
   if (path === '/api/v1/notifications' && method === 'get') return ref('ApiNotificationFeed');

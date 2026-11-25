@@ -30,13 +30,13 @@ describe('Documentation OpenAPI DSolar-ERP', () => {
     expect(swaggerEnabled({ NODE_ENV: 'production', ENABLE_SWAGGER: 'true' })).toBe(false);
     expect(swaggerEnabled({ ENABLE_SWAGGER: 'true' })).toBe(false);
   });
-  it('décrit toutes les routes et exige Bearer hors des quatre routes publiques', () => {
+  it('décrit toutes les routes et exige Bearer hors des sept routes publiques', () => {
     const operations = Object.entries(doc.paths).flatMap(([path, item]) =>
       (['get', 'post', 'put', 'patch', 'delete'] as const).flatMap((method) =>
         item[method] ? [{ path, method, operation: item[method] }] : [],
       ),
     );
-    expect(operations).toHaveLength(214);
+    expect(operations).toHaveLength(218);
     expect(
       operations
         .filter((row) => row.operation.security?.length === 0)
@@ -44,6 +44,9 @@ describe('Documentation OpenAPI DSolar-ERP', () => {
         .sort(),
     ).toEqual([
       'get /api/v1/health',
+      'post /api/v1/auth/browser/login',
+      'post /api/v1/auth/browser/logout',
+      'post /api/v1/auth/browser/refresh',
       'post /api/v1/auth/login',
       'post /api/v1/auth/logout',
       'post /api/v1/auth/refresh',
