@@ -4,6 +4,7 @@ import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.c
 import { parseAlerts, parseRecentOrders } from '../../dashboard/domain/dashboard-operations.contract';
 import { parseSearch, sources } from '../../search/domain/search.contract';
 import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
+import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
@@ -272,6 +273,55 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const active = await request(path + '/activate', 'PATCH', {}, admin.jetonAcces);
     expect(active.status).toBe(200);
     expect(parseStore(active.data).status).toBe('ACTIVE');
-    await request('/auth/logout', 'POST', { refreshToken: admin.jetonRenouvellement });
-  }, 90000);
+    const selfAssignment = await request(
+      path + '/users/' + admin.utilisateur.id,
+      'POST',
+      {},
+      admin.jetonAcces,
+    );
+    expect(selfAssignment.status).toBe(201);
+    expect((await request('/auth/me', 'GET', undefined, admin.jetonAcces)).status).toBe(401);
+
+    const saleAdmin = parseAuthResult((await request('/auth/login', 'POST', { email, password })).data);
+    const token = saleAdmin.jetonAcces;
+    try {
+      const customerResponse = await request('/customers', 'POST', { name: 'Client proforma CI' }, token);
+      expect(customerResponse.status).toBe(201);
+      const productResponse = await request(
+        '/products',
+        'POST',
+        { name: 'Panneau proforma CI', sku: 'PV-PROFORMA-CI', isSolarPlant: false },
+        token,
+      );
+      expect(productResponse.status).toBe(201);
+      const [customer] = parseOptions([customerResponse.data]);
+      const [product] = parseOptions([productResponse.data]);
+      if (!customer || !product) throw new Error('Références manquantes.');
+      const mine = await request('/stores/mine', 'GET', undefined, token);
+      expect(parseStores(mine.data).some((entry) => entry.id === store.id)).toBe(true);
+      const input = proformaInput(customer.id, [{
+        storeId: store.id,
+        productId: product.id,
+        quantity: '2',
+        unitPrice: '1000',
+        discount: '0',
+        taxRate: '18',
+      }]);
+      const invalidDiscount = {
+        ...input,
+        lines: input.lines.map((line) => ({ ...line, discount: 10 })),
+      };
+      expect((await request('/proformas', 'POST', invalidDiscount, token)).status).toBe(409);
+      const result = await request('/proformas', 'POST', input, token);
+      expect(result.status).toBe(201);
+      const created = parseCreatedProforma(result.data);
+      expect(created.total).toBe('2\u202f360,00 FCFA');
+      const detail = await request('/proformas/' + created.id, 'GET', undefined, token);
+      expect(detail.status).toBe(200);
+      expect(parseCreatedProforma(detail.data)).toEqual(created);
+      expect((await request('/proformas/' + created.id + '/cancel', 'POST', {}, token)).status).toBe(201);
+    } finally {
+      await request('/auth/logout', 'POST', { refreshToken: saleAdmin.jetonRenouvellement });
+    }
+  }, 120000);
 });
