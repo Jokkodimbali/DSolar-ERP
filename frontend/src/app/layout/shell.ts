@@ -16,7 +16,7 @@ import { SessionService } from '../features/auth/application/session.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <div class="workspace" [class.menu-open]="menuOpen()">
-    <aside class="sidebar" aria-label="Navigation principale">
+    <aside class="sidebar" aria-label="Navigation principale" id="main-navigation">
       <a class="brand" routerLink="/" (click)="menuOpen.set(false)"
         ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri"
       /></a>
@@ -56,7 +56,7 @@ import { SessionService } from '../features/auth/application/session.service';
           class="menu-toggle secondary"
           type="button"
           (click)="menuOpen.set(!menuOpen())"
-          [attr.aria-expanded]="menuOpen()"
+          [attr.aria-expanded]="menuOpen()" aria-controls="main-navigation"
         >
           <app-ui-icon name="menu" /><span class="sr-only">Menu</span>
         </button>

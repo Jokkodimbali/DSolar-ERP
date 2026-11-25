@@ -33,3 +33,7 @@ La recherche globale interroge les cinq sources existantes autorisées par sessi
 Le centre de notifications utilise GET /notifications et le flux SSE /notifications/stream avec le jeton Bearer en en-tête. Le flux est interrompu à la fermeture de session et reconnecté après interruption, sans persistance de jeton. La lecture individuelle et collective est enregistrée exclusivement par le backend.
 
 Le logo officiel fourni est conservé sans altération dans public/d-solar-and-agri.svg. Le raccourci Nouvelle vente ouvre la création d'une proforma brouillon et respecte les permissions commerciales. Les prix et taux sont saisis explicitement ; les totaux et règles métier sont appliqués par NestJS. L'affectation de son propre compte à un magasin est possible avec confirmation et reconnexion obligatoire, conformément au backend.
+
+## Contrôle de fidélité visuelle
+
+La validation doit porter sur les captures réelles à 1440 × 900, 1024 × 768 et 390 × 844, avec contrôle du logo, de la grille KPI, de la disposition des quatre panneaux, des débordements horizontaux et des parcours fonctionnels. Les statistiques de période et la comparaison au mois précédent nécessitent encore des contrats backend dédiés. Les photos de produits, la navigation des modules non livrés et les liens de détail ne doivent pas être simulés.

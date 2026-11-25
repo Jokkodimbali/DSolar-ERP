@@ -14,6 +14,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [];
+  page.setDefaultTimeout(20000);
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('http://localhost:4200/connexion');
   await page.locator('#email').fill(process.env.ADMIN_EMAIL);
@@ -22,6 +23,7 @@ try {
   await page.waitForURL('**/tableau-de-bord');
   await page.locator('app-kpi-card').last().waitFor();
   await page.locator('.revenue-chart').waitFor();
+  assert.equal(await page.locator('app-dashboard-report select').first().inputValue(), String(new Date().getFullYear()));
   await page.locator('.stock-alert-item').first().waitFor();
   await page.locator('.recent-activity-list article').first().waitFor();
   assert.equal(await page.locator('app-kpi-card').count(), 4);
@@ -38,6 +40,13 @@ try {
     await page.setViewportSize({ width, height });
     await page.locator('.dashboard-primary').waitFor();
     await page.screenshot({ path: join(artifacts, name + '.png'), fullPage: true });
+    await page.screenshot({ path: join(artifacts, name + '-viewport.png') });
+    const theme = await page.evaluate(() => ({
+      accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+      sidebar: getComputedStyle(document.querySelector('.sidebar')).backgroundColor,
+    }));
+    assert.equal(theme.accent, '#cf1051');
+    assert.equal(theme.sidebar, 'rgb(255, 255, 255)');
     const dimensions = await page.evaluate(() => ({
       scroll: document.documentElement.scrollWidth,
       width: document.documentElement.clientWidth,

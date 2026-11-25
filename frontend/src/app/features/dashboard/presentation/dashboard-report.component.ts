@@ -26,7 +26,7 @@ export class DashboardReportComponent implements OnInit {
   private readonly api = inject(DashboardReportsApi);
   private readonly destroy = inject(DestroyRef);
   readonly year = signal(Math.min(2100, Math.max(2000, new Date().getFullYear())));
-  readonly years = Array.from({ length: 101 }, (_, index) => 2100 - index);
+  readonly years = Array.from({ length: this.year() - 1999 }, (_, index) => this.year() - index);
   readonly limit = signal(20);
   readonly data = signal<ReportView | null>(null);
   readonly loading = signal(false);

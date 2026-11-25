@@ -11,7 +11,7 @@
         Année
         <select #yearSelect [value]="year()" [disabled]="loading()" (change)="changeYear(yearSelect.value)">
           @for (item of years; track item) {
-            <option [value]="item">{{ item }}</option>
+            <option [value]="item" [selected]="item === year()">{{ item }}</option>
           }
         </select>
       </label>
@@ -26,7 +26,7 @@
           (change)="changeLimit(limitSelect.value)"
         >
           @for (item of [10, 20, 50]; track item) {
-            <option [value]="item">{{ item }}</option>
+            <option [value]="item" [selected]="item === limit()">{{ item }}</option>
           }
         </select>
       </label>

@@ -930,3 +930,51 @@ app-global-search {
     height: 20px;
   }
 }
+
+/* Ajustements de densité de la maquette, sans dégradé. */
+app-dashboard-page app-page-header .eyebrow {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  margin-bottom: 4px;
+}
+app-dashboard-page app-page-header h1 {
+  font-size: clamp(1.55rem, 2.2vw, 2rem);
+  margin-bottom: 4px;
+}
+app-dashboard-page app-page-header .muted {
+  margin-bottom: 16px;
+}
+.dashboard-primary .panel {
+  padding: 16px;
+}
+.dashboard-primary h2 {
+  font-size: 1.05rem;
+}
+.kpi-grid > app-kpi-card {
+  min-width: 0;
+}
+.kpi-grid .ui-kpi {
+  padding: 14px;
+  min-height: 108px;
+}
+@media (min-width: 1101px) {
+  .topbar .desktop-brand {
+    display: none;
+  }
+  .topbar app-global-search {
+    max-width: 540px;
+  }
+}
+@media (max-width: 760px) {
+  .dashboard-primary .panel {
+    height: auto;
+  }
+  .dashboard-primary {
+    gap: 0;
+  }
+  .kpi-grid .ui-kpi {
+    min-height: 90px;
+  }
+}
