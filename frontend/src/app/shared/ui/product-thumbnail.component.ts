@@ -32,11 +32,17 @@ export class ProductThumbnailComponent {
         .get<unknown>(apiPath('/media/products/' + id + '/photo'))
         .pipe(
           switchMap((metadata) => {
-            if (!isRecord(metadata) || typeof metadata['id'] !== 'string' ||
-              !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(metadata['id'])) return of(null);
+            if (
+              !isRecord(metadata) ||
+              typeof metadata['id'] !== 'string' ||
+              !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(metadata['id'])
+            )
+              return of(null);
             return this.http.get(apiPath('/media/images/' + metadata['id']), { responseType: 'blob' });
           }),
-          map((blob) => blob && ['image/png', 'image/jpeg'].includes(blob.type) && blob.size <= 5_000_000 ? blob : null),
+          map((blob) =>
+            blob && ['image/png', 'image/jpeg'].includes(blob.type) && blob.size <= 5_000_000 ? blob : null,
+          ),
           catchError(() => of(null)),
         )
         .subscribe((blob) => {

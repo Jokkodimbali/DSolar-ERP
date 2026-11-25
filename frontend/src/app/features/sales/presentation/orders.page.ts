@@ -28,24 +28,29 @@ export class OrdersPage {
 
   constructor() {
     if (this.detailMode) {
-      this.route.paramMap.pipe(
-        switchMap((params) => {
-          this.detail.set(null);
-          this.error.set('');
-          this.loading.set(true);
-          const id = params.get('id') ?? '';
-          if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) {
-            this.error.set('Référence de commande invalide.');
-            this.loading.set(false);
-            return of(null);
-          }
-          return this.api.detail(id).pipe(
-            catchError((error: unknown) => { this.error.set(errorMessage(error)); return of(null); }),
-            finalize(() => this.loading.set(false)),
-          );
-        }),
-        takeUntilDestroyed(this.destroy),
-      ).subscribe((value) => this.detail.set(value));
+      this.route.paramMap
+        .pipe(
+          switchMap((params) => {
+            this.detail.set(null);
+            this.error.set('');
+            this.loading.set(true);
+            const id = params.get('id') ?? '';
+            if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) {
+              this.error.set('Référence de commande invalide.');
+              this.loading.set(false);
+              return of(null);
+            }
+            return this.api.detail(id).pipe(
+              catchError((error: unknown) => {
+                this.error.set(errorMessage(error));
+                return of(null);
+              }),
+              finalize(() => this.loading.set(false)),
+            );
+          }),
+          takeUntilDestroyed(this.destroy),
+        )
+        .subscribe((value) => this.detail.set(value));
     } else {
       this.load(1);
     }
@@ -62,12 +67,15 @@ export class OrdersPage {
     this.error.set('');
     this.result.set(null);
     this.page.set(page);
-    this.api.list(page, this.query()).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.loading.set(false)),
-    ).subscribe({
-      next: (result) => this.result.set(result),
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .list(page, this.query())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (result) => this.result.set(result),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 }
