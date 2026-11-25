@@ -1,0 +1,57 @@
+<app-page-header [heading]="detailMode ? 'Détail de la commande' : 'Commandes'" description="Consultation des commandes accessibles à votre compte.">
+  @if (detailMode) {
+    <a class="secondary" routerLink="/ventes/commandes">Retour aux commandes</a>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="loading() ? 'Chargement…' : ''" />
+@if (detailMode) {
+  @if (detail(); as order) {
+    <section class="panel">
+      <h2>{{ order.number }}</h2>
+      <dl class="metrics">
+        <div><dt>Client</dt><dd>{{ order.customerName }}</dd></div>
+        <div><dt>Total</dt><dd>{{ order.total }}</dd></div>
+        <div><dt>Statut</dt><dd>{{ order.status }}</dd></div>
+        <div><dt>Paiement</dt><dd>{{ order.paymentStatus }}</dd></div>
+        <div><dt>Date</dt><dd>{{ order.createdAt }}</dd></div>
+      </dl>
+      <div class="ui-table" tabindex="0" role="region" aria-label="Lignes de commande">
+        <table>
+          <thead><tr><th>Produit</th><th>Magasin</th><th>Quantité</th><th>Prix unitaire</th><th>Total</th></tr></thead>
+          <tbody>
+            @for (line of order.lines; track line.id) {
+              <tr><td>{{ line.product }} · {{ line.sku }}</td><td>{{ line.store }}</td><td>{{ line.quantity }}</td><td>{{ line.price }}</td><td>{{ line.total }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+} @else {
+  <section class="panel">
+    <form class="ui-toolbar" (submit)="$event.preventDefault(); search(term.value)">
+      <label class="ui-field">Recherche <input #term type="search" maxlength="120" placeholder="Référence ou client" [disabled]="loading()" /></label>
+      <button class="secondary" type="submit" [disabled]="loading()">Rechercher</button>
+    </form>
+    @if (result(); as data) {
+      <div class="ui-table" tabindex="0" role="region" aria-label="Commandes">
+        <table>
+          <thead><tr><th>Référence</th><th>Client</th><th>Montant</th><th>Statut</th><th>Paiement</th><th>Date</th><th>Détail</th></tr></thead>
+          <tbody>
+            @for (order of data.items; track order.id) {
+              <tr><td>{{ order.number }}</td><td>{{ order.customerName }}</td><td>{{ order.total }}</td><td>{{ order.status }}</td><td>{{ order.paymentStatus }}</td><td>{{ order.createdAt }}</td><td><a class="dashboard-see-all" [routerLink]="['/ventes/commandes', order.id]">Voir →</a></td></tr>
+            } @empty {
+              <tr><td colspan="7">Aucune commande accessible.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="ui-toolbar">
+        <button class="secondary" type="button" [disabled]="page() <= 1" (click)="load(page() - 1)">Précédent</button>
+        <span>{{ data.total }} commande(s) · Page {{ page() }} / {{ data.pages || 1 }}</span>
+        <button class="secondary" type="button" [disabled]="page() >= data.pages" (click)="load(page() + 1)">Suivant</button>
+      </div>
+    }
+  </section>
+}

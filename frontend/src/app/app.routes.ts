@@ -5,6 +5,8 @@ import {
   dashboardGuard,
   storesGuard,
   saleCreationGuard,
+  ordersReadGuard,
+  stockAlertsGuard,
 } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
@@ -33,6 +35,21 @@ export const routes: Routes = [
         path: 'magasins',
         canActivate: [storesGuard],
         loadComponent: () => import('./features/stores/presentation/stores.page').then((m) => m.StoresPage),
+      },
+      {
+        path: 'stocks/alertes',
+        canActivate: [stockAlertsGuard],
+        loadComponent: () => import('./features/dashboard/presentation/stock-alerts.page').then((m) => m.StockAlertsPage),
+      },
+      {
+        path: 'ventes/commandes',
+        canActivate: [ordersReadGuard],
+        loadComponent: () => import('./features/sales/presentation/orders.page').then((m) => m.OrdersPage),
+      },
+      {
+        path: 'ventes/commandes/:id',
+        canActivate: [ordersReadGuard],
+        loadComponent: () => import('./features/sales/presentation/orders.page').then((m) => m.OrdersPage),
       },
       {
         path: 'ventes/nouvelle',
