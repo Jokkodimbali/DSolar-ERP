@@ -36,8 +36,14 @@ export class StoresPage {
   readonly selected = signal<Store | null>(null);
   readonly pendingStatus = signal<Store | null>(null);
   readonly form = new FormGroup({
-    code: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(30)] }),
-    name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(160)] }),
+    code: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(30)],
+    }),
+    name: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(160)],
+    }),
     address: new FormControl('', { nonNullable: true }),
   });
 
@@ -110,7 +116,11 @@ export class StoresPage {
     }
     const request =
       target === 'new'
-        ? this.api.create({ code: code.trim(), name: name.trim(), ...(address.trim() ? { address: address.trim() } : {}) })
+        ? this.api.create({
+            code: code.trim(),
+            name: name.trim(),
+            ...(address.trim() ? { address: address.trim() } : {}),
+          })
         : this.api.update(target.id, { name: name.trim(), address: address.trim() || null });
     this.mutate(request, target === 'new' ? 'Magasin créé.' : 'Magasin modifié.', () => {
       this.editing.set(null);
@@ -127,8 +137,10 @@ export class StoresPage {
     const store = this.pendingStatus();
     if (!store || !this.session.can('stores.manage')) return;
     const status = store.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    this.mutate(this.api.setStatus(store.id, status), status === 'ACTIVE' ? 'Magasin activé.' : 'Magasin désactivé.', () =>
-      this.pendingStatus.set(null),
+    this.mutate(
+      this.api.setStatus(store.id, status),
+      status === 'ACTIVE' ? 'Magasin activé.' : 'Magasin désactivé.',
+      () => this.pendingStatus.set(null),
     );
   }
 
@@ -161,20 +173,25 @@ export class StoresPage {
     if (!store || !this.session.can('stores.manage', 'users.manage')) return;
     const assigned = !user.magasinsAutorises.includes(store.id);
     if (assigned && store.status !== 'ACTIVE') return;
-    this.mutate(this.api.assign(store.id, user.id, assigned), assigned ? 'Accès accordé.' : 'Accès retiré.', () => {
-      this.users.update((users) =>
-        users.map((entry) =>
-          entry.id === user.id
-            ? {
-                ...entry,
-                magasinsAutorises: assigned
-                  ? [...entry.magasinsAutorises, store.id]
-                  : entry.magasinsAutorises.filter((id) => id !== store.id),
-              }
-            : entry,
-        ),
-      );
-    }, false);
+    this.mutate(
+      this.api.assign(store.id, user.id, assigned),
+      assigned ? 'Accès accordé.' : 'Accès retiré.',
+      () => {
+        this.users.update((users) =>
+          users.map((entry) =>
+            entry.id === user.id
+              ? {
+                  ...entry,
+                  magasinsAutorises: assigned
+                    ? [...entry.magasinsAutorises, store.id]
+                    : entry.magasinsAutorises.filter((id) => id !== store.id),
+                }
+              : entry,
+          ),
+        );
+      },
+      false,
+    );
   }
 
   close(): void {

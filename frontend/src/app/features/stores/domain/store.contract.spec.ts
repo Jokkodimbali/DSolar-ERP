@@ -31,7 +31,11 @@ describe('Contrats magasins', () => {
   });
 
   it('vérifie la confirmation de chaque affectation', () => {
-    expect(() => parseAssignment({ storeId: store.id, userId: store.id, assigned: true }, store.id, store.id, true)).not.toThrow();
-    expect(() => parseAssignment({ storeId: store.id, userId: store.id, assigned: false }, store.id, store.id, true)).toThrow();
+    expect(() =>
+      parseAssignment({ storeId: store.id, userId: store.id, assigned: true }, store.id, store.id, true),
+    ).not.toThrow();
+    expect(() =>
+      parseAssignment({ storeId: store.id, userId: store.id, assigned: false }, store.id, store.id, true),
+    ).toThrow();
   });
 });

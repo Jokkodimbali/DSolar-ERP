@@ -1,5 +1,10 @@
 import type { Routes } from '@angular/router';
-import { authenticatedGuard, guestGuard, dashboardGuard, storesGuard } from './features/auth/application/auth.guards';
+import {
+  authenticatedGuard,
+  guestGuard,
+  dashboardGuard,
+  storesGuard,
+} from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
     path: 'connexion',
