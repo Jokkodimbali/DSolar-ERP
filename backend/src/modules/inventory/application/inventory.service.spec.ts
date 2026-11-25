@@ -20,7 +20,11 @@ describe('InventoryService', () => {
   };
   it('délègue la recherche des mouvements avec le magasin et l’acteur', () => {
     service.movements('store-id', 'actor-id', { page: 2, limit: 10, search: 'PV' });
-    expect(repository.movements).toHaveBeenCalledWith('store-id', 'actor-id', { page: 2, limit: 10, search: 'PV' });
+    expect(repository.movements).toHaveBeenCalledWith('store-id', 'actor-id', {
+      page: 2,
+      limit: 10,
+      search: 'PV',
+    });
   });
   it('délègue la consultation du stock du magasin', async () => {
     await service.listStoreStock('store-id', 'actor-id');

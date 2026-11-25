@@ -71,22 +71,39 @@ export class PrismaInventoryRepository implements InventoryRepository {
         const search = query.search?.trim();
         const where: Prisma.StockMovementWhereInput = {
           storeId,
-          ...(search ? {
-            OR: [
-              { product: { name: { contains: search, mode: 'insensitive' } } },
-              { product: { sku: { contains: search, mode: 'insensitive' } } },
-            ],
-          } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { product: { name: { contains: search, mode: 'insensitive' } } },
+                  { product: { sku: { contains: search, mode: 'insensitive' } } },
+                ],
+              }
+            : {}),
         };
         const [total, rows] = await Promise.all([
           tx.stockMovement.count({ where }),
           tx.stockMovement.findMany({
-            where, skip, take: limit, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-            select: { id: true, storeId: true, productId: true, type: true, quantity: true, referenceType: true, reason: true, createdAt: true, product: { select: { name: true, sku: true, unit: true } } },
+            where,
+            skip,
+            take: limit,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            select: {
+              id: true,
+              storeId: true,
+              productId: true,
+              type: true,
+              quantity: true,
+              referenceType: true,
+              reason: true,
+              createdAt: true,
+              product: { select: { name: true, sku: true, unit: true } },
+            },
           }),
         ]);
         const items: StockMovementItem[] = rows.map(({ product, quantity, ...row }) => ({
-          ...row, ...product, quantity: quantity.toFixed(3),
+          ...row,
+          ...product,
+          quantity: quantity.toFixed(3),
         }));
         return pageResult(items, total, page, limit);
       },

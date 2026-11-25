@@ -20,7 +20,11 @@ export class InventoryController {
   }
   @Get('stores/:storeId/movements/search')
   @RequirePermissions('inventory.read')
-  movements(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: PageQueryDto) {
+  movements(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @CurrentUserId() actorId: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.inventory.movements(storeId, actorId, query);
   }
   @Get('stores/:storeId/summary')

@@ -10,7 +10,11 @@ describe('Inventory and transfer API authorization', () => {
     read: string[];
     manage: string[];
   }> = [
-    { controller: InventoryController, read: ['balance', 'listStoreStock', 'summary', 'alerts', 'movements'], manage: ['adjust'] },
+    {
+      controller: InventoryController,
+      read: ['balance', 'listStoreStock', 'summary', 'alerts', 'movements'],
+      manage: ['adjust'],
+    },
     {
       controller: TransfersController,
       read: ['get'],

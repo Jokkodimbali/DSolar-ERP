@@ -56,10 +56,24 @@ describe('Protection des ajustements manuels', () => {
 
   it('limite la recherche de mouvements au magasin autorisé', async () => {
     tx.stockMovement.count.mockResolvedValue(1);
-    tx.stockMovement.findMany.mockResolvedValue([{ id: 'm', storeId: 'store', productId: 'product', type: 'INVENTORY_ADJUSTMENT', quantity: new Prisma.Decimal('-1.25'), referenceType: 'MANUAL_ADJUSTMENT', reason: 'Correction', createdAt: new Date('2026-01-01'), product: { name: 'Panneau', sku: 'PV', unit: 'PIECE' } }]);
+    tx.stockMovement.findMany.mockResolvedValue([
+      {
+        id: 'm',
+        storeId: 'store',
+        productId: 'product',
+        type: 'INVENTORY_ADJUSTMENT',
+        quantity: new Prisma.Decimal('-1.25'),
+        referenceType: 'MANUAL_ADJUSTMENT',
+        reason: 'Correction',
+        createdAt: new Date('2026-01-01'),
+        product: { name: 'Panneau', sku: 'PV', unit: 'PIECE' },
+      },
+    ]);
     const result = await repository.movements('store', 'actor', { page: 1, limit: 10 });
     expect(result.items[0]).toMatchObject({ quantity: '-1.250', sku: 'PV' });
-    expect(tx.stockMovement.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { storeId: 'store' }, skip: 0, take: 10 }));
+    expect(tx.stockMovement.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { storeId: 'store' }, skip: 0, take: 10 }),
+    );
   });
 
   it('ne consulte aucun mouvement si le magasin est interdit', async () => {
