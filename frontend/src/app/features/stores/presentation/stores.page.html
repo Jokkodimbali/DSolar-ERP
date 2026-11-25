@@ -68,7 +68,7 @@
   } @for (user of users(); track user.id) {
   <div class="assignment">
     <div>
-      <strong>{{ user.nomComplet }}</strong>
+      <strong>{{ user.nomComplet }} @if (user.id === session.user()?.id) { (vous) }</strong>
       <p class="muted small">{{ user.email }}</p>
     </div>
     <button
@@ -82,7 +82,7 @@
   </div>
   } @empty { @if (!busy()) {
   <app-empty-state
-    heading="Aucun autre utilisateur disponible"
+    heading="Aucun utilisateur disponible"
     description="Les utilisateurs affectables apparaîtront ici."
   />
   } }

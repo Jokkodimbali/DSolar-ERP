@@ -200,7 +200,7 @@ export class StoresPage {
         finalize(() => this.busy.set(false)),
       )
       .subscribe({
-        next: (users) => this.users.set(users.filter((user) => user.id !== this.session.user()?.id)),
+        next: (users) => this.users.set(users),
         error: (error: unknown) => this.error.set(errorMessage(error)),
       });
   }
@@ -210,10 +210,16 @@ export class StoresPage {
     if (!store || !this.session.can('stores.manage', 'users.manage')) return;
     const assigned = !user.magasinsAutorises.includes(store.id);
     if (assigned && store.status !== 'ACTIVE') return;
+    const self = user.id === this.session.user()?.id;
+    if (self && !window.confirm('Cette modification de vos accès vous déconnectera. Continuer ?')) return;
     this.mutate(
       this.api.assign(store.id, user.id, assigned),
       assigned ? 'Accès accordé.' : 'Accès retiré.',
       () => {
+        if (self) {
+          this.session.expire();
+          return;
+        }
         this.users.update((users) =>
           users.map((entry) =>
             entry.id === user.id

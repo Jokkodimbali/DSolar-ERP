@@ -4,6 +4,7 @@ import {
   guestGuard,
   dashboardGuard,
   storesGuard,
+  saleCreationGuard,
 } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
@@ -32,6 +33,11 @@ export const routes: Routes = [
         path: 'magasins',
         canActivate: [storesGuard],
         loadComponent: () => import('./features/stores/presentation/stores.page').then((m) => m.StoresPage),
+      },
+      {
+        path: 'ventes/nouvelle',
+        canActivate: [saleCreationGuard],
+        loadComponent: () => import('./features/sales/presentation/new-sale.page').then((m) => m.NewSalePage),
       },
       {
         path: 'mon-compte',

@@ -1,0 +1,74 @@
+<app-page-header eyebrow="VENTES" heading="Nouvelle vente" description="Commencez par créer un devis proforma brouillon.">
+  <a routerLink="/" class="secondary">Retour à l’accueil</a>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="loading() ? 'Chargement des références…' : ''" />
+@if (created(); as result) {
+  <section class="panel">
+    <app-feedback [message]="'Proforma ' + result.number + ' créée.'" kind="success" />
+    <dl class="metrics">
+      <div><dt>Statut</dt><dd>Brouillon</dd></div>
+      <div><dt>Total TTC calculé par le serveur</dt><dd>{{ result.total }}</dd></div>
+    </dl>
+    <p class="muted">Aucune facture ni paiement n’a été enregistré. Le devis doit être émis et accepté avant conversion en commande.</p>
+  </section>
+} @else {
+  <section class="panel">
+    <div class="page-heading">
+      <h2>Informations commerciales</h2>
+      <button class="secondary" type="button" [disabled]="busy() || loading()" (click)="load()">Actualiser les références</button>
+    </div>
+    @if (!loading() && (!customers().length || !products().length || !stores().length)) {
+      <app-feedback message="Un client existant, un produit actif et un magasin actif affecté à votre compte sont nécessaires." />
+      <a routerLink="/magasins" class="secondary">Gérer mes affectations</a>
+    }
+    <form [formGroup]="form" (ngSubmit)="save()" class="sale-form">
+      <label class="ui-field">
+        Client
+        <select formControlName="customerId">
+          <option value="">Sélectionner un client</option>
+          @for (customer of customers(); track customer.id) {
+            <option [value]="customer.id">{{ customer.name }}</option>
+          }
+        </select>
+      </label>
+      <div formArrayName="lines">
+        @for (line of form.controls.lines.controls; track line; let i = $index) {
+          <fieldset [formGroupName]="i" class="sale-line">
+            <legend>Ligne {{ i + 1 }}</legend>
+            <label class="ui-field">
+              Produit
+              <select formControlName="productId">
+                <option value="">Sélectionner un produit</option>
+                @for (product of products(); track product.id) {
+                  <option [value]="product.id">{{ product.name }} — {{ product.sku }}</option>
+                }
+              </select>
+            </label>
+            <label class="ui-field">
+              Magasin affecté
+              <select formControlName="storeId">
+                <option value="">Sélectionner un magasin</option>
+                @for (store of stores(); track store.id) {
+                  <option [value]="store.id">{{ store.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="ui-field">Quantité <input formControlName="quantity" inputmode="decimal" /></label>
+            <label class="ui-field">Prix unitaire HT (FCFA) <input formControlName="unitPrice" inputmode="decimal" /></label>
+            <label class="ui-field">Remise sur la ligne (FCFA) <input formControlName="discount" inputmode="decimal" /></label>
+            <label class="ui-field">Taux fiscal (%) <input formControlName="taxRate" inputmode="decimal" /></label>
+            <button class="secondary" type="button" [disabled]="busy() || form.controls.lines.length <= 1" (click)="remove(i)">Retirer la ligne</button>
+          </fieldset>
+        }
+      </div>
+      <p class="muted small">Le prix et le taux fiscal sont saisis explicitement. Les calculs, arrondis et règles de remise sont vérifiés par le serveur.</p>
+      <div class="ui-actions">
+        <button class="secondary" type="button" [disabled]="busy() || form.controls.lines.length >= 100" (click)="add()">Ajouter une ligne</button>
+        <button class="primary" type="submit" [disabled]="busy() || loading() || !customers().length || !products().length || !stores().length">
+          {{ busy() ? 'Enregistrement…' : 'Créer le devis brouillon' }}
+        </button>
+      </div>
+    </form>
+  </section>
+}
