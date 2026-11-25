@@ -79,6 +79,11 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="store" /><span class="nav-text">Magasins</span></a
           >
         }
+        @if (session.can('users.manage')) {
+          <a routerLink="/utilisateurs" routerLinkActive="active" (click)="menuOpen.set(false)" aria-label="Utilisateurs">
+            <app-ui-icon name="user" /><span class="nav-text">Utilisateurs</span>
+          </a>
+        }
         <button
           type="button"
           class="sidebar-notifications"

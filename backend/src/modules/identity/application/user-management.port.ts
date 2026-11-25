@@ -7,8 +7,12 @@ export interface CreateUserRecord {
   roleCodes: string[];
   storeIds: string[];
 }
+export interface ManagedUser extends PublicIdentity {
+  status: 'ACTIVE' | 'DISABLED';
+  roleCodes: string[];
+}
 export interface UserManagementRepository {
-  list(): Promise<PublicIdentity[]>;
+  list(): Promise<ManagedUser[]>;
   create(input: CreateUserRecord, actorId?: string): Promise<PublicIdentity>;
   disableUnlessLastAdmin(id: string, actorId?: string): Promise<'disabled' | 'not_found' | 'last_admin'>;
   replaceAccessUnlessLastAdmin(

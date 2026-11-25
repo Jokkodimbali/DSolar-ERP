@@ -47,6 +47,15 @@ const schemas: Record<string, Schema> = {
     permissions: array(text),
     magasinsAutorises: array(uuid),
   }),
+  ApiManagedUser: object({
+    id: uuid,
+    email: { ...text, format: 'email' },
+    nomComplet: text,
+    permissions: array(text),
+    magasinsAutorises: array(uuid),
+    status: { ...text, enum: ['ACTIVE', 'DISABLED'] },
+    roleCodes: array(text),
+  }),
   ApiBrowserAuthResult: object({ jetonAcces: text, utilisateur: ref('ApiPublicIdentity') }),
   ApiDashboardPeriod: object({
     month: text,
@@ -139,6 +148,8 @@ function successSchema(path: string, method: string): Schema | undefined {
   if (path === '/api/v1/dashboard/period') return ref('ApiDashboardPeriod');
   if (path === '/api/v1/auth/logout') return ref('ApiMessage');
   if (path === '/api/v1/auth/me') return ref('ApiPublicIdentity');
+  if (path === '/api/v1/users' && method === 'get') return array(ref('ApiManagedUser'));
+  if ((path === '/api/v1/users' && method === 'post') || (path === '/api/v1/users/{id}/access' && method === 'patch')) return ref('ApiPublicIdentity');
   if (path === '/api/v1/notifications' && method === 'get') return ref('ApiNotificationFeed');
   if (path.startsWith('/api/v1/notifications/') && method === 'post') return ref('ApiNotificationMark');
   if (path.startsWith('/api/v1/media/') && method === 'post') return ref('ApiImageUpload');

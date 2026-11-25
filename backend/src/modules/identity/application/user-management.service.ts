@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PASSWORD_SERVICE, PasswordService } from './ports';
-import { USER_MANAGEMENT_REPOSITORY, UserManagementRepository } from './user-management.port';
+import { USER_MANAGEMENT_REPOSITORY, UserManagementRepository, ManagedUser } from './user-management.port';
 import { PublicIdentity } from '../domain/identity.types';
 
 export interface CreateUserCommand {
@@ -23,7 +23,7 @@ export class UserManagementService {
     @Inject(USER_MANAGEMENT_REPOSITORY) private readonly users: UserManagementRepository,
     @Inject(PASSWORD_SERVICE) private readonly passwords: PasswordService,
   ) {}
-  list(): Promise<PublicIdentity[]> {
+  list(): Promise<ManagedUser[]> {
     return this.users.list();
   }
   async create(command: CreateUserCommand, actorId?: string): Promise<PublicIdentity> {

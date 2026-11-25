@@ -7,6 +7,7 @@ import {
   saleCreationGuard,
   ordersReadGuard,
   stockAlertsGuard,
+  usersGuard,
 } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
@@ -30,6 +31,11 @@ export const routes: Routes = [
         canActivate: [dashboardGuard],
         loadComponent: () =>
           import('./features/dashboard/presentation/dashboard.page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'utilisateurs',
+        canActivate: [usersGuard],
+        loadComponent: () => import('./features/users/presentation/users.page').then((m) => m.UsersPage),
       },
       {
         path: 'magasins',

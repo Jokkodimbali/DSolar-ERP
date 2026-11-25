@@ -363,3 +363,35 @@
     gap: 8px;
   }
 }
+
+.ui-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-gap);
+}
+.ui-form-span {
+  grid-column: 1 / -1;
+}
+.ui-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius);
+  min-width: 0;
+}
+.ui-choice-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.ui-choice-group input {
+  accent-color: var(--accent);
+}
+@media (max-width: 760px) {
+  .ui-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

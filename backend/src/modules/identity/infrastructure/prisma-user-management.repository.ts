@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { PublicIdentity } from '../domain/identity.types';
-import { CreateUserRecord, UserManagementRepository } from '../application/user-management.port';
+import { CreateUserRecord, UserManagementRepository, ManagedUser } from '../application/user-management.port';
 import { PrismaUserRepository } from './prisma-user.repository';
 @Injectable()
 export class PrismaUserManagementRepository implements UserManagementRepository {
@@ -10,10 +10,27 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
     private readonly prisma: PrismaService,
     private readonly identity: PrismaUserRepository,
   ) {}
-  async list(): Promise<PublicIdentity[]> {
-    const users = await this.prisma.user.findMany({ select: { id: true }, orderBy: { createdAt: 'desc' } });
-    const result = await Promise.all(users.map((u) => this.identity.findById(u.id)));
-    return result.filter((u): u is NonNullable<typeof u> => u !== null).map((u) => this.publicUser(u));
+  async list(): Promise<ManagedUser[]> {
+    const users = await this.prisma.user.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        status: true,
+        roles: { select: { role: { select: { code: true, permissions: { select: { permission: { select: { code: true } } } } } } } },
+        stores: { select: { storeId: true } },
+      },
+    });
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      nomComplet: user.fullName,
+      status: user.status,
+      roleCodes: user.roles.map((entry) => entry.role.code).sort(),
+      permissions: [...new Set(user.roles.filter((entry) => ['ADMIN', 'MAGASINIER'].includes(entry.role.code)).flatMap((entry) => entry.role.permissions.map((permission) => permission.permission.code)))].sort(),
+      magasinsAutorises: user.stores.map((entry) => entry.storeId).sort(),
+    }));
   }
   async emailExists(email: string): Promise<boolean> {
     return (await this.prisma.user.count({ where: { email } })) > 0;
