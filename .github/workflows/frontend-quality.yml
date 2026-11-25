@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Configurer npm 11
+        run: npm install --global npm@11.6.2 --no-audit --no-fund
       - name: Installer les dépendances
         id: install
         run: |
