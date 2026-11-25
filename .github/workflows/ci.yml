@@ -1,4 +1,4 @@
-name: CI DSolar-ERP
+name: CI
 on:
   push:
     branches: [main, dev]

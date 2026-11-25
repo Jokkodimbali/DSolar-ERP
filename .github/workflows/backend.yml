@@ -1,4 +1,4 @@
-name: Qualité backend
+name: Backend
 on:
   workflow_call:
 defaults:

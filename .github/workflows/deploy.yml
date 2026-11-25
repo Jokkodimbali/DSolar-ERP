@@ -1,4 +1,4 @@
-name: Livraison DSolar-ERP
+name: Déploiement
 on:
   workflow_call:
     inputs:

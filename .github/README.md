@@ -29,7 +29,7 @@ Une erreur dans l'un des deux pipelines bloque le contrôle global et l'assembla
 - dev : développement et validation complète, aucune production.
 - Pull request vers dev ou main : mêmes validations, aucun déploiement de production.
 - main : livraison du commit validé, aucune publication automatique sans demande explicite.
-- Actions > CI DSolar-ERP > Run workflow > main > deploy_production : true : demande de mise en production après nouvelle validation complète.
+- Actions > CI > Run workflow > main > deploy_production : true : demande de mise en production après nouvelle validation complète.
 
 Configurer une règle de protection de main et dev dans GitHub, avec PR et statut obligatoire **Contrôle qualité global** (sélectionner le nom effectivement affiché dans les checks). Configurer l'environnement GitHub production avec reviewers requis et restriction à main ; ces protections dépendent des paramètres et de l'offre GitHub, et ne sont pas créées par YAML. Ne pas donner de secrets de production aux jobs CI.
 

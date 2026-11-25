@@ -1,4 +1,4 @@
-name: Qualité frontend
+name: Frontend
 on:
   workflow_call:
 permissions:
