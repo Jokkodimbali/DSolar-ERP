@@ -55,11 +55,7 @@ export const reports: readonly ReportDefinition[] = [
     path: 'top-products',
     rows: {
       key: 'items',
-      fields: [
-        ['sku', 'Référence', 'text'],
-        ['name', 'Produit', 'text'],
-        quantity,
-      ],
+      fields: [['sku', 'Référence', 'text'], ['name', 'Produit', 'text'], quantity],
     },
   },
   {

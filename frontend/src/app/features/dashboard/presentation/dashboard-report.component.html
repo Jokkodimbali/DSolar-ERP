@@ -14,7 +14,12 @@
     @if (definition().path === 'top-products' || definition().path === 'recent-activity') {
       <label>
         Nombre de résultats
-        <select #limitSelect [value]="limit()" [disabled]="loading()" (change)="changeLimit(limitSelect.value)">
+        <select
+          #limitSelect
+          [value]="limit()"
+          [disabled]="loading()"
+          (change)="changeLimit(limitSelect.value)"
+        >
           @for (item of [10, 20, 50]; track item) {
             <option [value]="item">{{ item }}</option>
           }
