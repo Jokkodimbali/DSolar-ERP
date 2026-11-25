@@ -63,3 +63,7 @@ L'écran /stocks présente quatre compteurs de références (pas de somme de pi�
 ## Transferts et inventaires physiques
 
 Les pages /stocks/transferts et /stocks/inventaires partagent les en-têtes, panneaux, tableaux et confirmations. Les listes sont paginées par magasin et filtrées par le serveur. Les réceptions sont incrémentales et conservent leur clé d'opération pendant une tentative ; la validation et les transitions restent exclusivement sous contrôle de NestJS. Les comptages sont enregistrés ligne par ligne et la validation régularise les écarts en transaction.
+
+## Renforcement de la gestion des stocks
+
+Les cartes affichent des compteurs de références (endpoint summary) et le tableau principal applique la recherche, les filtres et la pagination via /stock/search. Un détail du produit recharge le solde individuel. L'historique des transferts reste consultable pour les magasins inactifs dans le périmètre déjà autorisé, sans droit supplémentaire de mutation. Les commandes d'ajustement et de réception sont conservées avant l'envoi dans sessionStorage, par acteur et par opération ; aucune réexécution automatique, aucun jeton d'authentification. La reprise est limitée au même onglet, y compris après actualisation. Un inventaire ouvert compare désormais la révision physique et le périmètre des produits ; une session ancienne sans révision doit être annulée et recréée. Les nouvelles contraintes SQL et les index nécessitent la migration 20261213_stock_integrity_revision.

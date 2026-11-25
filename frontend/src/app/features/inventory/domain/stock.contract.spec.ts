@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adjustmentInput, isZero, parseStock, quantityInput, parseStockPage, parseStockSummary } from './stock.contract';
+import { adjustmentInput, isZero, parseStock, quantityInput, parseStockPage, parseStockSummary, parsePendingAdjustment } from './stock.contract';
 
 const id = 'c31ac59c-8148-4664-8745-496a9618f202';
 const item = {
@@ -42,6 +42,7 @@ describe('Contrats de stock', () => {
       reason: ' Stock initial ',
       operationKey: id,
     };
+    expect(parsePendingAdjustment(input)).toEqual({ ...input, quantity: '1.250', reason: 'Stock initial' });
     expect(adjustmentInput(input)).toEqual({ ...input, quantity: '1.250', reason: 'Stock initial' });
     expect(() => adjustmentInput({ ...input, reason: 'abc' })).toThrow();
   });
