@@ -60,7 +60,7 @@ jobs:
     name: Contrats API
     needs: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16
@@ -126,3 +126,37 @@ jobs:
           done
           curl --silent --fail http://127.0.0.1:3100/api/v1/health > /dev/null
           npm test -- --run src/app/features/auth/infrastructure/auth.integration.spec.ts
+
+      - name: Installer Chromium de test
+        run: |
+          npm install --prefix "$RUNNER_TEMP/dsolar-browser" --no-save --no-package-lock --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/dsolar-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Tester les parcours et le responsive
+        env:
+          DSOLAR_BROWSER_DIR: ${{ runner.temp }}/dsolar-browser
+          DSOLAR_SCREENSHOTS: ${{ runner.temp }}/dsolar-screenshots
+        run: |
+          set -euo pipefail
+          (cd ../backend && exec node dist/main.js) > "$RUNNER_TEMP/dsolar-browser-api.log" 2>&1 &
+          api=$!
+          trap 'kill "$api" "${ui:-}" 2>/dev/null || true' EXIT
+          printf '%s\n' '{"/api":{"target":"http://127.0.0.1:3100","secure":false,"changeOrigin":false}}' > "$RUNNER_TEMP/dsolar-browser-proxy.json"
+          ./node_modules/.bin/ng serve --host localhost --port 4200 --proxy-config "$RUNNER_TEMP/dsolar-browser-proxy.json" > "$RUNNER_TEMP/dsolar-browser-ui.log" 2>&1 &
+          ui=$!
+          for attempt in $(seq 1 90); do
+            if curl --silent --fail http://localhost:4200/api/v1/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://localhost:4200/api/v1/health > /dev/null
+          node scripts/browser-smoke.mjs
+      - name: Publier les captures de validation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-browser-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/dsolar-screenshots/
+            ${{ runner.temp }}/dsolar-browser-api.log
+            ${{ runner.temp }}/dsolar-browser-ui.log
+          if-no-files-found: ignore
+          retention-days: 14
