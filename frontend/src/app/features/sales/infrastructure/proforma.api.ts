@@ -13,7 +13,9 @@ export class ProformaApi {
   options() {
     return forkJoin({
       customers: this.http.get<unknown>(apiPath('/customers')).pipe(map(parseOptions)),
-      products: this.http.get<unknown>(apiPath('/products'), { params: { active: 'true' } }).pipe(map(parseOptions)),
+      products: this.http
+        .get<unknown>(apiPath('/products'), { params: { active: 'true' } })
+        .pipe(map(parseOptions)),
       stores: this.stores.list(true),
     });
   }

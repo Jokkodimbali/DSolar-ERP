@@ -299,14 +299,16 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       if (!customer || !product) throw new Error('Références manquantes.');
       const mine = await request('/stores/mine', 'GET', undefined, token);
       expect(parseStores(mine.data).some((entry) => entry.id === store.id)).toBe(true);
-      const input = proformaInput(customer.id, [{
-        storeId: store.id,
-        productId: product.id,
-        quantity: '2',
-        unitPrice: '1000',
-        discount: '0',
-        taxRate: '18',
-      }]);
+      const input = proformaInput(customer.id, [
+        {
+          storeId: store.id,
+          productId: product.id,
+          quantity: '2',
+          unitPrice: '1000',
+          discount: '0',
+          taxRate: '18',
+        },
+      ]);
       const invalidDiscount = {
         ...input,
         lines: input.lines.map((line) => ({ ...line, discount: 10 })),

@@ -18,8 +18,8 @@ import { SessionService } from '../features/auth/application/session.service';
   template: ` <div class="workspace" [class.menu-open]="menuOpen()">
     <aside class="sidebar" aria-label="Navigation principale">
       <a class="brand" routerLink="/" (click)="menuOpen.set(false)"
-        ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri" /></a
-      >
+        ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri"
+      /></a>
       <p class="nav-label">ESPACE DE TRAVAIL</p>
       <nav>
         <a
@@ -55,11 +55,21 @@ import { SessionService } from '../features/auth/application/session.service';
         >
           <app-ui-icon name="menu" /><span class="sr-only">Menu</span>
         </button>
-        <span class="topbar-title"><img class="mobile-company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri" /><span class="desktop-brand">DSolar<span class="brand-accent">-ERP</span></span></span>
+        <span class="topbar-title"
+          ><img
+            class="mobile-company-logo"
+            src="d-solar-and-agri.svg"
+            width="245"
+            height="160"
+            alt="D-Solar and Agri"
+          /><span class="desktop-brand">DSolar<span class="brand-accent">-ERP</span></span></span
+        >
         <app-global-search />
         <div class="user-actions">
           @if (session.can('sales.manage', 'sales.read', 'products.read', 'stores.read')) {
-            <a class="primary new-sale-action" routerLink="/ventes/nouvelle" (click)="menuOpen.set(false)">+ Nouvelle vente</a>
+            <a class="primary new-sale-action" routerLink="/ventes/nouvelle" (click)="menuOpen.set(false)"
+              >+ Nouvelle vente</a
+            >
           }
           <app-notifications />
           <a class="account-chip" routerLink="/mon-compte" aria-label="Mon compte"

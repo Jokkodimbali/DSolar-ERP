@@ -12,7 +12,8 @@ import { proformaInput, type CreatedProforma, type SaleOption } from '../domain/
 import { ProformaApi } from '../infrastructure/proforma.api';
 
 function lineForm() {
-  const field = (value = '') => new FormControl(value, { nonNullable: true, validators: [Validators.required] });
+  const field = (value = '') =>
+    new FormControl(value, { nonNullable: true, validators: [Validators.required] });
   return new FormGroup({
     productId: field(),
     storeId: field(),
@@ -53,17 +54,20 @@ export class NewSalePage {
     if (this.loading() || this.busy()) return;
     this.loading.set(true);
     this.error.set('');
-    this.api.options().pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.loading.set(false)),
-    ).subscribe({
-      next: ({ customers, products, stores }) => {
-        this.customers.set(customers);
-        this.products.set(products);
-        this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .options()
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ customers, products, stores }) => {
+          this.customers.set(customers);
+          this.products.set(products);
+          this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   add(): void {
@@ -75,19 +79,28 @@ export class NewSalePage {
   }
 
   save(): void {
-    if (this.busy() || this.loading() || this.created() || !this.session.can('sales.manage', 'sales.read', 'products.read', 'stores.read')) return;
+    if (
+      this.busy() ||
+      this.loading() ||
+      this.created() ||
+      !this.session.can('sales.manage', 'sales.read', 'products.read', 'stores.read')
+    )
+      return;
     this.form.markAllAsTouched();
     this.error.set('');
     if (this.form.invalid) {
-      this.error.set('Renseignez le client, le magasin, le produit, les quantités, les prix et le taux fiscal.');
+      this.error.set(
+        'Renseignez le client, le magasin, le produit, les quantités, les prix et le taux fiscal.',
+      );
       return;
     }
     const value = this.form.getRawValue();
     if (
       !this.customers().some((item) => item.id === value.customerId) ||
-      value.lines.some((line) =>
-        !this.products().some((item) => item.id === line.productId) ||
-        !this.stores().some((item) => item.id === line.storeId),
+      value.lines.some(
+        (line) =>
+          !this.products().some((item) => item.id === line.productId) ||
+          !this.stores().some((item) => item.id === line.storeId),
       )
     ) {
       this.error.set('Sélectionnez uniquement des références et magasins autorisés.');
@@ -97,16 +110,19 @@ export class NewSalePage {
       const input = proformaInput(value.customerId, value.lines);
       this.busy.set(true);
       this.form.disable();
-      this.api.create(input).pipe(
-        takeUntilDestroyed(this.destroy),
-        finalize(() => {
-          this.busy.set(false);
-          if (!this.created()) this.form.enable();
-        }),
-      ).subscribe({
-        next: (created) => this.created.set(created),
-        error: (error: unknown) => this.error.set(errorMessage(error)),
-      });
+      this.api
+        .create(input)
+        .pipe(
+          takeUntilDestroyed(this.destroy),
+          finalize(() => {
+            this.busy.set(false);
+            if (!this.created()) this.form.enable();
+          }),
+        )
+        .subscribe({
+          next: (created) => this.created.set(created),
+          error: (error: unknown) => this.error.set(errorMessage(error)),
+        });
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : 'Données commerciales invalides.');
     }
