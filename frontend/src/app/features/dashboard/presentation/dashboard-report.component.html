@@ -37,6 +37,27 @@
   <app-feedback [message]="error()" kind="error" />
   <app-feedback [message]="exportError()" kind="error" />
   @if (data(); as report) {
+    @if (report.chart; as chart) {
+      <div class="revenue-chart" aria-label="Facturation mensuelle, montants exacts dans le tableau ci-dessous">
+        @for (bar of chart; track $index) {
+          <div class="revenue-column">
+            <div class="revenue-track" [class.negative]="bar.negative" [attr.title]="bar.label + ' : ' + bar.amount">
+              <div class="revenue-positive">
+                @if (!bar.negative) {
+                  <div class="revenue-bar" [style.height.%]="bar.height"></div>
+                }
+              </div>
+              <div class="revenue-negative">
+                @if (bar.negative) {
+                  <div class="revenue-bar" [style.height.%]="bar.height"></div>
+                }
+              </div>
+            </div>
+            <span>{{ bar.label }}</span>
+          </div>
+        }
+      </div>
+    }
     @if (report.metrics.length) {
       <dl class="metrics">
         @for (metric of report.metrics; track metric.label) {

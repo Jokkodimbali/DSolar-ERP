@@ -130,6 +130,7 @@ export interface ReportView {
   readonly metrics: readonly { label: string; value: string }[];
   readonly headers: readonly string[];
   readonly rows: readonly (readonly string[])[];
+  readonly chart?: readonly { label: string; amount: string; height: number; negative: boolean }[];
 }
 
 function invalid(): never {
@@ -186,5 +187,31 @@ export function parseReport(value: unknown, definition: ReportDefinition, year: 
     if (!isRecord(item)) return invalid();
     return fields.fields.map(([key, , kind]) => cell(item[key], kind));
   });
-  return { metrics, headers: fields.fields.map(([, label]) => label), rows };
+  const headers = fields.fields.map(([, label]) => label);
+  if (definition.path !== 'monthly-revenue') return { metrics, headers, rows };
+  const amounts = items.map((item: unknown) => {
+    if (!isRecord(item) || typeof item['revenue'] !== 'string') return invalid();
+    return item['revenue'];
+  });
+  return { metrics, headers, rows, chart: revenueChart(amounts) };
+}
+
+export function revenueChart(amounts: readonly string[]) {
+  // Calcul uniquement graphique : les montants exacts restent les chaînes du serveur.
+  const cents = amounts.map((amount) => {
+    if (!/^-?\d+(?:\.\d{1,2})?$/.test(amount)) return invalid();
+    const [whole = '0', fraction = ''] = amount.replace('-', '').split('.');
+    const magnitude = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+    return amount.startsWith('-') ? -magnitude : magnitude;
+  });
+  const abs = (value: bigint) => (value < 0n ? -value : value);
+  const peak = cents.reduce((max, value) => (abs(value) > max ? abs(value) : max), 0n);
+  return cents.map((value, index) => ({
+    label: new Intl.DateTimeFormat('fr-SN', { month: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2000, index, 1)),
+    ),
+    amount: formatMoney(amounts[index] ?? '0'),
+    height: peak === 0n ? 0 : Number((abs(value) * 10000n) / peak) / 100,
+    negative: value < 0n,
+  }));
 }

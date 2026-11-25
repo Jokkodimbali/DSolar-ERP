@@ -23,3 +23,5 @@ Aucun dégradé. Toute couleur de statut doit être accompagnée d'un libellé.
 La proposition UI/UX DSolar-ERP responsive fournie par le propriétaire du projet est la référence visuelle : navigation claire, fond blanc cassé, accent framboise, pictogrammes linéaires, cartes KPI, graphique et panneaux d'activité, navigation mobile basse. Pas de dégradés.
 
 Les indicateurs sont uniquement ceux réellement retournés par les API. Les liens de navigation sont limités aux modules effectivement disponibles et autorisés. Le logo officiel, la recherche globale, les notifications et les raccourcis métier restent à intégrer.
+
+Le graphique de facturation présente les 12 mois de l'année sélectionnée depuis l'API monthly-revenue. La table conserve les montants exacts ; seules les proportions graphiques sont calculées côté interface, avec une arithmétique entière. Les montants négatifs restent distincts sous l'axe zéro.

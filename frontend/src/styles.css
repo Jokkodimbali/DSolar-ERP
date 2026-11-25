@@ -540,3 +540,62 @@ app-ui-icon {
     font-size: 0.75rem;
   }
 }
+
+.revenue-chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 5px;
+  margin: 20px 0;
+  padding: 12px 0;
+}
+.revenue-column {
+  text-align: center;
+  min-width: 0;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.revenue-track {
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+.revenue-positive,
+.revenue-negative {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+.revenue-positive {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--line);
+}
+.revenue-negative {
+  display: none;
+}
+.revenue-chart:has(.negative) .revenue-negative {
+  display: flex;
+  align-items: flex-start;
+}
+.revenue-bar {
+  width: 68%;
+  max-width: 24px;
+  background: #e99bb3;
+  border-radius: 4px 4px 0 0;
+}
+.revenue-track:hover .revenue-bar {
+  background: var(--accent);
+}
+.revenue-negative .revenue-bar {
+  background: var(--danger);
+  border-radius: 0 0 4px 4px;
+}
+@media (max-width: 540px) {
+  .revenue-chart {
+    gap: 2px;
+  }
+  .revenue-column {
+    font-size: 0.55rem;
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseReport, reports } from './dashboard-reports.contract';
+import { parseReport, reports, revenueChart } from './dashboard-reports.contract';
 
 function report(path: string) {
   const definition = reports.find((item) => item.path === path);
@@ -50,5 +50,17 @@ describe('Contrats des rapports du tableau de bord', () => {
         2026,
       ),
     ).toThrow();
+  });
+});
+
+describe('Graphique de facturation', () => {
+  it('conserve les montants exacts et normalise uniquement la hauteur des barres', () => {
+    const chart = revenueChart(['9007199254740993.01', '0.00', '-100.00']);
+    expect(chart[0]?.height).toBe(100);
+    expect(chart[0]?.amount).toBe('9\u202f007\u202f199\u202f254\u202f740\u202f993,01 FCFA');
+    expect(chart[1]?.height).toBe(0);
+    expect(chart[2]?.negative).toBe(true);
+    expect(revenueChart(['0.00'])[0]?.height).toBe(0);
+    expect(() => revenueChart(['invalide'])).toThrow();
   });
 });
