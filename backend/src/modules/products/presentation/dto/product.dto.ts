@@ -1,6 +1,6 @@
 import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { ApiProperty, ApiPropertyOptional, PartialType, OmitType } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
 export class CreateProductDto {
   @ApiProperty({ example: 'PAN-550W' })
   @IsString()
@@ -18,9 +18,9 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   @SwaggerField({ required: false, type: String })
-  description?: string;
+  description?: string | null;
   @ApiPropertyOptional({ example: 'PIECE' })
-  @IsOptional()
+  @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
   @IsString()
   @MaxLength(40)
   @SwaggerField({ required: false, type: String, maxLength: 40 })
@@ -28,22 +28,22 @@ export class CreateProductDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
-  @SwaggerField({ required: false, type: String, format: 'uuid' })
-  categoryId?: string;
+  @SwaggerField({ required: false, type: String, format: 'uuid', nullable: true })
+  categoryId?: string | null;
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
-  @SwaggerField({ required: false, type: String, format: 'uuid' })
-  brandId?: string;
+  @SwaggerField({ required: false, type: String, format: 'uuid', nullable: true })
+  brandId?: string | null;
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
-  @SwaggerField({ required: false, type: String, format: 'uuid' })
-  taxRegimeId?: string;
+  @SwaggerField({ required: false, type: String, format: 'uuid', nullable: true })
+  taxRegimeId?: string | null;
   @ApiPropertyOptional()
-  @IsOptional()
+  @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
   @IsBoolean()
   @SwaggerField({ required: false, type: Boolean })
   isSolarPlant?: boolean;
 }
-export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['sku'] as const)) {}
+export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['sku'] as const), { skipNullProperties: false }) {}

@@ -13,11 +13,11 @@ export interface ProductRecord {
 export interface CreateProduct {
   sku: string;
   name: string;
-  description?: string;
+  description?: string | null;
   unit?: string;
-  categoryId?: string;
-  brandId?: string;
-  taxRegimeId?: string;
+  categoryId?: string | null;
+  brandId?: string | null;
+  taxRegimeId?: string | null;
   isSolarPlant?: boolean;
 }
 export interface UpdateProduct {
