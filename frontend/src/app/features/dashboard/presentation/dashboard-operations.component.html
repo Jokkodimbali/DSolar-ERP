@@ -1,0 +1,79 @@
+<div class="dashboard-grid">
+  @if (session.can('sales.read')) {
+    <section class="panel">
+      <div class="page-heading">
+        <h2 class="ui-section-title"><app-ui-icon name="box" /> Dernières commandes accessibles</h2>
+        <button type="button" class="secondary" [disabled]="ordersLoading()" (click)="loadOrders()">
+          Actualiser
+        </button>
+      </div>
+      <app-feedback [message]="ordersLoading() ? 'Chargement des commandes…' : ''" />
+      <app-feedback [message]="ordersError()" kind="error" />
+      @if (orders(); as items) {
+        @if (items.length) {
+          <div class="ui-table" role="region" tabindex="0" aria-label="Dernières commandes">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Référence</th>
+                  <th scope="col">Montant</th>
+                  <th scope="col">Statut</th>
+                  <th scope="col">Paiement</th>
+                  <th scope="col">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (order of items; track order.id) {
+                  <tr>
+                    <td>{{ order.number }}</td>
+                    <td>{{ order.total }}</td>
+                    <td>{{ order.status }}</td>
+                    <td>{{ order.paymentStatus }}</td>
+                    <td>{{ order.createdAt }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <app-empty-state heading="Aucune commande accessible" description="Les dernières commandes autorisées apparaîtront ici." />
+        }
+      }
+    </section>
+  }
+  @if (session.can('stores.read', 'inventory.read')) {
+    <section class="panel">
+      <div class="page-heading">
+        <h2 class="ui-section-title"><app-ui-icon name="store" /> Alertes de stock</h2>
+        <button type="button" class="secondary" [disabled]="alertsLoading()" (click)="loadAlerts()">
+          Actualiser
+        </button>
+      </div>
+      <p class="muted small">Seuil de disponibilité : 5 unités par référence et magasin actif.</p>
+      <app-feedback [message]="alertsLoading() ? 'Chargement des alertes…' : ''" />
+      <app-feedback [message]="alertsError()" kind="error" />
+      @if (alerts(); as stores) {
+        @for (store of stores; track store.storeId) {
+          <details class="stock-alert-group" [open]="store.items.length > 0">
+            <summary>{{ store.storeName }} — {{ store.items.length }} alerte(s)</summary>
+            @for (item of store.items; track item.productId) {
+              <div class="stock-alert-item">
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <p class="muted small">{{ item.sku }} · {{ item.available }} {{ item.unit }} disponible(s)</p>
+                </div>
+                <span class="ui-status" [class.stock-critical]="item.severity === 'OUT_OF_STOCK'">
+                  {{ item.severity === 'OUT_OF_STOCK' ? 'Rupture' : 'Stock faible' }}
+                </span>
+              </div>
+            } @empty {
+              <p class="muted small">Aucune alerte enregistrée.</p>
+            }
+          </details>
+        } @empty {
+          <app-empty-state heading="Aucun magasin actif" description="Les alertes sont calculées par le serveur pour les magasins actifs accessibles." />
+        }
+      }
+    </section>
+  }
+</div>

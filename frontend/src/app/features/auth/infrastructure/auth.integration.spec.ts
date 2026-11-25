@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { apiPath, decodeSuccessMessage, parseErrorMessage } from '../../../core/api/api-contract';
 import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.contract';
+import { parseAlerts, parseRecentOrders } from '../../dashboard/domain/dashboard-operations.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
@@ -146,6 +147,14 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const store = parseStore(storeResponse.data);
     expect(store.status).toBe('ACTIVE');
     const path = '/stores/' + store.id;
+    const alerts = await request('/inventory' + path + '/alerts?threshold=5', 'GET', undefined, admin.jetonAcces);
+    expect(alerts.status).toBe(200);
+    expect(parseAlerts(alerts.data, store.id, store.name).items).toEqual([]);
+    expect((await request('/inventory' + path + '/alerts?threshold=5', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    const recent = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, admin.jetonAcces);
+    expect(recent.status).toBe(200);
+    expect(() => parseRecentOrders(recent.data)).not.toThrow();
+    expect((await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
     expect(parseStores((await request('/stores', 'GET', undefined, admin.jetonAcces)).data)).toContainEqual(
       store,
     );

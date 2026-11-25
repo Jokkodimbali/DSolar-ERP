@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { DashboardApi } from '../infrastructure/dashboard.api';
 import { type Overview, formatMoney } from '../domain/dashboard.contract';
+import { DashboardOperationsComponent } from './dashboard-operations.component';
 import { DashboardReportComponent } from './dashboard-report.component';
 import { reports } from '../domain/dashboard-reports.contract';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
@@ -11,7 +12,7 @@ import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { errorMessage } from '../../../core/api/http-error';
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DashboardReportComponent, PageHeaderComponent, FeedbackComponent, KpiCardComponent],
+  imports: [DashboardReportComponent, DashboardOperationsComponent, PageHeaderComponent, FeedbackComponent, KpiCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <app-page-header
       eyebrow="VUE D’ENSEMBLE"
@@ -87,6 +88,7 @@ import { errorMessage } from '../../../core/api/http-error';
         <app-dashboard-report [definition]="report" />
       }
     </div>
+    <app-dashboard-operations />
     <div class="dashboard-reports">
       @for (report of otherReports; track report.path) {
         <app-dashboard-report [definition]="report" />

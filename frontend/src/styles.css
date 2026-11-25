@@ -599,3 +599,37 @@ app-ui-icon {
     font-size: 0.55rem;
   }
 }
+
+.ui-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.stock-alert-group {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+.stock-alert-group summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+.stock-alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0;
+}
+.stock-alert-item p {
+  margin: 4px 0 0;
+}
+.stock-alert-item .ui-status {
+  color: #92400e;
+  background: #fff7ed;
+}
+.stock-alert-item .stock-critical {
+  color: var(--danger);
+  background: var(--accent-soft);
+}
