@@ -1,8 +1,24 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, map, of, shareReplay, switchMap, tap, throwError, type Observable } from 'rxjs';
+import {
+  catchError,
+  finalize,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+  tap,
+  throwError,
+  type Observable,
+} from 'rxjs';
 import { AuthApi } from '../infrastructure/auth.api';
-import { type AuthResult, type LoginInput, type Permission, type PublicIdentity, hasPermissions } from '../domain/auth.contract';
+import {
+  type AuthResult,
+  type LoginInput,
+  type Permission,
+  type PublicIdentity,
+  hasPermissions,
+} from '../domain/auth.contract';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -91,9 +107,8 @@ export class SessionService {
   logout(): Observable<unknown> {
     if (this.closing()) return of(null);
     this.closing.set(true);
-    const pending: Observable<string | null> = this.refreshing?.epoch === this.sessionEpoch()
-      ? this.refreshing.result
-      : of(null);
+    const pending: Observable<string | null> =
+      this.refreshing?.epoch === this.sessionEpoch() ? this.refreshing.result : of(null);
     return pending.pipe(
       catchError(() => of(null)),
       switchMap(() => {
@@ -102,7 +117,9 @@ export class SessionService {
         return token ? this.api.logout(token) : of(null);
       }),
       catchError((error: unknown) => {
-        this.warning.set('Vous êtes déconnecté de cet appareil. La révocation de la session serveur n’a pas pu être confirmée.');
+        this.warning.set(
+          'Vous êtes déconnecté de cet appareil. La révocation de la session serveur n’a pas pu être confirmée.',
+        );
         return throwError(() => error);
       }),
       finalize(() => {

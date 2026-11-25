@@ -33,12 +33,26 @@ import { errorMessage } from '../../../core/api/http-error';
           <p class="field-error">Saisissez une adresse électronique valide (254 caractères maximum).</p>
         }
         <label for="password">Mot de passe</label
-        ><input id="password" [type]="revealPassword() ? 'text' : 'password'" autocomplete="current-password" formControlName="password" />
-        <button class="password-toggle" type="button" [attr.aria-pressed]="revealPassword()" (click)="revealPassword.set(!revealPassword())">{{ revealPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe' }}</button>
+        ><input
+          id="password"
+          [type]="revealPassword() ? 'text' : 'password'"
+          autocomplete="current-password"
+          formControlName="password"
+        />
+        <button
+          class="password-toggle"
+          type="button"
+          [attr.aria-pressed]="revealPassword()"
+          (click)="revealPassword.set(!revealPassword())"
+        >
+          {{ revealPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe' }}
+        </button>
         @if (form.controls.password.touched && form.controls.password.invalid) {
           <p class="field-error">Le mot de passe est obligatoire (1 024 caractères maximum).</p>
         }
-        @if (notice()) { <p class="field-error" role="status">{{ notice() }}</p> }
+        @if (notice()) {
+          <p class="field-error" role="status">{{ notice() }}</p>
+        }
         @if (error()) {
           <p class="field-error" role="alert">{{ error() }}</p>
         }
@@ -78,7 +92,10 @@ export class LoginPage {
             this.session.can('sales.read', 'users.manage') ? '/tableau-de-bord' : '/',
           );
         },
-        error: (error: unknown) => { this.form.controls.password.reset(); this.error.set(errorMessage(error)); },
+        error: (error: unknown) => {
+          this.form.controls.password.reset();
+          this.error.set(errorMessage(error));
+        },
       });
   }
 }

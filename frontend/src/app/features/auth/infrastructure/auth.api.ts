@@ -10,7 +10,9 @@ export class AuthApi {
     return this.http.post<unknown>(apiPath('/auth/login'), input).pipe(timeout(15000), map(parseAuthResult));
   }
   refresh(refreshToken: string) {
-    return this.http.post<unknown>(apiPath('/auth/refresh'), { refreshToken }).pipe(timeout(15000), map(parseAuthResult));
+    return this.http
+      .post<unknown>(apiPath('/auth/refresh'), { refreshToken })
+      .pipe(timeout(15000), map(parseAuthResult));
   }
   logout(refreshToken: string) {
     return this.http.post<unknown>(apiPath('/auth/logout'), { refreshToken }).pipe(timeout(15000));

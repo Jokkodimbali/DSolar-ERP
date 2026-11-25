@@ -5,7 +5,10 @@ export default [
   { ignores: ['dist/**', '.angular/**', 'node_modules/**', 'coverage/**', 'out-tsc/**'] },
   {
     files: ['src/**/*.ts'],
-    languageOptions: { parser, parserOptions: { project: './tsconfig.json', tsconfigRootDir: import.meta.dirname } },
+    languageOptions: {
+      parser,
+      parserOptions: { project: './tsconfig.json', tsconfigRootDir: import.meta.dirname },
+    },
     plugins: { '@typescript-eslint': ts },
     rules: {
       ...ts.configs.recommended.rules,

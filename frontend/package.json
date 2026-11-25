@@ -8,7 +8,7 @@
   "scripts": {
     "start": "ng serve --host localhost",
     "build": "ng build",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src --max-warnings=0",
     "test": "vitest run",
     "format": "prettier --write src angular.json tsconfig*.json package.json proxy.conf.json eslint.config.mjs .prettierrc.json",

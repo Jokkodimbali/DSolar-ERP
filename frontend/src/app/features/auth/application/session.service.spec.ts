@@ -13,7 +13,13 @@ import { RetryRequiredError } from '../../../core/api/http-error';
 const result = (id: string, token: string, refresh: string): AuthResult => ({
   jetonAcces: token,
   jetonRenouvellement: refresh,
-  utilisateur: { id, email: 'test@example.test', nomComplet: 'Compte test', permissions: ['inventory.read'], magasinsAutorises: ['store'] },
+  utilisateur: {
+    id,
+    email: 'test@example.test',
+    nomComplet: 'Compte test',
+    permissions: ['inventory.read'],
+    magasinsAutorises: ['store'],
+  },
 });
 
 function setup() {
@@ -23,18 +29,22 @@ function setup() {
   const api = {
     login: vi.fn(() => of(initial)),
     refresh: vi.fn(() => pending.asObservable()),
-    logout: vi.fn((_token: string) => of({ message: 'Déconnexion effectuée.' })),
+    logout: vi.fn<(token: string) => ReturnType<AuthApi['logout']>>(() => of({ message: 'Déconnexion effectuée.' })),
   };
   const navigateByUrl = vi.fn(async () => true);
-  const injector = Injector.create({ providers: [
-    { provide: AuthApi, useValue: api },
-    { provide: Router, useValue: { navigateByUrl } },
-    { provide: SessionService, useFactory: () => new SessionService() },
-  ] });
+  const injector = Injector.create({
+    providers: [
+      { provide: AuthApi, useValue: api },
+      { provide: Router, useValue: { navigateByUrl } },
+      { provide: SessionService, useFactory: () => new SessionService() },
+    ],
+  });
   const session = injector.get(SessionService);
   const login = () => firstValueFrom(session.login({ email: 'test@example.test', password: 'test' }));
   const request = (method: string, path: string, next: HttpHandlerFn) =>
-    firstValueFrom(runInInjectionContext(injector, () => authInterceptor(new HttpRequest(method, path), next)));
+    firstValueFrom(
+      runInInjectionContext(injector, () => authInterceptor(new HttpRequest(method, path, null), next)),
+    );
   return { api, session, pending, initial, rotated, login, request, navigateByUrl };
 }
 
@@ -90,7 +100,11 @@ describe('Cycle de session et intégration HTTP', () => {
   it('ne renouvelle pas une session sur une erreur 403', async () => {
     const { login, request, api } = setup();
     await login();
-    await expect(request('GET', '/api/v1/dashboard/overview', () => throwError(() => new HttpErrorResponse({ status: 403 })))).rejects.toMatchObject({ status: 403 });
+    await expect(
+      request('GET', '/api/v1/dashboard/overview', () =>
+        throwError(() => new HttpErrorResponse({ status: 403 })),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
     expect(api.refresh).not.toHaveBeenCalled();
   });
 
