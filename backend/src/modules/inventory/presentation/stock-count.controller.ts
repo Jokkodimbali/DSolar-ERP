@@ -23,7 +23,11 @@ export class StockCountController {
 
   @Get('stores/:storeId/search')
   @RequirePermissions('inventory.read')
-  list(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: PageQueryDto) {
+  list(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @CurrentUserId() actorId: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.counts.list(storeId, actorId, query);
   }
 

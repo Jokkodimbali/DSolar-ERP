@@ -6,7 +6,15 @@ import { CreateTransferInput, ReceiveTransferInput, TransferRepository } from '.
 
 const canonicalJson = (value: unknown): string => {
   if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
-  if (value !== null && typeof value === 'object') return '{' + Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => JSON.stringify(key) + ':' + canonicalJson(item)).join(',') + '}';
+  if (value !== null && typeof value === 'object')
+    return (
+      '{' +
+      Object.entries(value)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => JSON.stringify(key) + ':' + canonicalJson(item))
+        .join(',') +
+      '}'
+    );
   return JSON.stringify(value) ?? 'null';
 };
 
@@ -133,23 +141,39 @@ export class PrismaTransfersRepository implements TransferRepository {
   }
   list(storeId: string, actorId: string, query: ListCriteria) {
     const { page, limit, skip } = pageBounds(query);
-    return this.prisma.$transaction(async (tx) => {
-      await this.access(tx, storeId, actorId);
-      const search = query.search?.trim();
-      const where: Prisma.StockTransferWhereInput = {
-        origin: { status: 'ACTIVE' }, destination: { status: 'ACTIVE' },
-        OR: [{ originId: storeId }, { destinationId: storeId }],
-        ...(search ? { number: { contains: search, mode: 'insensitive' } } : {}),
-      };
-      const [total, items] = await Promise.all([
-        tx.stockTransfer.count({ where }),
-        tx.stockTransfer.findMany({
-          where, skip, take: limit, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-          select: { id: true, number: true, status: true, originId: true, destinationId: true, createdAt: true, origin: { select: { name: true } }, destination: { select: { name: true } } },
-        }),
-      ]);
-      return pageResult(items, total, page, limit);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+    return this.prisma.$transaction(
+      async (tx) => {
+        await this.access(tx, storeId, actorId);
+        const search = query.search?.trim();
+        const where: Prisma.StockTransferWhereInput = {
+          origin: { status: 'ACTIVE' },
+          destination: { status: 'ACTIVE' },
+          OR: [{ originId: storeId }, { destinationId: storeId }],
+          ...(search ? { number: { contains: search, mode: 'insensitive' } } : {}),
+        };
+        const [total, items] = await Promise.all([
+          tx.stockTransfer.count({ where }),
+          tx.stockTransfer.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            select: {
+              id: true,
+              number: true,
+              status: true,
+              originId: true,
+              destinationId: true,
+              createdAt: true,
+              origin: { select: { name: true } },
+              destination: { select: { name: true } },
+            },
+          }),
+        ]);
+        return pageResult(items, total, page, limit);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   get(id: string, actorId: string) {
@@ -157,7 +181,15 @@ export class PrismaTransfersRepository implements TransferRepository {
       async (tx) => {
         const transfer = await tx.stockTransfer.findFirst({
           where: { id, origin: { status: 'ACTIVE' }, destination: { status: 'ACTIVE' } },
-          include: { origin: { select: { name: true } }, destination: { select: { name: true } }, lines: { include: { product: { select: { name: true, sku: true, unit: true } } } }, events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { id: true, action: true, createdAt: true } } },
+          include: {
+            origin: { select: { name: true } },
+            destination: { select: { name: true } },
+            lines: { include: { product: { select: { name: true, sku: true, unit: true } } } },
+            events: {
+              orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              select: { id: true, action: true, createdAt: true },
+            },
+          },
         });
         if (!transfer) throw new NotFoundException('Transfert introuvable ou magasin inactif.');
         const user = await tx.user.findUnique({

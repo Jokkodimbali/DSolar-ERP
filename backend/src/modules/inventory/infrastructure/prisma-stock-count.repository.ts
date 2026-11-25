@@ -97,11 +97,18 @@ export class PrismaStockCountRepository implements StockCountRepository {
       await this.authorize(tx, storeId, actorId);
       const search = query.search?.trim();
       const where: Prisma.InventorySessionWhereInput = {
-        storeId, ...(search ? { status: { contains: search, mode: 'insensitive' } } : {}),
+        storeId,
+        ...(search ? { status: { contains: search, mode: 'insensitive' } } : {}),
       };
       const [total, items] = await Promise.all([
         tx.inventorySession.count({ where }),
-        tx.inventorySession.findMany({ where, skip, take: limit, orderBy: [{ startedAt: 'desc' }, { id: 'desc' }], select: { id: true, storeId: true, status: true, startedAt: true, validatedAt: true } }),
+        tx.inventorySession.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+          select: { id: true, storeId: true, status: true, startedAt: true, validatedAt: true },
+        }),
       ]);
       return pageResult(items, total, page, limit);
     });
@@ -112,7 +119,12 @@ export class PrismaStockCountRepository implements StockCountRepository {
       await this.session(tx, id, actorId);
       return tx.inventorySession.findUniqueOrThrow({
         where: { id },
-        include: { lines: { orderBy: { productId: 'asc' }, include: { product: { select: { name: true, sku: true, unit: true } } } } },
+        include: {
+          lines: {
+            orderBy: { productId: 'asc' },
+            include: { product: { select: { name: true, sku: true, unit: true } } },
+          },
+        },
       });
     });
   }

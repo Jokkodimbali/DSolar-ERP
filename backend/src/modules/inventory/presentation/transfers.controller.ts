@@ -21,7 +21,11 @@ export class TransfersController {
   }
   @Get('stores/:storeId/search')
   @RequirePermissions('inventory.read')
-  list(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: PageQueryDto) {
+  list(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @CurrentUserId() actorId: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.transfers.list(storeId, actorId, query);
   }
 

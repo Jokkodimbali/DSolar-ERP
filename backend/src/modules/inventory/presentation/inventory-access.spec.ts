@@ -21,7 +21,11 @@ describe('Inventory and transfer API authorization', () => {
       read: ['get', 'list'],
       manage: ['create', 'approve', 'ship', 'receive', 'cancel'],
     },
-    { controller: StockCountController, read: ['get', 'list'], manage: ['start', 'record', 'cancel', 'validate'] },
+    {
+      controller: StockCountController,
+      read: ['get', 'list'],
+      manage: ['start', 'record', 'cancel', 'validate'],
+    },
   ];
 
   for (const { controller, read, manage } of policies) {
