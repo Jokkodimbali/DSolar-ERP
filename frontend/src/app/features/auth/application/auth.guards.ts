@@ -5,7 +5,9 @@ import { SessionService } from './session.service';
 export const authenticatedGuard: CanActivateFn = () => {
   const session = inject(SessionService);
   const router = inject(Router);
-  return session.restore().pipe(map((authenticated) => authenticated || router.createUrlTree(['/connexion'])));
+  return session
+    .restore()
+    .pipe(map((authenticated) => authenticated || router.createUrlTree(['/connexion'])));
 };
 export const guestGuard: CanActivateFn = () => {
   const session = inject(SessionService);
@@ -24,4 +26,5 @@ export const saleCreationGuard: CanActivateFn = () =>
 export const ordersReadGuard: CanActivateFn = () =>
   inject(SessionService).can('sales.read') || inject(Router).createUrlTree(['/acces-refuse']);
 export const stockAlertsGuard: CanActivateFn = () =>
-  inject(SessionService).can('stores.read', 'inventory.read') || inject(Router).createUrlTree(['/acces-refuse']);
+  inject(SessionService).can('stores.read', 'inventory.read') ||
+  inject(Router).createUrlTree(['/acces-refuse']);

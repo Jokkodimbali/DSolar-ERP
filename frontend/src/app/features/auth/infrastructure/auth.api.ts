@@ -10,10 +10,12 @@ export class AuthApi {
 
   private browserRequest(path: string, input: object): Observable<unknown> {
     const request = () =>
-      this.http.post<unknown>(apiPath('/auth/browser/' + path), input, {
-        headers: { 'X-DSolar-Browser': '1' },
-        withCredentials: true,
-      }).pipe(timeout(15000));
+      this.http
+        .post<unknown>(apiPath('/auth/browser/' + path), input, {
+          headers: { 'X-DSolar-Browser': '1' },
+          withCredentials: true,
+        })
+        .pipe(timeout(15000));
     // Le verrou sérialise les rotations du cookie entre onglets du même origin.
     return defer(() => {
       if (typeof navigator !== 'undefined' && navigator.locks) {

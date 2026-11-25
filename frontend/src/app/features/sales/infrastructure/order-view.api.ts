@@ -10,12 +10,16 @@ export class OrderViewApi {
   private readonly http = inject(HttpClient);
 
   list(page: number, search: string) {
-    return this.http.get<unknown>(apiPath('/sales-orders/search'), {
-      params: { page, limit: 20, search },
-    }).pipe(map(parseOrderPage));
+    return this.http
+      .get<unknown>(apiPath('/sales-orders/search'), {
+        params: { page, limit: 20, search },
+      })
+      .pipe(map(parseOrderPage));
   }
 
   detail(id: string) {
-    return this.http.get<unknown>(apiPath('/sales-orders/' + storeId(id))).pipe(map((value) => parseOrderDetail(value, id)));
+    return this.http
+      .get<unknown>(apiPath('/sales-orders/' + storeId(id)))
+      .pipe(map((value) => parseOrderDetail(value, id)));
   }
 }

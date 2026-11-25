@@ -5,7 +5,14 @@
       <div class="dashboard-report-heading">
         <h2 class="ui-section-title"><app-ui-icon name="layers" /> Alertes de stock</h2>
         <a class="dashboard-see-all" routerLink="/stocks/alertes">Voir tout →</a>
-        <button type="button" class="dashboard-icon-action" [disabled]="alertsLoading()" (click)="loadAlerts()" aria-label="Actualiser les alertes" title="Actualiser les alertes">
+        <button
+          type="button"
+          class="dashboard-icon-action"
+          [disabled]="alertsLoading()"
+          (click)="loadAlerts()"
+          aria-label="Actualiser les alertes"
+          title="Actualiser les alertes"
+        >
           <app-ui-icon name="refresh" />
         </button>
       </div>
@@ -48,7 +55,14 @@
       <div class="dashboard-report-heading">
         <h2 class="ui-section-title"><app-ui-icon name="cart" /> Dernières commandes</h2>
         <a class="dashboard-see-all" routerLink="/ventes/commandes">Voir tout →</a>
-        <button type="button" class="dashboard-icon-action" [disabled]="ordersLoading()" (click)="loadOrders()" aria-label="Actualiser les commandes" title="Actualiser les commandes">
+        <button
+          type="button"
+          class="dashboard-icon-action"
+          [disabled]="ordersLoading()"
+          (click)="loadOrders()"
+          aria-label="Actualiser les commandes"
+          title="Actualiser les commandes"
+        >
           <app-ui-icon name="refresh" />
         </button>
       </div>
@@ -76,9 +90,20 @@
                     <td>{{ order.customerName }}</td>
                     <td>{{ order.total }}</td>
                     <td>{{ order.status }}</td>
-                    <td><span class="dashboard-payment" [class.paid]="order.paymentStatus === 'Payée'">{{ order.paymentStatus }}</span></td>
+                    <td>
+                      <span class="dashboard-payment" [class.paid]="order.paymentStatus === 'Payée'">{{
+                        order.paymentStatus
+                      }}</span>
+                    </td>
                     <td>{{ order.createdAt }}</td>
-                    <td><a class="dashboard-see-all" [routerLink]="['/ventes/commandes', order.id]" [attr.aria-label]="'Voir la commande ' + order.number">Voir →</a></td>
+                    <td>
+                      <a
+                        class="dashboard-see-all"
+                        [routerLink]="['/ventes/commandes', order.id]"
+                        [attr.aria-label]="'Voir la commande ' + order.number"
+                        >Voir →</a
+                      >
+                    </td>
                   </tr>
                 }
               </tbody>

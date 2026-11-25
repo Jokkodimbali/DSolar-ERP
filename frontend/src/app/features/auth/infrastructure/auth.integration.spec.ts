@@ -97,7 +97,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const period = await request('/dashboard/period?month=2028-02', 'GET', undefined, session.jetonAcces);
       expect(period.status).toBe(200);
       expect(parsePeriod(period.data, '2028-02').days).toHaveLength(29);
-      expect((await request('/dashboard/period?month=2028-13', 'GET', undefined, session.jetonAcces)).status).toBe(400);
+      expect(
+        (await request('/dashboard/period?month=2028-13', 'GET', undefined, session.jetonAcces)).status,
+      ).toBe(400);
       expect((await request('/dashboard/period?month=2028-02')).status).toBe(401);
 
       for (const definition of reports) {

@@ -7,13 +7,21 @@ export function parseOrderPage(value: unknown) {
   if (!isRecord(value) || !isRecord(value['pagination'])) throw new Error('Pagination invalide.');
   const total = value['pagination']['total'];
   const pages = value['pagination']['pages'];
-  if (typeof total !== 'number' || !Number.isSafeInteger(total) || total < 0 ||
-      typeof pages !== 'number' || !Number.isSafeInteger(pages) || pages < 0) throw new Error('Pagination invalide.');
+  if (
+    typeof total !== 'number' ||
+    !Number.isSafeInteger(total) ||
+    total < 0 ||
+    typeof pages !== 'number' ||
+    !Number.isSafeInteger(pages) ||
+    pages < 0
+  )
+    throw new Error('Pagination invalide.');
   return { items: parseRecentOrders(value, 20), total, pages };
 }
 
 export function parseOrderDetail(value: unknown, id: string) {
-  if (!isRecord(value) || value['id'] !== id || !Array.isArray(value['lines'])) throw new Error('Commande invalide.');
+  if (!isRecord(value) || value['id'] !== id || !Array.isArray(value['lines']))
+    throw new Error('Commande invalide.');
   const order = parseRecentOrders({ items: [value] })[0];
   if (!order) throw new Error('Commande invalide.');
   const text = (raw: unknown): string => {
@@ -21,7 +29,8 @@ export function parseOrderDetail(value: unknown, id: string) {
     return raw;
   };
   const lines = value['lines'].map((line: unknown) => {
-    if (!isRecord(line) || !isRecord(line['product']) || !isRecord(line['store'])) throw new Error('Ligne invalide.');
+    if (!isRecord(line) || !isRecord(line['product']) || !isRecord(line['store']))
+      throw new Error('Ligne invalide.');
     const quantity = text(line['quantity']);
     if (!/^\d+(?:\.\d{1,3})?$/.test(quantity)) throw new Error('Quantité invalide.');
     return {
