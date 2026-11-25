@@ -1,99 +1,290 @@
-<app-page-header eyebrow="CATALOGUE" heading="Produits" description="Gérez vos références, leurs caractéristiques et leur tarification.">
+<app-page-header
+  eyebrow="CATALOGUE"
+  heading="Produits"
+  description="Gérez vos références, leurs caractéristiques et leur tarification."
+>
   @if (session.can('products.manage')) {
-    <button class="primary" type="button" [disabled]="busy()" (click)="edit('new')">+ Nouveau produit</button>
+  <button class="primary" type="button" [disabled]="busy()" (click)="edit('new')">+ Nouveau produit</button>
   }
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
 <app-feedback [message]="success()" kind="success" />
 <app-feedback [message]="loading() || busy() ? 'Chargement…' : ''" />
 @if (editing(); as target) {
-  <section class="panel">
-    <h2>{{ target === 'new' ? 'Nouveau produit' : 'Modifier — ' + target.name }}</h2>
-    <form class="ui-form-grid" [formGroup]="form" (ngSubmit)="save()">
-      <label class="ui-field">Référence SKU <input formControlName="sku" maxlength="80" /></label>
-      <label class="ui-field">Nom <input formControlName="name" maxlength="200" /></label>
-      <label class="ui-field">Unité <input formControlName="unit" maxlength="40" /></label>
-      <label class="ui-field">Catégorie <select formControlName="categoryId"><option value="">Aucune</option>@for (ref of categories(); track ref.id) { <option [value]="ref.id">{{ ref.name }}</option> }</select></label>
-      <label class="ui-field">Marque <select formControlName="brandId"><option value="">Aucune</option>@for (ref of brands(); track ref.id) { <option [value]="ref.id">{{ ref.name }}</option> }</select></label>
-      <label class="ui-field">Régime fiscal <select formControlName="taxRegimeId"><option value="">Aucun</option>@for (ref of taxes(); track ref.id) { <option [value]="ref.id">{{ ref.name }} ({{ ref.rate }} %)</option> }</select></label>
-      <label class="ui-field ui-form-span">Description <textarea formControlName="description" rows="3"></textarea></label>
-      <label class="ui-choice-group ui-form-span"><input type="checkbox" formControlName="isSolarPlant" /> Centre solaire</label>
-      <div class="ui-actions ui-form-span"><button class="primary" type="submit" [disabled]="busy()">Enregistrer</button><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button></div>
-    </form>
-  </section>
-}
-@if (pending(); as product) {
-  <app-confirm [heading]="(product.active ? 'Désactiver ' : 'Activer ') + product.name + ' ?'" description="Le changement de statut est enregistré par le serveur. L’historique reste conservé." [busy]="busy()" (confirmed)="changeStatus()" (cancelled)="close()" />
-}
-@if (selected(); as product) {
-  <section class="panel">
-    <div class="dashboard-report-heading"><h2>{{ product.name }} · {{ product.sku }}</h2><button type="button" class="secondary" [disabled]="busy()" (click)="close()">Fermer</button></div>
-    <div class="ui-toolbar"><app-product-thumbnail [productId]="product.id" [revision]="photoVersion()" /><span>{{ product.description || 'Aucune description.' }}</span></div>
-    @if (session.can('products.manage')) {
-      <label class="ui-field">Photo (JPEG ou PNG, 2 Mo maximum) <input #photo type="file" accept="image/png,image/jpeg" [disabled]="busy()" (change)="upload(photo.files?.[0]); photo.value = ''" /></label>
-      <h2>Nouveau tarif</h2>
-      <form [formGroup]="priceForm" class="ui-form-grid" (ngSubmit)="savePrice()">
-        <label class="ui-field">Prix de vente (FCFA) <input formControlName="salePrice" inputmode="decimal" /></label>
-        <label class="ui-field">Prix d’achat (facultatif, FCFA) <input formControlName="purchasePrice" inputmode="decimal" /></label>
-        <p class="muted small ui-form-span">Le nouveau tarif clôture automatiquement la période tarifaire précédente.</p>
-        <div class="ui-actions ui-form-span"><button type="submit" class="primary" [disabled]="busy()">Enregistrer le tarif</button></div>
-      </form>
+<section class="panel">
+  <h2>{{ target === 'new' ? 'Nouveau produit' : 'Modifier — ' + target.name }}</h2>
+  <form class="ui-form-grid" [formGroup]="form" (ngSubmit)="save()">
+    <label class="ui-field">Référence SKU <input formControlName="sku" maxlength="80" /></label>
+    <label class="ui-field">Nom <input formControlName="name" maxlength="200" /></label>
+    <label class="ui-field">Unité <input formControlName="unit" maxlength="40" /></label>
+    <label class="ui-field"
+      >Catégorie
+      <select formControlName="categoryId">
+        <option value="">Aucune</option>
+        @for (ref of categories(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Marque
+      <select formControlName="brandId">
+        <option value="">Aucune</option>
+        @for (ref of brands(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Régime fiscal
+      <select formControlName="taxRegimeId">
+        <option value="">Aucun</option>
+        @for (ref of taxes(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }} ({{ ref.rate }} %)</option>
+        }
+      </select></label
+    >
+    <label class="ui-field ui-form-span"
+      >Description <textarea formControlName="description" rows="3"></textarea>
+    </label>
+    <label class="ui-choice-group ui-form-span"
+      ><input type="checkbox" formControlName="isSolarPlant" /> Centre solaire</label
+    >
+    <div class="ui-actions ui-form-span">
+      <button class="primary" type="submit" [disabled]="busy()">Enregistrer</button
+      ><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </form>
+</section>
+} @if (pending(); as product) {
+<app-confirm
+  [heading]="(product.active ? 'Désactiver ' : 'Activer ') + product.name + ' ?'"
+  description="Le changement de statut est enregistré par le serveur. L’historique reste conservé."
+  [busy]="busy()"
+  (confirmed)="changeStatus()"
+  (cancelled)="close()"
+/>
+} @if (selected(); as product) {
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2>{{ product.name }} · {{ product.sku }}</h2>
+    <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Fermer</button>
+  </div>
+  <div class="ui-toolbar">
+    <app-product-thumbnail [productId]="product.id" [revision]="photoVersion()" /><span
+      >{{ product.description || 'Aucune description.' }}</span
+    >
+  </div>
+  @if (session.can('products.manage')) {
+  <label class="ui-field"
+    >Photo (JPEG ou PNG, 2 Mo maximum)
+    <input
+      #photo
+      type="file"
+      accept="image/png,image/jpeg"
+      [disabled]="busy()"
+      (change)="upload(photo.files?.[0]); photo.value = ''"
+  /></label>
+  <h2>Nouveau tarif</h2>
+  <form [formGroup]="priceForm" class="ui-form-grid" (ngSubmit)="savePrice()">
+    <label class="ui-field"
+      >Prix de vente (FCFA) <input formControlName="salePrice" inputmode="decimal"
+    /></label>
+    <label class="ui-field"
+      >Prix d’achat (facultatif, FCFA) <input formControlName="purchasePrice" inputmode="decimal"
+    /></label>
+    <p class="muted small ui-form-span">
+      Le nouveau tarif clôture automatiquement la période tarifaire précédente.
+    </p>
+    <div class="ui-actions ui-form-span">
+      <button type="submit" class="primary" [disabled]="busy()">Enregistrer le tarif</button>
+    </div>
+  </form>
+  }
+  <h2>Historique tarifaire</h2>
+  <div class="ui-table" tabindex="0" role="region" aria-label="Historique des tarifs">
+    <table>
+      <thead>
+        <tr>
+          <th>Vente</th>
+          <th>Achat</th>
+          <th>Début</th>
+          <th>Fin</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (price of prices(); track price.id) {
+        <tr>
+          <td>{{ money(price.salePrice) }}</td>
+          <td>{{ price.purchasePrice === null ? '—' : money(price.purchasePrice) }}</td>
+          <td>{{ price.validFrom.slice(0, 10) }}</td>
+          <td>{{ price.validTo ? price.validTo.slice(0, 10) : 'En vigueur' }}</td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4">Aucun tarif enregistré.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+} @if (referenceKind(); as kind) {
+<section class="panel">
+  <h2>
+    {{ kind === 'categories' ? 'Nouvelle catégorie' : kind === 'brands' ? 'Nouvelle marque' : 'Nouveau régime
+    fiscal' }}
+  </h2>
+  <form [formGroup]="referenceForm" class="ui-form-grid" (ngSubmit)="saveReference()">
+    <label class="ui-field">Nom <input formControlName="name" maxlength="200" /></label>
+    @if (kind !== 'brands') {
+    <label class="ui-field">Code <input formControlName="code" maxlength="60" /></label> } @if (kind ===
+    'categories') {
+    <label class="ui-field"
+      >Catégorie parente
+      <select formControlName="parentId">
+        <option value="">Aucune</option>
+        @for (ref of categories(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }}</option>
+        }
+      </select></label
+    >
+    } @if (kind === 'tax-regimes') {
+    <label class="ui-field">Taux (%) <input formControlName="rate" inputmode="decimal" /></label>
+    <label class="ui-field">Base légale <input formControlName="legalBasis" /></label>
+    <p class="muted small ui-form-span">Le taux doit être validé selon le régime fiscal applicable.</p>
     }
-    <h2>Historique tarifaire</h2>
-    <div class="ui-table" tabindex="0" role="region" aria-label="Historique des tarifs"><table>
-      <thead><tr><th>Vente</th><th>Achat</th><th>Début</th><th>Fin</th></tr></thead>
-      <tbody>@for (price of prices(); track price.id) { <tr><td>{{ money(price.salePrice) }}</td><td>{{ price.purchasePrice === null ? '—' : money(price.purchasePrice) }}</td><td>{{ price.validFrom.slice(0, 10) }}</td><td>{{ price.validTo ? price.validTo.slice(0, 10) : 'En vigueur' }}</td></tr> } @empty { <tr><td colspan="4">Aucun tarif enregistré.</td></tr> }</tbody>
-    </table></div>
-  </section>
-}
-@if (referenceKind(); as kind) {
-  <section class="panel">
-    <h2>{{ kind === 'categories' ? 'Nouvelle catégorie' : kind === 'brands' ? 'Nouvelle marque' : 'Nouveau régime fiscal' }}</h2>
-    <form [formGroup]="referenceForm" class="ui-form-grid" (ngSubmit)="saveReference()">
-      <label class="ui-field">Nom <input formControlName="name" maxlength="200" /></label>
-      @if (kind !== 'brands') { <label class="ui-field">Code <input formControlName="code" maxlength="60" /></label> }
-      @if (kind === 'categories') { <label class="ui-field">Catégorie parente <select formControlName="parentId"><option value="">Aucune</option>@for (ref of categories(); track ref.id) { <option [value]="ref.id">{{ ref.name }}</option> }</select></label> }
-      @if (kind === 'tax-regimes') {
-        <label class="ui-field">Taux (%) <input formControlName="rate" inputmode="decimal" /></label>
-        <label class="ui-field">Base légale <input formControlName="legalBasis" /></label>
-        <p class="muted small ui-form-span">Le taux doit être validé selon le régime fiscal applicable.</p>
-      }
-      <div class="ui-actions ui-form-span"><button class="primary" type="submit" [disabled]="busy()">Enregistrer</button><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button></div>
-    </form>
-  </section>
+    <div class="ui-actions ui-form-span">
+      <button class="primary" type="submit" [disabled]="busy()">Enregistrer</button
+      ><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </form>
+</section>
 }
 <section class="panel">
   <div class="dashboard-report-heading">
     <h2>Catalogue des produits</h2>
     @if (session.can('products.manage')) {
-      <div class="ui-actions">
-        <button type="button" class="secondary" [disabled]="busy()" (click)="openReference('categories')">+ Catégorie</button>
-        <button type="button" class="secondary" [disabled]="busy()" (click)="openReference('brands')">+ Marque</button>
-        <button type="button" class="secondary" [disabled]="busy()" (click)="openReference('tax-regimes')">+ Régime fiscal</button>
-      </div>
+    <div class="ui-actions">
+      <button type="button" class="secondary" [disabled]="busy()" (click)="openReference('categories')">
+        + Catégorie
+      </button>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="openReference('brands')">
+        + Marque
+      </button>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="openReference('tax-regimes')">
+        + Régime fiscal
+      </button>
+    </div>
     }
   </div>
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); applyFilters({ search: term.value, active: active.value, categoryId: category.value, brandId: brand.value, taxRegimeId: tax.value, isSolarPlant: solar.value })">
-    <label class="ui-field">Recherche <input #term type="search" maxlength="120" placeholder="Nom ou SKU" /></label>
-    <label class="ui-field">Statut <select #active><option value="">Tous</option><option value="true">Actifs</option><option value="false">Inactifs</option></select></label>
-    <label class="ui-field">Catégorie <select #category><option value="">Toutes</option>@for (ref of categories(); track ref.id) { <option [value]="ref.id">{{ ref.name }}</option> }</select></label>
-    <label class="ui-field">Marque <select #brand><option value="">Toutes</option>@for (ref of brands(); track ref.id) { <option [value]="ref.id">{{ ref.name }}</option> }</select></label>
-    <label class="ui-field">Fiscalité <select #tax><option value="">Toutes</option>@for (ref of taxes(); track ref.id) { <option [value]="ref.id">{{ ref.name }}</option> }</select></label>
-    <label class="ui-field">Centre solaire <select #solar><option value="">Tous</option><option value="true">Oui</option><option value="false">Non</option></select></label>
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); applyFilters({ search: term.value, active: active.value, categoryId: category.value, brandId: brand.value, taxRegimeId: tax.value, isSolarPlant: solar.value })"
+  >
+    <label class="ui-field"
+      >Recherche <input #term type="search" maxlength="120" placeholder="Nom ou SKU"
+    /></label>
+    <label class="ui-field"
+      >Statut
+      <select #active>
+        <option value="">Tous</option>
+        <option value="true">Actifs</option>
+        <option value="false">Inactifs</option>
+      </select></label
+    >
+    <label class="ui-field"
+      >Catégorie
+      <select #category>
+        <option value="">Toutes</option>
+        @for (ref of categories(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Marque
+      <select #brand>
+        <option value="">Toutes</option>
+        @for (ref of brands(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Fiscalité
+      <select #tax>
+        <option value="">Toutes</option>
+        @for (ref of taxes(); track ref.id) {
+        <option [value]="ref.id">{{ ref.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Centre solaire
+      <select #solar>
+        <option value="">Tous</option>
+        <option value="true">Oui</option>
+        <option value="false">Non</option>
+      </select></label
+    >
     <button class="secondary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
   </form>
   @if (result(); as data) {
-    <p class="muted small">{{ data.total }} produit(s)</p>
-    <div class="ui-table" tabindex="0" role="region" aria-label="Liste des produits">
-      <table><thead><tr><th>Produit</th><th>Catégorie</th><th>Marque</th><th>Unité</th><th>Statut</th><th>Actions</th></tr></thead>
-        <tbody>@for (product of data.items; track product.id) {
-          <tr><td><div class="catalogue-product"><app-product-thumbnail [productId]="product.id" [revision]="photoVersion()" /><div><strong>{{ product.name }}</strong><p class="muted small">{{ product.sku }}</p></div></div></td>
-            <td>{{ nameOf(categories(), product.categoryId) }}</td><td>{{ nameOf(brands(), product.brandId) }}</td><td>{{ product.unit }}</td><td><app-status-badge [active]="product.active" /></td>
-            <td><div class="ui-actions"><button class="secondary" type="button" [disabled]="busy()" (click)="detail(product)">Détails</button>@if (session.can('products.manage')) { <button class="secondary" type="button" [disabled]="busy()" (click)="edit(product)">Modifier</button><button class="secondary" type="button" [disabled]="busy()" (click)="askStatus(product)">{{ product.active ? 'Désactiver' : 'Activer' }}</button> }</div></td>
-          </tr>
-        }</tbody></table>
-    </div>
-    @if (!data.items.length) { <app-empty-state heading="Aucun produit" description="Modifiez les filtres ou ajoutez une référence." /> }
-    <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="loading() || busy()" (change)="load($event)" />
+  <p class="muted small">{{ data.total }} produit(s)</p>
+  <div class="ui-table" tabindex="0" role="region" aria-label="Liste des produits">
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Catégorie</th>
+          <th>Marque</th>
+          <th>Unité</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (product of data.items; track product.id) {
+        <tr>
+          <td>
+            <div class="catalogue-product">
+              <app-product-thumbnail [productId]="product.id" [revision]="photoVersion()" />
+              <div>
+                <strong>{{ product.name }}</strong>
+                <p class="muted small">{{ product.sku }}</p>
+              </div>
+            </div>
+          </td>
+          <td>{{ nameOf(categories(), product.categoryId) }}</td>
+          <td>{{ nameOf(brands(), product.brandId) }}</td>
+          <td>{{ product.unit }}</td>
+          <td><app-status-badge [active]="product.active" /></td>
+          <td>
+            <div class="ui-actions">
+              <button class="secondary" type="button" [disabled]="busy()" (click)="detail(product)">
+                Détails</button
+              >@if (session.can('products.manage')) {
+              <button class="secondary" type="button" [disabled]="busy()" (click)="edit(product)">
+                Modifier</button
+              ><button class="secondary" type="button" [disabled]="busy()" (click)="askStatus(product)">
+                {{ product.active ? 'Désactiver' : 'Activer' }}
+              </button>
+              }
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!data.items.length) {
+  <app-empty-state heading="Aucun produit" description="Modifiez les filtres ou ajoutez une référence." /> }
+  <app-pagination
+    [page]="data.page"
+    [pages]="data.pages || 1"
+    [disabled]="loading() || busy()"
+    (change)="load($event)"
+  />
   }
 </section>

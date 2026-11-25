@@ -43,7 +43,9 @@ export class ProductThumbnailComponent {
             return this.http.get(apiPath('/media/images/' + metadata['id']), { responseType: 'blob' });
           }),
           map((blob) =>
-            blob && ['image/png', 'image/jpeg'].includes(blob.type) && blob.size <= 2 * 1024 * 1024 ? blob : null,
+            blob && ['image/png', 'image/jpeg'].includes(blob.type) && blob.size <= 2 * 1024 * 1024
+              ? blob
+              : null,
           ),
           catchError(() => of(null)),
         )

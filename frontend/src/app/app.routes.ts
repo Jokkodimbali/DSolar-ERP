@@ -41,7 +41,8 @@ export const routes: Routes = [
       {
         path: 'produits',
         canActivate: [productsGuard],
-        loadComponent: () => import('./features/products/presentation/products.page').then((m) => m.ProductsPage),
+        loadComponent: () =>
+          import('./features/products/presentation/products.page').then((m) => m.ProductsPage),
       },
       {
         path: 'magasins',
