@@ -39,12 +39,14 @@ export const routes: Routes = [
       {
         path: 'activite',
         canActivate: [dashboardGuard],
-        loadComponent: () => import('./features/dashboard/presentation/activity.page').then((m) => m.ActivityPage),
+        loadComponent: () =>
+          import('./features/dashboard/presentation/activity.page').then((m) => m.ActivityPage),
       },
       {
         path: 'stocks/alertes',
         canActivate: [stockAlertsGuard],
-        loadComponent: () => import('./features/dashboard/presentation/stock-alerts.page').then((m) => m.StockAlertsPage),
+        loadComponent: () =>
+          import('./features/dashboard/presentation/stock-alerts.page').then((m) => m.StockAlertsPage),
       },
       {
         path: 'ventes/commandes',

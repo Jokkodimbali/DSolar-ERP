@@ -24,7 +24,12 @@
       <app-feedback [message]="success()" kind="success" />
       @if (feed(); as current) {
         @if (current.enabled) {
-          <button type="button" class="notification-text-action" [disabled]="busy() || !current.unread" (click)="mark()">
+          <button
+            type="button"
+            class="notification-text-action"
+            [disabled]="busy() || !current.unread"
+            (click)="mark()"
+          >
             Tout marquer comme lu
           </button>
           @for (item of current.items; track item.id) {
@@ -35,7 +40,12 @@
                 <p class="muted small">{{ date(item.createdAt) }} · {{ item.read ? 'Lue' : 'Non lue' }}</p>
               </div>
               @if (!item.read) {
-                <button type="button" class="notification-text-action" [disabled]="busy()" (click)="mark(item.id)">
+                <button
+                  type="button"
+                  class="notification-text-action"
+                  [disabled]="busy()"
+                  (click)="mark(item.id)"
+                >
                   Marquer comme lue
                 </button>
               }

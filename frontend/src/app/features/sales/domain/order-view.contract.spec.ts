@@ -10,7 +10,16 @@ const order = {
   status: 'CONFIRMED',
   paymentStatus: 'UNPAID',
   createdAt: '2026-11-25T12:00:00Z',
-  lines: [{ id, product: { name: 'Panneau', sku: 'PV-01' }, store: { name: 'Dakar' }, quantity: '2', unitPrice: '1000', lineTotal: '2360' }],
+  lines: [
+    {
+      id,
+      product: { name: 'Panneau', sku: 'PV-01' },
+      store: { name: 'Dakar' },
+      quantity: '2',
+      unitPrice: '1000',
+      lineTotal: '2360',
+    },
+  ],
 };
 
 describe('Consultation des commandes', () => {

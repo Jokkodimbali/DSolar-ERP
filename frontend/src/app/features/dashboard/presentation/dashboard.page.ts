@@ -1,4 +1,12 @@
-import { Component, ChangeDetectionStrategy, inject, signal, DestroyRef, viewChild, viewChildren } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  DestroyRef,
+  viewChild,
+  viewChildren,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { SessionService } from '../../auth/application/session.service';
@@ -34,7 +42,15 @@ import { errorMessage } from '../../../core/api/http-error';
       <label class="dashboard-period">
         <app-ui-icon name="calendar" />
         <span class="sr-only">Période des indicateurs financiers</span>
-        <input #monthInput type="month" [value]="month()" [disabled]="periodLoading()" min="2000-01" [max]="currentMonth" (change)="changeMonth(monthInput.value)" />
+        <input
+          #monthInput
+          type="month"
+          [value]="month()"
+          [disabled]="periodLoading()"
+          min="2000-01"
+          [max]="currentMonth"
+          (change)="changeMonth(monthInput.value)"
+        />
       </label>
       <button type="button" class="dashboard-refresh" [disabled]="loading()" (click)="load()">
         <app-ui-icon name="refresh" /> Actualiser
@@ -49,7 +65,9 @@ import { errorMessage } from '../../../core/api/http-error';
         label="Facturation nette"
         [value]="displayMoney(period()?.revenue)"
         [variation]="period()?.variations?.revenue ?? null"
-        [description]="period()?.variations?.revenue != null ? 'vs mois précédent' : 'Après déduction des avoirs'"
+        [description]="
+          period()?.variations?.revenue != null ? 'vs mois précédent' : 'Après déduction des avoirs'
+        "
       />
       <app-kpi-card
         icon="box"
@@ -92,44 +110,44 @@ import { errorMessage } from '../../../core/api/http-error';
       <span aria-hidden="true">{{ showReports() ? '−' : '+' }}</span>
     </button>
     <section id="dashboard-detail-reports" [hidden]="!showReports()">
-    @if (showReports()) {
-    @if (data(); as d) {
-      <section class="panel">
-        <h2>Activité de l'entreprise</h2>
-        <dl class="metrics">
-          <div>
-            <dt>Produits actifs</dt>
-            <dd>{{ d.activeProducts }}</dd>
-          </div>
-          <div>
-            <dt>Clients</dt>
-            <dd>{{ d.customers }}</dd>
-          </div>
-          <div>
-            <dt>Fournisseurs</dt>
-            <dd>{{ d.suppliers }}</dd>
-          </div>
-          <div>
-            <dt>Achats en attente</dt>
-            <dd>{{ d.pendingPurchaseOrders }}</dd>
-          </div>
-          <div>
-            <dt>Factures émises</dt>
-            <dd>{{ d.issuedInvoices }}</dd>
-          </div>
-          <div>
-            <dt>Avoirs</dt>
-            <dd>{{ money(d.creditNotes) }}</dd>
-          </div>
-        </dl>
-      </section>
-    }
-    <div class="dashboard-reports">
-      @for (report of otherReports; track report.path) {
-        <app-dashboard-report [definition]="report" />
+      @if (showReports()) {
+        @if (data(); as d) {
+          <section class="panel">
+            <h2>Activité de l'entreprise</h2>
+            <dl class="metrics">
+              <div>
+                <dt>Produits actifs</dt>
+                <dd>{{ d.activeProducts }}</dd>
+              </div>
+              <div>
+                <dt>Clients</dt>
+                <dd>{{ d.customers }}</dd>
+              </div>
+              <div>
+                <dt>Fournisseurs</dt>
+                <dd>{{ d.suppliers }}</dd>
+              </div>
+              <div>
+                <dt>Achats en attente</dt>
+                <dd>{{ d.pendingPurchaseOrders }}</dd>
+              </div>
+              <div>
+                <dt>Factures émises</dt>
+                <dd>{{ d.issuedInvoices }}</dd>
+              </div>
+              <div>
+                <dt>Avoirs</dt>
+                <dd>{{ money(d.creditNotes) }}</dd>
+              </div>
+            </dl>
+          </section>
+        }
+        <div class="dashboard-reports">
+          @for (report of otherReports; track report.path) {
+            <app-dashboard-report [definition]="report" />
+          }
+        </div>
       }
-    </div>
-    }
     </section>`,
 })
 export class DashboardPage {
@@ -149,9 +167,7 @@ export class DashboardPage {
   readonly periodLoading = signal(false);
   readonly periodError = signal('');
   readonly activityReport = reports.find((report) => report.path === 'recent-activity');
-  readonly otherReports = reports.filter(
-    (report) => report !== this.activityReport,
-  );
+  readonly otherReports = reports.filter((report) => report !== this.activityReport);
   displayMoney(value: string | null | undefined): string {
     return value === undefined || value === null ? '—' : formatMoney(value);
   }
@@ -168,7 +184,10 @@ export class DashboardPage {
     this.period.set(null);
     this.api
       .period(this.month())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.periodLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.periodLoading.set(false)),
+      )
       .subscribe({
         next: (value) => this.period.set(value),
         error: (error: unknown) => this.periodError.set(errorMessage(error)),

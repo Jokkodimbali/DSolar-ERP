@@ -14,7 +14,11 @@ import { DashboardOperationsApi } from '../infrastructure/dashboard-operations.a
   imports: [PageHeaderComponent, FeedbackComponent, ProductThumbnailComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-page-header eyebrow="STOCKS" heading="Alertes de stock" description="Disponibilité actuelle par magasin actif. Seuil : 5 unités.">
+    <app-page-header
+      eyebrow="STOCKS"
+      heading="Alertes de stock"
+      description="Disponibilité actuelle par magasin actif. Seuil : 5 unités."
+    >
       <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
     </app-page-header>
     <app-feedback [message]="error()" kind="error" />
@@ -25,8 +29,13 @@ import { DashboardOperationsApi } from '../infrastructure/dashboard-operations.a
         @for (item of store.items; track item.productId) {
           <div class="stock-alert-item">
             <app-product-thumbnail [productId]="item.productId" />
-            <div class="stock-product-text"><strong>{{ item.name }}</strong><p class="muted small">{{ item.sku }} · {{ item.available }} {{ item.unit }}</p></div>
-            <span class="ui-status" [class.stock-critical]="item.severity === 'OUT_OF_STOCK'">{{ item.severity === 'OUT_OF_STOCK' ? 'Rupture' : 'Stock faible' }}</span>
+            <div class="stock-product-text">
+              <strong>{{ item.name }}</strong>
+              <p class="muted small">{{ item.sku }} · {{ item.available }} {{ item.unit }}</p>
+            </div>
+            <span class="ui-status" [class.stock-critical]="item.severity === 'OUT_OF_STOCK'">{{
+              item.severity === 'OUT_OF_STOCK' ? 'Rupture' : 'Stock faible'
+            }}</span>
           </div>
         } @empty {
           <p class="muted">Aucune alerte pour ce magasin.</p>
@@ -34,7 +43,10 @@ import { DashboardOperationsApi } from '../infrastructure/dashboard-operations.a
       </section>
     } @empty {
       @if (!loading() && !error()) {
-        <section class="panel"><p>Aucun magasin actif.</p><a routerLink="/magasins" class="dashboard-see-all">Consulter les magasins</a></section>
+        <section class="panel">
+          <p>Aucun magasin actif.</p>
+          <a routerLink="/magasins" class="dashboard-see-all">Consulter les magasins</a>
+        </section>
       }
     }
   `,
@@ -46,16 +58,24 @@ export class StockAlertsPage {
   readonly loading = signal(false);
   readonly error = signal('');
 
-  constructor() { this.load(); }
+  constructor() {
+    this.load();
+  }
 
   load(): void {
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set('');
     this.alerts.set([]);
-    this.api.alerts().pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false))).subscribe({
-      next: (alerts) => this.alerts.set(alerts),
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .alerts()
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (alerts) => this.alerts.set(alerts),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 }
