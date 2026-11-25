@@ -1,5 +1,5 @@
 <div class="global-search">
-  <form class="global-search-form" (ngSubmit)="search()">
+  <form class="global-search-form" (submit)="search(); $event.preventDefault()">
     <label class="sr-only" for="global-query">Rechercher dans l’ERP</label>
     <input id="global-query" type="search" [formControl]="query" placeholder="Produit, commande, client…" maxlength="120" autocomplete="off" />
     <button type="submit" class="secondary" aria-label="Rechercher" [disabled]="busy() || query.invalid || query.value.trim().length < 2">

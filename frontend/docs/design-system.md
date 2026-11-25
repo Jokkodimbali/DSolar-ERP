@@ -25,3 +25,9 @@ La proposition UI/UX DSolar-ERP responsive fournie par le propriétaire du proje
 Les indicateurs sont uniquement ceux réellement retournés par les API. Les liens de navigation sont limités aux modules effectivement disponibles et autorisés. Le logo officiel, la recherche globale, les notifications et les raccourcis métier restent à intégrer.
 
 Le graphique de facturation présente les 12 mois de l'année sélectionnée depuis l'API monthly-revenue. La table conserve les montants exacts ; seules les proportions graphiques sont calculées côté interface, avec une arithmétique entière. Les montants négatifs restent distincts sous l'axe zéro.
+
+## Navigation opérationnelle
+
+La recherche globale interroge les cinq sources existantes autorisées par session : produits, magasins, clients, commandes, factures. Les résultats sont limités aux cinq premières lignes par catégorie et n'exposent que les libellés et références utiles. La recherche respecte les autorisations du serveur ; les liens de détail seront raccordés avec les écrans métier.
+
+Le centre de notifications utilise GET /notifications et le flux SSE /notifications/stream avec le jeton Bearer en en-tête. Le flux est interrompu à la fermeture de session et reconnecté après interruption, sans persistance de jeton. La lecture individuelle et collective est enregistrée exclusivement par le backend.

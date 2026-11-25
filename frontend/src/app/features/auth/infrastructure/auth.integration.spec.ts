@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { apiPath, decodeSuccessMessage, parseErrorMessage } from '../../../core/api/api-contract';
 import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.contract';
 import { parseAlerts, parseRecentOrders } from '../../dashboard/domain/dashboard-operations.contract';
-import { parseFeed } from '../../notifications/domain/notification.contract';
+import { parseSearch, sources } from '../../search/domain/search.contract';
+import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
@@ -150,7 +151,56 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const path = '/stores/' + store.id;
     const notifications = await request('/notifications', 'GET', undefined, admin.jetonAcces);
     expect(notifications.status).toBe(200);
-    expect(() => parseFeed(notifications.data)).not.toThrow();
+    const feed = parseFeed(notifications.data);
+    const notification = feed.items.find((item) => !item.read);
+    if (notification) {
+      const mark = await request('/notifications/' + notification.id + '/read', 'POST', {}, admin.jetonAcces);
+      expect(mark.status).toBe(201);
+      expect(() => parseMark(mark.data)).not.toThrow();
+    }
+    for (const source of sources) {
+      const response = await request(source.path + '?search=Magasin&page=1&limit=5', 'GET', undefined, admin.jetonAcces);
+      expect(response.status, source.path).toBe(200);
+      expect(() => parseSearch(response.data, source)).not.toThrow();
+      if (source.permission === 'sales.read') {
+        expect((await request(source.path + '?page=1&limit=5', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+      }
+    }
+    const scoped = await request('/search/stores?search=Magasin&page=1&limit=5', 'GET', undefined, keeper.jetonAcces);
+    expect(scoped.status).toBe(200);
+    const storeSource = sources.find((source) => source.label === 'Magasins');
+    if (!storeSource) throw new Error('Source manquante.');
+    expect(parseSearch(scoped.data, storeSource).items).toEqual([]);
+    const stream = await fetch(base + apiPath('/notifications/stream'), {
+      headers: { Authorization: 'Bearer ' + admin.jetonAcces, Accept: 'text/event-stream' },
+      redirect: 'error',
+      signal: AbortSignal.timeout(15000),
+    });
+    expect(stream.status).toBe(200);
+    expect(stream.headers.get('Content-Type')).toContain('text/event-stream');
+    if (!stream.body) throw new Error('Flux SSE absent.');
+    const reader = stream.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      let received = false;
+      while (!received) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        buffer += decoder.decode(chunk.value, { stream: true });
+        if (buffer.length > 512000) throw new Error('Flux SSE trop volumineux.');
+        const blocks = buffer.split(/\r?\n\r?\n/);
+        buffer = blocks.pop() ?? '';
+        for (const block of blocks) {
+          const event = notificationEvent(block);
+          if (event) received = true;
+        }
+      }
+      expect(received).toBe(true);
+    } finally {
+      await reader.cancel();
+      reader.releaseLock();
+    }
     const alerts = await request(
       '/inventory' + path + '/alerts?threshold=5',
       'GET',
@@ -211,5 +261,5 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect(active.status).toBe(200);
     expect(parseStore(active.data).status).toBe('ACTIVE');
     await request('/auth/logout', 'POST', { refreshToken: admin.jetonRenouvellement });
-  }, 60000);
+  }, 90000);
 });
