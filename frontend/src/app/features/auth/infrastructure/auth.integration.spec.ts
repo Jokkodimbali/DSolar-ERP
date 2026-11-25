@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { apiPath, decodeSuccessMessage, parseErrorMessage } from '../../../core/api/api-contract';
 import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.contract';
+import { parseOverview } from '../../dashboard/domain/dashboard.contract';
+import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
 
 // Ce test Vitest s’exécute exclusivement dans Node.js.
 declare const process: { readonly env: { readonly DSOLAR_AUTH_INTEGRATION?: string } };
@@ -26,6 +28,20 @@ async function request(path: string, method: 'GET' | 'POST' = 'GET', body?: obje
     data,
     message: decodeSuccessMessage(response.headers.get('X-Success-Message')),
   };
+}
+
+function reportPath(path: string): string {
+  if (path === 'monthly-revenue') return '/dashboard/monthly-revenue?year=2026';
+  if (path === 'top-products' || path === 'recent-activity') return '/dashboard/' + path + '?limit=10';
+  return '/dashboard/' + path;
+}
+
+async function requestCsv(name: string, token: string) {
+  return fetch(base + apiPath('/dashboard/exports/' + name), {
+    headers: { Authorization: 'Bearer ' + token },
+    redirect: 'error',
+    signal: AbortSignal.timeout(10000),
+  });
 }
 
 describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJS réel', () => {
@@ -59,6 +75,34 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect((await request('/auth/me', 'GET', undefined, next.jetonAcces)).status).toBe(401);
   }, 30000);
 
+  it('valide tous les contrats de rapports et les exports CSV réels', async () => {
+    const login = await request('/auth/login', 'POST', { email, password });
+    expect(login.status).toBe(201);
+    const session = parseAuthResult(login.data);
+    try {
+      const overview = await request('/dashboard/overview', 'GET', undefined, session.jetonAcces);
+      expect(overview.status).toBe(200);
+      expect(() => parseOverview(overview.data)).not.toThrow();
+
+      for (const definition of reports) {
+        const response = await request(reportPath(definition.path), 'GET', undefined, session.jetonAcces);
+        expect(response.status, definition.path).toBe(200);
+        const report = parseReport(response.data, definition, 2026);
+        if (definition.path === 'monthly-revenue') expect(report.rows).toHaveLength(12);
+
+        if (definition.exportName) {
+          const csv = await requestCsv(definition.exportName, session.jetonAcces);
+          expect(csv.status).toBe(200);
+          expect(csv.headers.get('Content-Type')).toContain('text/csv');
+          expect(csv.headers.get('Content-Disposition')).toContain(definition.exportName);
+          expect((await csv.text()).trim()).not.toBe('');
+        }
+      }
+    } finally {
+      await request('/auth/logout', 'POST', { refreshToken: session.jetonRenouvellement });
+    }
+  }, 60000);
+
   it('refuse les routes administratives au magasinier authentifié', async () => {
     const admin = parseAuthResult((await request('/auth/login', 'POST', { email, password })).data);
     const account = {
@@ -77,7 +121,15 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect(hasPermissions(keeper.utilisateur, ['users.manage'])).toBe(false);
     expect((await request('/auth/me', 'GET', undefined, keeper.jetonAcces)).status).toBe(200);
     expect((await request('/users', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
-    expect((await request('/dashboard/overview', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    for (const definition of reports) {
+      const response = await request(reportPath(definition.path), 'GET', undefined, keeper.jetonAcces);
+      expect(response.status, definition.path).toBe(403);
+      if (definition.exportName) {
+        const csv = await requestCsv(definition.exportName, keeper.jetonAcces);
+        expect(csv.status).toBe(403);
+        await csv.text();
+      }
+    }
     await request('/auth/logout', 'POST', { refreshToken: keeper.jetonRenouvellement });
     await request('/auth/logout', 'POST', { refreshToken: admin.jetonRenouvellement });
   }, 30000);
