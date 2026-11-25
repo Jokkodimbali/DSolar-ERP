@@ -17,6 +17,7 @@ export interface LineDraft {
 }
 export interface ProformaInput {
   readonly customerId: string;
+  readonly number?: string;
   readonly lines: readonly {
     productId: string;
     storeId: string;
@@ -59,6 +60,11 @@ function decimal(value: string, decimals: number, positive = false): number {
     !new RegExp('^\\d+(?:\\.\\d{1,' + decimals + '})?$').test(String(amount))
   )
     throw new Error('Valeur numérique hors limites.');
+  const scaled = (raw: string): bigint => {
+    const [whole = '0', fraction = ''] = raw.split('.');
+    return BigInt(whole) * BigInt(scale) + BigInt(fraction.padEnd(decimals, '0'));
+  };
+  if (scaled(normalized) !== scaled(String(amount))) throw new Error('Précision numérique perdue.');
   return amount;
 }
 

@@ -28,7 +28,10 @@
 } @else {
 <section class="panel">
   <div class="page-heading">
-    <h2>Informations commerciales</h2>
+    <div>
+        <h2>Informations commerciales</h2>
+        <p class="muted small">Référence : {{ reference }}</p>
+      </div>
     <button class="secondary" type="button" [disabled]="busy() || loading()" (click)="load()">
       Actualiser les références
     </button>

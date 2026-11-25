@@ -314,9 +314,11 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         lines: input.lines.map((line) => ({ ...line, discount: 10 })),
       };
       expect((await request('/proformas', 'POST', invalidDiscount, token)).status).toBe(409);
-      const result = await request('/proformas', 'POST', input, token);
+      const uniqueInput = { ...input, number: 'PF-CI-RETRY-001' };
+      const result = await request('/proformas', 'POST', uniqueInput, token);
       expect(result.status).toBe(201);
       const created = parseCreatedProforma(result.data);
+      expect((await request('/proformas', 'POST', uniqueInput, token)).status).toBe(409);
       expect(created.total).toBe('2\u202f360,00 FCFA');
       const detail = await request('/proformas/' + created.id, 'GET', undefined, token);
       expect(detail.status).toBe(200);

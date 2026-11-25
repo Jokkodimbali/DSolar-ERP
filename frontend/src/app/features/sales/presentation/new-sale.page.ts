@@ -41,6 +41,7 @@ export class NewSalePage {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly created = signal<CreatedProforma | null>(null);
+  readonly reference = 'PF-' + crypto.randomUUID().toUpperCase();
   readonly form = new FormGroup({
     customerId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     lines: new FormArray([lineForm()]),
@@ -107,7 +108,7 @@ export class NewSalePage {
       return;
     }
     try {
-      const input = proformaInput(value.customerId, value.lines);
+      const input = { ...proformaInput(value.customerId, value.lines), number: this.reference };
       this.busy.set(true);
       this.form.disable();
       this.api
@@ -121,7 +122,13 @@ export class NewSalePage {
         )
         .subscribe({
           next: (created) => this.created.set(created),
-          error: (error: unknown) => this.error.set(errorMessage(error)),
+          error: (error: unknown) =>
+            this.error.set(
+              errorMessage(error) +
+                ' En cas de résultat incertain, vérifiez la proforma ' +
+                this.reference +
+                ' avant de quitter cette page.',
+            ),
         });
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : 'Données commerciales invalides.');
