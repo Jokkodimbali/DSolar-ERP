@@ -35,7 +35,8 @@ export class PrismaTransfersRepository implements TransferRepository {
     ]);
     if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0))
       throw new ForbiddenException('Accès au magasin interdit.');
-    if (!store || (!readOnly && store.status !== 'ACTIVE')) throw new ConflictException('Magasin inexistant ou inactif.');
+    if (!store || (!readOnly && store.status !== 'ACTIVE'))
+      throw new ConflictException('Magasin inexistant ou inactif.');
   }
   private async load(
     tx: Prisma.TransactionClient,

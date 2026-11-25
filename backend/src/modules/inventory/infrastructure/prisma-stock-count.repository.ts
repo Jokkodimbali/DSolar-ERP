@@ -240,7 +240,12 @@ export class PrismaStockCountRepository implements StockCountRepository {
         const stock = await tx.storeStock.findUnique({
           where: { storeId_productId: { storeId: session.storeId, productId: line.productId } },
         });
-        if (!stock || line.expectedStockRevision === null || stock.physicalRevision !== line.expectedStockRevision || !stock.quantity.equals(line.expected)) {
+        if (
+          !stock ||
+          line.expectedStockRevision === null ||
+          stock.physicalRevision !== line.expectedStockRevision ||
+          !stock.quantity.equals(line.expected)
+        ) {
           throw new ConflictException(
             'Stock modifié depuis le début de l’inventaire : recommencez le comptage.',
           );

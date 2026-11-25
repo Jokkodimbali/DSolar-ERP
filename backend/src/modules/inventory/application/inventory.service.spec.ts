@@ -29,7 +29,11 @@ describe('InventoryService', () => {
   });
   it('délègue la pagination du stock avec le filtre de disponibilité', () => {
     service.searchStock('s', 'u', { page: 2, limit: 10, availability: 'RESERVED' });
-    expect(repository.searchStock).toHaveBeenCalledWith('s', 'u', { page: 2, limit: 10, availability: 'RESERVED' });
+    expect(repository.searchStock).toHaveBeenCalledWith('s', 'u', {
+      page: 2,
+      limit: 10,
+      availability: 'RESERVED',
+    });
   });
   it('délègue la consultation du stock du magasin', async () => {
     await service.listStoreStock('store-id', 'actor-id');

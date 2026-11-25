@@ -117,11 +117,22 @@ describe('PrismaStockCountRepository', () => {
   });
   it('refuse des mouvements compensés depuis l’ouverture malgré un solde identique', async () => {
     tx.inventorySession.findUnique.mockResolvedValue({
-      id: 'session-id', storeId: 'store-id', status: 'DRAFT',
-      lines: [{ productId: 'product-id', expectedStockRevision: 0, expected: new Prisma.Decimal(5), counted: new Prisma.Decimal(5) }],
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [
+        {
+          productId: 'product-id',
+          expectedStockRevision: 0,
+          expected: new Prisma.Decimal(5),
+          counted: new Prisma.Decimal(5),
+        },
+      ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
-      physicalRevision: 2, quantity: new Prisma.Decimal(5), reserved: new Prisma.Decimal(0),
+      physicalRevision: 2,
+      quantity: new Prisma.Decimal(5),
+      reserved: new Prisma.Decimal(0),
     });
     await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
@@ -129,8 +140,17 @@ describe('PrismaStockCountRepository', () => {
 
   it('refuse un inventaire dont le périmètre a changé', async () => {
     tx.inventorySession.findUnique.mockResolvedValue({
-      id: 'session-id', storeId: 'store-id', status: 'DRAFT',
-      lines: [{ productId: 'product-id', expectedStockRevision: 0, expected: new Prisma.Decimal(5), counted: new Prisma.Decimal(5) }],
+      id: 'session-id',
+      storeId: 'store-id',
+      status: 'DRAFT',
+      lines: [
+        {
+          productId: 'product-id',
+          expectedStockRevision: 0,
+          expected: new Prisma.Decimal(5),
+          counted: new Prisma.Decimal(5),
+        },
+      ],
     });
     tx.storeStock.findMany.mockResolvedValue([{ productId: 'product-id' }, { productId: 'new-product' }]);
     await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);

@@ -21,7 +21,11 @@ export class InventoryController {
   }
   @Get('stores/:storeId/stock/search')
   @RequirePermissions('inventory.read')
-  searchStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: StockSearchDto) {
+  searchStock(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @CurrentUserId() actorId: string,
+    @Query() query: StockSearchDto,
+  ) {
     return this.inventory.searchStock(storeId, actorId, query);
   }
   @Get('stores/:storeId/movements/search')
