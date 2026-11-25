@@ -11,10 +11,12 @@ import { SessionService } from '../../auth/application/session.service';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import type { Store } from '../../stores/domain/store.contract';
 import { InventoryApi } from '../infrastructure/inventory.api';
+import { clearPending, pendingKey, readPending, savePending } from '../infrastructure/pending-stock-operation';
 import { StockWorkflowsApi } from '../infrastructure/stock-workflows.api';
 import { isZero, quantityInput, type StockItem } from '../domain/stock.contract';
 import {
   labels,
+  parsePendingReceipt,
   type Transfer,
   type CountSession,
   type TransferInput,
@@ -188,6 +190,7 @@ export class StockWorkflowsPage {
     if (this.mode === 'transfers')
       this.run(this.api.transferDetail(id), message, (value) => {
         this.transfer.set(value);
+        this.restoreReceipt(value.id);
         if (reload) this.load(1);
       });
     else
@@ -261,6 +264,38 @@ export class StockWorkflowsPage {
       this.validationError(error);
     }
   }
+  private receiptKey(id: string): string {
+    const actor = this.session.user()?.id;
+    if (!actor) throw new Error('Session indisponible.');
+    return pendingKey(actor, 'receipt', id);
+  }
+
+  private restoreReceipt(id: string): void {
+    if (!this.manageable() || !this.canDestination()) return;
+    try {
+      const pending = readPending(this.receiptKey(id), parsePendingReceipt);
+      if (!pending) return;
+      this.receipt.set(pending);
+      this.receiptFields.set(Object.fromEntries(pending.lines.map((line) => [line.lineId, { received: line.received, damaged: line.damaged, missing: line.missing }])));
+      this.success.set('Une réception précédente est à vérifier. Réessayez avec la même clé.');
+    } catch {
+      this.error.set('Réception conservée illisible. Vérifiez l’historique avant une nouvelle saisie.');
+    }
+  }
+
+  discardReceipt(): void {
+    const target = this.transfer();
+    if (!target || this.busy() || !this.receipt()) return;
+    if (!window.confirm('Vérifiez que cette réception n’a pas déjà été enregistrée. Abandonner la tentative locale ?')) return;
+    try {
+      clearPending(this.receiptKey(target.id));
+      this.receipt.set(null);
+      this.open(target.id);
+    } catch {
+      this.error.set('Impossible de supprimer la tentative conservée.');
+    }
+  }
+
   updateReceipt(id: string, key: 'received' | 'damaged' | 'missing', value: string): void {
     if (this.receipt()) return;
     this.receiptFields.update((fields) => ({
@@ -270,7 +305,7 @@ export class StockWorkflowsPage {
   }
   receive(finalizeReceipt: boolean): void {
     const target = this.transfer();
-    if (!target || this.busy() || !this.manageable() || !this.canDestination() || target.status !== 'SHIPPED')
+    if (!target || this.busy() || !this.manageable() || !this.canDestination() || (target.status !== 'SHIPPED' && !this.receipt()))
       return;
     try {
       if (!this.receipt()) {
@@ -289,10 +324,14 @@ export class StockWorkflowsPage {
         this.receipt.set({ operationKey: crypto.randomUUID(), finalize: finalizeReceipt, lines });
       }
       const input = this.receipt();
-      if (input)
+      if (input) {
+        const key = this.receiptKey(target.id);
+        savePending(key, input);
         this.run(this.api.receive(target.id, input), 'Réception enregistrée.', () => {
+          try { clearPending(key); } catch { this.error.set('Réception enregistrée ; reprise locale non supprimée.'); return; }
           this.open(target.id, 'Réception enregistrée.', true);
         });
+      }
     } catch (error: unknown) {
       this.validationError(error);
     }

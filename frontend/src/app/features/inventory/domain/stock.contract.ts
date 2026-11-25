@@ -185,3 +185,12 @@ export function parseStockSummary(value: unknown, id: string) {
   if (empty > products || reserved > products) throw new Error('Compteurs de stock incohérents.');
   return { products, empty, available: products - empty, reserved };
 }
+
+export function parsePendingAdjustment(value: unknown): StockAdjustment {
+  if (!isRecord(value) || (value['direction'] !== 'IN' && value['direction'] !== 'OUT')) throw new Error('Ajustement conservé invalide.');
+  return adjustmentInput({
+    storeId: storeId(value['storeId']), productId: storeId(value['productId']),
+    operationKey: storeId(value['operationKey']), direction: value['direction'],
+    quantity: text(value['quantity']), reason: text(value['reason']),
+  });
+}

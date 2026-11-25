@@ -275,7 +275,7 @@
     </button>
     }
   </div>
-  } @if (manageable() && canDestination() && target.status === 'SHIPPED') {
+  } @if (manageable() && canDestination() && (target.status === 'SHIPPED' || receipt())) {
   <h2>Nouvelle réception</h2>
   <p class="muted small">
     Saisissez uniquement les quantités de cette réception, pas les cumuls précédents. Le serveur contrôle les
@@ -337,8 +337,8 @@
     @if (receipt()) {
     <button class="primary" type="button" [disabled]="busy()" (click)="receive(false)">
       Réessayer la même réception</button
-    ><button class="secondary" type="button" [disabled]="busy()" (click)="open(target.id)">
-      Relire le transfert
+    ><button class="secondary" type="button" [disabled]="busy()" (click)="discardReceipt()">
+      Abandonner la tentative
     </button>
     } @else {
     <button class="secondary" type="button" [disabled]="busy()" (click)="receive(false)">

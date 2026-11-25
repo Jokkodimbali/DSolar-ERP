@@ -141,3 +141,19 @@ export interface CountInput {
   counted: string;
   reason?: string;
 }
+
+export function parsePendingReceipt(value: unknown): ReceiptInput {
+  const row = record(value);
+  if (typeof row['finalize'] !== 'boolean') return invalid();
+  const lines = array(row['lines']).map((raw) => {
+    const line = record(raw);
+    return {
+      lineId: storeId(line['lineId']),
+      received: quantity(line['received']),
+      damaged: quantity(line['damaged']),
+      missing: quantity(line['missing']),
+    };
+  });
+  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.lineId)).size !== lines.length) return invalid();
+  return { operationKey: storeId(row['operationKey']), finalize: row['finalize'], lines };
+}

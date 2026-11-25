@@ -18,6 +18,7 @@ import { ProductsApi } from '../../products/infrastructure/products.api';
 import { emptyFilters, type Product } from '../../products/domain/product.contract';
 import {
   adjustmentInput,
+  parsePendingAdjustment,
   unavailable,
   type parseMovements,
   type StockAdjustment,
@@ -25,6 +26,7 @@ import {
   type StockBalance,
   type parseStockSummary,
 } from '../domain/stock.contract';
+import { clearPending, pendingKey, readPending, savePending } from '../infrastructure/pending-stock-operation';
 import { InventoryApi } from '../infrastructure/inventory.api';
 
 @Component({
@@ -121,10 +123,44 @@ export class InventoryPage {
       .subscribe({
         next: (stores) => {
           this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
-          this.selectStore(this.stores()[0]?.id ?? '');
+          this.restoreAdjustment();
+          if (!this.editing()) this.selectStore(this.stores()[0]?.id ?? '');
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
       });
+  }
+
+  private adjustmentKey(): string {
+    const actor = this.session.user()?.id;
+    if (!actor) throw new Error('Session indisponible.');
+    return pendingKey(actor, 'adjustment');
+  }
+
+  private restoreAdjustment(): void {
+    if (!this.session.can('inventory.manage', 'products.read')) return;
+    try {
+      const command = readPending(this.adjustmentKey(), parsePendingAdjustment);
+      if (!command) return;
+      if (!this.stores().some((store) => store.id === command.storeId)) {
+        this.error.set('Un ajustement est en attente dans un magasin désormais inaccessible. Contactez un administrateur.');
+        return;
+      }
+      this.selectedStore.set(command.storeId);
+      this.load(1);
+      this.chosen.set({ id: command.productId, name: 'Ajustement à reprendre', sku: command.productId });
+      this.form.reset({ direction: command.direction, quantity: command.quantity, reason: command.reason });
+      this.form.disable();
+      this.pending.set(command);
+      this.attempted.set(true);
+      this.editing.set(true);
+      this.success.set('Opération précédente retrouvée. Vérifiez-la ou réessayez avec la même clé.');
+      this.productsApi.get(command.productId).pipe(takeUntilDestroyed(this.destroy)).subscribe({
+        next: (product) => { if (this.pending()?.operationKey === command.operationKey) this.chosen.set(product); },
+        error: () => undefined,
+      });
+    } catch {
+      this.error.set('Impossible de restaurer l’ajustement conservé. Vérifiez le journal avant une nouvelle écriture.');
+    }
   }
 
   selectStore(id: string): void {
@@ -269,6 +305,9 @@ export class InventoryPage {
       )
     )
       return;
+    if (this.attempted()) {
+      try { clearPending(this.adjustmentKey()); } catch { this.error.set('Impossible de supprimer la tentative conservée.'); return; }
+    }
     this.resetAdjustment();
     this.load();
   }
@@ -286,6 +325,14 @@ export class InventoryPage {
   submit(): void {
     const pending = this.pending();
     if (!pending || this.busy() || !this.session.can('inventory.manage')) return;
+    let key: string;
+    try {
+      key = this.adjustmentKey();
+      savePending(key, pending);
+    } catch {
+      this.error.set('Impossible de conserver la clé d’opération. L’ajustement n’a pas été envoyé.');
+      return;
+    }
     this.attempted.set(true);
     this.busy.set(true);
     this.error.set('');
@@ -298,6 +345,7 @@ export class InventoryPage {
       .subscribe({
         next: () => {
           this.busy.set(false);
+          try { clearPending(key); } catch { this.error.set('Ajustement enregistré ; impossible de supprimer sa reprise locale.'); return; }
           this.resetAdjustment();
           this.success.set('Ajustement de stock enregistré.');
           this.load();
