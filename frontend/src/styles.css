@@ -836,7 +836,8 @@ app-global-search {
 }
 .dashboard-primary > app-dashboard-report > .panel,
 .dashboard-primary > .panel {
-  height: calc(100% - 16px);
+  height: 100%;
+  margin-bottom: 0;
 }
 .dashboard-featured .ui-toolbar {
   gap: 8px;
@@ -976,5 +977,132 @@ app-dashboard-page app-page-header .muted {
   }
   .kpi-grid .ui-kpi {
     min-height: 90px;
+  }
+}
+
+/* Ajustements d'après la capture réelle du tableau de bord. */
+.sidebar {
+  padding: 20px 12px;
+}
+.sidebar .brand {
+  padding: 0 12px 12px;
+}
+.company-logo {
+  width: 148px;
+  max-height: 92px;
+}
+.sidebar nav {
+  gap: 3px;
+}
+.sidebar nav a {
+  padding: 11px 12px;
+  font-size: 0.9rem;
+}
+.topbar {
+  gap: 14px;
+  height: 64px;
+  padding-inline: 22px;
+}
+.account-menu {
+  position: relative;
+  min-width: 0;
+}
+.account-menu summary {
+  cursor: pointer;
+  list-style: none;
+}
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+.account-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 0.82rem;
+}
+.account-label small {
+  color: var(--muted);
+}
+.account-chevron {
+  color: var(--muted);
+}
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 190px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+.account-dropdown a {
+  padding: 10px;
+  border-radius: 6px;
+}
+.account-dropdown a:hover {
+  background: var(--accent-soft);
+}
+.dashboard-primary {
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.dashboard-primary .panel {
+  min-height: 0;
+}
+.dashboard-primary .ui-empty {
+  padding: 24px 8px;
+}
+.dashboard-featured .ui-toolbar {
+  align-items: end;
+}
+.revenue-chart {
+  position: relative;
+  margin: 12px 0 6px;
+  padding: 0;
+}
+.chart-grid {
+  position: absolute;
+  inset: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.chart-grid span {
+  border-top: 1px solid var(--line);
+}
+.revenue-column {
+  position: relative;
+}
+.revenue-track {
+  height: 126px;
+}
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: 0.82rem;
+  margin: 0 0 20px;
+  z-index: 1;
+  pointer-events: none;
+}
+@media (max-width: 760px) {
+  .topbar {
+    height: auto;
+    gap: 8px;
+    padding-inline: 12px;
+  }
+  .account-menu .account-label,
+  .account-menu .account-chevron {
+    display: none;
+  }
+  .account-menu .account-avatar {
+    display: inline-grid;
+  }
+  .dashboard-primary .panel {
+    height: auto;
   }
 }

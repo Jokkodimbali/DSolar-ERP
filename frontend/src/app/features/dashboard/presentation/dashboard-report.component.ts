@@ -39,6 +39,10 @@ export class DashboardReportComponent implements OnInit {
     this.load();
   }
 
+  chartIsEmpty(chart: NonNullable<ReportView['chart']>): boolean {
+    return chart.every((bar) => bar.height === 0);
+  }
+
   changeYear(value: string): void {
     const year = Number(value);
     if (!this.years.includes(year) || this.loading()) return;

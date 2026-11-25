@@ -56,7 +56,8 @@ import { SessionService } from '../features/auth/application/session.service';
           class="menu-toggle secondary"
           type="button"
           (click)="menuOpen.set(!menuOpen())"
-          [attr.aria-expanded]="menuOpen()" aria-controls="main-navigation"
+          [attr.aria-expanded]="menuOpen()"
+          aria-controls="main-navigation"
         >
           <app-ui-icon name="menu" /><span class="sr-only">Menu</span>
         </button>
@@ -77,12 +78,22 @@ import { SessionService } from '../features/auth/application/session.service';
             >
           }
           <app-notifications />
-          <a class="account-chip" routerLink="/mon-compte" aria-label="Mon compte"
-            ><span class="account-avatar"><app-ui-icon name="user" /></span
-            ><span>{{ session.user()?.nomComplet }}</span></a
-          ><button type="button" class="secondary" [disabled]="loggingOut()" (click)="logout()">
-            Déconnexion
-          </button>
+          <details class="account-menu">
+            <summary class="account-chip" aria-label="Menu du compte">
+              <span class="account-avatar"><app-ui-icon name="user" /></span>
+              <span class="account-label">
+                <strong>{{ session.user()?.nomComplet }}</strong>
+                <small>{{ session.can('users.manage') ? 'Administrateur' : 'Magasinier' }}</small>
+              </span>
+              <span class="account-chevron" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="account-dropdown panel">
+              <a routerLink="/mon-compte" (click)="closeAccount($event)">Mon compte</a>
+              <button type="button" class="secondary" [disabled]="loggingOut()" (click)="logout()">
+                Déconnexion
+              </button>
+            </div>
+          </details>
         </div>
       </header>
       <main class="page"><router-outlet /></main>
@@ -120,6 +131,12 @@ export class Shell {
   readonly session = inject(SessionService);
   readonly menuOpen = signal(false);
   readonly loggingOut = signal(false);
+  closeAccount(event: Event): void {
+    if (event.currentTarget instanceof HTMLElement) {
+      event.currentTarget.closest('details')?.removeAttribute('open');
+    }
+  }
+
   logout(): void {
     if (this.loggingOut()) return;
     this.loggingOut.set(true);

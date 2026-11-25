@@ -47,6 +47,12 @@
         class="revenue-chart"
         aria-label="Facturation mensuelle, montants exacts dans le tableau ci-dessous"
       >
+        <div class="chart-grid" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        @if (chartIsEmpty(chart)) {
+          <p class="chart-empty muted">Aucune facturation sur cette année.</p>
+        }
         @for (bar of chart; track $index) {
           <div class="revenue-column">
             <div

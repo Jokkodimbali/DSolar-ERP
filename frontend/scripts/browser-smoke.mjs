@@ -82,6 +82,7 @@ try {
   await page.getByText('2\u202f360,00 FCFA', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'proforma.png'), fullPage: true });
   assert.deepEqual(errors, [], 'Erreurs JavaScript dans le navigateur');
+  await page.getByLabel('Menu du compte').click();
   await page.getByRole('button', { name: 'Déconnexion' }).click();
   await page.waitForURL('**/connexion');
   console.log('Validation navigateur : desktop, tablette, mobile et proforma réussis.');
