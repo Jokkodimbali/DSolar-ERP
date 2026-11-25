@@ -633,3 +633,54 @@ app-ui-icon {
   color: var(--danger);
   background: var(--accent-soft);
 }
+
+.notification-widget {
+  position: relative;
+}
+.notification-trigger {
+  position: relative;
+  padding: 8px;
+}
+.notification-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.7rem;
+  text-align: center;
+}
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 30;
+  width: min(420px, calc(100vw - 24px));
+  max-height: 70dvh;
+  overflow-y: auto;
+}
+.notification-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.notification-item p {
+  margin: 4px 0 0;
+}
+.notification-unread {
+  background: var(--accent-soft);
+}
+@media (max-width: 760px) {
+  .notification-panel {
+    position: fixed;
+    top: 76px;
+    right: 12px;
+  }
+}

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-export type UiIcon = 'home' | 'dashboard' | 'store' | 'user' | 'menu' | 'trend' | 'box' | 'wallet';
+export type UiIcon = 'home' | 'dashboard' | 'store' | 'user' | 'menu' | 'trend' | 'box' | 'wallet' | 'bell' | 'search';
 
 const paths: Record<UiIcon, string> = {
   home: 'M3 10 12 3l9 7v10H3z M9 20v-7h6v7',
@@ -10,6 +10,8 @@ const paths: Record<UiIcon, string> = {
   menu: 'M4 6h16 M4 12h16 M4 18h16',
   trend: 'm3 17 6-6 4 4 7-9 M15 6h5v5 M3 21h18',
   box: 'm12 3 9 5v9l-9 5-9-5V8z M3 8l9 5 9-5 M12 13v9 M7.5 5.5l9 5',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4',
+  search: 'M15 15l6 6 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',
   wallet: 'M3 6h18v14H3z M3 6l15-3v3 M21 11h-7v4h7',
 };
 

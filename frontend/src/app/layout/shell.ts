@@ -1,10 +1,11 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NotificationsComponent } from '../features/notifications/presentation/notifications.component';
 import { UiIconComponent } from '../shared/ui/ui-icon.component';
 import { SessionService } from '../features/auth/application/session.service';
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, UiIconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, UiIconComponent, NotificationsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <div class="workspace" [class.menu-open]="menuOpen()">
     <aside class="sidebar" aria-label="Navigation principale">
@@ -49,6 +50,7 @@ import { SessionService } from '../features/auth/application/session.service';
         </button>
         <span class="topbar-title">DSolar<span class="brand-accent">-ERP</span></span>
         <div class="user-actions">
+          <app-notifications />
           <a class="account-chip" routerLink="/mon-compte" aria-label="Mon compte"
             ><span class="account-avatar"><app-ui-icon name="user" /></span
             ><span>{{ session.user()?.nomComplet }}</span></a
