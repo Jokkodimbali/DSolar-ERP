@@ -15,7 +15,8 @@ permissions:
   contents: read
 concurrency:
   group: dsolar-ci-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.deploy_production && 'production' || 'validation' }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || !inputs.deploy_production }}
+  # Ne jamais interrompre une migration déjà lancée sur develop.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' && (github.event_name != 'workflow_dispatch' || !inputs.deploy_production) }}
 jobs:
   backend:
     name: Validation backend
