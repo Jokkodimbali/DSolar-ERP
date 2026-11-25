@@ -34,6 +34,11 @@ try {
   await page.locator('.stock-alert-item').first().waitFor();
   await page.locator('.recent-activity-list article').first().waitFor();
   assert.equal(await page.locator('app-kpi-card').count(), 4);
+  assert.equal(await page.locator('#dashboard-detail-reports').isVisible(), false);
+  await page.getByRole('button', { name: 'Afficher les rapports détaillés' }).click();
+  await page.locator('#dashboard-detail-reports').waitFor();
+  await page.getByRole('button', { name: 'Masquer les rapports détaillés' }).click();
+  assert.equal(await page.locator('#dashboard-detail-reports').isVisible(), false);
   assert.equal(await page.locator('.revenue-column').count(), 12);
   assert.equal(await page.locator('.dashboard-primary > section').count(), 2);
   assert.equal(await page.locator('.dashboard-primary > app-dashboard-report').count(), 2);

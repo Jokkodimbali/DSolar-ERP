@@ -20,8 +20,8 @@ import { SessionService } from '../features/auth/application/session.service';
       <a class="brand" routerLink="/" (click)="menuOpen.set(false)"
         ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri"
       /></a>
-      <p class="nav-label">ESPACE DE TRAVAIL</p>
       <nav>
+        @if (!session.can('sales.read', 'users.manage')) {
         <a
           routerLink="/"
           routerLinkActive="active"
@@ -29,6 +29,7 @@ import { SessionService } from '../features/auth/application/session.service';
           (click)="menuOpen.set(false)"
           ><app-ui-icon name="home" />Accueil</a
         >
+        }
         @if (session.can('sales.read', 'users.manage')) {
           <a routerLink="/tableau-de-bord" routerLinkActive="active" (click)="menuOpen.set(false)"
             ><app-ui-icon name="dashboard" />Tableau de bord</a
@@ -36,7 +37,7 @@ import { SessionService } from '../features/auth/application/session.service';
         }
         @if (session.can('sales.manage', 'sales.read', 'products.read', 'stores.read')) {
           <a routerLink="/ventes/nouvelle" routerLinkActive="active" (click)="menuOpen.set(false)"
-            ><app-ui-icon name="wallet" />Ventes</a
+            ><app-ui-icon name="cart" />Ventes</a
           >
         }
         @if (session.can('stores.read')) {
@@ -112,7 +113,7 @@ import { SessionService } from '../features/auth/application/session.service';
         }
         @if (session.can('sales.manage', 'sales.read', 'products.read', 'stores.read')) {
           <a routerLink="/ventes/nouvelle" routerLinkActive="active" (click)="menuOpen.set(false)"
-            ><app-ui-icon name="wallet" />Ventes</a
+            ><app-ui-icon name="cart" />Ventes</a
           >
         }
         @if (session.can('stores.read')) {

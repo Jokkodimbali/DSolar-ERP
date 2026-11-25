@@ -2,13 +2,13 @@
   <ng-content select="[dashboardRevenue]" />
   @if (session.can('stores.read', 'inventory.read')) {
     <section class="panel">
-      <div class="page-heading">
-        <h2 class="ui-section-title"><app-ui-icon name="store" /> Alertes de stock</h2>
-        <button type="button" class="secondary" [disabled]="alertsLoading()" (click)="loadAlerts()">
-          Actualiser
+      <div class="dashboard-report-heading">
+        <h2 class="ui-section-title"><app-ui-icon name="layers" /> Alertes de stock</h2>
+        <button type="button" class="dashboard-icon-action" [disabled]="alertsLoading()" (click)="loadAlerts()" aria-label="Actualiser les alertes" title="Actualiser les alertes">
+          <app-ui-icon name="refresh" />
         </button>
       </div>
-      <p class="muted small">Seuil de disponibilité : 5 unités par référence et magasin actif.</p>
+      <p class="muted small">Seuil : 5 unités disponibles par référence et magasin.</p>
       <app-feedback [message]="alertsLoading() ? 'Chargement des alertes…' : ''" />
       <app-feedback [message]="alertsError()" kind="error" />
       @if (alerts(); as stores) {
@@ -17,7 +17,8 @@
             <summary>{{ store.storeName }} — {{ store.items.length }} alerte(s)</summary>
             @for (item of store.items; track item.productId) {
               <div class="stock-alert-item">
-                <div>
+                <span class="stock-product-icon"><app-ui-icon name="box" /></span>
+                <div class="stock-product-text">
                   <strong>{{ item.name }}</strong>
                   <p class="muted small">
                     {{ item.sku }} · {{ item.available }} {{ item.unit }} disponible(s)
@@ -32,20 +33,21 @@
             }
           </details>
         } @empty {
-          <app-empty-state
-            heading="Aucun magasin actif"
-            description="Les alertes sont calculées par le serveur pour les magasins actifs accessibles."
-          />
+          <div class="dashboard-empty">
+            <span class="dashboard-empty-icon"><app-ui-icon name="store" /></span>
+            <strong>Aucun magasin actif</strong>
+            <p>Les alertes apparaîtront après l’activation d’un magasin.</p>
+          </div>
         }
       }
     </section>
   }
   @if (session.can('sales.read')) {
     <section class="panel">
-      <div class="page-heading">
-        <h2 class="ui-section-title"><app-ui-icon name="box" /> Dernières commandes accessibles</h2>
-        <button type="button" class="secondary" [disabled]="ordersLoading()" (click)="loadOrders()">
-          Actualiser
+      <div class="dashboard-report-heading">
+        <h2 class="ui-section-title"><app-ui-icon name="cart" /> Dernières commandes</h2>
+        <button type="button" class="dashboard-icon-action" [disabled]="ordersLoading()" (click)="loadOrders()" aria-label="Actualiser les commandes" title="Actualiser les commandes">
+          <app-ui-icon name="refresh" />
         </button>
       </div>
       <app-feedback [message]="ordersLoading() ? 'Chargement des commandes…' : ''" />
@@ -69,7 +71,7 @@
                     <td>{{ order.number }}</td>
                     <td>{{ order.total }}</td>
                     <td>{{ order.status }}</td>
-                    <td>{{ order.paymentStatus }}</td>
+                    <td><span class="dashboard-payment" [class.paid]="order.paymentStatus === 'Payée'">{{ order.paymentStatus }}</span></td>
                     <td>{{ order.createdAt }}</td>
                   </tr>
                 }
@@ -77,10 +79,11 @@
             </table>
           </div>
         } @else {
-          <app-empty-state
-            heading="Aucune commande accessible"
-            description="Les dernières commandes autorisées apparaîtront ici."
-          />
+          <div class="dashboard-empty">
+            <span class="dashboard-empty-icon"><app-ui-icon name="cart" /></span>
+            <strong>Aucune commande</strong>
+            <p>Les dernières commandes accessibles apparaîtront ici.</p>
+          </div>
         }
       }
     </section>

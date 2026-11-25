@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, DestroyRef, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, DestroyRef, viewChild, viewChildren } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { SessionService } from '../../auth/application/session.service';
@@ -8,6 +8,7 @@ import { DashboardOperationsComponent } from './dashboard-operations.component';
 import { DashboardReportComponent } from './dashboard-report.component';
 import { reports } from '../domain/dashboard-reports.contract';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { KpiCardComponent } from '../../../shared/ui/kpi-card.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { errorMessage } from '../../../core/api/http-error';
@@ -19,14 +20,17 @@ import { errorMessage } from '../../../core/api/http-error';
     PageHeaderComponent,
     FeedbackComponent,
     KpiCardComponent,
+    UiIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <app-page-header
       [eyebrow]="'Bonjour, ' + (session.user()?.nomComplet ?? '')"
       heading="Tableau de bord"
-      description="Indicateurs réels de votre activité."
+      description="Vue d’ensemble de l’activité de votre entreprise."
     >
-      <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
+      <button type="button" class="dashboard-refresh" [disabled]="loading()" (click)="load()">
+        <app-ui-icon name="refresh" /> Actualiser
+      </button>
     </app-page-header>
     <app-feedback [message]="loading() ? 'Chargement des indicateurs…' : ''" />
     <app-feedback [message]="error()" kind="error" />
@@ -42,14 +46,14 @@ import { errorMessage } from '../../../core/api/http-error';
         tone="blue"
         label="Commandes confirmées"
         [value]="data()?.confirmedOrders ?? '—'"
-        description="Vue globale"
+        description="Commandes enregistrées"
       />
       <app-kpi-card
         icon="alert"
         tone="orange"
         label="Alertes de stock"
         [value]="operations()?.alertCount() ?? '—'"
-        description="Références par magasin actif"
+        description="Magasins actifs"
       />
       <app-kpi-card
         icon="wallet"
@@ -67,6 +71,18 @@ import { errorMessage } from '../../../core/api/http-error';
         <app-dashboard-report dashboardActivity [definition]="report" />
       }
     </app-dashboard-operations>
+    <button
+      type="button"
+      class="dashboard-more"
+      [attr.aria-expanded]="showReports()"
+      aria-controls="dashboard-detail-reports"
+      (click)="showReports.set(!showReports())"
+    >
+      {{ showReports() ? 'Masquer les rapports détaillés' : 'Afficher les rapports détaillés' }}
+      <span aria-hidden="true">{{ showReports() ? '−' : '+' }}</span>
+    </button>
+    <section id="dashboard-detail-reports" [hidden]="!showReports()">
+    @if (showReports()) {
     @if (data(); as d) {
       <section class="panel">
         <h2>Activité de l'entreprise</h2>
@@ -102,7 +118,9 @@ import { errorMessage } from '../../../core/api/http-error';
       @for (report of otherReports; track report.path) {
         <app-dashboard-report [definition]="report" />
       }
-    </div>`,
+    </div>
+    }
+    </section>`,
 })
 export class DashboardPage {
   private readonly api = inject(DashboardApi);
@@ -113,6 +131,8 @@ export class DashboardPage {
   readonly money = formatMoney;
   readonly session = inject(SessionService);
   readonly operations = viewChild(DashboardOperationsComponent);
+  readonly reportComponents = viewChildren(DashboardReportComponent);
+  readonly showReports = signal(false);
   readonly revenueReport = reports.find((report) => report.path === 'monthly-revenue');
   readonly activityReport = reports.find((report) => report.path === 'recent-activity');
   readonly otherReports = reports.filter(
@@ -128,6 +148,7 @@ export class DashboardPage {
     if (this.loading()) return;
     this.operations()?.loadAlerts();
     this.operations()?.loadOrders();
+    for (const report of this.reportComponents()) report.load();
     this.loading.set(true);
     this.error.set('');
     this.data.set(null);

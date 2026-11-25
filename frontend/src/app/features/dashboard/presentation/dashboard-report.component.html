@@ -4,11 +4,19 @@
     definition().path === 'monthly-revenue' || definition().path === 'recent-activity'
   "
 >
-  <h2>{{ definition().title }}</h2>
-  <div class="ui-toolbar">
+  <div class="dashboard-report-heading">
+    <h2 class="ui-section-title">
+      @if (definition().path === 'monthly-revenue') {
+        <app-ui-icon name="trend" />
+      } @else if (definition().path === 'recent-activity') {
+        <app-ui-icon name="clock" />
+      }
+      {{ definition().title }}
+    </h2>
+    <div class="ui-toolbar">
     @if (definition().path === 'monthly-revenue') {
       <label class="ui-field">
-        Année
+        <span class="sr-only">Année</span>
         <select #yearSelect [value]="year()" [disabled]="loading()" (change)="changeYear(yearSelect.value)">
           @for (item of years; track item) {
             <option [value]="item" [selected]="item === year()">{{ item }}</option>
@@ -18,7 +26,7 @@
     }
     @if (definition().path === 'top-products' || definition().path === 'recent-activity') {
       <label class="ui-field">
-        Nombre de résultats
+        <span class="sr-only">Nombre de résultats</span>
         <select
           #limitSelect
           [value]="limit()"
@@ -31,12 +39,15 @@
         </select>
       </label>
     }
-    <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
+    <button type="button" class="dashboard-icon-action" [disabled]="loading()" (click)="load()" aria-label="Actualiser le rapport" title="Actualiser le rapport">
+      <app-ui-icon name="refresh" />
+    </button>
     @if (definition().exportName) {
       <button type="button" class="secondary" [disabled]="exporting()" (click)="download()">
         {{ exporting() ? 'Export en cours…' : 'Exporter CSV' }}
       </button>
     }
+    </div>
   </div>
   <app-feedback [message]="loading() ? 'Chargement du rapport…' : ''" />
   <app-feedback [message]="error()" kind="error" />
@@ -127,7 +138,15 @@
           </div>
         </details>
       } @else {
-        <app-empty-state />
+        @if (definition().path === 'recent-activity') {
+          <div class="dashboard-empty">
+            <span class="dashboard-empty-icon"><app-ui-icon name="clock" /></span>
+            <strong>Aucune activité récente</strong>
+            <p>Les opérations enregistrées apparaîtront ici.</p>
+          </div>
+        } @else {
+          <app-empty-state />
+        }
       }
     }
   }

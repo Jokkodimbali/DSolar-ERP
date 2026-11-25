@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { errorMessage } from '../../../core/api/http-error';
@@ -17,7 +18,7 @@ import { DashboardReportsApi } from '../infrastructure/dashboard-reports.api';
 
 @Component({
   selector: 'app-dashboard-report',
-  imports: [FeedbackComponent, EmptyStateComponent],
+  imports: [FeedbackComponent, EmptyStateComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-report.component.html',
 })

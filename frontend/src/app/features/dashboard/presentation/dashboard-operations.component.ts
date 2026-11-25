@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
-import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { SessionService } from '../../auth/application/session.service';
@@ -11,7 +10,7 @@ import { DashboardOperationsApi } from '../infrastructure/dashboard-operations.a
 
 @Component({
   selector: 'app-dashboard-operations',
-  imports: [EmptyStateComponent, FeedbackComponent, UiIconComponent],
+  imports: [FeedbackComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-operations.component.html',
 })

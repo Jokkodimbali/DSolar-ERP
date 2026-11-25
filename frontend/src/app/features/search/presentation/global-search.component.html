@@ -1,15 +1,6 @@
 <div class="global-search">
   <form class="global-search-form" (submit)="search(); $event.preventDefault()">
     <label class="sr-only" for="global-query">Rechercher dans l’ERP</label>
-    <input
-      #searchField
-      id="global-query"
-      type="search"
-      [formControl]="query"
-      placeholder="Produit, commande, client…"
-      maxlength="120"
-      autocomplete="off"
-    />
     <button
       type="submit"
       class="secondary"
@@ -18,6 +9,15 @@
     >
       <app-ui-icon name="search" />
     </button>
+    <input
+      #searchField
+      id="global-query"
+      type="search"
+      [formControl]="query"
+      placeholder="Rechercher un produit, une commande, un client…"
+      maxlength="120"
+      autocomplete="off"
+    />
     <kbd class="search-shortcut" aria-hidden="true">Ctrl + K</kbd>
   </form>
   @if (open()) {
