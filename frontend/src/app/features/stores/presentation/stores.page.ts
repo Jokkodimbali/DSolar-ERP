@@ -34,6 +34,7 @@ export class StoresPage {
   readonly visible = computed(() => this.filtered().slice((this.page() - 1) * 10, this.page() * 10));
   readonly editing = signal<Store | 'new' | null>(null);
   readonly selected = signal<Store | null>(null);
+  readonly detail = signal<Store | null>(null);
   readonly pendingStatus = signal<Store | null>(null);
   readonly form = new FormGroup({
     code: new FormControl('', {
@@ -54,6 +55,7 @@ export class StoresPage {
   load(): void {
     if (this.loading() || this.busy()) return;
     this.loading.set(true);
+    this.detail.set(null);
     this.error.set('');
     this.stores.set([]);
     this.page.set(1);
@@ -90,6 +92,27 @@ export class StoresPage {
       this.status.set(status);
       this.page.set(1);
     }
+  }
+
+  view(store: Store): void {
+    if (!this.session.can('stores.read') || this.busy() || this.loading()) return;
+    this.close();
+    // L’API de détail refuse les magasins inactifs ; seul l’administrateur les reçoit dans la liste.
+    if (store.status === 'INACTIVE') {
+      if (this.session.can('stores.manage')) this.detail.set(store);
+      return;
+    }
+    this.busy.set(true);
+    this.api
+      .get(store.id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (value) => this.detail.set(value),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   edit(store: Store | 'new'): void {
@@ -197,6 +220,7 @@ export class StoresPage {
   close(): void {
     if (this.busy()) return;
     this.editing.set(null);
+    this.detail.set(null);
     this.pendingStatus.set(null);
     this.selected.set(null);
     this.users.set([]);

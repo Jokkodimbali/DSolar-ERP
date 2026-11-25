@@ -14,6 +14,27 @@
 <p class="field-error panel" role="alert">{{ error() }}</p>
 } @if (success()) {
 <p class="panel" role="status">{{ success() }}</p>
+} @if (detail(); as store) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Fiche magasin — {{ store.name }}</h2>
+    <button type="button" class="secondary" (click)="close()">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div>
+      <dt>Code</dt>
+      <dd>{{ store.code }}</dd>
+    </div>
+    <div>
+      <dt>Adresse</dt>
+      <dd>{{ store.address || 'Non renseignée' }}</dd>
+    </div>
+    <div>
+      <dt>Statut</dt>
+      <dd>{{ store.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}</dd>
+    </div>
+  </dl>
+</section>
 } @if (editing(); as target) {
 <section class="panel">
   <h2>{{ target === 'new' ? 'Nouveau magasin' : 'Modifier le magasin' }}</h2>
@@ -100,9 +121,7 @@
           <th>Nom</th>
           <th>Adresse</th>
           <th>Statut</th>
-          @if (session.can('stores.manage')) {
           <th>Actions</th>
-          }
         </tr>
       </thead>
       <tbody>
@@ -112,9 +131,12 @@
           <td>{{ store.name }}</td>
           <td>{{ store.address || '—' }}</td>
           <td>{{ store.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}</td>
-          @if (session.can('stores.manage')) {
           <td>
             <div class="store-actions">
+              <button type="button" class="secondary" [disabled]="busy()" (click)="view(store)">
+                Détails
+              </button>
+              @if (session.can('stores.manage')) {
               <button type="button" class="secondary" [disabled]="busy()" (click)="edit(store)">
                 Modifier
               </button>
@@ -125,10 +147,9 @@
               <button type="button" class="secondary" [disabled]="busy()" (click)="assignments(store)">
                 Affectations
               </button>
-              }
+              } }
             </div>
           </td>
-          }
         </tr>
         }
       </tbody>
