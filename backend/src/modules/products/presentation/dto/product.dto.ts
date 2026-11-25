@@ -46,4 +46,6 @@ export class CreateProductDto {
   @SwaggerField({ required: false, type: Boolean })
   isSolarPlant?: boolean;
 }
-export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['sku'] as const), { skipNullProperties: false }) {}
+export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['sku'] as const), {
+  skipNullProperties: false,
+}) {}
