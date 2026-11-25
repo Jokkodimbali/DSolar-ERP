@@ -108,6 +108,8 @@ try {
     ['magasins', '/magasins', 'Magasins'],
     ['commandes', '/ventes/commandes', 'Commandes'],
     ['stocks', '/stocks', 'Stocks'],
+    ['transferts', '/stocks/transferts', 'Transferts de stock'],
+    ['inventaires', '/stocks/inventaires', 'Inventaires physiques'],
     ['alertes', '/stocks/alertes', 'Alertes de stock'],
     ['activite', '/activite', 'Activité récente'],
     ['compte', '/mon-compte', 'Mon compte'],
@@ -138,7 +140,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 900 });
   }
   await page.goto('http://localhost:4200/stocks');
-  const storeSelector = page.getByLabel('Magasin', { exact: true });
+  const storeSelector = page.locator('.inventory-toolbar select');
   const storeOption = storeSelector.locator('option').filter({ hasText: 'Magasin CI modifié' });
   await storeOption.waitFor({ state: 'attached' });
   const stockStoreId = await storeOption.getAttribute('value');

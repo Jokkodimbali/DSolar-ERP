@@ -104,6 +104,18 @@ describe('PrismaTransfersRepository receipt validation', () => {
     expect(tx.stockTransferLine.update).not.toHaveBeenCalled();
   });
 
+  it('rejoue une réception identique malgré l’ordre des clés JSONB', async () => {
+    const { tx, repository } = fixture();
+    tx.stockTransferEvent.findUnique.mockResolvedValue({
+      transferId: input.id,
+      action: 'RECEIPT',
+      actorId: input.actorId,
+      payload: { finalize: false, lines: [{ missing: '0', damaged: '0', received: '3', lineId: 'line-id' }] },
+    });
+    await expect(repository.receive(input)).resolves.toMatchObject({ id: input.id });
+    expect(tx.storeStock.upsert).not.toHaveBeenCalled();
+  });
+
   it('refuse une clé de réception appartenant à un autre acteur', async () => {
     const { tx, repository } = fixture();
     tx.stockTransferEvent.findUnique.mockResolvedValue({

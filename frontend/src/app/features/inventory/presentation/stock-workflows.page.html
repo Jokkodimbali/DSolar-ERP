@@ -13,9 +13,13 @@
       @if (!stores().length) { <option value="">Aucun magasin actif</option> }
       @for (item of stores(); track item.id) { <option [value]="item.id" [selected]="item.id === store()">{{ item.name }}</option> }
     </select></label>
-    <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(term.value)">
-      <label class="ui-field">Recherche <input #term type="search" maxlength="120" [placeholder]="mode === 'counts' ? 'DRAFT, VALIDATED, CANCELLED' : 'Référence du transfert'" /></label>
-      <button class="secondary" type="submit" [disabled]="loading() || busy()">Rechercher</button>
+    <form class="ui-toolbar" (submit)="$event.preventDefault()">
+      @if (mode === 'counts') {
+        <label class="ui-field">Statut <select #term (change)="filter(term.value)"><option value="">Tous</option><option value="DRAFT">Brouillons</option><option value="VALIDATED">Validés</option><option value="CANCELLED">Annulés</option></select></label>
+      } @else {
+        <label class="ui-field">Recherche <input #term type="search" maxlength="120" placeholder="Référence du transfert" (keyup.enter)="filter(term.value)" /></label><button class="secondary" type="button" [disabled]="loading() || busy()" (click)="filter(term.value)">Rechercher</button>
+      }
+      
     </form>
   </div>
   <p class="muted small">{{ total() }} opération(s)</p>

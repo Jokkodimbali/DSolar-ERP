@@ -5,7 +5,6 @@ import { finalize, type Observable } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
-import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { PaginationComponent } from '../../../shared/ui/pagination.component';
 import { ConfirmComponent } from '../../../shared/ui/confirm.component';
 import { SessionService } from '../../auth/application/session.service';
@@ -18,7 +17,7 @@ import { labels, type Transfer, type CountSession, type TransferInput, type Rece
 
 @Component({
   selector: 'app-stock-workflows-page',
-  imports: [RouterLink, PageHeaderComponent, FeedbackComponent, EmptyStateComponent, PaginationComponent, ConfirmComponent],
+  imports: [RouterLink, PageHeaderComponent, FeedbackComponent, PaginationComponent, ConfirmComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stock-workflows.page.html',
 })
@@ -92,11 +91,11 @@ export class StockWorkflowsPage {
     this.transfer.set(null); this.count.set(null); this.editing.set(false); this.confirmation.set(null); this.draft.set(null); this.receipt.set(null);
     this.receiptFields.set({}); this.counted.set({});
   }
-  open(id: string): void {
+  open(id: string, message = '', reload = false): void {
     if (this.busy()) return;
     this.close();
-    if (this.mode === 'transfers') this.run(this.api.transferDetail(id), '', (value) => this.transfer.set(value));
-    else this.run(this.api.countDetail(id), '', (value) => { this.count.set(value); this.counted.set(Object.fromEntries(value.lines.map((line) => [line.productId, { counted: line.counted ?? '', reason: line.reason }]))); });
+    if (this.mode === 'transfers') this.run(this.api.transferDetail(id), message, (value) => { this.transfer.set(value); if (reload) this.load(1); });
+    else this.run(this.api.countDetail(id), message, (value) => { this.count.set(value); this.counted.set(Object.fromEntries(value.lines.map((line) => [line.productId, { counted: line.counted ?? '', reason: line.reason }]))); if (reload) this.load(1); });
   }
   create(): void {
     if (this.busy() || this.loading() || !this.manageable() || !this.store()) return;
@@ -124,7 +123,7 @@ export class StockWorkflowsPage {
         this.draft.set({ number: this.number(), originId: this.store(), destinationId: this.destination(), lines });
       }
       const input = this.draft();
-      if (input) this.run(this.api.createTransfer(input), 'Transfert créé.', (id) => { this.open(id); this.load(1); });
+      if (input) this.run(this.api.createTransfer(input), 'Transfert créé.', (id) => { this.open(id, 'Transfert créé.', true); });
     } catch (error: unknown) { this.validationError(error); }
   }
   updateReceipt(id: string, key: 'received' | 'damaged' | 'missing', value: string): void {
@@ -144,7 +143,7 @@ export class StockWorkflowsPage {
         this.receipt.set({ operationKey: crypto.randomUUID(), finalize: finalizeReceipt, lines });
       }
       const input = this.receipt();
-      if (input) this.run(this.api.receive(target.id, input), 'Réception enregistrée.', () => { this.open(target.id); this.load(1); });
+      if (input) this.run(this.api.receive(target.id, input), 'Réception enregistrée.', () => { this.open(target.id, 'Réception enregistrée.', true); });
     } catch (error: unknown) { this.validationError(error); }
   }
   updateCount(id: string, key: 'counted' | 'reason', value: string): void {
@@ -168,9 +167,9 @@ export class StockWorkflowsPage {
     if (action === 'start') { this.run(this.api.startCount(this.store()), 'Inventaire ouvert.', (id) => { this.open(id); this.load(1); }); return; }
     const transfer = this.transfer(), count = this.count();
     if (transfer && this.canOrigin() && action !== 'validate') {
-      this.run(this.api.transferAction(transfer.id, action), 'Transfert mis à jour.', () => { this.open(transfer.id); this.load(1); });
+      this.run(this.api.transferAction(transfer.id, action), 'Transfert mis à jour.', () => { this.open(transfer.id, 'Transfert mis à jour.', true); });
     } else if (count && (action === 'validate' || action === 'cancel')) {
-      this.run(this.api.countAction(count.id, action), 'Inventaire mis à jour.', () => { this.open(count.id); this.load(1); });
+      this.run(this.api.countAction(count.id, action), 'Inventaire mis à jour.', () => { this.open(count.id, 'Inventaire mis à jour.', true); });
     }
   }
   private validationError(error: unknown): void { this.error.set(error instanceof Error ? error.message : 'Données invalides.'); }

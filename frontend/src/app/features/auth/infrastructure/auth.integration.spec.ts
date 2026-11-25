@@ -6,6 +6,7 @@ import { parseSearch, sources } from '../../search/domain/search.contract';
 import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
 import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
+import { parseId, parsePage, parseTransfer, parseTransferDetail, parseCount, parseCountDetail } from '../../inventory/domain/workflow.contract';
 import { parseMovements, parseStock, parseBalance } from '../../inventory/domain/stock.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
@@ -547,6 +548,49 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         available: '2.500',
         severity: 'LOW_STOCK',
       });
+
+      const destinationResponse = await request('/stores', 'POST', { code: 'CI-TRANSFER', name: 'Magasin réception CI' }, token);
+      expect(destinationResponse.status).toBe(201);
+      const destination = parseStore(destinationResponse.data);
+      const transferResponse = await request('/inventory/transfers', 'POST', {
+        number: 'TR-INTEGRATION-CI', originId: store.id, destinationId: destination.id,
+        lines: [{ productId: product.id, quantity: '1.000' }],
+      }, token);
+      expect(transferResponse.status).toBe(201);
+      const transferId = parseId(transferResponse.data);
+      const transferPath = '/inventory/transfers/' + transferId;
+      const transferList = await request('/inventory/transfers/stores/' + store.id + '/search?search=TR-INTEGRATION-CI&page=1&limit=10', 'GET', undefined, token);
+      expect(transferList.status).toBe(200);
+      expect(parsePage(transferList.data, parseTransfer).items[0]?.id).toBe(transferId);
+      expect((await request(transferPath + '/ship', 'POST', {}, token)).status).toBe(409);
+      expect((await request(transferPath + '/approve', 'POST', {}, token)).status).toBe(201);
+      expect((await request(transferPath + '/ship', 'POST', {}, token)).status).toBe(201);
+      const shipped = parseTransferDetail((await request(transferPath, 'GET', undefined, token)).data);
+      expect(shipped.status).toBe('SHIPPED');
+      const line = shipped.lines[0];
+      if (!line) throw new Error('Ligne de transfert manquante.');
+      const receive = { operationKey: crypto.randomUUID(), finalize: false, lines: [{ lineId: line.id, received: '0.500', damaged: '0', missing: '0' }] };
+      expect((await request(transferPath + '/receive', 'POST', receive, token)).status).toBe(201);
+      expect((await request(transferPath + '/receive', 'POST', receive, token)).status).toBe(201);
+      const partial = parseTransferDetail((await request(transferPath, 'GET', undefined, token)).data);
+      expect(partial.lines[0]?.received).toBe('0.5');
+      expect((await request(transferPath + '/receive', 'POST', { operationKey: crypto.randomUUID(), finalize: true, lines: [{ lineId: line.id, received: '0', damaged: '0.250', missing: '0.250' }] }, token)).status).toBe(201);
+      const closed = parseTransferDetail((await request(transferPath, 'GET', undefined, token)).data);
+      expect(closed.status).toBe('CLOSED_WITH_DISCREPANCY');
+      const destinationStock = parseStock((await request('/inventory/stores/' + destination.id + '/stock', 'GET', undefined, token)).data, destination.id);
+      expect(destinationStock[0]?.quantity).toBe('0.500');
+      const openedCount = await request('/inventory/counts/stores/' + store.id, 'POST', {}, token);
+      expect(openedCount.status).toBe(201);
+      const countId = parseId(openedCount.data);
+      const countPath = '/inventory/counts/' + countId;
+      const countList = await request('/inventory/counts/stores/' + store.id + '/search?page=1&limit=10', 'GET', undefined, token);
+      expect(countList.status).toBe(200);
+      expect(parsePage(countList.data, parseCount).items[0]?.id).toBe(countId);
+      expect((await request(countPath + '/validate', 'POST', {}, token)).status).toBe(409);
+      expect((await request(countPath + '/lines', 'POST', { lines: [{ productId: product.id, counted: '2.500', reason: 'Recomptage CI' }] }, token)).status).toBe(201);
+      expect((await request(countPath + '/validate', 'POST', {}, token)).status).toBe(201);
+      expect(parseCountDetail((await request(countPath, 'GET', undefined, token)).data).status).toBe('VALIDATED');
+      expect(parseBalance((await request('/inventory' + path + '/products/' + product.id, 'GET', undefined, token)).data, store.id, product.id).quantity).toBe('2.500');
 
       const second = await request('/proformas', 'POST', input, token);
       expect(second.status).toBe(201);
