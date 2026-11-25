@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { apiPath, decodeSuccessMessage, parseErrorMessage } from '../../../core/api/api-contract';
 import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.contract';
 
+// Ce test Vitest s’exécute exclusivement dans Node.js.
+declare const process: { readonly env: { readonly DSOLAR_AUTH_INTEGRATION?: string } };
+
 const base = 'http://127.0.0.1:3100';
 const email = 'auth-ci@example.test';
 const password = 'Dsolar-CI-local-only-2026';
@@ -25,7 +28,7 @@ async function request(path: string, method: 'GET' | 'POST' = 'GET', body?: obje
   };
 }
 
-describe.skipIf(process.env['DSOLAR_AUTH_INTEGRATION'] !== '1')('Contrat HTTP NestJS réel', () => {
+describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJS réel', () => {
   it('connecte, vérifie l’identité, renouvelle puis révoque une session en base', async () => {
     const unauthorized = await request('/auth/me');
     expect(unauthorized.status).toBe(401);
@@ -58,7 +61,13 @@ describe.skipIf(process.env['DSOLAR_AUTH_INTEGRATION'] !== '1')('Contrat HTTP Ne
 
   it('refuse les routes administratives au magasinier authentifié', async () => {
     const admin = parseAuthResult((await request('/auth/login', 'POST', { email, password })).data);
-    const account = { email: 'magasinier-ci@example.test', fullName: 'Magasinier CI', password, roleCodes: ['MAGASINIER'], storeIds: [] };
+    const account = {
+      email: 'magasinier-ci@example.test',
+      fullName: 'Magasinier CI',
+      password,
+      roleCodes: ['MAGASINIER'],
+      storeIds: [],
+    };
     const created = await request('/users', 'POST', account, admin.jetonAcces);
     expect(created.status).toBe(201);
     expect(hasPermissions(parseIdentity(created.data), ['inventory.read', 'inventory.manage'])).toBe(true);
