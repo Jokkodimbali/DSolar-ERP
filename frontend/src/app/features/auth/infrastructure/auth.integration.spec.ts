@@ -3,6 +3,7 @@ import { apiPath, decodeSuccessMessage, parseErrorMessage } from '../../../core/
 import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
+import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 
 // Ce test Vitest s’exécute exclusivement dans Node.js.
 declare const process: { readonly env: { readonly DSOLAR_AUTH_INTEGRATION?: string } };
@@ -11,7 +12,7 @@ const base = 'http://127.0.0.1:3100';
 const email = 'auth-ci@example.test';
 const password = 'Dsolar-CI-local-only-2026';
 
-async function request(path: string, method: 'GET' | 'POST' = 'GET', body?: object, token?: string) {
+async function request(path: string, method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET', body?: object, token?: string) {
   const headers = new Headers();
   if (body) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', 'Bearer ' + token);
@@ -130,7 +131,50 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         await csv.text();
       }
     }
-    await request('/auth/logout', 'POST', { refreshToken: keeper.jetonRenouvellement });
+    const storeResponse = await request(
+      '/stores',
+      'POST',
+      { code: 'MAG-CI', name: 'Magasin CI', address: 'Dakar' },
+      admin.jetonAcces,
+    );
+    expect(storeResponse.status).toBe(201);
+    const store = parseStore(storeResponse.data);
+    expect(store.status).toBe('ACTIVE');
+    const path = '/stores/' + store.id;
+    expect(parseStores((await request('/stores', 'GET', undefined, admin.jetonAcces)).data)).toContainEqual(
+      store,
+    );
+    expect(parseStore((await request(path, 'GET', undefined, admin.jetonAcces)).data)).toEqual(store);
+    expect(parseStores((await request('/stores', 'GET', undefined, keeper.jetonAcces)).data)).toEqual([]);
+    expect((await request(path, 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect((await request(path, 'PATCH', { name: 'Interdit' }, keeper.jetonAcces)).status).toBe(403);
+
+    const updated = await request(path, 'PATCH', { name: 'Magasin CI modifié', address: null }, admin.jetonAcces);
+    expect(updated.status).toBe(200);
+    expect(parseStore(updated.data).address).toBeNull();
+    const assignment = path + '/users/' + keeper.utilisateur.id;
+    const grant = await request(assignment, 'POST', {}, admin.jetonAcces);
+    expect(grant.status).toBe(201);
+    parseAssignment(grant.data, store.id, keeper.utilisateur.id, true);
+    expect((await request('/stores', 'GET', undefined, keeper.jetonAcces)).status).toBe(401);
+
+    const fresh = parseAuthResult(
+      (await request('/auth/login', 'POST', { email: account.email, password })).data,
+    );
+    expect(parseStores((await request('/stores/mine', 'GET', undefined, fresh.jetonAcces)).data)).toHaveLength(1);
+    expect((await request(path, 'GET', undefined, fresh.jetonAcces)).status).toBe(200);
+    const revoked = await request(assignment, 'DELETE', undefined, admin.jetonAcces);
+    expect(revoked.status).toBe(200);
+    parseAssignment(revoked.data, store.id, keeper.utilisateur.id, false);
+    expect((await request('/stores', 'GET', undefined, fresh.jetonAcces)).status).toBe(401);
+
+    const inactive = await request(path + '/deactivate', 'PATCH', {}, admin.jetonAcces);
+    expect(inactive.status).toBe(200);
+    expect(parseStore(inactive.data).status).toBe('INACTIVE');
+    expect((await request(path, 'GET', undefined, admin.jetonAcces)).status).toBe(404);
+    const active = await request(path + '/activate', 'PATCH', {}, admin.jetonAcces);
+    expect(active.status).toBe(200);
+    expect(parseStore(active.data).status).toBe('ACTIVE');
     await request('/auth/logout', 'POST', { refreshToken: admin.jetonRenouvellement });
-  }, 30000);
+  }, 60000);
 });
