@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
@@ -18,11 +18,12 @@ import { ProductsApi } from '../../products/infrastructure/products.api';
 import { emptyFilters, type Product } from '../../products/domain/product.contract';
 import {
   adjustmentInput,
-  isZero,
   unavailable,
   type parseMovements,
   type StockAdjustment,
   type StockItem,
+  type StockBalance,
+  type parseStockSummary,
 } from '../domain/stock.contract';
 import { InventoryApi } from '../infrastructure/inventory.api';
 
@@ -71,29 +72,27 @@ export class InventoryPage {
     timeStyle: 'short',
     timeZone: 'Africa/Dakar',
   });
-  readonly counters = computed(() => {
-    const items = this.items();
-    if (!items) return null;
-    return {
-      products: items.length,
-      available: items.filter((row) => !unavailable(row.available)).length,
-      reserved: items.filter((row) => !isZero(row.reserved)).length,
-      empty: items.filter((row) => unavailable(row.available)).length,
-    };
-  });
-  readonly filtered = computed(() => {
-    const query = this.query().trim().toLocaleLowerCase('fr');
-    return (this.items() ?? []).filter(
-      (row) =>
-        (row.name + ' ' + row.sku).toLocaleLowerCase('fr').includes(query) &&
-        (this.filter() === 'ALL' ||
-          (this.filter() === 'EMPTY' && unavailable(row.available)) ||
-          (this.filter() === 'AVAILABLE' && !unavailable(row.available)) ||
-          (this.filter() === 'RESERVED' && !isZero(row.reserved))),
-    );
-  });
-  readonly pages = computed(() => Math.max(1, Math.ceil(this.filtered().length / 10)));
-  readonly visible = computed(() => this.filtered().slice((this.page() - 1) * 10, this.page() * 10));
+  readonly counters = signal<ReturnType<typeof parseStockSummary> | null>(null);
+  readonly total = signal(0);
+  readonly pages = signal(1);
+  readonly detail = signal<{ item: StockItem; balance: StockBalance } | null>(null);
+
+  applyFilters(search: string, availability: string): void {
+    if (this.loading() || this.busy()) return;
+    this.query.set(search.trim());
+    this.filter.set(availability);
+    this.load(1);
+  }
+
+  showBalance(item: StockItem): void {
+    if (this.busy() || this.loading() || this.editing()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.api.balance(item.storeId, item.productId).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
+      next: (balance) => this.detail.set({ item, balance }),
+      error: (error: unknown) => this.error.set(errorMessage(error)),
+    });
+  }
   readonly editing = signal(false);
   readonly pending = signal<StockAdjustment | null>(null);
   readonly productResults = signal<Product[]>([]);
@@ -132,29 +131,34 @@ export class InventoryPage {
     if (this.loading() || this.busy() || this.editing() || this.historyLoading()) return;
     if (id && !this.stores().some((store) => store.id === id)) return;
     this.selectedStore.set(id);
+    this.detail.set(null);
     this.historyOpen.set(false);
     this.history.set(null);
     this.page.set(1);
     this.load();
   }
 
-  load(): void {
+  load(page = this.page()): void {
     if (this.loading() || this.busy()) return;
     const id = this.selectedStore();
     this.items.set(null);
+    this.counters.set(null);
+    this.detail.set(null);
     if (!id) return;
     this.loading.set(true);
     this.error.set('');
-    this.api
-      .stock(id)
+    forkJoin({ result: this.api.search(id, page, this.query(), this.filter()), counters: this.api.summary(id) })
       .pipe(
         takeUntilDestroyed(this.destroy),
         finalize(() => this.loading.set(false)),
       )
       .subscribe({
-        next: (items) => {
-          this.items.set(items);
-          this.page.set(Math.min(this.page(), this.pages()));
+        next: ({ result, counters }) => {
+          this.items.set(result.items);
+          this.counters.set(counters);
+          this.total.set(result.total);
+          this.pages.set(result.pages || 1);
+          this.page.set(result.page);
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
       });
@@ -200,6 +204,7 @@ export class InventoryPage {
       return;
     this.error.set('');
     this.success.set('');
+    this.detail.set(null);
     this.form.reset();
     this.form.enable();
     this.pending.set(null);

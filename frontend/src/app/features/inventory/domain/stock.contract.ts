@@ -160,3 +160,28 @@ export function parseMovements(value: unknown, id: string) {
   });
   return { ...pagination, items };
 }
+
+export function parseStockPage(value: unknown, id: string) {
+  if (!isRecord(value) || !isRecord(value['pagination'])) throw new Error('Pagination du stock invalide.');
+  const count = (raw: unknown): number => {
+    if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0) throw new Error('Pagination invalide.');
+    return raw;
+  };
+  const pagination = value['pagination'];
+  const page = count(pagination['page']), limit = count(pagination['limit']), total = count(pagination['total']), pages = count(pagination['pages']);
+  const items = parseStock(value['items'], id);
+  if (page < 1 || limit < 1 || limit > 100 || pages !== Math.ceil(total / limit) || items.length > limit)
+    throw new Error('Pagination incohérente.');
+  return { items, page, pages, total };
+}
+
+export function parseStockSummary(value: unknown, id: string) {
+  if (!isRecord(value) || value['storeId'] !== id) throw new Error('Synthèse du stock invalide.');
+  const count = (raw: unknown): number => {
+    if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0) throw new Error('Compteur invalide.');
+    return raw;
+  };
+  const products = count(value['products']), empty = count(value['outOfStock']), reserved = count(value['reservedProducts']);
+  if (empty > products || reserved > products) throw new Error('Compteurs de stock incohérents.');
+  return { products, empty, available: products - empty, reserved };
+}

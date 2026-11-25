@@ -76,6 +76,19 @@
     description="Disponibilité nulle ou négative"
   />
 </div>
+@if (detail(); as data) {
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2>{{ data.item.name }} · {{ data.item.sku }}</h2>
+    <button class="secondary" type="button" (click)="detail.set(null)">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div><dt>Stock physique</dt><dd>{{ data.balance.quantity }} {{ data.item.unit }}</dd></div>
+    <div><dt>Stock réservé</dt><dd>{{ data.balance.reserved }} {{ data.item.unit }}</dd></div>
+    <div><dt>Stock disponible</dt><dd>{{ data.balance.available }} {{ data.item.unit }}</dd></div>
+  </dl>
+</section>
+}
 @if (editing()) {
 <section class="panel">
   <div class="dashboard-report-heading">
@@ -153,28 +166,29 @@
 <section class="panel">
   <div class="dashboard-report-heading">
     <h2>État du stock</h2>
-    <span class="muted small">{{ filtered().length }} référence(s)</span>
+    <span class="muted small">{{ total() }} référence(s)</span>
   </div>
-  <div class="ui-toolbar">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); applyFilters(stockQuery.value, status.value)">
     <label class="ui-field"
       >Recherche
       <input
         #stockQuery
         type="search"
         placeholder="Nom ou référence SKU"
-        (input)="query.set(stockQuery.value); page.set(1)"
+        [value]="query()" maxlength="120"
     /></label>
     <label class="ui-field"
       >Disponibilité
-      <select #status (change)="filter.set(status.value); page.set(1)">
+      <select #status [value]="filter()">
         <option value="ALL">Toutes</option>
         <option value="AVAILABLE">Disponibles</option>
         <option value="RESERVED">Avec réservation</option>
         <option value="EMPTY">En rupture</option>
       </select></label
     >
-  </div>
-  @if (items() !== null) { @if (visible().length) {
+    <button class="secondary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
+  </form>
+  @if (items() !== null) { @if (items()?.length) {
   <div class="ui-table" tabindex="0" role="region" aria-label="État du stock">
     <table>
       <thead>
@@ -189,7 +203,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (row of visible(); track row.productId) {
+        @for (row of items() ?? []; track row.productId) {
         <tr>
           <td>
             <div class="catalogue-product">
@@ -213,6 +227,7 @@
             >
           </td>
           <td>
+            <div class="ui-actions"><button class="secondary" type="button" [disabled]="busy() || editing()" (click)="showBalance(row)">Détails</button>
             @if (session.can('inventory.manage', 'products.read')) {
             <button
               class="secondary"
@@ -222,7 +237,8 @@
             >
               Ajuster
             </button>
-            } @else { <span class="muted small">Consultation</span> }
+            }
+            </div>
           </td>
         </tr>
         }
@@ -233,7 +249,7 @@
     [page]="page()"
     [pages]="pages()"
     [disabled]="loading() || busy()"
-    (change)="page.set($event)"
+    (change)="load($event)"
   />
   } @else {
   <app-empty-state

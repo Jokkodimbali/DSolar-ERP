@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adjustmentInput, isZero, parseStock, quantityInput } from './stock.contract';
+import { adjustmentInput, isZero, parseStock, quantityInput, parseStockPage, parseStockSummary } from './stock.contract';
 
 const id = 'c31ac59c-8148-4664-8745-496a9618f202';
 const item = {
@@ -19,6 +19,12 @@ describe('Contrats de stock', () => {
     expect(() => parseStock([item, item], id)).toThrow();
     expect(() => parseStock([{ ...item, storeId: 'autre' }], id)).toThrow();
     expect(() => parseStock([{ ...item, quantity: 2.5 }], id)).toThrow();
+  });
+
+  it('contrôle la pagination et les compteurs serveur', () => {
+    expect(parseStockPage({ items: [item], pagination: { page: 1, limit: 10, total: 1, pages: 1 } }, id).total).toBe(1);
+    expect(parseStockSummary({ storeId: id, products: 3, outOfStock: 1, reservedProducts: 1 }, id)).toEqual({ products: 3, empty: 1, available: 2, reserved: 1 });
+    expect(() => parseStockSummary({ storeId: id, products: 1, outOfStock: 2, reservedProducts: 0 }, id)).toThrow();
   });
 
   it('valide les quantités sans conversion flottante', () => {
