@@ -1,4 +1,4 @@
-<div class="global-search">
+<div class="global-search" [appDismissOutside]="open()" (dismissed)="dismiss($event)">
   <form class="global-search-form" (submit)="search(); $event.preventDefault()">
     <label class="sr-only" for="global-query">Rechercher dans l’ERP</label>
     <button

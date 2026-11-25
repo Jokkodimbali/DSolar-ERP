@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { GlobalSearchComponent } from '../features/search/presentation/global-search.component';
 import { NotificationsComponent } from '../features/notifications/presentation/notifications.component';
 import { UiIconComponent } from '../shared/ui/ui-icon.component';
+import { DismissOutsideDirective } from '../shared/ui/dismiss-outside.directive';
 import { SessionService } from '../features/auth/application/session.service';
 @Component({
   selector: 'app-shell',
@@ -13,10 +14,11 @@ import { SessionService } from '../features/auth/application/session.service';
     UiIconComponent,
     NotificationsComponent,
     GlobalSearchComponent,
+    DismissOutsideDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <div class="workspace" [class.menu-open]="menuOpen()" [class.sidebar-collapsed]="collapsed()">
-    <aside class="sidebar" aria-label="Navigation principale" id="main-navigation">
+    <aside class="sidebar" aria-label="Navigation principale" id="main-navigation" [appDismissOutside]="menuOpen()" dismissExceptions="[data-menu-trigger]" (dismissed)="dismissNavigation($event, menuTrigger)">
       <a class="brand" routerLink="/" (click)="menuOpen.set(false)"
         ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri"
       /></a>
@@ -80,6 +82,7 @@ import { SessionService } from '../features/auth/application/session.service';
         <button
           type="button"
           class="sidebar-notifications"
+          data-notification-trigger
           aria-label="Ouvrir les notifications"
           (click)="openNotifications()"
         >
@@ -99,6 +102,8 @@ import { SessionService } from '../features/auth/application/session.service';
       <header class="topbar">
         <button
           class="menu-toggle secondary"
+          #menuTrigger
+          data-menu-trigger
           type="button"
           (click)="menuOpen.set(!menuOpen())"
           [attr.aria-expanded]="menuOpen()"
@@ -123,7 +128,7 @@ import { SessionService } from '../features/auth/application/session.service';
             >
           }
           <app-notifications />
-          <details class="account-menu">
+          <details #account class="account-menu" [appDismissOutside]="accountOpen()" (toggle)="accountOpen.set(account.open)" (dismissed)="dismissAccount($event, account)">
             <summary class="account-chip" aria-label="Menu du compte">
               <span class="account-avatar"><app-ui-icon name="user" /></span>
               <span class="account-label">
@@ -202,6 +207,18 @@ export class Shell {
   readonly session = inject(SessionService);
   readonly menuOpen = signal(false);
   readonly collapsed = signal(false);
+  readonly accountOpen = signal(false);
+
+  dismissNavigation(reason: 'outside' | 'escape', trigger: HTMLButtonElement): void {
+    this.menuOpen.set(false);
+    if (reason === 'escape') trigger.focus();
+  }
+
+  dismissAccount(reason: 'outside' | 'escape', account: HTMLDetailsElement): void {
+    account.open = false;
+    this.accountOpen.set(false);
+    if (reason === 'escape') account.querySelector('summary')?.focus();
+  }
   private readonly notifications = viewChild(NotificationsComponent);
 
   openNotifications(): void {

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { defer, EMPTY, finalize, repeat, retry, switchMap, tap } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
+import { DismissOutsideDirective } from '../../../shared/ui/dismiss-outside.directive';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
@@ -11,7 +12,7 @@ import { NotificationsApi } from '../infrastructure/notifications.api';
 
 @Component({
   selector: 'app-notifications',
-  imports: [FeedbackComponent, EmptyStateComponent, UiIconComponent],
+  imports: [DismissOutsideDirective, FeedbackComponent, EmptyStateComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notifications.component.html',
 })
@@ -60,6 +61,11 @@ export class NotificationsComponent {
         .subscribe();
       cleanup(() => connection.unsubscribe());
     });
+  }
+
+  dismiss(reason: 'outside' | 'escape', trigger: HTMLButtonElement): void {
+    this.open.set(false);
+    if (reason === 'escape') trigger.focus();
   }
 
   date(value: string): string {
