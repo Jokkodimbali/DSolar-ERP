@@ -4,6 +4,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { InventoryService } from '../application/inventory.service';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
 import { AdjustStockDto } from './adjust-stock.dto';
 
 @ApiTags('Stocks')
@@ -16,6 +17,11 @@ export class InventoryController {
   @RequirePermissions('inventory.read')
   listStoreStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.inventory.listStoreStock(storeId, actorId);
+  }
+  @Get('stores/:storeId/movements/search')
+  @RequirePermissions('inventory.read')
+  movements(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: PageQueryDto) {
+    return this.inventory.movements(storeId, actorId, query);
   }
   @Get('stores/:storeId/summary')
   @RequirePermissions('inventory.read')

@@ -1,3 +1,4 @@
+import type { ListCriteria, Page } from '../../../shared/pagination';
 export const INVENTORY_REPOSITORY = Symbol('INVENTORY_REPOSITORY');
 export interface StockBalance {
   storeId: string;
@@ -20,7 +21,22 @@ export interface StoreStockItem extends StockBalance {
   name: string;
   unit: string;
 }
+export interface StockMovementItem {
+  id: string;
+  storeId: string;
+  productId: string;
+  name: string;
+  sku: string;
+  unit: string;
+  type: string;
+  quantity: string;
+  referenceType: string;
+  reason: string | null;
+  createdAt: Date;
+}
+
 export interface InventoryRepository {
+  movements(storeId: string, actorId: string, query: ListCriteria): Promise<Page<StockMovementItem>>;
   listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]>;
   getBalance(storeId: string, productId: string, actorId: string): Promise<StockBalance>;
   adjust(command: StockAdjustment): Promise<StockBalance>;

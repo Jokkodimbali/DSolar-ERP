@@ -1,3 +1,4 @@
+import type { ListCriteria } from '../../../shared/pagination';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { INVENTORY_REPOSITORY, InventoryRepository, StockAdjustment } from './inventory.port';
 
@@ -18,6 +19,9 @@ const formatMilliunits = (value: bigint): string => {
 @Injectable()
 export class InventoryService {
   constructor(@Inject(INVENTORY_REPOSITORY) private readonly repository: InventoryRepository) {}
+  movements(storeId: string, actorId: string, query: ListCriteria) {
+    return this.repository.movements(storeId, actorId, query);
+  }
   listStoreStock(storeId: string, actorId: string) {
     return this.repository.listStoreStock(storeId, actorId);
   }

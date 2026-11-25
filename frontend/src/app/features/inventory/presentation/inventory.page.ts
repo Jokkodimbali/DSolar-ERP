@@ -16,7 +16,7 @@ import { StoresApi } from '../../stores/infrastructure/stores.api';
 import type { Store } from '../../stores/domain/store.contract';
 import { ProductsApi } from '../../products/infrastructure/products.api';
 import { emptyFilters, type Product } from '../../products/domain/product.contract';
-import { adjustmentInput, isZero, type StockAdjustment, type StockItem } from '../domain/stock.contract';
+import { adjustmentInput, isZero, unavailable, type parseMovements, type StockAdjustment, type StockItem } from '../domain/stock.contract';
 import { InventoryApi } from '../infrastructure/inventory.api';
 
 @Component({
@@ -42,23 +42,30 @@ export class InventoryPage {
   readonly query = signal('');
   readonly filter = signal('ALL');
   readonly page = signal(1);
-  readonly isZero = isZero;
+  readonly unavailable = unavailable;
+  readonly history = signal<ReturnType<typeof parseMovements> | null>(null);
+  readonly historyOpen = signal(false);
+  readonly historyLoading = signal(false);
+  readonly historyError = signal('');
+  readonly historyQuery = signal('');
+  readonly newDate = (value: string) => new Date(value);
+  readonly historyDate = new Intl.DateTimeFormat('fr-SN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Dakar' });
   readonly counters = computed(() => {
     const items = this.items();
     if (!items) return null;
     return {
       products: items.length,
-      available: items.filter((row) => !isZero(row.available)).length,
+      available: items.filter((row) => !unavailable(row.available)).length,
       reserved: items.filter((row) => !isZero(row.reserved)).length,
-      empty: items.filter((row) => isZero(row.available)).length,
+      empty: items.filter((row) => unavailable(row.available)).length,
     };
   });
   readonly filtered = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('fr');
     return (this.items() ?? []).filter((row) =>
       (row.name + ' ' + row.sku).toLocaleLowerCase('fr').includes(query) &&
-      (this.filter() === 'ALL' || (this.filter() === 'EMPTY' && isZero(row.available)) ||
-      (this.filter() === 'AVAILABLE' && !isZero(row.available)) ||
+      (this.filter() === 'ALL' || (this.filter() === 'EMPTY' && unavailable(row.available)) ||
+      (this.filter() === 'AVAILABLE' && !unavailable(row.available)) ||
       (this.filter() === 'RESERVED' && !isZero(row.reserved))),
     );
   });
@@ -94,9 +101,11 @@ export class InventoryPage {
   }
 
   selectStore(id: string): void {
-    if (this.loading() || this.busy() || this.editing()) return;
+    if (this.loading() || this.busy() || this.editing() || this.historyLoading()) return;
     if (id && !this.stores().some((store) => store.id === id)) return;
     this.selectedStore.set(id);
+    this.historyOpen.set(false);
+    this.history.set(null);
     this.page.set(1);
     this.load();
   }
@@ -117,6 +126,31 @@ export class InventoryPage {
         this.page.set(Math.min(this.page(), this.pages()));
       },
       error: (error: unknown) => this.error.set(errorMessage(error)),
+    });
+  }
+
+  toggleHistory(): void {
+    this.historyOpen.update((open) => !open);
+    if (this.historyOpen()) this.loadHistory(1);
+  }
+
+  searchHistory(search: string): void {
+    this.historyQuery.set(search.trim());
+    this.loadHistory(1);
+  }
+
+  loadHistory(page: number): void {
+    const id = this.selectedStore();
+    if (!id || this.historyLoading() || page < 1) return;
+    this.historyLoading.set(true);
+    this.historyError.set('');
+    this.history.set(null);
+    this.api.movements(id, page, this.historyQuery()).pipe(
+      takeUntilDestroyed(this.destroy),
+      finalize(() => this.historyLoading.set(false)),
+    ).subscribe({
+      next: (result) => { if (this.selectedStore() === id) this.history.set(result); },
+      error: (error: unknown) => this.historyError.set(errorMessage(error)),
     });
   }
 
@@ -201,6 +235,7 @@ export class InventoryPage {
         this.resetAdjustment();
         this.success.set('Ajustement de stock enregistré.');
         this.load();
+        if (this.historyOpen()) this.loadHistory(1);
       },
       error: (error: unknown) => this.error.set(errorMessage(error)),
     });

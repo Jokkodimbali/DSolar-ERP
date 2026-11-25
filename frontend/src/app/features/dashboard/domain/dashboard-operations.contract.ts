@@ -47,7 +47,7 @@ export function parseAlerts(value: unknown, id: string, name: string): StoreAler
     const severity = item['severity'];
     if (severity !== 'OUT_OF_STOCK' && severity !== 'LOW_STOCK') return invalid();
     const available = text(item['available']);
-    if (!/^\d+(?:\.\d{1,3})?$/.test(available)) return invalid();
+    if (!/^-?\d+(?:\.\d{1,3})?$/.test(available)) return invalid();
     return {
       productId: storeId(item['productId']),
       name: text(item['name']),

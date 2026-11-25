@@ -9,7 +9,7 @@
 <app-feedback [message]="loading() || loadingStores() || busy() ? 'Chargement…' : ''" />
 <section class="inventory-toolbar">
   <label class="ui-field">Magasin
-    <select #store [value]="selectedStore()" [disabled]="loading() || loadingStores() || editing()" (change)="selectStore(store.value)">
+    <select #store [value]="selectedStore()" [disabled]="loading() || loadingStores() || editing() || historyLoading()" (change)="selectStore(store.value)">
       @if (!stores().length) { <option value="">Aucun magasin actif</option> }
       @for (item of stores(); track item.id) { <option [value]="item.id" [selected]="item.id === selectedStore()">{{ item.name }} · {{ item.code }}</option> }
     </select>
@@ -20,7 +20,7 @@
   <app-kpi-card icon="box" label="Références suivies" [value]="counters()?.products ?? '—'" description="Produits actifs en stock" />
   <app-kpi-card icon="layers" tone="green" label="Disponibles" [value]="counters()?.available ?? '—'" description="Références disponibles" />
   <app-kpi-card icon="clock" tone="blue" label="Réservées" [value]="counters()?.reserved ?? '—'" description="Références avec réservation" />
-  <app-kpi-card icon="alert" tone="orange" label="En rupture" [value]="counters()?.empty ?? '—'" description="Disponibilité nulle" />
+  <app-kpi-card icon="alert" tone="orange" label="En rupture" [value]="counters()?.empty ?? '—'" description="Disponibilité nulle ou négative" />
 </div>
 @if (editing()) {
   <section class="panel">
@@ -57,7 +57,7 @@
 <section class="panel">
   <div class="dashboard-report-heading"><h2>État du stock</h2><span class="muted small">{{ filtered().length }} référence(s)</span></div>
   <div class="ui-toolbar">
-    <label class="ui-field">Recherche <input #query type="search" placeholder="Nom ou référence SKU" (input)="this.query.set(query.value); page.set(1)" /></label>
+    <label class="ui-field">Recherche <input #stockQuery type="search" placeholder="Nom ou référence SKU" (input)="query.set(stockQuery.value); page.set(1)" /></label>
     <label class="ui-field">Disponibilité <select #status (change)="filter.set(status.value); page.set(1)"><option value="ALL">Toutes</option><option value="AVAILABLE">Disponibles</option><option value="RESERVED">Avec réservation</option><option value="EMPTY">En rupture</option></select></label>
   </div>
   @if (items() !== null) {
@@ -70,7 +70,7 @@
               <tr>
                 <td><div class="catalogue-product"><app-product-thumbnail [productId]="row.productId" /><div><strong>{{ row.name }}</strong><p class="muted small">{{ row.sku }}</p></div></div></td>
                 <td>{{ row.unit }}</td><td class="stock-number">{{ row.quantity }}</td><td class="stock-number">{{ row.reserved }}</td><td class="stock-number"><strong>{{ row.available }}</strong></td>
-                <td><span class="ui-status" [class.ui-status-active]="!isZero(row.available)" [class.stock-critical]="isZero(row.available)">{{ isZero(row.available) ? 'Rupture' : 'Disponible' }}</span></td>
+                <td><span class="ui-status" [class.ui-status-active]="!unavailable(row.available)" [class.stock-critical]="unavailable(row.available)">{{ unavailable(row.available) ? 'Rupture' : 'Disponible' }}</span></td>
                 <td>@if (session.can('inventory.manage', 'products.read')) { <button class="secondary" type="button" [disabled]="editing() || busy()" (click)="openAdjustment(row)">Ajuster</button> } @else { <span class="muted small">Consultation</span> }</td>
               </tr>
             }
@@ -83,5 +83,33 @@
     }
   } @else if (!loading() && !loadingStores() && !error()) {
     <app-empty-state heading="Aucun magasin actif accessible" description="Sélectionnez un magasin actif pour consulter son stock." />
+  }
+</section>
+
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2 class="ui-section-title"><app-ui-icon name="clock" /> Journal des mouvements</h2>
+    <button class="secondary" type="button" [disabled]="!selectedStore() || historyLoading()" [attr.aria-expanded]="historyOpen()" (click)="toggleHistory()">{{ historyOpen() ? 'Masquer' : 'Consulter les mouvements' }}</button>
+  </div>
+  @if (historyOpen()) {
+    <form class="ui-toolbar" (submit)="$event.preventDefault(); searchHistory(historyTerm.value)">
+      <label class="ui-field">Produit <input #historyTerm type="search" maxlength="120" [value]="historyQuery()" placeholder="Nom ou SKU" /></label>
+      <button class="secondary" type="submit" [disabled]="historyLoading()">Rechercher</button>
+    </form>
+    <app-feedback [message]="historyError()" kind="error" />
+    <app-feedback [message]="historyLoading() ? 'Chargement des mouvements…' : ''" />
+    @if (history(); as data) {
+      <div class="ui-table" role="region" aria-label="Journal des mouvements" tabindex="0">
+        <table>
+          <thead><tr><th>Date</th><th>Produit</th><th>Nature</th><th>Quantité</th><th>Justification</th></tr></thead>
+          <tbody>
+            @for (row of data.items; track row.id) {
+              <tr><td>{{ historyDate.format(newDate(row.createdAt)) }}</td><td>{{ row.name }}<p class="muted small">{{ row.sku }}</p></td><td>{{ row.type }}</td><td class="stock-number">{{ row.quantity }} {{ row.unit }}</td><td>{{ row.reason ?? '—' }}</td></tr>
+            } @empty { <tr><td colspan="5">Aucun mouvement correspondant.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+      <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="historyLoading()" (change)="loadHistory($event)" />
+    }
   }
 </section>

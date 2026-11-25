@@ -55,3 +55,7 @@ La directive appDismissOutside ferme les panneaux transitoires lors d'un clic ex
 ## Catalogue des produits
 
 La page Produits utilise les filtres et la pagination du serveur, les références réelles, les DTO du catalogue et le service média authentifié. Le SKU est immuable après création. Les montants sont transmis sous forme de chaînes décimales ; le serveur clôture les périodes tarifaires. Les seuls formats d'image acceptés sont PNG et JPEG, 2 Mio maximum. Les mutations sont réservées à products.manage. Les références disposent d'une liste et d'une modification de libellé. Les catégories sans enfant ni produit et les marques sans produit peuvent être supprimées avec confirmation. Les codes, la hiérarchie existante et les taux fiscaux sont conservés ; un changement de taux exige un nouveau régime. Aucun régime fiscal n'est supprimé.
+
+## Stocks — consultation, ajustements et journal
+
+L'écran /stocks présente quatre compteurs de références (pas de somme de pièces et de mètres), le magasin actif autorisé, les quantités exactes retournées par NestJS, la recherche et une pagination d'affichage. Les ajustements conservent une clé UUID et une commande immuable pendant les tentatives de la même opération. Le journal /inventory/stores/:storeId/movements/search utilise une pagination serveur et inclut les mouvements des produits devenus inactifs. Les droits sont revérifiés côté serveur pour chaque consultation. Les transferts et inventaires physiques seront intégrés dans un lot distinct.

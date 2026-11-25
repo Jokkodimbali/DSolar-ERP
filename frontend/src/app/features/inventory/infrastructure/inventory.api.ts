@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
-import { parseBalance, parseStock, type StockAdjustment } from '../domain/stock.contract';
+import { parseBalance, parseStock, parseMovements, type StockAdjustment } from '../domain/stock.contract';
 
 @Injectable({ providedIn: 'root' })
 export class InventoryApi {
@@ -13,6 +13,12 @@ export class InventoryApi {
     return this.http.get<unknown>(apiPath('/inventory/stores/' + storeId(id) + '/stock')).pipe(
       map((value) => parseStock(value, id)),
     );
+  }
+
+  movements(id: string, page: number, search: string) {
+    return this.http.get<unknown>(apiPath('/inventory/stores/' + storeId(id) + '/movements/search'), {
+      params: { page, limit: 10, search },
+    }).pipe(map((value) => parseMovements(value, id)));
   }
 
   adjust(input: StockAdjustment) {

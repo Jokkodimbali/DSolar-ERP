@@ -3,6 +3,7 @@ import { InventoryService } from './inventory.service';
 import { InventoryRepository } from './inventory.port';
 describe('InventoryService', () => {
   const repository: InventoryRepository = {
+    movements: jest.fn(),
     listStoreStock: jest.fn(),
     getBalance: jest.fn(),
     adjust: jest.fn(),
@@ -17,6 +18,10 @@ describe('InventoryService', () => {
     reason: 'Correction inventaire',
     operationKey: 'k',
   };
+  it('délègue la recherche des mouvements avec le magasin et l’acteur', () => {
+    service.movements('store-id', 'actor-id', { page: 2, limit: 10, search: 'PV' });
+    expect(repository.movements).toHaveBeenCalledWith('store-id', 'actor-id', { page: 2, limit: 10, search: 'PV' });
+  });
   it('délègue la consultation du stock du magasin', async () => {
     await service.listStoreStock('store-id', 'actor-id');
     expect(repository.listStoreStock).toHaveBeenCalledWith('store-id', 'actor-id');

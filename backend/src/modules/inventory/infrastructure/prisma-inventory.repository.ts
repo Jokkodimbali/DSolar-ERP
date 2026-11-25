@@ -1,12 +1,14 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, MovementType } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { pageBounds, pageResult, type ListCriteria } from '../../../shared/pagination';
 import { validStockQuantity } from '../domain/stock-quantity';
 import {
   InventoryRepository,
   StockAdjustment,
   StockBalance,
   StoreStockItem,
+  StockMovementItem,
 } from '../application/inventory.port';
 
 @Injectable()
@@ -42,25 +44,60 @@ export class PrismaInventoryRepository implements InventoryRepository {
       available: quantity.minus(reserved).toFixed(3),
     };
   }
+  private async authorizeStore(tx: Prisma.TransactionClient, storeId: string, actorId: string) {
+    const [store, user, access] = await Promise.all([
+      tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
+      tx.user.findUnique({
+        where: { id: actorId },
+        select: {
+          status: true,
+          roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } },
+        },
+      }),
+      tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
+    ]);
+    if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0)) {
+      throw new ForbiddenException('Accès à ce magasin non autorisé.');
+    }
+    if (!store) throw new NotFoundException('Magasin introuvable.');
+    if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
+  }
+
+  async movements(storeId: string, actorId: string, query: ListCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    return this.prisma.$transaction(
+      async (tx) => {
+        await this.authorizeStore(tx, storeId, actorId);
+        const search = query.search?.trim();
+        const where: Prisma.StockMovementWhereInput = {
+          storeId,
+          ...(search ? {
+            OR: [
+              { product: { name: { contains: search, mode: 'insensitive' } } },
+              { product: { sku: { contains: search, mode: 'insensitive' } } },
+            ],
+          } : {}),
+        };
+        const [total, rows] = await Promise.all([
+          tx.stockMovement.count({ where }),
+          tx.stockMovement.findMany({
+            where, skip, take: limit, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            select: { id: true, storeId: true, productId: true, type: true, quantity: true, referenceType: true, reason: true, createdAt: true, product: { select: { name: true, sku: true, unit: true } } },
+          }),
+        ]);
+        const items: StockMovementItem[] = rows.map(({ product, quantity, ...row }) => ({
+          ...row, ...product, quantity: quantity.toFixed(3),
+        }));
+        return pageResult(items, total, page, limit);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+  }
+
   async listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]> {
     return this.prisma.$transaction(
       async (tx) => {
-        const [store, user, access] = await Promise.all([
-          tx.store.findUnique({ where: { id: storeId }, select: { status: true } }),
-          tx.user.findUnique({
-            where: { id: actorId },
-            select: {
-              status: true,
-              roles: { where: { role: { code: 'ADMIN' } }, select: { roleId: true } },
-            },
-          }),
-          tx.userStoreAccess.findFirst({ where: { storeId, userId: actorId } }),
-        ]);
-        if (!user || user.status !== 'ACTIVE' || (!access && user.roles.length === 0)) {
-          throw new ForbiddenException('Accès à ce magasin non autorisé.');
-        }
-        if (!store) throw new NotFoundException('Magasin introuvable.');
-        if (store.status !== 'ACTIVE') throw new ConflictException('Magasin inactif.');
+        await this.authorizeStore(tx, storeId, actorId);
         const stocks = await tx.storeStock.findMany({
           where: { storeId, product: { active: true } },
           select: {
