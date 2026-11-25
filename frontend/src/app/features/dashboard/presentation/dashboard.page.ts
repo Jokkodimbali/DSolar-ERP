@@ -3,9 +3,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { DashboardApi } from '../infrastructure/dashboard.api';
 import { type Overview, formatMoney } from '../domain/dashboard.contract';
+import { DashboardReportComponent } from './dashboard-report.component';
+import { reports } from '../domain/dashboard-reports.contract';
 import { errorMessage } from '../../../core/api/http-error';
 @Component({
   selector: 'app-dashboard-page',
+  imports: [DashboardReportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <div class="page-heading">
       <div>
@@ -69,6 +72,9 @@ import { errorMessage } from '../../../core/api/http-error';
           </div>
         </dl>
       </section>
+    }
+    @for (report of reports; track report.path) {
+      <app-dashboard-report [definition]="report" />
     }`,
 })
 export class DashboardPage {
@@ -78,6 +84,7 @@ export class DashboardPage {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly money = formatMoney;
+  readonly reports = reports;
   constructor() {
     this.load();
   }
