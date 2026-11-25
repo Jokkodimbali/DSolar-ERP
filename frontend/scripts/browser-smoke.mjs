@@ -65,6 +65,8 @@ try {
   await page.getByRole('button', { name: 'Notifications', exact: true }).click();
   await page.getByRole('region', { name: 'Centre de notifications' }).waitFor();
   await page.getByRole('region', { name: 'Centre de notifications' }).getByRole('button', { name: 'Fermer' }).click();
+  await page.keyboard.press('Control+k');
+  assert.equal(await page.locator('#global-query').evaluate((input) => input === document.activeElement), true);
   await page.locator('#global-query').fill('Panneau');
   await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await page.getByRole('region', { name: 'Résultats de recherche' }).getByText('Panneau proforma CI', { exact: true }).waitFor();

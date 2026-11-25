@@ -131,6 +131,7 @@ export interface ReportView {
   readonly headers: readonly string[];
   readonly rows: readonly (readonly string[])[];
   readonly chart?: readonly { label: string; amount: string; height: number; negative: boolean }[];
+  readonly chartAxis?: readonly string[];
 }
 
 function invalid(): never {
@@ -193,17 +194,20 @@ export function parseReport(value: unknown, definition: ReportDefinition, year: 
     if (!isRecord(item) || typeof item['revenue'] !== 'string') return invalid();
     return item['revenue'];
   });
-  return { metrics, headers, rows, chart: revenueChart(amounts) };
+  return { metrics, headers, rows, chart: revenueChart(amounts), chartAxis: revenueAxis(amounts) };
 }
 
-export function revenueChart(amounts: readonly string[]) {
-  // Calcul uniquement graphique : les montants exacts restent les chaînes du serveur.
-  const cents = amounts.map((amount) => {
+function chartCents(amounts: readonly string[]): bigint[] {
+  return amounts.map((amount) => {
     if (!/^-?\d+(?:\.\d{1,2})?$/.test(amount)) return invalid();
     const [whole = '0', fraction = ''] = amount.replace('-', '').split('.');
     const magnitude = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
     return amount.startsWith('-') ? -magnitude : magnitude;
   });
+}
+
+export function revenueChart(amounts: readonly string[]) {
+  const cents = chartCents(amounts);
   const abs = (value: bigint) => (value < 0n ? -value : value);
   const peak = cents.reduce((max, value) => (abs(value) > max ? abs(value) : max), 0n);
   return cents.map((value, index) => ({
@@ -214,4 +218,21 @@ export function revenueChart(amounts: readonly string[]) {
     height: peak === 0n ? 0 : Number((abs(value) * 10000n) / peak) / 100,
     negative: value < 0n,
   }));
+}
+
+export function revenueAxis(amounts: readonly string[]): string[] {
+  const cents = chartCents(amounts);
+  const abs = (value: bigint) => (value < 0n ? -value : value);
+  const peak = cents.reduce((max, value) => (abs(value) > max ? abs(value) : max), 0n);
+  if (peak === 0n) return ['', '', '', '', '0'];
+  const negative = cents.some((value) => value < 0n);
+  const ratios = negative ? [4n, 2n, 0n, -2n, -4n] : [4n, 3n, 2n, 1n, 0n];
+  return ratios.map((ratio) => {
+    const tick = (peak * ratio) / 4n;
+    const magnitude = abs(tick);
+    const sign = tick < 0n ? '-' : '';
+    const fraction = String(magnitude % 100n).padStart(2, '0');
+    const whole = String(magnitude / 100n).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '\\u202f');
+    return sign + whole + (fraction === '00' ? '' : ',' + fraction);
+  });
 }

@@ -48,7 +48,9 @@
         aria-label="Facturation mensuelle, montants exacts dans le tableau ci-dessous"
       >
         <div class="chart-grid" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span>
+          @for (tick of report.chartAxis ?? []; track $index) {
+            <div class="chart-tick"><span>{{ tick }}</span></div>
+          }
         </div>
         @if (chartIsEmpty(chart)) {
           <p class="chart-empty muted">Aucune facturation sur cette année.</p>

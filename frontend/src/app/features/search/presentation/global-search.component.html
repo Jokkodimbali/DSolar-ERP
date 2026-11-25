@@ -2,6 +2,7 @@
   <form class="global-search-form" (submit)="search(); $event.preventDefault()">
     <label class="sr-only" for="global-query">Rechercher dans l’ERP</label>
     <input
+      #searchField
       id="global-query"
       type="search"
       [formControl]="query"
@@ -17,6 +18,7 @@
     >
       <app-ui-icon name="search" />
     </button>
+    <kbd class="search-shortcut" aria-hidden="true">Ctrl + K</kbd>
   </form>
   @if (open()) {
     <section class="panel search-panel" aria-label="Résultats de recherche">

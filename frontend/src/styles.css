@@ -1106,3 +1106,61 @@ app-dashboard-page app-page-header .muted {
     height: auto;
   }
 }
+
+.dashboard-primary > app-dashboard-report {
+  display: flex;
+  flex-direction: column;
+}
+.dashboard-primary > app-dashboard-report > .panel,
+.dashboard-primary > .panel {
+  height: auto;
+  flex: 1;
+  margin-bottom: 0;
+}
+.revenue-chart {
+  padding-left: 75px;
+}
+.chart-grid {
+  left: 75px;
+  bottom: 20px;
+}
+.chart-tick {
+  border-top: 1px solid var(--line);
+  position: relative;
+}
+.chart-grid .chart-tick span {
+  position: absolute;
+  right: calc(100% + 7px);
+  top: -7px;
+  border: 0;
+  color: var(--muted);
+  font-size: 0.65rem;
+  white-space: nowrap;
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-shortcut {
+  margin-right: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--canvas);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .search-shortcut {
+    display: none;
+  }
+  .revenue-chart {
+    padding-left: 48px;
+  }
+  .chart-grid {
+    left: 48px;
+  }
+  .chart-grid .chart-tick span {
+    max-width: 42px;
+    font-size: 0.55rem;
+  }
+}

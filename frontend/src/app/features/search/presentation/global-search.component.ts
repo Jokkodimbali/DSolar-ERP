@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal, viewChild, ElementRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -14,6 +14,7 @@ import { SearchApi } from '../infrastructure/search.api';
   imports: [ReactiveFormsModule, FeedbackComponent, EmptyStateComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './global-search.component.html',
+  host: { '(document:keydown)': 'shortcut($event)' },
 })
 export class GlobalSearchComponent {
   private readonly api = inject(SearchApi);
@@ -24,6 +25,16 @@ export class GlobalSearchComponent {
   readonly busy = signal(false);
   readonly submitted = signal('');
   readonly groups = signal<SearchGroup[]>([]);
+
+  private readonly searchField = viewChild<ElementRef<HTMLInputElement>>('searchField');
+
+  shortcut(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.searchField()?.nativeElement.focus();
+    }
+    if (event.key === 'Escape') this.open.set(false);
+  }
 
   search(): void {
     const query = this.query.value.trim();

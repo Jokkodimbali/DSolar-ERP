@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseReport, reports, revenueChart } from './dashboard-reports.contract';
+import { parseReport, reports, revenueChart, revenueAxis } from './dashboard-reports.contract';
 
 function report(path: string) {
   const definition = reports.find((item) => item.path === path);
@@ -62,5 +62,15 @@ describe('Graphique de facturation', () => {
     expect(chart[2]?.negative).toBe(true);
     expect(revenueChart(['0.00'])[0]?.height).toBe(0);
     expect(() => revenueChart(['invalide'])).toThrow();
+  });
+});
+
+describe('Graduations du graphique', () => {
+  it('n’invente pas de graduations sur une série vide ou nulle', () => {
+    expect(revenueAxis(['0.00'])).toEqual(['', '', '', '', '0']);
+  });
+  it('représente le montant maximal et les valeurs négatives', () => {
+    expect(revenueAxis(['400.00'])).toEqual(['400', '300', '200', '100', '0']);
+    expect(revenueAxis(['400.00', '-200.00'])).toEqual(['400', '200', '0', '-200', '-400']);
   });
 });
