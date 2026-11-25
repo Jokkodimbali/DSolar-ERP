@@ -78,7 +78,7 @@ import { errorMessage } from '../../../core/api/http-error';
     <app-dashboard-operations>
       <app-period-chart dashboardRevenue [stats]="period()" [loading]="periodLoading()" />
       @if (activityReport; as report) {
-        <app-dashboard-report dashboardActivity [definition]="report" />
+        <app-dashboard-report dashboardActivity [definition]="report" [compact]="true" />
       }
     </app-dashboard-operations>
     <button

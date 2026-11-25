@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
@@ -18,12 +19,13 @@ import { DashboardReportsApi } from '../infrastructure/dashboard-reports.api';
 
 @Component({
   selector: 'app-dashboard-report',
-  imports: [FeedbackComponent, EmptyStateComponent, UiIconComponent],
+  imports: [FeedbackComponent, EmptyStateComponent, UiIconComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-report.component.html',
 })
 export class DashboardReportComponent implements OnInit {
   readonly definition = input.required<ReportDefinition>();
+  readonly compact = input(false);
   private readonly api = inject(DashboardReportsApi);
   private readonly destroy = inject(DestroyRef);
   readonly year = signal(Math.min(2100, Math.max(2000, new Date().getFullYear())));

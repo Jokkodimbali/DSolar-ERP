@@ -14,6 +14,9 @@
       {{ definition().title }}
     </h2>
     <div class="ui-toolbar">
+      @if (compact() && definition().path === 'recent-activity') {
+        <a class="dashboard-see-all" routerLink="/activite">Voir tout →</a>
+      }
     @if (definition().path === 'monthly-revenue') {
       <label class="ui-field">
         <span class="sr-only">Année</span>
@@ -24,7 +27,7 @@
         </select>
       </label>
     }
-    @if (definition().path === 'top-products' || definition().path === 'recent-activity') {
+    @if (!compact() && (definition().path === 'top-products' || definition().path === 'recent-activity')) {
       <label class="ui-field">
         <span class="sr-only">Nombre de résultats</span>
         <select
@@ -101,7 +104,7 @@
     }
     @if (definition().path === 'recent-activity' && report.rows.length) {
       <div class="recent-activity-list">
-        @for (row of report.rows; track $index) {
+        @for (row of (compact() ? report.rows.slice(0, 4) : report.rows); track $index) {
           <article>
             <span class="activity-dot" aria-hidden="true"></span>
             <div>

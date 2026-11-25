@@ -37,6 +37,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/stores/presentation/stores.page').then((m) => m.StoresPage),
       },
       {
+        path: 'activite',
+        canActivate: [dashboardGuard],
+        loadComponent: () => import('./features/dashboard/presentation/activity.page').then((m) => m.ActivityPage),
+      },
+      {
         path: 'stocks/alertes',
         canActivate: [stockAlertsGuard],
         loadComponent: () => import('./features/dashboard/presentation/stock-alerts.page').then((m) => m.StockAlertsPage),
