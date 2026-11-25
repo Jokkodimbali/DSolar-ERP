@@ -18,7 +18,13 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
         email: true,
         fullName: true,
         status: true,
-        roles: { select: { role: { select: { code: true, permissions: { select: { permission: { select: { code: true } } } } } } } },
+        roles: {
+          select: {
+            role: {
+              select: { code: true, permissions: { select: { permission: { select: { code: true } } } } },
+            },
+          },
+        },
         stores: { select: { storeId: true } },
       },
     });
@@ -28,7 +34,13 @@ export class PrismaUserManagementRepository implements UserManagementRepository 
       nomComplet: user.fullName,
       status: user.status,
       roleCodes: user.roles.map((entry) => entry.role.code).sort(),
-      permissions: [...new Set(user.roles.filter((entry) => ['ADMIN', 'MAGASINIER'].includes(entry.role.code)).flatMap((entry) => entry.role.permissions.map((permission) => permission.permission.code)))].sort(),
+      permissions: [
+        ...new Set(
+          user.roles
+            .filter((entry) => ['ADMIN', 'MAGASINIER'].includes(entry.role.code))
+            .flatMap((entry) => entry.role.permissions.map((permission) => permission.permission.code)),
+        ),
+      ].sort(),
       magasinsAutorises: user.stores.map((entry) => entry.storeId).sort(),
     }));
   }

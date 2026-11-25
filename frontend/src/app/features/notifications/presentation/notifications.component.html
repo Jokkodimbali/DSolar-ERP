@@ -1,4 +1,9 @@
-<div class="notification-widget" [appDismissOutside]="open()" dismissExceptions="[data-notification-trigger]" (dismissed)="dismiss($event, trigger)">
+<div
+  class="notification-widget"
+  [appDismissOutside]="open()"
+  dismissExceptions="[data-notification-trigger]"
+  (dismissed)="dismiss($event, trigger)"
+>
   <button
     #trigger
     class="secondary notification-trigger"

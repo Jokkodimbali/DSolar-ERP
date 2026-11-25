@@ -19,7 +19,9 @@ export class UsersApi {
   }
 
   access(id: string, input: UserAccess) {
-    return this.http.patch<unknown>(apiPath('/users/' + storeId(id) + '/access'), input).pipe(map(parseIdentity));
+    return this.http
+      .patch<unknown>(apiPath('/users/' + storeId(id) + '/access'), input)
+      .pipe(map(parseIdentity));
   }
 
   disable(id: string) {

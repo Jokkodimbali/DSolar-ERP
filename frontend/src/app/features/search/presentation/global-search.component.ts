@@ -20,7 +20,13 @@ import { SearchApi } from '../infrastructure/search.api';
 
 @Component({
   selector: 'app-global-search',
-  imports: [DismissOutsideDirective, ReactiveFormsModule, FeedbackComponent, EmptyStateComponent, UiIconComponent],
+  imports: [
+    DismissOutsideDirective,
+    ReactiveFormsModule,
+    FeedbackComponent,
+    EmptyStateComponent,
+    UiIconComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './global-search.component.html',
   host: { '(document:keydown)': 'shortcut($event)' },
@@ -42,7 +48,6 @@ export class GlobalSearchComponent {
       event.preventDefault();
       this.searchField()?.nativeElement.focus();
     }
-
   }
 
   dismiss(reason: 'outside' | 'escape'): void {

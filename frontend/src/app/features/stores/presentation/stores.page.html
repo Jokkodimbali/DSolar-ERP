@@ -91,7 +91,13 @@
 <section class="panel">
   <div class="ui-toolbar">
     <label class="ui-field"
-      >Rechercher <input #query type="search" placeholder="Nom ou code du magasin" [value]="search()" (input)="setSearch(query.value)"
+      >Rechercher
+      <input
+        #query
+        type="search"
+        placeholder="Nom ou code du magasin"
+        [value]="search()"
+        (input)="setSearch(query.value)"
     /></label>
     <label class="ui-field">
       Statut

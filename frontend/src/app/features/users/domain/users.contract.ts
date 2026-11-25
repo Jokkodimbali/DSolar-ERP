@@ -16,14 +16,23 @@ export interface UserAccess {
 export function parseUsers(value: unknown): ManagedUser[] {
   if (!Array.isArray(value)) throw new Error('Liste des utilisateurs invalide.');
   return value.map((raw: unknown) => {
-    if (!isRecord(raw) || (raw['status'] !== 'ACTIVE' && raw['status'] !== 'DISABLED') ||
-      !Array.isArray(raw['roleCodes']) || raw['roleCodes'].length !== 1 ||
-      (raw['roleCodes'][0] !== 'ADMIN' && raw['roleCodes'][0] !== 'MAGASINIER'))
+    if (
+      !isRecord(raw) ||
+      (raw['status'] !== 'ACTIVE' && raw['status'] !== 'DISABLED') ||
+      !Array.isArray(raw['roleCodes']) ||
+      raw['roleCodes'].length !== 1
+    )
       throw new Error('Statut ou rôle utilisateur invalide.');
     const role: unknown = raw['roleCodes'][0];
     if (role !== 'ADMIN' && role !== 'MAGASINIER') throw new Error('Rôle utilisateur invalide.');
     const identity = parseIdentity(raw);
-    return { ...identity, id: storeId(identity.id), magasinsAutorises: identity.magasinsAutorises.map(storeId), status: raw['status'], role };
+    return {
+      ...identity,
+      id: storeId(identity.id),
+      magasinsAutorises: identity.magasinsAutorises.map(storeId),
+      status: raw['status'],
+      role,
+    };
   });
 }
 

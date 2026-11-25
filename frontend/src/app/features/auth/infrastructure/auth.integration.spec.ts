@@ -137,19 +137,32 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const listed = await request('/users', 'GET', undefined, admin.jetonAcces);
     expect(listed.status).toBe(200);
     expect(parseUsers(listed.data)).toEqual(
-      expect.arrayContaining([expect.objectContaining({ email: account.email, role: 'MAGASINIER', status: 'ACTIVE' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ email: account.email, role: 'MAGASINIER', status: 'ACTIVE' }),
+      ]),
     );
     expect(JSON.stringify(listed.data)).not.toContain('passwordHash');
     expect(JSON.stringify(listed.data)).not.toContain('tokenVersion');
     const adminPath = '/users/' + admin.utilisateur.id;
-    expect((await request(adminPath + '/access', 'PATCH', accessInput('MAGASINIER', []), admin.jetonAcces)).status).toBe(403);
+    expect(
+      (await request(adminPath + '/access', 'PATCH', accessInput('MAGASINIER', []), admin.jetonAcces)).status,
+    ).toBe(403);
     const login = await request('/auth/login', 'POST', { email: account.email, password });
     expect(login.status).toBe(201);
     const keeper = parseAuthResult(login.data);
     expect(hasPermissions(keeper.utilisateur, ['users.manage'])).toBe(false);
     expect((await request('/auth/me', 'GET', undefined, keeper.jetonAcces)).status).toBe(200);
     expect((await request('/users', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
-    expect((await request('/users/' + keeper.utilisateur.id + '/access', 'PATCH', accessInput('ADMIN', []), keeper.jetonAcces)).status).toBe(403);
+    expect(
+      (
+        await request(
+          '/users/' + keeper.utilisateur.id + '/access',
+          'PATCH',
+          accessInput('ADMIN', []),
+          keeper.jetonAcces,
+        )
+      ).status,
+    ).toBe(403);
     for (const definition of reports) {
       const response = await request(reportPath(definition.path), 'GET', undefined, keeper.jetonAcces);
       expect(response.status, definition.path).toBe(403);

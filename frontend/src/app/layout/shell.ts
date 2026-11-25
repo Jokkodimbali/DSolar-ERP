@@ -18,7 +18,14 @@ import { SessionService } from '../features/auth/application/session.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <div class="workspace" [class.menu-open]="menuOpen()" [class.sidebar-collapsed]="collapsed()">
-    <aside class="sidebar" aria-label="Navigation principale" id="main-navigation" [appDismissOutside]="menuOpen()" dismissExceptions="[data-menu-trigger]" (dismissed)="dismissNavigation($event, menuTrigger)">
+    <aside
+      class="sidebar"
+      aria-label="Navigation principale"
+      id="main-navigation"
+      [appDismissOutside]="menuOpen()"
+      dismissExceptions="[data-menu-trigger]"
+      (dismissed)="dismissNavigation($event, menuTrigger)"
+    >
       <a class="brand" routerLink="/" (click)="menuOpen.set(false)"
         ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri"
       /></a>
@@ -80,7 +87,12 @@ import { SessionService } from '../features/auth/application/session.service';
           >
         }
         @if (session.can('users.manage')) {
-          <a routerLink="/utilisateurs" routerLinkActive="active" (click)="menuOpen.set(false)" aria-label="Utilisateurs">
+          <a
+            routerLink="/utilisateurs"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Utilisateurs"
+          >
             <app-ui-icon name="user" /><span class="nav-text">Utilisateurs</span>
           </a>
         }
@@ -133,7 +145,13 @@ import { SessionService } from '../features/auth/application/session.service';
             >
           }
           <app-notifications />
-          <details #account class="account-menu" [appDismissOutside]="accountOpen()" (toggle)="accountOpen.set(account.open)" (dismissed)="dismissAccount($event, account)">
+          <details
+            #account
+            class="account-menu"
+            [appDismissOutside]="accountOpen()"
+            (toggle)="accountOpen.set(account.open)"
+            (dismissed)="dismissAccount($event, account)"
+          >
             <summary class="account-chip" aria-label="Menu du compte">
               <span class="account-avatar"><app-ui-icon name="user" /></span>
               <span class="account-label">
