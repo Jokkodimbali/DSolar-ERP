@@ -10,20 +10,22 @@ export class InventoryApi {
   private readonly http = inject(HttpClient);
 
   stock(id: string) {
-    return this.http.get<unknown>(apiPath('/inventory/stores/' + storeId(id) + '/stock')).pipe(
-      map((value) => parseStock(value, id)),
-    );
+    return this.http
+      .get<unknown>(apiPath('/inventory/stores/' + storeId(id) + '/stock'))
+      .pipe(map((value) => parseStock(value, id)));
   }
 
   movements(id: string, page: number, search: string) {
-    return this.http.get<unknown>(apiPath('/inventory/stores/' + storeId(id) + '/movements/search'), {
-      params: { page, limit: 10, search },
-    }).pipe(map((value) => parseMovements(value, id)));
+    return this.http
+      .get<unknown>(apiPath('/inventory/stores/' + storeId(id) + '/movements/search'), {
+        params: { page, limit: 10, search },
+      })
+      .pipe(map((value) => parseMovements(value, id)));
   }
 
   adjust(input: StockAdjustment) {
-    return this.http.post<unknown>(apiPath('/inventory/adjustments'), input).pipe(
-      map((value) => parseBalance(value, input.storeId, input.productId)),
-    );
+    return this.http
+      .post<unknown>(apiPath('/inventory/adjustments'), input)
+      .pipe(map((value) => parseBalance(value, input.storeId, input.productId)));
   }
 }

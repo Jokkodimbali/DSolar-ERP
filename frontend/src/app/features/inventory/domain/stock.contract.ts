@@ -26,8 +26,7 @@ export interface StockAdjustment {
 
 export function quantityInput(value: string, positive = false): string {
   const normalized = value.trim().replace(',', '.');
-  if (!/^(0|[1-9]\d{0,14})(\.\d{1,3})?$/.test(normalized) ||
-      (positive && /^0(?:\.0+)?$/.test(normalized))) {
+  if (!/^(0|[1-9]\d{0,14})(\.\d{1,3})?$/.test(normalized) || (positive && /^0(?:\.0+)?$/.test(normalized))) {
     throw new Error('Quantité invalide : trois décimales maximum, sans valeur négative.');
   }
   return normalized;
@@ -50,8 +49,11 @@ function text(value: unknown): string {
 }
 
 export function parseBalance(value: unknown, expectedStore: string, expectedProduct?: string): StockBalance {
-  if (!isRecord(value) || value['storeId'] !== expectedStore ||
-      (expectedProduct !== undefined && value['productId'] !== expectedProduct))
+  if (
+    !isRecord(value) ||
+    value['storeId'] !== expectedStore ||
+    (expectedProduct !== undefined && value['productId'] !== expectedProduct)
+  )
     throw new Error('Solde de stock incohérent.');
   return {
     storeId: storeId(value['storeId']),
@@ -66,7 +68,12 @@ export function parseStock(value: unknown, id: string): StockItem[] {
   if (!Array.isArray(value)) throw new Error('Liste de stock invalide.');
   const items = value.map((row: unknown) => {
     if (!isRecord(row)) throw new Error('Référence de stock invalide.');
-    return { ...parseBalance(row, id), sku: text(row['sku']), name: text(row['name']), unit: text(row['unit']) };
+    return {
+      ...parseBalance(row, id),
+      sku: text(row['sku']),
+      name: text(row['name']),
+      unit: text(row['unit']),
+    };
   });
   if (new Set(items.map((row) => row.productId)).size !== items.length)
     throw new Error('Référence de stock dupliquée.');
@@ -83,7 +90,8 @@ export function isZero(value: string): boolean {
 
 export function adjustmentInput(input: StockAdjustment): StockAdjustment {
   const reason = input.reason.trim();
-  if (reason.length < 5 || reason.length > 500) throw new Error('Justification de 5 à 500 caractères obligatoire.');
+  if (reason.length < 5 || reason.length > 500)
+    throw new Error('Justification de 5 à 500 caractères obligatoire.');
   if (input.direction !== 'IN' && input.direction !== 'OUT') throw new Error('Sens de mouvement invalide.');
   return {
     storeId: storeId(input.storeId),
@@ -96,28 +104,59 @@ export function adjustmentInput(input: StockAdjustment): StockAdjustment {
 }
 
 const movementLabels: Record<string, string> = {
-  RECEIPT: 'Réception', DELIVERY: 'Livraison', TRANSFER_OUT: 'Transfert sortant',
-  TRANSFER_IN: 'Transfert entrant', INVENTORY_ADJUSTMENT: 'Ajustement', RETURN_IN: 'Retour entrant',
-  RETURN_OUT: 'Retour sortant', SITE_CONSUMPTION: 'Consommation chantier', DAMAGE: 'Dommage', LOSS: 'Perte',
+  RECEIPT: 'Réception',
+  DELIVERY: 'Livraison',
+  TRANSFER_OUT: 'Transfert sortant',
+  TRANSFER_IN: 'Transfert entrant',
+  INVENTORY_ADJUSTMENT: 'Ajustement',
+  RETURN_IN: 'Retour entrant',
+  RETURN_OUT: 'Retour sortant',
+  SITE_CONSUMPTION: 'Consommation chantier',
+  DAMAGE: 'Dommage',
+  LOSS: 'Perte',
 };
 
 export function parseMovements(value: unknown, id: string) {
-  if (!isRecord(value) || !isRecord(value['pagination']) || !Array.isArray(value['items'])) throw new Error('Journal invalide.');
+  if (!isRecord(value) || !isRecord(value['pagination']) || !Array.isArray(value['items']))
+    throw new Error('Journal invalide.');
   const count = (raw: unknown): number => {
-    if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0) throw new Error('Pagination invalide.');
+    if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0)
+      throw new Error('Pagination invalide.');
     return raw;
   };
   const { page, limit, total, pages } = value['pagination'];
   const pagination = { page: count(page), limit: count(limit), total: count(total), pages: count(pages) };
-  if (pagination.page < 1 || pagination.limit < 1 || pagination.limit > 100 ||
-      pagination.pages !== Math.ceil(pagination.total / pagination.limit) || value['items'].length > pagination.limit)
+  if (
+    pagination.page < 1 ||
+    pagination.limit < 1 ||
+    pagination.limit > 100 ||
+    pagination.pages !== Math.ceil(pagination.total / pagination.limit) ||
+    value['items'].length > pagination.limit
+  )
     throw new Error('Pagination incohérente.');
   const items = value['items'].map((row: unknown) => {
-    if (!isRecord(row) || row['storeId'] !== id || (row['reason'] !== null && typeof row['reason'] !== 'string')) throw new Error('Mouvement invalide.');
+    if (
+      !isRecord(row) ||
+      row['storeId'] !== id ||
+      (row['reason'] !== null && typeof row['reason'] !== 'string')
+    )
+      throw new Error('Mouvement invalide.');
     const type = text(row['type']);
     const createdAt = text(row['createdAt']);
-    if (!Object.hasOwn(movementLabels, type) || !Number.isFinite(Date.parse(createdAt))) throw new Error('Mouvement invalide.');
-    return { id: storeId(row['id']), productId: storeId(row['productId']), name: text(row['name']), sku: text(row['sku']), unit: text(row['unit']), quantity: signedQuantity(row['quantity']), type: movementLabels[type], reason: row['reason'], referenceType: text(row['referenceType']), createdAt };
+    if (!Object.hasOwn(movementLabels, type) || !Number.isFinite(Date.parse(createdAt)))
+      throw new Error('Mouvement invalide.');
+    return {
+      id: storeId(row['id']),
+      productId: storeId(row['productId']),
+      name: text(row['name']),
+      sku: text(row['sku']),
+      unit: text(row['unit']),
+      quantity: signedQuantity(row['quantity']),
+      type: movementLabels[type],
+      reason: row['reason'],
+      referenceType: text(row['referenceType']),
+      createdAt,
+    };
   });
   return { ...pagination, items };
 }

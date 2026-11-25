@@ -16,12 +16,29 @@ import { StoresApi } from '../../stores/infrastructure/stores.api';
 import type { Store } from '../../stores/domain/store.contract';
 import { ProductsApi } from '../../products/infrastructure/products.api';
 import { emptyFilters, type Product } from '../../products/domain/product.contract';
-import { adjustmentInput, isZero, unavailable, type parseMovements, type StockAdjustment, type StockItem } from '../domain/stock.contract';
+import {
+  adjustmentInput,
+  isZero,
+  unavailable,
+  type parseMovements,
+  type StockAdjustment,
+  type StockItem,
+} from '../domain/stock.contract';
 import { InventoryApi } from '../infrastructure/inventory.api';
 
 @Component({
   selector: 'app-inventory-page',
-  imports: [RouterLink, ReactiveFormsModule, PageHeaderComponent, FeedbackComponent, EmptyStateComponent, PaginationComponent, KpiCardComponent, ProductThumbnailComponent, UiIconComponent],
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    PageHeaderComponent,
+    FeedbackComponent,
+    EmptyStateComponent,
+    PaginationComponent,
+    KpiCardComponent,
+    ProductThumbnailComponent,
+    UiIconComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inventory.page.html',
 })
@@ -49,7 +66,11 @@ export class InventoryPage {
   readonly historyError = signal('');
   readonly historyQuery = signal('');
   readonly newDate = (value: string) => new Date(value);
-  readonly historyDate = new Intl.DateTimeFormat('fr-SN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Dakar' });
+  readonly historyDate = new Intl.DateTimeFormat('fr-SN', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Africa/Dakar',
+  });
   readonly counters = computed(() => {
     const items = this.items();
     if (!items) return null;
@@ -62,11 +83,13 @@ export class InventoryPage {
   });
   readonly filtered = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('fr');
-    return (this.items() ?? []).filter((row) =>
-      (row.name + ' ' + row.sku).toLocaleLowerCase('fr').includes(query) &&
-      (this.filter() === 'ALL' || (this.filter() === 'EMPTY' && unavailable(row.available)) ||
-      (this.filter() === 'AVAILABLE' && !unavailable(row.available)) ||
-      (this.filter() === 'RESERVED' && !isZero(row.reserved))),
+    return (this.items() ?? []).filter(
+      (row) =>
+        (row.name + ' ' + row.sku).toLocaleLowerCase('fr').includes(query) &&
+        (this.filter() === 'ALL' ||
+          (this.filter() === 'EMPTY' && unavailable(row.available)) ||
+          (this.filter() === 'AVAILABLE' && !unavailable(row.available)) ||
+          (this.filter() === 'RESERVED' && !isZero(row.reserved))),
     );
   });
   readonly pages = computed(() => Math.max(1, Math.ceil(this.filtered().length / 10)));
@@ -82,22 +105,27 @@ export class InventoryPage {
     reason: new FormControl('', { nonNullable: true }),
   });
 
-  constructor() { this.loadStores(); }
+  constructor() {
+    this.loadStores();
+  }
 
   loadStores(): void {
     if (this.loadingStores()) return;
     this.loadingStores.set(true);
     this.error.set('');
-    this.storesApi.list().pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.loadingStores.set(false)),
-    ).subscribe({
-      next: (stores) => {
-        this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
-        this.selectStore(this.stores()[0]?.id ?? '');
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.storesApi
+      .list()
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loadingStores.set(false)),
+      )
+      .subscribe({
+        next: (stores) => {
+          this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
+          this.selectStore(this.stores()[0]?.id ?? '');
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   selectStore(id: string): void {
@@ -117,16 +145,19 @@ export class InventoryPage {
     if (!id) return;
     this.loading.set(true);
     this.error.set('');
-    this.api.stock(id).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.loading.set(false)),
-    ).subscribe({
-      next: (items) => {
-        this.items.set(items);
-        this.page.set(Math.min(this.page(), this.pages()));
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .stock(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (items) => {
+          this.items.set(items);
+          this.page.set(Math.min(this.page(), this.pages()));
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   toggleHistory(): void {
@@ -145,17 +176,28 @@ export class InventoryPage {
     this.historyLoading.set(true);
     this.historyError.set('');
     this.history.set(null);
-    this.api.movements(id, page, this.historyQuery()).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.historyLoading.set(false)),
-    ).subscribe({
-      next: (result) => { if (this.selectedStore() === id) this.history.set(result); },
-      error: (error: unknown) => this.historyError.set(errorMessage(error)),
-    });
+    this.api
+      .movements(id, page, this.historyQuery())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.historyLoading.set(false)),
+      )
+      .subscribe({
+        next: (result) => {
+          if (this.selectedStore() === id) this.history.set(result);
+        },
+        error: (error: unknown) => this.historyError.set(errorMessage(error)),
+      });
   }
 
   openAdjustment(row?: StockItem): void {
-    if (this.busy() || this.editing() || !this.selectedStore() || !this.session.can('inventory.manage', 'products.read')) return;
+    if (
+      this.busy() ||
+      this.editing() ||
+      !this.selectedStore() ||
+      !this.session.can('inventory.manage', 'products.read')
+    )
+      return;
     this.error.set('');
     this.success.set('');
     this.form.reset();
@@ -170,13 +212,18 @@ export class InventoryPage {
     if (this.productLoading() || this.pending() || !this.editing()) return;
     this.productLoading.set(true);
     this.productResults.set([]);
-    this.productsApi.search(1, { ...emptyFilters, active: 'true', search: term.trim() }).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.productLoading.set(false)),
-    ).subscribe({
-      next: (result) => { if (this.editing() && !this.pending()) this.productResults.set(result.items); },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.productsApi
+      .search(1, { ...emptyFilters, active: 'true', search: term.trim() })
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.productLoading.set(false)),
+      )
+      .subscribe({
+        next: (result) => {
+          if (this.editing() && !this.pending()) this.productResults.set(result.items);
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   choose(product: Product): void {
@@ -186,14 +233,19 @@ export class InventoryPage {
   prepare(): void {
     if (this.pending() || this.busy() || !this.editing() || !this.session.can('inventory.manage')) return;
     const product = this.chosen();
-    if (!product) { this.error.set('Sélectionnez un produit.'); return; }
+    if (!product) {
+      this.error.set('Sélectionnez un produit.');
+      return;
+    }
     try {
-      this.pending.set(adjustmentInput({
-        ...this.form.getRawValue(),
-        storeId: this.selectedStore(),
-        productId: product.id,
-        operationKey: crypto.randomUUID(),
-      }));
+      this.pending.set(
+        adjustmentInput({
+          ...this.form.getRawValue(),
+          storeId: this.selectedStore(),
+          productId: product.id,
+          operationKey: crypto.randomUUID(),
+        }),
+      );
       this.form.disable();
       this.error.set('');
     } catch (error: unknown) {
@@ -205,7 +257,13 @@ export class InventoryPage {
 
   cancel(): void {
     if (this.busy()) return;
-    if (this.attempted() && !window.confirm('Le résultat de cette opération doit être vérifié avant de créer un nouvel ajustement. Abandonner cette tentative ?')) return;
+    if (
+      this.attempted() &&
+      !window.confirm(
+        'Le résultat de cette opération doit être vérifié avant de créer un nouvel ajustement. Abandonner cette tentative ?',
+      )
+    )
+      return;
     this.resetAdjustment();
     this.load();
   }
@@ -226,18 +284,21 @@ export class InventoryPage {
     this.attempted.set(true);
     this.busy.set(true);
     this.error.set('');
-    this.api.adjust(pending).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.busy.set(false)),
-    ).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.resetAdjustment();
-        this.success.set('Ajustement de stock enregistré.');
-        this.load();
-        if (this.historyOpen()) this.loadHistory(1);
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .adjust(pending)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.resetAdjustment();
+          this.success.set('Ajustement de stock enregistré.');
+          this.load();
+          if (this.historyOpen()) this.loadHistory(1);
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 }

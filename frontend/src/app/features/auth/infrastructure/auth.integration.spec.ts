@@ -500,12 +500,12 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect((await request('/proformas/' + created.id + '/cancel', 'POST', {}, token)).status).toBe(201);
 
       const adjustmentInput = {
-          storeId: store.id,
-          productId: product.id,
-          direction: 'IN',
-          quantity: '2.500',
-          reason: 'Stock initial de test CI',
-          operationKey: crypto.randomUUID(),
+        storeId: store.id,
+        productId: product.id,
+        direction: 'IN',
+        quantity: '2.500',
+        reason: 'Stock initial de test CI',
+        operationKey: crypto.randomUUID(),
       };
       const adjustment = await request('/inventory/adjustments', 'POST', adjustmentInput, token);
       expect(adjustment.status).toBe(201);
@@ -513,13 +513,25 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const replay = await request('/inventory/adjustments', 'POST', adjustmentInput, token);
       expect(replay.status).toBe(201);
       expect(parseBalance(replay.data, store.id, product.id).quantity).toBe('2.500');
-      expect((await request('/inventory/adjustments', 'POST', { ...adjustmentInput, quantity: '3' }, token)).status).toBe(409);
+      expect(
+        (await request('/inventory/adjustments', 'POST', { ...adjustmentInput, quantity: '3' }, token))
+          .status,
+      ).toBe(409);
       const stock = await request('/inventory' + path + '/stock', 'GET', undefined, token);
       expect(stock.status).toBe(200);
-      expect(parseStock(stock.data, store.id)).toEqual(expect.arrayContaining([expect.objectContaining({ productId: product.id, quantity: '2.500' })]));
-      const history = await request('/inventory' + path + '/movements/search?search=PV-PROFORMA-CI&page=1&limit=10', 'GET', undefined, token);
-      expect(history.status).toBe(200);
-      expect(parseMovements(history.data, store.id).items).toEqual([expect.objectContaining({ productId: product.id, quantity: '2.500', type: 'Ajustement' })]);
+      expect(parseStock(stock.data, store.id)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ productId: product.id, quantity: '2.500' })]),
+      );
+      const movementHistory = await request(
+        '/inventory' + path + '/movements/search?search=PV-PROFORMA-CI&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(movementHistory.status).toBe(200);
+      expect(parseMovements(movementHistory.data, store.id).items).toEqual([
+        expect.objectContaining({ productId: product.id, quantity: '2.500', type: 'Ajustement' }),
+      ]);
       const alertsWithStock = await request(
         '/inventory' + path + '/alerts?threshold=5',
         'GET',

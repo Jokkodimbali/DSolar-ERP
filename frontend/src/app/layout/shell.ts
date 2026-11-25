@@ -79,11 +79,7 @@ import { SessionService } from '../features/auth/application/session.service';
           </a>
         }
         @if (session.can('stores.read', 'inventory.read')) {
-          <a
-            routerLink="/stocks"
-            routerLinkActive="active"
-            (click)="menuOpen.set(false)"
-            aria-label="Stocks"
+          <a routerLink="/stocks" routerLinkActive="active" (click)="menuOpen.set(false)" aria-label="Stocks"
             ><app-ui-icon name="box" /><span class="nav-text">Stocks</span></a
           >
         }
@@ -208,11 +204,7 @@ import { SessionService } from '../features/auth/application/session.service';
           >
         }
         @if (session.can('stores.read', 'inventory.read')) {
-          <a
-            routerLink="/stocks"
-            routerLinkActive="active"
-            (click)="menuOpen.set(false)"
-            aria-label="Stocks"
+          <a routerLink="/stocks" routerLinkActive="active" (click)="menuOpen.set(false)" aria-label="Stocks"
             ><app-ui-icon name="box" /><span class="nav-text">Stocks</span></a
           >
         }
