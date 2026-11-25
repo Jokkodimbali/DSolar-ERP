@@ -323,6 +323,15 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const detail = await request('/proformas/' + created.id, 'GET', undefined, token);
       expect(detail.status).toBe(200);
       expect(parseCreatedProforma(detail.data)).toEqual(created);
+      const source = sources.find((entry) => entry.label === 'Proformas');
+      if (!source) throw new Error('Source proformas manquante.');
+      const found = await request(source.path + '?search=PF-CI-RETRY-001&page=1&limit=5', 'GET', undefined, token);
+      expect(found.status).toBe(200);
+      expect(parseSearch(found.data, source).items).toContainEqual({
+        id: created.id,
+        title: created.number,
+        subtitle: '',
+      });
       expect((await request('/proformas/' + created.id + '/cancel', 'POST', {}, token)).status).toBe(201);
     } finally {
       await request('/auth/logout', 'POST', { refreshToken: saleAdmin.jetonRenouvellement });

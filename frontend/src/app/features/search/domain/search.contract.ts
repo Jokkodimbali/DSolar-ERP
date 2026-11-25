@@ -19,6 +19,7 @@ export const sources: readonly SearchSource[] = [
   },
   { label: 'Magasins', path: '/search/stores', permission: 'stores.read', title: 'name', subtitle: 'code' },
   { label: 'Clients', path: '/customers/search', permission: 'sales.read', title: 'name' },
+  { label: 'Proformas', path: '/proformas/search', permission: 'sales.read', title: 'number' },
   { label: 'Commandes', path: '/sales-orders/search', permission: 'sales.read', title: 'number' },
   { label: 'Factures', path: '/invoices/search', permission: 'sales.read', title: 'number' },
 ];
