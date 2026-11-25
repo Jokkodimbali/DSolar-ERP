@@ -39,8 +39,12 @@ import { SessionService } from '../features/auth/application/session.service';
         </button>
         <span class="topbar-title">Espace de gestion</span>
         <div class="user-actions">
-          <span>{{ session.user()?.nomComplet }}</span
-          ><button type="button" class="secondary" [disabled]="loggingOut()" (click)="logout()">
+          <span>{{ session.user()?.nomComplet }}</span><button
+            type="button"
+            class="secondary"
+            [disabled]="loggingOut()"
+            (click)="logout()"
+          >
             Déconnexion
           </button>
         </div>

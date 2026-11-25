@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: dsolar-ci-${{ github.workflow }}-${{ github.ref }}
+  group: dsolar-ci-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.deploy_production && 'production' || 'validation' }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || !inputs.deploy_production }}
 jobs:
   backend:

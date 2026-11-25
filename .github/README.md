@@ -22,7 +22,7 @@ flowchart TD
 - `frontend.yml` installe via npm ci avec le lockfile versionné et npm 11.6.2, vérifie TypeScript, ESLint, Vitest, compilation Angular, Prettier et audit npm.
 - `deploy.yml` assemble exclusivement les deux artefacts du même commit validé, vérifie leur présence, produit un bundle scellé par SHA256 et, uniquement sur demande explicite depuis main, appelle l'adaptateur de déploiement.
 
-Une erreur dans l'un des deux pipelines bloque le contrôle global et l'assemblage. Les workflows réutilisables ne possèdent pas de déclencheur push autonome. Les anciens workflows ponctuels qui modifiaient Git sont retirés ; l'historique Git les conserve. Les contrôles utilisent des permissions de lecture ; aucun commit automatique ni désactivation de tests.
+Une erreur dans l'un des deux pipelines bloque le contrôle global et l'assemblage. Les workflows réutilisables ne possèdent pas de déclencheur push autonome. Les validations ordinaires peuvent annuler une validation obsolète de la même branche ; une mise en production manuelle utilise un groupe de concurrence distinct et ne peut pas être annulée par un nouveau push. Les anciens workflows ponctuels qui modifiaient Git sont retirés ; l'historique Git les conserve. Les contrôles utilisent des permissions de lecture ; aucun commit automatique ni désactivation de tests.
 
 ## Politique de branches
 
