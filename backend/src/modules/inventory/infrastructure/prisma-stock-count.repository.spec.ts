@@ -34,6 +34,7 @@ describe('PrismaStockCountRepository', () => {
     tx.store.findUnique.mockResolvedValue({ status: 'ACTIVE' });
     tx.user.findUnique.mockResolvedValue({ status: 'ACTIVE', roles: [{ roleId: 'admin' }] });
     tx.userStoreAccess.findFirst.mockResolvedValue(null);
+    tx.storeStock.findMany.mockResolvedValue([{ productId: 'product-id' }]);
   });
 
   it('refuse un utilisateur sans accès au magasin', async () => {
@@ -99,6 +100,7 @@ describe('PrismaStockCountRepository', () => {
       lines: [
         {
           productId: 'product-id',
+          expectedStockRevision: 0,
           counted: new Prisma.Decimal(3),
           expected: new Prisma.Decimal(5),
           reason: 'Comptage',
@@ -106,12 +108,35 @@ describe('PrismaStockCountRepository', () => {
       ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 0,
       quantity: new Prisma.Decimal(6),
       reserved: new Prisma.Decimal(0),
     });
     await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
     expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
   });
+  it('refuse des mouvements compensés depuis l’ouverture malgré un solde identique', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id', storeId: 'store-id', status: 'DRAFT',
+      lines: [{ productId: 'product-id', expectedStockRevision: 0, expected: new Prisma.Decimal(5), counted: new Prisma.Decimal(5) }],
+    });
+    tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 2, quantity: new Prisma.Decimal(5), reserved: new Prisma.Decimal(0),
+    });
+    await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('refuse un inventaire dont le périmètre a changé', async () => {
+    tx.inventorySession.findUnique.mockResolvedValue({
+      id: 'session-id', storeId: 'store-id', status: 'DRAFT',
+      lines: [{ productId: 'product-id', expectedStockRevision: 0, expected: new Prisma.Decimal(5), counted: new Prisma.Decimal(5) }],
+    });
+    tx.storeStock.findMany.mockResolvedValue([{ productId: 'product-id' }, { productId: 'new-product' }]);
+    await expect(repository.validate('session-id', 'actor-id')).rejects.toThrow(ConflictException);
+    expect(tx.storeStock.updateMany).not.toHaveBeenCalled();
+  });
+
   it('régularise un écart positif et journalise le mouvement', async () => {
     tx.inventorySession.findUnique.mockResolvedValue({
       id: 'session-id',
@@ -120,6 +145,7 @@ describe('PrismaStockCountRepository', () => {
       lines: [
         {
           productId: 'product-id',
+          expectedStockRevision: 0,
           counted: new Prisma.Decimal('8.500'),
           expected: new Prisma.Decimal('5.000'),
           reason: 'Recomptage',
@@ -127,6 +153,7 @@ describe('PrismaStockCountRepository', () => {
       ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 0,
       quantity: new Prisma.Decimal('5.000'),
       reserved: new Prisma.Decimal('2.000'),
     });
@@ -159,12 +186,14 @@ describe('PrismaStockCountRepository', () => {
       lines: [
         {
           productId: 'product-id',
+          expectedStockRevision: 0,
           counted: new Prisma.Decimal('1'),
           expected: new Prisma.Decimal('5'),
         },
       ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 0,
       quantity: new Prisma.Decimal('5'),
       reserved: new Prisma.Decimal('2'),
     });
@@ -181,12 +210,14 @@ describe('PrismaStockCountRepository', () => {
       lines: [
         {
           productId: 'product-id',
+          expectedStockRevision: 0,
           counted: new Prisma.Decimal('5'),
           expected: new Prisma.Decimal('5'),
         },
       ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 0,
       quantity: new Prisma.Decimal('5'),
       reserved: new Prisma.Decimal('0'),
     });
@@ -269,12 +300,14 @@ describe('PrismaStockCountRepository', () => {
       lines: [
         {
           productId: 'product-id',
+          expectedStockRevision: 0,
           counted: new Prisma.Decimal('-1'),
           expected: new Prisma.Decimal('5'),
         },
       ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 0,
       quantity: new Prisma.Decimal('5'),
       reserved: new Prisma.Decimal('0'),
     });
@@ -304,12 +337,14 @@ describe('PrismaStockCountRepository', () => {
       lines: [
         {
           productId: 'product-id',
+          expectedStockRevision: 0,
           counted: new Prisma.Decimal('5'),
           expected: new Prisma.Decimal('5'),
         },
       ],
     });
     tx.storeStock.findUnique.mockResolvedValue({
+      physicalRevision: 0,
       quantity: new Prisma.Decimal('5'),
       reserved: new Prisma.Decimal('0'),
     });

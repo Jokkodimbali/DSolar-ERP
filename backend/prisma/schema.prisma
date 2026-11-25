@@ -79,6 +79,7 @@ model StoreStock {
   productId String @db.Uuid
   quantity Decimal @default(0) @db.Decimal(18,3)
   reserved Decimal @default(0) @db.Decimal(18,3)
+  physicalRevision Int @default(0)
   store Store @relation(fields:[storeId],references:[id],onDelete:Restrict)
   product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
   updatedAt DateTime @updatedAt
@@ -267,6 +268,7 @@ model StockMovement {
   reason String?
   createdAt DateTime @default(now())
   @@index([storeId,productId,createdAt])
+  @@index([storeId,createdAt])
   @@index([referenceType,referenceId])
 }
 model SerialNumber {
@@ -303,6 +305,8 @@ model StockTransfer {
   createdAt DateTime @default(now())
   shippedAt DateTime?
   receivedAt DateTime?
+  @@index([originId,createdAt])
+  @@index([destinationId,createdAt])
 }
 model StockTransferLine {
   id String @id @default(uuid()) @db.Uuid
@@ -335,6 +339,7 @@ model InventorySession {
   startedAt DateTime @default(now())
   validatedAt DateTime?
   lines InventoryLine[]
+  @@index([storeId,startedAt])
 }
 model InventoryLine {
   id String @id @default(uuid()) @db.Uuid
@@ -343,6 +348,7 @@ model InventoryLine {
   session InventorySession @relation(fields:[sessionId],references:[id],onDelete:Restrict)
   product Product @relation(fields:[productId],references:[id],onDelete:Restrict)
   expected Decimal @db.Decimal(18,3)
+  expectedStockRevision Int?
   counted Decimal? @db.Decimal(18,3)
   reason String?
   @@unique([sessionId,productId])

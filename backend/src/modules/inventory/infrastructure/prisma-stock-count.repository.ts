@@ -62,7 +62,7 @@ export class PrismaStockCountRepository implements StockCountRepository {
       if (existing) throw new ConflictException('Un inventaire est déjà ouvert dans ce magasin.');
       const stocks = await tx.storeStock.findMany({
         where: { storeId, product: { active: true } },
-        select: { productId: true, quantity: true },
+        select: { productId: true, quantity: true, physicalRevision: true },
       });
       if (!stocks.length) throw new ConflictException('Aucun stock à inventorier dans ce magasin.');
       const created = await tx.inventorySession.create({
@@ -72,6 +72,7 @@ export class PrismaStockCountRepository implements StockCountRepository {
             create: stocks.map((stock) => ({
               productId: stock.productId,
               expected: stock.quantity,
+              expectedStockRevision: stock.physicalRevision,
             })),
           },
         },
@@ -224,11 +225,22 @@ export class PrismaStockCountRepository implements StockCountRepository {
       if (!session.lines.length || session.lines.some((line) => line.counted === null)) {
         throw new ConflictException('Toutes les lignes doivent être comptées avant validation.');
       }
+      const currentProducts = await tx.storeStock.findMany({
+        where: { storeId: session.storeId, product: { active: true } },
+        select: { productId: true },
+      });
+      const expectedProducts = new Set(session.lines.map((line) => line.productId));
+      if (
+        currentProducts.length !== expectedProducts.size ||
+        currentProducts.some((stock) => !expectedProducts.has(stock.productId))
+      ) {
+        throw new ConflictException('Le périmètre du stock a changé : ouvrez un nouvel inventaire.');
+      }
       for (const line of session.lines) {
         const stock = await tx.storeStock.findUnique({
           where: { storeId_productId: { storeId: session.storeId, productId: line.productId } },
         });
-        if (!stock || !stock.quantity.equals(line.expected)) {
+        if (!stock || line.expectedStockRevision === null || stock.physicalRevision !== line.expectedStockRevision || !stock.quantity.equals(line.expected)) {
           throw new ConflictException(
             'Stock modifié depuis le début de l’inventaire : recommencez le comptage.',
           );
@@ -247,6 +259,7 @@ export class PrismaStockCountRepository implements StockCountRepository {
             storeId: session.storeId,
             productId: line.productId,
             quantity: stock.quantity,
+            physicalRevision: stock.physicalRevision,
             reserved: { lte: counted },
           },
           data: { quantity: { increment: difference } },
