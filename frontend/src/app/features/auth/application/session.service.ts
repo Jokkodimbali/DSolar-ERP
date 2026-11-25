@@ -10,25 +10,27 @@ export class SessionService {
   private readonly session = signal<AuthResult | null>(null);
   private refreshing: Observable<string> | null = null;
   private generation = 0;
-  private closing = false;
+  private readonly closing = signal(false);
+  readonly sessionVersion = computed(() => this.sessionEpoch());
+  private readonly sessionEpoch = signal(0);
   readonly user = computed(() => this.session()?.utilisateur ?? null);
-  readonly authenticated = computed(() => this.user() !== null && !this.closing);
-  accessToken(): string | null { return this.closing ? null : this.session()?.jetonAcces ?? null; }
+  readonly authenticated = computed(() => this.user() !== null && !this.closing());
+  accessToken(): string | null { return this.closing() ? null : this.session()?.jetonAcces ?? null; }
   can(...required: Permission[]): boolean { return hasPermissions(this.user(), required); }
   login(input: LoginInput) {
     const generation = ++this.generation;
+    this.sessionEpoch.set(generation);
     this.session.set(null);
     return this.api.login(input).pipe(tap(result => {
-      if (generation !== this.generation || this.closing) throw new Error('Connexion annulée.');
+      if (generation !== this.generation || this.closing()) throw new Error('Connexion annulée.');
       this.session.set(result);
     }));
   }
-  refreshAfter(rejected: string): Observable<string> {
+  refreshAfter(rejected: string, generation: number): Observable<string> {
     const current = this.session();
-    if (!current || this.closing) return throwError(() => new Error('Session expirée.'));
+    if (!current || this.closing() || generation !== this.generation) return throwError(() => new Error('Session expirée.'));
     if (current.jetonAcces !== rejected) return of(current.jetonAcces);
     if (this.refreshing) return this.refreshing;
-    const generation = this.generation;
     this.refreshing = this.api.refresh(current.jetonRenouvellement).pipe(
       map(result => {
         if (generation !== this.generation) throw new Error('Session remplacée.');
@@ -43,22 +45,24 @@ export class SessionService {
   }
   expire(): void {
     this.generation++;
+    this.sessionEpoch.set(this.generation);
     this.session.set(null);
     void this.router.navigateByUrl('/connexion');
   }
   logout(): Observable<unknown> {
-    if (this.closing) return of(null);
-    this.closing = true;
+    if (this.closing()) return of(null);
+    this.closing.set(true);
     const pending = this.refreshing ?? of(null);
     return pending.pipe(
       catchError(() => of(null)),
       switchMap(() => {
         const token = this.session()?.jetonRenouvellement;
         this.generation++;
+        this.sessionEpoch.set(this.generation);
         this.session.set(null);
         return token ? this.api.logout(token) : of(null);
       }),
-      finalize(() => { this.closing = false; void this.router.navigateByUrl('/connexion'); }),
+      finalize(() => { this.closing.set(false); void this.router.navigateByUrl('/connexion'); }),
     );
   }
 }

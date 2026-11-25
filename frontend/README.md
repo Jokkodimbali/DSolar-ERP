@@ -14,7 +14,7 @@ Node.js 22.12+ (branche 22). Depuis frontend/ : installer les dépendances, puis
 - layout : shell responsive et navigation.
 - shared : réservé aux composants véritablement réutilisables.
 
-Les DTO externes sont validés à l'exécution depuis unknown. Les montants restent des chaînes. Le backend est l'autorité des droits, transitions et calculs. Les guards frontend ne remplacent pas la sécurité serveur. Les tokens sont conservés seulement en mémoire, sans localStorage/sessionStorage : un rechargement nécessite une nouvelle connexion. Le renouvellement est mutualisé pour éviter la révocation concurrente des refresh tokens. Les requêtes authentifiées restent limitées au préfixe relatif /api/v1.
+Les DTO externes sont validés à l'exécution depuis unknown. Les montants restent des chaînes. Le backend est l'autorité des droits, transitions et calculs. Les guards frontend ne remplacent pas la sécurité serveur. Les tokens sont conservés seulement en mémoire, sans localStorage/sessionStorage : un rechargement nécessite une nouvelle connexion. Le renouvellement est mutualisé pour éviter la révocation concurrente des refresh tokens. Les lectures sont rejouées au plus une fois dans la même session ; aucune mutation n’est rejouée automatiquement. Les requêtes authentifiées restent limitées au préfixe relatif /api/v1.
 
 ## Qualité
 

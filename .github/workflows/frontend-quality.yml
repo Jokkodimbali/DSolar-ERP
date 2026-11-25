@@ -20,6 +20,7 @@ jobs:
         with:
           node-version: '22'
       - name: Installer les dépendances
+        id: install
         run: |
           if test -f package-lock.json; then
             npm ci --no-audit --no-fund
@@ -29,14 +30,14 @@ jobs:
           fi
       - run: npm run typecheck
       - run: npm run lint
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: npm test
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: npm run build
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - name: Contrôler le formatage
         id: format
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run format:check
       - name: Préparer le correctif de formatage
         if: ${{ !cancelled() && steps.format.outcome == 'failure' }}
@@ -45,4 +46,4 @@ jobs:
           git diff --binary -- src angular.json 'tsconfig*.json' package.json > /tmp/dsolar-front-format.patch
           node -e "const fs=require('node:fs'); const data=fs.readFileSync('/tmp/dsolar-front-format.patch').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('FRONTEND_FORMAT:'+data.slice(i,i+8000));"
       - run: npm audit --omit=dev --audit-level=high
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}

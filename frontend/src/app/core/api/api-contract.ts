@@ -1,11 +1,14 @@
 export const API_PREFIX = '/api/v1';
 export function apiPath(path: string): string {
-  if (!path.startsWith('/') || path.startsWith('//') || path.includes('..') || path.includes('\\'))
+  if (!isInternalApi(API_PREFIX + path) || !path.startsWith('/') || path.startsWith('//'))
     throw new Error('Chemin API invalide.');
   return API_PREFIX + path;
 }
 export function isInternalApi(url: string): boolean {
-  return url.startsWith(API_PREFIX + '/') && !url.includes('\\') && !url.includes('..');
+  if (!url.startsWith(API_PREFIX + '/')) return false;
+  const path = url.split(/[?#]/, 1)[0] ?? '';
+  if (path.includes('\\') || /%(?:2e|2f|5c|25)/i.test(path) || path.split('/').some(segment => segment === '..' || segment === '.')) return false;
+  return new URL(url, 'https://erp.invalid').pathname.startsWith(API_PREFIX + '/');
 }
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
