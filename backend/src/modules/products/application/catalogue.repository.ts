@@ -30,6 +30,8 @@ export interface CatalogueRepository {
     rate: string;
     legalBasis?: string;
   }): Promise<TaxRegimeRecord>;
+  renameReference(kind: ReferenceKind, id: string, name: string): Promise<ReferenceRecord>;
+  deleteUnusedReference(kind: 'category' | 'brand', id: string): Promise<void>;
   listPrices(productId: string): Promise<PriceRecord[]>;
   setPrice(input: {
     productId: string;

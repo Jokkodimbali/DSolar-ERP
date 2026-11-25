@@ -8,6 +8,8 @@ const repository = (): jest.Mocked<CatalogueRepository> => ({
   createCategory: jest.fn(),
   createBrand: jest.fn(),
   createTaxRegime: jest.fn(),
+  renameReference: jest.fn(),
+  deleteUnusedReference: jest.fn(),
   listPrices: jest.fn(),
   setPrice: jest.fn(),
 });
@@ -27,6 +29,21 @@ describe('CatalogueService', () => {
     await svc.createCategory({ code: ' panneaux ', name: ' Panneaux solaires ' });
     expect(repo.createCategory).toHaveBeenCalledWith({ code: 'PANNEAUX', name: 'Panneaux solaires' });
   });
+  it('renomme les références sans modifier leur identité fiscale', async () => {
+    const repo = repository();
+    const svc = new CatalogueService(repo, products());
+    await svc.renameReference('taxRegime', 'tax', ' TVA standard ');
+    expect(repo.renameReference).toHaveBeenCalledWith('taxRegime', 'tax', 'TVA standard');
+    expect(() => svc.renameReference('brand', 'id', '  ')).toThrow(BadRequestException);
+  });
+
+  it('délègue la suppression des références non fiscales au repository', async () => {
+    const repo = repository();
+    const svc = new CatalogueService(repo, products());
+    await svc.deleteReference('category', 'id');
+    expect(repo.deleteUnusedReference).toHaveBeenCalledWith('category', 'id');
+  });
+
   it('refuse un taux supérieur à 100%', async () => {
     const svc = new CatalogueService(repository(), products());
     expect(() => svc.createTaxRegime({ code: 'TVA', name: 'TVA', rate: '101' })).toThrow(BadRequestException);

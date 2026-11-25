@@ -60,3 +60,11 @@ export class SetProductPriceDto {
   @SwaggerField({ required: false, type: String, pattern: /^(0|[1-9]\d{0,14})(\.\d{1,2})?$/.source })
   purchasePrice?: string;
 }
+
+export class RenameReferenceDto {
+  @ApiProperty({ example: 'Nouvelle désignation' })
+  @IsString()
+  @MaxLength(200)
+  @SwaggerField({ type: String, maxLength: 200 })
+  name!: string;
+}

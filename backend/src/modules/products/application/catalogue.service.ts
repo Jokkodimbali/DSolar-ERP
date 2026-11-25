@@ -33,6 +33,14 @@ export class CatalogueService {
       legalBasis: input.legalBasis?.trim(),
     });
   }
+  renameReference(kind: ReferenceKind, id: string, name: string) {
+    return this.catalogue.renameReference(kind, id, this.name(name));
+  }
+
+  deleteReference(kind: 'category' | 'brand', id: string) {
+    return this.catalogue.deleteUnusedReference(kind, id);
+  }
+
   async prices(productId: string) {
     await this.ensureProduct(productId);
     return this.catalogue.listPrices(productId);

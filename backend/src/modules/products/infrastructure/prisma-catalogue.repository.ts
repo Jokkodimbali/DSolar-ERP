@@ -49,6 +49,47 @@ export class PrismaCatalogueRepository implements CatalogueRepository {
       throw error;
     }
   }
+  async renameReference(kind: ReferenceKind, id: string, name: string) {
+    try {
+      switch (kind) {
+        case 'category':
+          return await this.prisma.category.update({ where: { id }, data: { name } });
+        case 'brand':
+          return await this.prisma.brand.update({ where: { id }, data: { name } });
+        case 'taxRegime':
+          return await this.prisma.taxRegime.update({ where: { id }, data: { name } });
+      }
+    } catch (error: unknown) {
+      this.map(error);
+      throw error;
+    }
+  }
+
+  async deleteUnusedReference(kind: 'category' | 'brand', id: string): Promise<void> {
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          if (kind === 'category') {
+            await tx.$queryRaw`SELECT id FROM "Category" WHERE id = ${id}::uuid FOR UPDATE`;
+            if (await tx.category.count({ where: { parentId: id } }))
+              throw new ConflictException('Cette catégorie contient des sous-catégories.');
+            if (await tx.product.count({ where: { categoryId: id } }))
+              throw new ConflictException('Cette catégorie est utilisée par des produits.');
+            await tx.category.delete({ where: { id } });
+          } else {
+            if (await tx.product.count({ where: { brandId: id } }))
+              throw new ConflictException('Cette marque est utilisée par des produits.');
+            await tx.brand.delete({ where: { id } });
+          }
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error: unknown) {
+      this.map(error);
+      throw error;
+    }
+  }
+
   listPrices(productId: string) {
     return this.prisma.productPrice.findMany({ where: { productId }, orderBy: { validFrom: 'desc' } });
   }

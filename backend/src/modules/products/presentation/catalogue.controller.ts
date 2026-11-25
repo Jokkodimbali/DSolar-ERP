@@ -1,5 +1,5 @@
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CatalogueService } from '../application/catalogue.service';
@@ -8,6 +8,7 @@ import {
   CreateCategoryDto,
   CreateTaxRegimeDto,
   SetProductPriceDto,
+  RenameReferenceDto,
 } from './dto/catalogue.dto';
 @ApiTags('Catalogue')
 @ApiBearerAuth()
@@ -41,6 +42,43 @@ export class CatalogueController {
   createTaxRegime(@Body() dto: CreateTaxRegimeDto) {
     return this.catalogue.createTaxRegime(dto);
   }
+  @Patch('categories/:id')
+  @RequirePermissions('products.manage')
+  @SuccessMessage('Catégorie mise à jour.')
+  renameCategory(@Param('id', ParseUUIDPipe) id: string, @Body() dto: RenameReferenceDto) {
+    return this.catalogue.renameReference('category', id, dto.name);
+  }
+
+  @Patch('brands/:id')
+  @RequirePermissions('products.manage')
+  @SuccessMessage('Marque mise à jour.')
+  renameBrand(@Param('id', ParseUUIDPipe) id: string, @Body() dto: RenameReferenceDto) {
+    return this.catalogue.renameReference('brand', id, dto.name);
+  }
+
+  @Patch('tax-regimes/:id')
+  @RequirePermissions('products.manage')
+  @SuccessMessage('Libellé fiscal mis à jour.')
+  renameTaxRegime(@Param('id', ParseUUIDPipe) id: string, @Body() dto: RenameReferenceDto) {
+    return this.catalogue.renameReference('taxRegime', id, dto.name);
+  }
+
+  @Delete('categories/:id')
+  @RequirePermissions('products.manage')
+  @SuccessMessage('Catégorie inutilisée supprimée.')
+  async deleteCategory(@Param('id', ParseUUIDPipe) id: string) {
+    await this.catalogue.deleteReference('category', id);
+    return { message: 'Catégorie supprimée.' };
+  }
+
+  @Delete('brands/:id')
+  @RequirePermissions('products.manage')
+  @SuccessMessage('Marque inutilisée supprimée.')
+  async deleteBrand(@Param('id', ParseUUIDPipe) id: string) {
+    await this.catalogue.deleteReference('brand', id);
+    return { message: 'Marque supprimée.' };
+  }
+
   @Get('products/:id/prices') @RequirePermissions('products.read') prices(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
