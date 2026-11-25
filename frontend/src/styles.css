@@ -826,3 +826,72 @@ app-global-search {
     flex-wrap: wrap;
   }
 }
+
+/* Les quatre panneaux de la maquette précèdent les rapports détaillés. */
+.dashboard-primary {
+  align-items: stretch;
+}
+.dashboard-primary > app-dashboard-report {
+  display: block;
+}
+.dashboard-primary > app-dashboard-report > .panel,
+.dashboard-primary > .panel {
+  height: calc(100% - 16px);
+}
+.dashboard-featured .ui-toolbar {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.dashboard-featured .ui-toolbar .secondary,
+.dashboard-featured select {
+  min-height: 36px;
+}
+.report-values {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+.recent-activity-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+.recent-activity-list article {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.recent-activity-list article p {
+  margin: 4px 0 0;
+}
+.activity-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+  background: var(--accent);
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .dashboard-primary {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+  .topbar {
+    padding-inline: 12px;
+  }
+  .desktop-brand {
+    display: none;
+  }
+  .account-chip > span:last-child {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .dashboard-primary {
+    grid-template-columns: 1fr;
+  }
+}

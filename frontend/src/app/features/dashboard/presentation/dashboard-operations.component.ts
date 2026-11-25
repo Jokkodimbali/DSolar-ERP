@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
@@ -21,6 +21,7 @@ export class DashboardOperationsComponent {
   readonly session = inject(SessionService);
   readonly alerts = signal<StoreAlerts[] | null>(null);
   readonly orders = signal<RecentOrder[] | null>(null);
+  readonly alertCount = computed(() => this.alerts()?.reduce((sum, store) => sum + store.items.length, 0));
   readonly alertsLoading = signal(false);
   readonly ordersLoading = signal(false);
   readonly alertsError = signal('');

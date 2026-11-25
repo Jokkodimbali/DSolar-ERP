@@ -1,6 +1,7 @@
-import { Component, ChangeDetectionStrategy, inject, signal, DestroyRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, DestroyRef, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { SessionService } from '../../auth/application/session.service';
 import { DashboardApi } from '../infrastructure/dashboard.api';
 import { type Overview, formatMoney } from '../domain/dashboard.contract';
 import { DashboardOperationsComponent } from './dashboard-operations.component';
@@ -21,7 +22,7 @@ import { errorMessage } from '../../../core/api/http-error';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <app-page-header
-      eyebrow="VUE D’ENSEMBLE"
+      [eyebrow]="'Bonjour, ' + (session.user()?.nomComplet ?? '')"
       heading="Tableau de bord"
       description="Indicateurs réels de votre activité."
     >
@@ -45,11 +46,11 @@ import { errorMessage } from '../../../core/api/http-error';
           description="Vue globale"
         />
         <app-kpi-card
-          icon="store"
+          icon="alert"
           tone="orange"
-          label="Magasins"
-          [value]="d.stores"
-          description="Vue globale"
+          label="Alertes de stock"
+          [value]="operations()?.alertCount() ?? '—'"
+          description="Références par magasin actif"
         />
         <app-kpi-card
           icon="wallet"
@@ -59,6 +60,16 @@ import { errorMessage } from '../../../core/api/http-error';
           description="Montant enregistré"
         />
       </div>
+    }
+    <app-dashboard-operations>
+      @if (revenueReport; as report) {
+        <app-dashboard-report dashboardRevenue [definition]="report" />
+      }
+      @if (activityReport; as report) {
+        <app-dashboard-report dashboardActivity [definition]="report" />
+      }
+    </app-dashboard-operations>
+    @if (data(); as d) {
       <section class="panel">
         <h2>Activité de l'entreprise</h2>
         <dl class="metrics">
@@ -89,12 +100,6 @@ import { errorMessage } from '../../../core/api/http-error';
         </dl>
       </section>
     }
-    <div class="dashboard-grid">
-      @for (report of featuredReports; track report.path) {
-        <app-dashboard-report [definition]="report" />
-      }
-    </div>
-    <app-dashboard-operations />
     <div class="dashboard-reports">
       @for (report of otherReports; track report.path) {
         <app-dashboard-report [definition]="report" />
@@ -108,15 +113,20 @@ export class DashboardPage {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly money = formatMoney;
-  readonly featuredReports = ['monthly-revenue', 'overview', 'store-sales', 'recent-activity'].flatMap(
-    (path) => reports.filter((report) => report.path === path),
+  readonly session = inject(SessionService);
+  readonly operations = viewChild(DashboardOperationsComponent);
+  readonly revenueReport = reports.find((report) => report.path === 'monthly-revenue');
+  readonly activityReport = reports.find((report) => report.path === 'recent-activity');
+  readonly otherReports = reports.filter(
+    (report) => report !== this.revenueReport && report !== this.activityReport,
   );
-  readonly otherReports = reports.filter((report) => !this.featuredReports.includes(report));
   constructor() {
     this.load();
   }
   load(): void {
     if (this.loading()) return;
+    this.operations()?.loadAlerts();
+    this.operations()?.loadOrders();
     this.loading.set(true);
     this.error.set('');
     this.data.set(null);

@@ -1,4 +1,4 @@
-<section class="panel">
+<section class="panel" [class.dashboard-featured]="definition().path === 'monthly-revenue' || definition().path === 'recent-activity'">
   <h2>{{ definition().title }}</h2>
   <div class="ui-toolbar">
     @if (definition().path === 'monthly-revenue') {
@@ -75,9 +75,24 @@
         }
       </dl>
     }
-    @if (report.headers.length) {
+    @if (definition().path === 'recent-activity' && report.rows.length) {
+      <div class="recent-activity-list">
+        @for (row of report.rows; track $index) {
+          <article>
+            <span class="activity-dot" aria-hidden="true"></span>
+            <div>
+              <strong>{{ row[0] }}</strong>
+              <p class="muted small">{{ row[1] }} · {{ row[3] }}</p>
+              <p class="muted small">{{ row[2] }}</p>
+            </div>
+          </article>
+        }
+      </div>
+    } @else if (report.headers.length) {
       @if (report.rows.length) {
-        <div class="ui-table" tabindex="0" role="region" [attr.aria-label]="definition().title">
+        <details [open]="!report.chart">
+          <summary class="report-values">Afficher les valeurs détaillées</summary>
+          <div class="ui-table" tabindex="0" role="region" [attr.aria-label]="definition().title">
           <table>
             <thead>
               <tr>
@@ -96,7 +111,8 @@
               }
             </tbody>
           </table>
-        </div>
+          </div>
+        </details>
       } @else {
         <app-empty-state />
       }
