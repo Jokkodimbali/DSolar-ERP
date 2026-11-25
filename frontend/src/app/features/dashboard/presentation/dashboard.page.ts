@@ -12,7 +12,13 @@ import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { errorMessage } from '../../../core/api/http-error';
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DashboardReportComponent, DashboardOperationsComponent, PageHeaderComponent, FeedbackComponent, KpiCardComponent],
+  imports: [
+    DashboardReportComponent,
+    DashboardOperationsComponent,
+    PageHeaderComponent,
+    FeedbackComponent,
+    KpiCardComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <app-page-header
       eyebrow="VUE D’ENSEMBLE"

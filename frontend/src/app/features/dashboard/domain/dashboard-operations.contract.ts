@@ -34,7 +34,12 @@ function text(value: unknown): string {
 }
 
 export function parseAlerts(value: unknown, id: string, name: string): StoreAlerts {
-  if (!isRecord(value) || value['storeId'] !== id || value['threshold'] !== '5' || !Array.isArray(value['items']))
+  if (
+    !isRecord(value) ||
+    value['storeId'] !== id ||
+    value['threshold'] !== '5' ||
+    !Array.isArray(value['items'])
+  )
     return invalid();
   const items = value['items'].map((item: unknown): StockAlert => {
     if (!isRecord(item) || item['storeId'] !== id) return invalid();
@@ -74,15 +79,16 @@ export function parseRecentOrders(value: unknown): RecentOrder[] {
     if (!isRecord(item)) return invalid();
     const status = text(item['status']);
     const paymentStatus = text(item['paymentStatus']);
-    if (!Object.hasOwn(orderStatuses, status) || !Object.hasOwn(paymentStatuses, paymentStatus)) return invalid();
+    if (!Object.hasOwn(orderStatuses, status) || !Object.hasOwn(paymentStatuses, paymentStatus))
+      return invalid();
     const createdAt = text(item['createdAt']);
     if (!Number.isFinite(Date.parse(createdAt))) return invalid();
     return {
       id: storeId(item['id']),
       number: text(item['number']),
       total: formatMoney(text(item['total'])),
-      status: orderStatuses[status],
-      paymentStatus: paymentStatuses[paymentStatus],
+      status: orderStatuses[status] ?? invalid(),
+      paymentStatus: paymentStatuses[paymentStatus] ?? invalid(),
       createdAt: new Intl.DateTimeFormat('fr-SN', {
         dateStyle: 'short',
         timeZone: 'Africa/Dakar',

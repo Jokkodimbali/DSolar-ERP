@@ -147,14 +147,24 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const store = parseStore(storeResponse.data);
     expect(store.status).toBe('ACTIVE');
     const path = '/stores/' + store.id;
-    const alerts = await request('/inventory' + path + '/alerts?threshold=5', 'GET', undefined, admin.jetonAcces);
+    const alerts = await request(
+      '/inventory' + path + '/alerts?threshold=5',
+      'GET',
+      undefined,
+      admin.jetonAcces,
+    );
     expect(alerts.status).toBe(200);
     expect(parseAlerts(alerts.data, store.id, store.name).items).toEqual([]);
-    expect((await request('/inventory' + path + '/alerts?threshold=5', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect(
+      (await request('/inventory' + path + '/alerts?threshold=5', 'GET', undefined, keeper.jetonAcces))
+        .status,
+    ).toBe(403);
     const recent = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, admin.jetonAcces);
     expect(recent.status).toBe(200);
     expect(() => parseRecentOrders(recent.data)).not.toThrow();
-    expect((await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect(
+      (await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, keeper.jetonAcces)).status,
+    ).toBe(403);
     expect(parseStores((await request('/stores', 'GET', undefined, admin.jetonAcces)).data)).toContainEqual(
       store,
     );

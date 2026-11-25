@@ -36,7 +36,10 @@
             </table>
           </div>
         } @else {
-          <app-empty-state heading="Aucune commande accessible" description="Les dernières commandes autorisées apparaîtront ici." />
+          <app-empty-state
+            heading="Aucune commande accessible"
+            description="Les dernières commandes autorisées apparaîtront ici."
+          />
         }
       }
     </section>
@@ -60,7 +63,9 @@
               <div class="stock-alert-item">
                 <div>
                   <strong>{{ item.name }}</strong>
-                  <p class="muted small">{{ item.sku }} · {{ item.available }} {{ item.unit }} disponible(s)</p>
+                  <p class="muted small">
+                    {{ item.sku }} · {{ item.available }} {{ item.unit }} disponible(s)
+                  </p>
                 </div>
                 <span class="ui-status" [class.stock-critical]="item.severity === 'OUT_OF_STOCK'">
                   {{ item.severity === 'OUT_OF_STOCK' ? 'Rupture' : 'Stock faible' }}
@@ -71,7 +76,10 @@
             }
           </details>
         } @empty {
-          <app-empty-state heading="Aucun magasin actif" description="Les alertes sont calculées par le serveur pour les magasins actifs accessibles." />
+          <app-empty-state
+            heading="Aucun magasin actif"
+            description="Les alertes sont calculées par le serveur pour les magasins actifs accessibles."
+          />
         }
       }
     </section>
