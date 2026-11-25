@@ -1,3 +1,4 @@
+import type { ListCriteria } from '../../../shared/pagination';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   CreateTransferInput,
@@ -40,6 +41,10 @@ export class TransfersService {
     }
     return this.repository.receive(input);
   }
+  list(storeId: string, actorId: string, query: ListCriteria) {
+    return this.repository.list(storeId, actorId, query);
+  }
+
   get(id: string, actorId: string) {
     return this.repository.get(id, actorId);
   }

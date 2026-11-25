@@ -1,5 +1,6 @@
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -18,6 +19,12 @@ export class StockCountController {
   @SuccessMessage('Inventaire ouvert.')
   start(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.counts.start(storeId, actorId);
+  }
+
+  @Get('stores/:storeId/search')
+  @RequirePermissions('inventory.read')
+  list(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: PageQueryDto) {
+    return this.counts.list(storeId, actorId, query);
   }
 
   @Get(':id')

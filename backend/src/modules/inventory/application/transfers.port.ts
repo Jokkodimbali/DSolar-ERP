@@ -1,3 +1,4 @@
+import type { ListCriteria } from '../../../shared/pagination';
 export const TRANSFER_REPOSITORY = Symbol('TRANSFER_REPOSITORY');
 export interface TransferLineInput {
   productId: string;
@@ -24,6 +25,7 @@ export interface ReceiveTransferInput {
   finalize: boolean;
 }
 export interface TransferRepository {
+  list(storeId: string, actorId: string, query: ListCriteria): Promise<unknown>;
   create(input: CreateTransferInput): Promise<unknown>;
   get(id: string, actorId: string): Promise<unknown>;
   approve(id: string, actorId: string): Promise<unknown>;

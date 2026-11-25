@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { AccessGuard, REQUIRED_PERMISSIONS } from '../../identity/presentation/access.guard';
 import { InventoryController } from './inventory.controller';
+import { StockCountController } from './stock-count.controller';
 import { TransfersController } from './transfers.controller';
 
 describe('Inventory and transfer API authorization', () => {
@@ -17,9 +18,10 @@ describe('Inventory and transfer API authorization', () => {
     },
     {
       controller: TransfersController,
-      read: ['get'],
+      read: ['get', 'list'],
       manage: ['create', 'approve', 'ship', 'receive', 'cancel'],
     },
+    { controller: StockCountController, read: ['get', 'list'], manage: ['start', 'record', 'cancel', 'validate'] },
   ];
 
   for (const { controller, read, manage } of policies) {

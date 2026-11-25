@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { MovementType, Prisma } from '@prisma/client';
+import { pageBounds, pageResult, type ListCriteria } from '../../../shared/pagination';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { validStockQuantity } from '../domain/stock-quantity';
 import { CountLineInput, StockCountRepository } from '../application/stock-count.port';
@@ -90,8 +91,30 @@ export class PrismaStockCountRepository implements StockCountRepository {
     });
   }
 
+  list(storeId: string, actorId: string, query: ListCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    return this.execute(async (tx) => {
+      await this.authorize(tx, storeId, actorId);
+      const search = query.search?.trim();
+      const where: Prisma.InventorySessionWhereInput = {
+        storeId, ...(search ? { status: { contains: search, mode: 'insensitive' } } : {}),
+      };
+      const [total, items] = await Promise.all([
+        tx.inventorySession.count({ where }),
+        tx.inventorySession.findMany({ where, skip, take: limit, orderBy: [{ startedAt: 'desc' }, { id: 'desc' }], select: { id: true, storeId: true, status: true, startedAt: true, validatedAt: true } }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
+  }
+
   get(id: string, actorId: string) {
-    return this.execute((tx) => this.session(tx, id, actorId));
+    return this.execute(async (tx) => {
+      await this.session(tx, id, actorId);
+      return tx.inventorySession.findUniqueOrThrow({
+        where: { id },
+        include: { lines: { orderBy: { productId: 'asc' }, include: { product: { select: { name: true, sku: true, unit: true } } } } },
+      });
+    });
   }
 
   record(id: string, actorId: string, lines: CountLineInput[]) {

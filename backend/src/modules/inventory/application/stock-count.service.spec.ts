@@ -4,6 +4,7 @@ import { StockCountService } from './stock-count.service';
 
 describe('StockCountService', () => {
   const repository: StockCountRepository = {
+    list: jest.fn(),
     start: jest.fn(),
     get: jest.fn(),
     record: jest.fn(),

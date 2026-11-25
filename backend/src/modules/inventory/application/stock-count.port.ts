@@ -1,3 +1,4 @@
+import type { ListCriteria } from '../../../shared/pagination';
 export const STOCK_COUNT_REPOSITORY = Symbol('STOCK_COUNT_REPOSITORY');
 
 export interface CountLineInput {
@@ -7,6 +8,7 @@ export interface CountLineInput {
 }
 
 export interface StockCountRepository {
+  list(storeId: string, actorId: string, query: ListCriteria): Promise<unknown>;
   start(storeId: string, actorId: string): Promise<unknown>;
   get(id: string, actorId: string): Promise<unknown>;
   record(id: string, actorId: string, lines: CountLineInput[]): Promise<unknown>;

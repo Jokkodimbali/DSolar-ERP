@@ -1,3 +1,4 @@
+import type { ListCriteria } from '../../../shared/pagination';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CountLineInput, STOCK_COUNT_REPOSITORY, StockCountRepository } from './stock-count.port';
 
@@ -9,6 +10,10 @@ export class StockCountService {
 
   start(storeId: string, actorId: string) {
     return this.repository.start(storeId, actorId);
+  }
+
+  list(storeId: string, actorId: string, query: ListCriteria) {
+    return this.repository.list(storeId, actorId, query);
   }
 
   get(id: string, actorId: string) {
