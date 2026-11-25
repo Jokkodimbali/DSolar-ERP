@@ -29,7 +29,9 @@ function setup() {
   const api = {
     login: vi.fn(() => of(initial)),
     refresh: vi.fn(() => pending.asObservable()),
-    logout: vi.fn<(token: string) => ReturnType<AuthApi['logout']>>(() => of({ message: 'Déconnexion effectuée.' })),
+    logout: vi.fn<(token: string) => ReturnType<AuthApi['logout']>>(() =>
+      of({ message: 'Déconnexion effectuée.' }),
+    ),
   };
   const navigateByUrl = vi.fn(async () => true);
   const injector = Injector.create({

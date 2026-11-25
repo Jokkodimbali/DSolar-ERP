@@ -55,3 +55,74 @@ jobs:
           path: ${{ runner.temp }}/frontend.tar.gz
           if-no-files-found: error
           retention-days: 14
+
+  integration:
+    name: Contrats API
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dsolar_test
+          POSTGRES_PASSWORD: dsolar_test
+          POSTGRES_DB: dsolar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dsolar_test -d dsolar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      DIRECT_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      NODE_ENV: test
+      PORT: '3100'
+      JWT_ACCESS_SECRET: local-ci-access-secret-unique-not-for-production
+      JWT_REFRESH_SECRET: local-ci-refresh-secret-distinct-not-for-production
+      DB_REQUIRE_RESTRICTED_ROLE: 'false'
+      LEDGER_AUTOMATION_WORKER: 'false'
+      ENABLE_SWAGGER: 'false'
+      CORS_ORIGINS: http://localhost:4200
+      ADMIN_EMAIL: auth-ci@example.test
+      ADMIN_NAME: Administrateur CI
+      ADMIN_PASSWORD: Dsolar-CI-local-only-2026
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Préparer NestJS et PostgreSQL de test
+        working-directory: backend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run prisma:generate
+          npm run prisma:deploy
+          npm run build
+          node dist/scripts/bootstrap-admin.js
+      - name: Préparer Angular
+        run: |
+          npm install --global npm@11.6.2 --no-audit --no-fund
+          npm ci --no-audit --no-fund
+      - name: Tester les contrats HTTP réels
+        env:
+          DSOLAR_AUTH_INTEGRATION: '1'
+        run: |
+          set -euo pipefail
+          (cd ../backend && exec node dist/main.js) > "$RUNNER_TEMP/dsolar-api.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3100/api/v1/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:3100/api/v1/health > /dev/null
+          npm test -- --run src/app/features/auth/infrastructure/auth.integration.spec.ts
