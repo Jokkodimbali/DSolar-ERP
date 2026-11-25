@@ -24,6 +24,9 @@ import { SessionService } from '../features/auth/application/session.service';
             >Tableau de bord</a
           >
         }
+        @if (session.can('stores.read')) {
+          <a routerLink="/magasins" routerLinkActive="active" (click)="menuOpen.set(false)">Magasins</a>
+        }
         <a routerLink="/mon-compte" routerLinkActive="active" (click)="menuOpen.set(false)">Mon compte</a>
       </nav>
       <div class="sidebar-footer">D-Solar and Agri<br /><small>Application interne</small></div>

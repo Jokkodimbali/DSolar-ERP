@@ -1,5 +1,5 @@
 import type { Routes } from '@angular/router';
-import { authenticatedGuard, guestGuard, dashboardGuard } from './features/auth/application/auth.guards';
+import { authenticatedGuard, guestGuard, dashboardGuard, storesGuard } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
     path: 'connexion',
@@ -22,6 +22,11 @@ export const routes: Routes = [
         canActivate: [dashboardGuard],
         loadComponent: () =>
           import('./features/dashboard/presentation/dashboard.page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'magasins',
+        canActivate: [storesGuard],
+        loadComponent: () => import('./features/stores/presentation/stores.page').then((m) => m.StoresPage),
       },
       {
         path: 'mon-compte',

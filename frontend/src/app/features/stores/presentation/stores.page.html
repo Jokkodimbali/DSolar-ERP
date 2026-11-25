@@ -1,0 +1,145 @@
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">ORGANISATION</p>
+    <h1>Magasins</h1>
+    <p class="muted">Consultez les magasins et gérez leurs informations et accès.</p>
+  </div>
+  @if (session.can('stores.manage')) {
+    <button class="primary" type="button" [disabled]="busy() || loading()" (click)="edit('new')">
+      Nouveau magasin
+    </button>
+  }
+</div>
+@if (error()) {
+  <p class="field-error panel" role="alert">{{ error() }}</p>
+}
+@if (success()) {
+  <p class="panel" role="status">{{ success() }}</p>
+}
+@if (editing(); as target) {
+  <section class="panel">
+    <h2>{{ target === 'new' ? 'Nouveau magasin' : 'Modifier le magasin' }}</h2>
+    <form [formGroup]="form" (ngSubmit)="save()" class="store-form">
+      <label>Code <input formControlName="code" maxlength="30" /></label>
+      <label>Nom <input formControlName="name" maxlength="160" /></label>
+      <label>Adresse <input formControlName="address" /></label>
+      <div class="store-actions">
+        <button type="submit" class="primary" [disabled]="busy() || loading()">Enregistrer</button>
+        <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Annuler</button>
+      </div>
+    </form>
+  </section>
+}
+@if (pendingStatus(); as store) {
+  <section class="panel" aria-label="Confirmation du changement de statut">
+    <h2>{{ store.status === 'ACTIVE' ? 'Désactiver' : 'Activer' }} {{ store.name }} ?</h2>
+    <p class="muted">La modification du statut peut affecter les opérations et les accès au magasin.</p>
+    <div class="store-actions">
+      <button type="button" class="primary" [disabled]="busy()" (click)="confirmStatus()">Confirmer</button>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </section>
+}
+@if (selected(); as store) {
+  <section class="panel">
+    <div class="page-heading">
+      <h2>Affectations — {{ store.name }}</h2>
+      <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
+    </div>
+    <p class="muted">Les changements peuvent révoquer les sessions des utilisateurs concernés.</p>
+    <button type="button" class="secondary" [disabled]="busy()" (click)="loadUsers()">Actualiser les accès</button>
+    @if (busy()) {
+      <p role="status">Chargement ou modification en cours…</p>
+    }
+    @for (user of users(); track user.id) {
+      <div class="assignment">
+        <div>
+          <strong>{{ user.nomComplet }}</strong>
+          <p class="muted small">{{ user.email }}</p>
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="busy() || (store.status === 'INACTIVE' && !user.magasinsAutorises.includes(store.id))"
+          (click)="changeAssignment(user)"
+        >
+          {{ user.magasinsAutorises.includes(store.id) ? 'Retirer l’accès' : 'Accorder l’accès' }}
+        </button>
+      </div>
+    } @empty {
+      @if (!busy()) {
+        <p class="muted">Aucun autre utilisateur disponible.</p>
+      }
+    }
+  </section>
+}
+<section class="panel">
+  <div class="store-tools">
+    <label>Rechercher <input #query type="search" [value]="search()" (input)="setSearch(query.value)" /></label>
+    <label>
+      Statut
+      <select #filter [value]="status()" (change)="setStatus(filter.value)">
+        <option value="ALL">Tous</option>
+        <option value="ACTIVE">Actifs</option>
+        <option value="INACTIVE">Inactifs</option>
+      </select>
+    </label>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="setMine(!mine())">
+      {{ mine() ? 'Tous les magasins accessibles' : 'Mes affectations' }}
+    </button>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">Actualiser</button>
+  </div>
+  @if (loading()) {
+    <p role="status">Chargement des magasins…</p>
+  } @else {
+    <p class="muted small">{{ filtered().length }} magasin(s)</p>
+    <div class="store-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Nom</th>
+            <th>Adresse</th>
+            <th>Statut</th>
+            @if (session.can('stores.manage')) {
+              <th>Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (store of visible(); track store.id) {
+            <tr>
+              <td>{{ store.code }}</td>
+              <td>{{ store.name }}</td>
+              <td>{{ store.address || '—' }}</td>
+              <td>{{ store.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}</td>
+              @if (session.can('stores.manage')) {
+                <td>
+                  <div class="store-actions">
+                    <button type="button" class="secondary" [disabled]="busy()" (click)="edit(store)">Modifier</button>
+                    <button type="button" class="secondary" [disabled]="busy()" (click)="askStatus(store)">
+                      {{ store.status === 'ACTIVE' ? 'Désactiver' : 'Activer' }}
+                    </button>
+                    @if (session.can('users.manage')) {
+                      <button type="button" class="secondary" [disabled]="busy()" (click)="assignments(store)">
+                        Affectations
+                      </button>
+                    }
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (!filtered().length) {
+      <p class="muted">Aucun magasin correspondant.</p>
+    }
+    <div class="store-actions pagination">
+      <button class="secondary" type="button" [disabled]="page() <= 1" (click)="movePage(-1)">Précédent</button>
+      <span>Page {{ page() }} / {{ pageCount() }}</span>
+      <button class="secondary" type="button" [disabled]="page() >= pageCount()" (click)="movePage(1)">Suivant</button>
+    </div>
+  }
+</section>

@@ -7,3 +7,5 @@ export const guestGuard: CanActivateFn = () =>
   !inject(SessionService).authenticated() || inject(Router).createUrlTree(['/']);
 export const dashboardGuard: CanActivateFn = () =>
   inject(SessionService).can('sales.read', 'users.manage') || inject(Router).createUrlTree(['/acces-refuse']);
+export const storesGuard: CanActivateFn = () =>
+  inject(SessionService).can('stores.read') || inject(Router).createUrlTree(['/acces-refuse']);

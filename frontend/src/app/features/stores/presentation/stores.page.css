@@ -1,0 +1,63 @@
+.store-tools,
+.store-actions,
+.assignment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.store-tools {
+  align-items: end;
+  margin-bottom: 20px;
+}
+.store-form {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+}
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+input,
+select {
+  min-height: 44px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+.store-table {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+td,
+th {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+th {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.assignment {
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.assignment p {
+  margin: 4px 0 0;
+}
+.pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
