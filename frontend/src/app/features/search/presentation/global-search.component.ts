@@ -34,14 +34,17 @@ export class GlobalSearchComponent {
     this.open.set(true);
     this.busy.set(true);
     this.query.disable();
-    this.api.search(query).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => {
-        this.query.enable();
-        this.busy.set(false);
-      }),
-    ).subscribe((groups) => {
-      if (epoch === this.session.sessionVersion() && this.session.authenticated()) this.groups.set(groups);
-    });
+    this.api
+      .search(query)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => {
+          this.query.enable();
+          this.busy.set(false);
+        }),
+      )
+      .subscribe((groups) => {
+        if (epoch === this.session.sessionVersion() && this.session.authenticated()) this.groups.set(groups);
+      });
   }
 }

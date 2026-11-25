@@ -6,13 +6,19 @@ import { UiIconComponent } from '../shared/ui/ui-icon.component';
 import { SessionService } from '../features/auth/application/session.service';
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, UiIconComponent, NotificationsComponent, GlobalSearchComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    UiIconComponent,
+    NotificationsComponent,
+    GlobalSearchComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <div class="workspace" [class.menu-open]="menuOpen()">
     <aside class="sidebar" aria-label="Navigation principale">
       <a class="brand" routerLink="/" (click)="menuOpen.set(false)"
-        ><span class="brand-mark">DSolar<span>-ERP</span></span
-        ><small>D-Solar and Agri</small></a
+        ><img class="company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri" /></a
       >
       <p class="nav-label">ESPACE DE TRAVAIL</p>
       <nav>
@@ -49,7 +55,7 @@ import { SessionService } from '../features/auth/application/session.service';
         >
           <app-ui-icon name="menu" /><span class="sr-only">Menu</span>
         </button>
-        <span class="topbar-title">DSolar<span class="brand-accent">-ERP</span></span>
+        <span class="topbar-title"><img class="mobile-company-logo" src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri" /><span class="desktop-brand">DSolar<span class="brand-accent">-ERP</span></span></span>
         <app-global-search />
         <div class="user-actions">
           <app-notifications />

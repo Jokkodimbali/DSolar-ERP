@@ -159,14 +159,26 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(() => parseMark(mark.data)).not.toThrow();
     }
     for (const source of sources) {
-      const response = await request(source.path + '?search=Magasin&page=1&limit=5', 'GET', undefined, admin.jetonAcces);
+      const response = await request(
+        source.path + '?search=Magasin&page=1&limit=5',
+        'GET',
+        undefined,
+        admin.jetonAcces,
+      );
       expect(response.status, source.path).toBe(200);
       expect(() => parseSearch(response.data, source)).not.toThrow();
       if (source.permission === 'sales.read') {
-        expect((await request(source.path + '?page=1&limit=5', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+        expect(
+          (await request(source.path + '?page=1&limit=5', 'GET', undefined, keeper.jetonAcces)).status,
+        ).toBe(403);
       }
     }
-    const scoped = await request('/search/stores?search=Magasin&page=1&limit=5', 'GET', undefined, keeper.jetonAcces);
+    const scoped = await request(
+      '/search/stores?search=Magasin&page=1&limit=5',
+      'GET',
+      undefined,
+      keeper.jetonAcces,
+    );
     expect(scoped.status).toBe(200);
     const storeSource = sources.find((source) => source.label === 'Magasins');
     if (!storeSource) throw new Error('Source manquante.');

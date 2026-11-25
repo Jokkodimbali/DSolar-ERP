@@ -2,7 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
-import { notificationEvent, notificationId, parseFeed, parseMark, type NotificationFeed } from '../domain/notification.contract';
+import {
+  notificationEvent,
+  notificationId,
+  parseFeed,
+  parseMark,
+  type NotificationFeed,
+} from '../domain/notification.contract';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsApi {
@@ -29,7 +35,11 @@ export class NotificationsApi {
             redirect: 'error',
             cache: 'no-store',
           });
-          if (!response.ok || !response.body || !response.headers.get('Content-Type')?.includes('text/event-stream'))
+          if (
+            !response.ok ||
+            !response.body ||
+            !response.headers.get('Content-Type')?.includes('text/event-stream')
+          )
             throw new Error('Flux de notifications indisponible.');
           const reader = response.body.getReader();
           const decoder = new TextDecoder();

@@ -16,14 +16,12 @@ export class SearchApi {
     if (!authorized.length) return of<SearchGroup[]>([]);
     return forkJoin(
       authorized.map((source) =>
-        this.http
-          .get<unknown>(apiPath(source.path), { params: { search: query, page: 1, limit: 5 } })
-          .pipe(
-            map((value) => parseSearch(value, source)),
-            catchError((error: unknown) =>
-              of<SearchGroup>({ label: source.label, items: [], total: 0, error: errorMessage(error) }),
-            ),
+        this.http.get<unknown>(apiPath(source.path), { params: { search: query, page: 1, limit: 5 } }).pipe(
+          map((value) => parseSearch(value, source)),
+          catchError((error: unknown) =>
+            of<SearchGroup>({ label: source.label, items: [], total: 0, error: errorMessage(error) }),
           ),
+        ),
       ),
     );
   }

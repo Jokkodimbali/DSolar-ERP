@@ -76,7 +76,9 @@ export function parseMark(value: unknown): string {
 export function notificationEvent(block: string): NotificationFeed | null {
   const lines = block.split(/\r?\n/);
   if (!lines.some((line) => line === 'event: notifications' || line === 'event:notifications')) return null;
-  const data = lines.filter((line) => line.startsWith('data:')).map((line) => line.slice(5).replace(/^ /, ''));
+  const data = lines
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice(5).replace(/^ /, ''));
   if (!data.length) return invalid();
   const parsed: unknown = JSON.parse(data.join('\n'));
   return parseFeed(parsed);

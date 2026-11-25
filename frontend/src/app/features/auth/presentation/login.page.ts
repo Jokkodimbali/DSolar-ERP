@@ -10,7 +10,7 @@ import { errorMessage } from '../../../core/api/http-error';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` <main class="login-layout">
     <section class="brand-panel">
-      <div class="brand-mark">D<span>·</span>Solar</div>
+      <div class="login-logo"><img src="d-solar-and-agri.svg" width="245" height="160" alt="D-Solar and Agri" /></div>
       <p class="eyebrow">D-SOLAR AND AGRI</p>
       <h1>La gestion, en toute clarté.</h1>
       <p>Votre espace de gestion interne : magasins, stocks, ventes et finances.</p>

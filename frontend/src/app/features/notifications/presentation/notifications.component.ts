@@ -42,22 +42,32 @@ export class NotificationsComponent {
         this.feed.set(feed);
         this.connectionError.set('');
       };
-      const connection = defer(() => this.api.feed()).pipe(
-        tap(accept),
-        switchMap(() => {
-          const token = this.session.accessToken();
-          return token && this.session.sessionVersion() === epoch ? this.api.stream(token) : EMPTY;
-        }),
-        tap({ next: accept, error: () => this.connectionError.set('Connexion aux notifications interrompue. Reconnexion automatique…') }),
-        retry({ delay: 5000 }),
-        repeat({ delay: 1000 }),
-      ).subscribe();
+      const connection = defer(() => this.api.feed())
+        .pipe(
+          tap(accept),
+          switchMap(() => {
+            const token = this.session.accessToken();
+            return token && this.session.sessionVersion() === epoch ? this.api.stream(token) : EMPTY;
+          }),
+          tap({
+            next: accept,
+            error: () =>
+              this.connectionError.set('Connexion aux notifications interrompue. Reconnexion automatique…'),
+          }),
+          retry({ delay: 5000 }),
+          repeat({ delay: 1000 }),
+        )
+        .subscribe();
       cleanup(() => connection.unsubscribe());
     });
   }
 
   date(value: string): string {
-    return new Intl.DateTimeFormat('fr-SN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Dakar' }).format(new Date(value));
+    return new Intl.DateTimeFormat('fr-SN', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+      timeZone: 'Africa/Dakar',
+    }).format(new Date(value));
   }
 
   mark(id?: string): void {
@@ -66,16 +76,19 @@ export class NotificationsComponent {
     this.busy.set(true);
     this.mutationError.set('');
     this.success.set('');
-    this.api.mark(id).pipe(
-      takeUntilDestroyed(this.destroy),
-      finalize(() => this.busy.set(false)),
-    ).subscribe({
-      next: (message) => {
-        if (epoch !== this.session.sessionVersion()) return;
-        this.success.set(message);
-        this.generation.update((value) => value + 1);
-      },
-      error: (error: unknown) => this.mutationError.set(errorMessage(error)),
-    });
+    this.api
+      .mark(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (message) => {
+          if (epoch !== this.session.sessionVersion()) return;
+          this.success.set(message);
+          this.generation.update((value) => value + 1);
+        },
+        error: (error: unknown) => this.mutationError.set(errorMessage(error)),
+      });
   }
 }

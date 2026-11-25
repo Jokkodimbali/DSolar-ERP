@@ -754,3 +754,39 @@ app-global-search {
     top: 124px;
   }
 }
+
+.company-logo {
+  display: block;
+  width: 168px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand {
+  padding: 0 10px 18px;
+}
+.login-logo {
+  width: fit-content;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+.login-logo img {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+}
+.mobile-company-logo {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobile-company-logo {
+    display: block;
+    width: 86px;
+    height: auto;
+  }
+  .desktop-brand {
+    display: none;
+  }
+}

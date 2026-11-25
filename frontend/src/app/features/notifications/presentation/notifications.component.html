@@ -1,5 +1,11 @@
 <div class="notification-widget">
-  <button class="secondary notification-trigger" type="button" aria-label="Notifications" [attr.aria-expanded]="open()" (click)="open.set(!open())">
+  <button
+    class="secondary notification-trigger"
+    type="button"
+    aria-label="Notifications"
+    [attr.aria-expanded]="open()"
+    (click)="open.set(!open())"
+  >
     <app-ui-icon name="bell" />
     @if (feed(); as current) {
       @if (current.enabled && current.unread) {
@@ -18,7 +24,9 @@
       <app-feedback [message]="success()" kind="success" />
       @if (feed(); as current) {
         @if (current.enabled) {
-          <button type="button" class="secondary" [disabled]="busy() || !current.unread" (click)="mark()">Tout marquer comme lu</button>
+          <button type="button" class="secondary" [disabled]="busy() || !current.unread" (click)="mark()">
+            Tout marquer comme lu
+          </button>
           @for (item of current.items; track item.id) {
             <article class="notification-item" [class.notification-unread]="!item.read">
               <div>
@@ -26,14 +34,22 @@
                 <p class="muted small">{{ date(item.createdAt) }} · {{ item.read ? 'Lue' : 'Non lue' }}</p>
               </div>
               @if (!item.read) {
-                <button type="button" class="secondary" [disabled]="busy()" (click)="mark(item.id)">Marquer comme lue</button>
+                <button type="button" class="secondary" [disabled]="busy()" (click)="mark(item.id)">
+                  Marquer comme lue
+                </button>
               }
             </article>
           } @empty {
-            <app-empty-state heading="Aucune notification" description="Les activités autorisées apparaîtront ici." />
+            <app-empty-state
+              heading="Aucune notification"
+              description="Les activités autorisées apparaîtront ici."
+            />
           }
         } @else {
-          <app-empty-state heading="Notifications désactivées" description="Les paramètres de l’entreprise désactivent les notifications." />
+          <app-empty-state
+            heading="Notifications désactivées"
+            description="Les paramètres de l’entreprise désactivent les notifications."
+          />
         }
       } @else {
         <app-feedback message="Connexion au service de notifications…" />
