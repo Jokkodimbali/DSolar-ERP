@@ -433,7 +433,7 @@
     Enregistrez chaque ligne avant de valider. La validation régularise le stock en transaction côté serveur.
   </p>
   <div class="ui-actions">
-    <button class="primary" type="button" [disabled]="busy()" (click)="confirmation.set('validate')">
+    <button class="primary" type="button" [disabled]="busy() || !countReady()" (click)="confirmation.set('validate')">
       Valider l’inventaire</button
     ><button class="secondary" type="button" [disabled]="busy()" (click)="confirmation.set('cancel')">
       Annuler l’inventaire

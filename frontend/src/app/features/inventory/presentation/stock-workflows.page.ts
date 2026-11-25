@@ -68,6 +68,23 @@ export class StockWorkflowsPage {
       timeStyle: 'short',
       timeZone: 'Africa/Dakar',
     }).format(new Date(value));
+  readonly countReady = computed(() => {
+    const target = this.count();
+    const fields = this.counted();
+    return !!target?.lines.length && target.lines.every((line) => {
+      const field = fields[line.productId];
+      if (line.counted === null || !field) return false;
+      try {
+        const normalize = (value: string) => {
+          const [whole, fraction = ''] = quantityInput(value).split('.');
+          return whole + '.' + fraction.padEnd(3, '0');
+        };
+        return normalize(field.counted) === normalize(line.counted) && field.reason.trim() === line.reason;
+      } catch {
+        return false;
+      }
+    });
+  });
   readonly manageable = computed(() => this.session.can('inventory.manage'));
   readonly title = this.mode === 'counts' ? 'Inventaires physiques' : 'Transferts de stock';
   readonly canOrigin = computed(() => this.stores().some((store) => store.id === this.transfer()?.originId));
@@ -306,8 +323,7 @@ export class StockWorkflowsPage {
     if (!action || this.busy() || !this.manageable()) return;
     if (action === 'start') {
       this.run(this.api.startCount(this.store()), 'Inventaire ouvert.', (id) => {
-        this.open(id);
-        this.load(1);
+        this.open(id, 'Inventaire ouvert.', true);
       });
       return;
     }
@@ -318,6 +334,11 @@ export class StockWorkflowsPage {
         this.open(transfer.id, 'Transfert mis à jour.', true);
       });
     } else if (count && (action === 'validate' || action === 'cancel')) {
+      if (action === 'validate' && !this.countReady()) {
+        this.confirmation.set(null);
+        this.error.set('Enregistrez toutes les quantités et justifications avant de valider.');
+        return;
+      }
       this.run(this.api.countAction(count.id, action), 'Inventaire mis à jour.', () => {
         this.open(count.id, 'Inventaire mis à jour.', true);
       });
