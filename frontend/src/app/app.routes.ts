@@ -65,13 +65,15 @@ export const routes: Routes = [
         path: 'stocks/transferts',
         canActivate: [stockAlertsGuard],
         data: { mode: 'transfers' },
-        loadComponent: () => import('./features/inventory/presentation/stock-workflows.page').then((m) => m.StockWorkflowsPage),
+        loadComponent: () =>
+          import('./features/inventory/presentation/stock-workflows.page').then((m) => m.StockWorkflowsPage),
       },
       {
         path: 'stocks/inventaires',
         canActivate: [stockAlertsGuard],
         data: { mode: 'counts' },
-        loadComponent: () => import('./features/inventory/presentation/stock-workflows.page').then((m) => m.StockWorkflowsPage),
+        loadComponent: () =>
+          import('./features/inventory/presentation/stock-workflows.page').then((m) => m.StockWorkflowsPage),
       },
       {
         path: 'stocks/alertes',
