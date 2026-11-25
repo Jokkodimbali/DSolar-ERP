@@ -1,0 +1,53 @@
+name: Migration
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  develop:
+    name: Migration develop
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: development
+    concurrency:
+      group: dsolar-neon-develop
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Installer les dépendances
+        run: npm ci --no-audit --no-fund
+      - name: Appliquer et contrôler les migrations
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DEVELOP_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.NEON_DEVELOP_DATABASE_URL }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const value = process.env.DIRECT_URL;
+          if (!value) throw new Error('Secret NEON_DEVELOP_DATABASE_URL manquant dans development.');
+          let url;
+          try { url = new URL(value); } catch { throw new Error('URL PostgreSQL invalide.'); }
+          if (!['postgresql:', 'postgres:'].includes(url.protocol) ||
+              url.hostname !== 'ep-spring-base-be9h3hza.c-9.us-east-2.aws.neon.tech' ||
+              url.pathname !== '/dsolar_erp' ||
+              url.searchParams.get('sslmode') !== 'require' ||
+              (url.port && url.port !== '5432')) {
+            throw new Error('Connexion refusée : seule la base Neon develop directe est autorisée.');
+          }
+          JS
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/dev" --jq .object.sha)" = "$GITHUB_SHA"
+          npm run prisma:validate
+          npm run prisma:deploy
+          npx --no-install prisma migrate status
