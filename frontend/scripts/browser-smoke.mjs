@@ -35,8 +35,9 @@ try {
   const [year, selected] = month.split('-').map(Number);
   const dayCount = new Date(Date.UTC(year, selected, 0)).getUTCDate();
   await page.getByRole('button', { name: 'Commandes', exact: true }).click();
-  assert.equal(await page.getByRole('button', { name: 'Commandes', exact: true }).getAttribute('aria-pressed'), 'true');
+  await page.locator('app-period-chart button[aria-pressed="true"]').filter({ hasText: 'Commandes' }).waitFor();
   await page.getByRole('button', { name: 'Facturation', exact: true }).click();
+  await page.locator('app-period-chart button[aria-pressed="true"]').filter({ hasText: 'Facturation' }).waitFor();
   await page.locator('.stock-alert-item').first().waitFor();
   await page.locator('.recent-activity-list article').first().waitFor();
   assert.equal(await page.locator('app-kpi-card').count(), 4);
@@ -44,7 +45,7 @@ try {
   await page.getByRole('button', { name: 'Afficher les rapports détaillés' }).click();
   await page.locator('#dashboard-detail-reports').waitFor();
   await page.getByRole('button', { name: 'Masquer les rapports détaillés' }).click();
-  assert.equal(await page.locator('#dashboard-detail-reports').isVisible(), false);
+  await page.locator('#dashboard-detail-reports').waitFor({ state: 'hidden' });
   assert.equal(await page.locator('.dashboard-primary .revenue-column').count(), dayCount);
   assert.equal(await page.locator('.dashboard-primary > section').count(), 2);
   assert.equal(await page.locator('.dashboard-primary > app-dashboard-report').count(), 1);
@@ -90,6 +91,40 @@ try {
   await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await page.getByRole('region', { name: 'Résultats de recherche' }).getByText('Panneau proforma CI', { exact: true }).waitFor();
   await page.getByRole('region', { name: 'Résultats de recherche' }).getByRole('button', { name: 'Fermer' }).click();
+  // Les pages métier partagent les mêmes primitives et doivent rester responsive.
+  for (const [slug, route, heading] of [
+    ['magasins', '/magasins', 'Magasins'],
+    ['commandes', '/ventes/commandes', 'Commandes'],
+    ['alertes', '/stocks/alertes', 'Alertes de stock'],
+    ['activite', '/activite', 'Activité récente'],
+    ['compte', '/mon-compte', 'Mon compte'],
+    ['vente', '/ventes/nouvelle', 'Nouvelle vente'],
+  ]) {
+    await page.goto('http://localhost:4200' + route);
+    await page.getByRole('heading', { level: 1, name: heading, exact: true }).waitFor();
+    await page.locator('main.page .panel').first().waitFor();
+    for (const [name, width, height] of [
+      ['desktop', 1440, 900],
+      ['tablet', 1024, 768],
+      ['mobile', 390, 844],
+    ]) {
+      await page.setViewportSize({ width, height });
+      const layout = await page.evaluate(() => {
+        const panel = document.querySelector('main.page .panel');
+        return {
+          width: document.documentElement.clientWidth,
+          scroll: document.documentElement.scrollWidth,
+          radius: panel ? getComputedStyle(panel).borderTopLeftRadius : '',
+          token: getComputedStyle(document.documentElement).getPropertyValue('--ui-radius').trim(),
+        };
+      });
+      assert(layout.scroll <= layout.width + 1, slug + '/' + name + ': débordement horizontal');
+      assert.equal(layout.radius, layout.token, slug + ': rayon de panneau partagé');
+      await page.screenshot({ path: join(artifacts, slug + '-' + name + '.png'), fullPage: true });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+  }
+  await page.goto('http://localhost:4200/tableau-de-bord');
   await page.locator('.new-sale-action').click();
   await page.waitForURL('**/ventes/nouvelle');
   await page.locator('select[formControlName="customerId"] option').nth(1).waitFor({ state: 'attached' });

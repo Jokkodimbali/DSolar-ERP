@@ -5,7 +5,7 @@
 >
   @if (session.can('stores.manage')) {
   <button class="primary" type="button" [disabled]="busy() || loading()" (click)="edit('new')">
-    Nouveau magasin
+    + Nouveau magasin
   </button>
   }
 </app-page-header>
@@ -91,7 +91,7 @@
 <section class="panel">
   <div class="ui-toolbar">
     <label class="ui-field"
-      >Rechercher <input #query type="search" [value]="search()" (input)="setSearch(query.value)"
+      >Rechercher <input #query type="search" placeholder="Nom ou code du magasin" [value]="search()" (input)="setSearch(query.value)"
     /></label>
     <label class="ui-field">
       Statut

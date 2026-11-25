@@ -89,9 +89,9 @@
           <td>{{ order.customerName }}</td>
           <td>{{ order.total }}</td>
           <td>{{ order.status }}</td>
-          <td>{{ order.paymentStatus }}</td>
+          <td><span class="ui-status" [class.ui-status-active]="order.paymentStatus === 'Payée'">{{ order.paymentStatus }}</span></td>
           <td>{{ order.createdAt }}</td>
-          <td><a class="dashboard-see-all" [routerLink]="['/ventes/commandes', order.id]">Voir →</a></td>
+          <td><a class="ui-text-action" [routerLink]="['/ventes/commandes', order.id]">Voir →</a></td>
         </tr>
         } @empty {
         <tr>
@@ -101,7 +101,7 @@
       </tbody>
     </table>
   </div>
-  <div class="ui-toolbar">
+  <div class="ui-pagination">
     <button class="secondary" type="button" [disabled]="page() <= 1" (click)="load(page() - 1)">
       Précédent
     </button>

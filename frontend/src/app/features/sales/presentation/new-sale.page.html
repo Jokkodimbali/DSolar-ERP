@@ -3,7 +3,7 @@
   heading="Nouvelle vente"
   description="Commencez par créer un devis proforma brouillon."
 >
-  <a routerLink="/" class="secondary">Retour à l’accueil</a>
+  <a routerLink="/ventes/commandes" class="secondary">Retour aux commandes</a>
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
 <app-feedback [message]="loading() ? 'Chargement des références…' : ''" />
@@ -106,7 +106,7 @@
         [disabled]="busy() || form.controls.lines.length >= 100"
         (click)="add()"
       >
-        Ajouter une ligne
+        + Ajouter une ligne
       </button>
       <button
         class="primary"
