@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   selector: 'app-confirm',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="panel" [attr.aria-label]="heading()">
+    <section class="panel ui-confirm" [attr.aria-label]="heading()">
       <h2>{{ heading() }}</h2>
       <p class="muted">{{ description() }}</p>
       <div class="ui-actions">

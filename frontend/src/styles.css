@@ -1260,3 +1260,60 @@ app-dashboard-page app-page-header .muted {
     font-size: 0.65rem;
   }
 }
+
+/* La connexion reprend la même palette claire que l'espace métier. */
+.login-layout .brand-panel {
+  background: var(--surface);
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+}
+.login-layout .brand-panel h1 {
+  font-size: clamp(1.85rem, 3.5vw, 3.2rem);
+  line-height: 1.15;
+}
+.login-layout .brand-panel p:not(.eyebrow),
+.login-layout .brand-panel small {
+  color: var(--muted);
+}
+.login-layout .brand-panel .eyebrow {
+  color: var(--accent);
+}
+.login-layout .login-card {
+  border-color: var(--ui-panel-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--shadow);
+}
+.login-layout .login-card h2 {
+  font-size: 1.85rem;
+}
+.login-layout .login-card label {
+  font-size: 0.85rem;
+}
+.login-layout .login-card input {
+  border-color: var(--line);
+  border-radius: var(--ui-control-radius);
+}
+.login-layout .login-card input:focus {
+  border-color: var(--accent);
+}
+@media (max-width: 760px) {
+  .login-layout .brand-panel {
+    padding: 20px 24px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    gap: 8px;
+  }
+  .login-layout .brand-panel .login-logo img {
+    width: 112px;
+  }
+  .login-layout .brand-panel h1 {
+    font-size: 1.55rem;
+    margin: 0;
+  }
+  .login-layout .brand-panel p {
+    margin: 0;
+  }
+  .login-layout .login-panel {
+    padding: 16px;
+  }
+}
