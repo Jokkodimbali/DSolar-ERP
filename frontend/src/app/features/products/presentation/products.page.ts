@@ -298,10 +298,14 @@ export class ProductsPage {
       this.error.set('Renseignez un libellé valide.');
       return;
     }
-    this.mutate(this.api.renameReference(target.kind, target.reference.id, name), 'Référence mise à jour.', () => {
-      this.close();
-      this.loadReferences();
-    });
+    this.mutate(
+      this.api.renameReference(target.kind, target.reference.id, name),
+      'Référence mise à jour.',
+      () => {
+        this.close();
+        this.loadReferences();
+      },
+    );
   }
 
   askDelete(kind: ReferenceKind, reference: Reference): void {
@@ -317,7 +321,8 @@ export class ProductsPage {
       this.close();
       this.loadReferences();
       const key = target.kind === 'categories' ? 'categoryId' : 'brandId';
-      if (this.filters()[key] === target.reference.id) this.filters.update((value) => ({ ...value, [key]: '' }));
+      if (this.filters()[key] === target.reference.id)
+        this.filters.update((value) => ({ ...value, [key]: '' }));
       this.load(1);
     });
   }

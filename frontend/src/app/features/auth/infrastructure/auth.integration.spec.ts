@@ -347,11 +347,21 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         expect(() => parseReferences(references.data, kind)).not.toThrow();
       }
       const productPath = '/products/' + catalogueProduct.id;
-      const createdCategory = await request('/categories', 'POST', { code: 'CI-PV', name: 'Catégorie CI' }, token);
+      const createdCategory = await request(
+        '/categories',
+        'POST',
+        { code: 'CI-PV', name: 'Catégorie CI' },
+        token,
+      );
       expect(createdCategory.status).toBe(201);
       const category = parseReferences([createdCategory.data], 'categories')[0];
       if (!category) throw new Error('Catégorie manquante.');
-      const childResponse = await request('/categories', 'POST', { code: 'CI-PV-CHILD', name: 'Sous-catégorie CI', parentId: category.id }, token);
+      const childResponse = await request(
+        '/categories',
+        'POST',
+        { code: 'CI-PV-CHILD', name: 'Sous-catégorie CI', parentId: category.id },
+        token,
+      );
       expect(childResponse.status).toBe(201);
       const child = parseReferences([childResponse.data], 'categories')[0];
       if (!child) throw new Error('Sous-catégorie manquante.');
@@ -367,20 +377,43 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       if (!brand) throw new Error('Marque manquante.');
       const brandPath = '/brands/' + brand.id;
       expect((await request(brandPath, 'PATCH', { name: 'Marque CI renommée' }, token)).status).toBe(200);
-      const taxResponse = await request('/tax-regimes', 'POST', { code: 'CI-TAX', name: 'Fiscalité CI', rate: '18' }, token);
+      const taxResponse = await request(
+        '/tax-regimes',
+        'POST',
+        { code: 'CI-TAX', name: 'Fiscalité CI', rate: '18' },
+        token,
+      );
       expect(taxResponse.status).toBe(201);
       const tax = parseReferences([taxResponse.data], 'tax-regimes')[0];
       if (!tax) throw new Error('Régime fiscal manquant.');
-      const renamedTax = await request('/tax-regimes/' + tax.id, 'PATCH', { name: 'Fiscalité CI renommée' }, token);
+      const renamedTax = await request(
+        '/tax-regimes/' + tax.id,
+        'PATCH',
+        { name: 'Fiscalité CI renommée' },
+        token,
+      );
       expect(renamedTax.status).toBe(200);
       expect(parseReferences([renamedTax.data], 'tax-regimes')[0]?.rate).toBe('18');
-      expect((await request('/tax-regimes/' + tax.id, 'PATCH', { name: 'Fiscalité CI', rate: '20' }, token)).status).toBe(400);
-      const edited = await request(productPath, 'PATCH', { categoryId: category.id, brandId: brand.id, taxRegimeId: tax.id }, token);
+      expect(
+        (await request('/tax-regimes/' + tax.id, 'PATCH', { name: 'Fiscalité CI', rate: '20' }, token))
+          .status,
+      ).toBe(400);
+      const edited = await request(
+        productPath,
+        'PATCH',
+        { categoryId: category.id, brandId: brand.id, taxRegimeId: tax.id },
+        token,
+      );
       expect(edited.status).toBe(200);
       expect(parseProduct(edited.data).categoryId).toBe(category.id);
       expect((await request(categoryPath, 'DELETE', undefined, token)).status).toBe(409);
       expect((await request(brandPath, 'DELETE', undefined, token)).status).toBe(409);
-      const detached = await request(productPath, 'PATCH', { categoryId: null, brandId: null, taxRegimeId: null }, token);
+      const detached = await request(
+        productPath,
+        'PATCH',
+        { categoryId: null, brandId: null, taxRegimeId: null },
+        token,
+      );
       expect(detached.status).toBe(200);
       expect(parseProduct(detached.data).categoryId).toBeNull();
       expect((await request(categoryPath, 'DELETE', undefined, token)).status).toBe(200);
@@ -392,11 +425,21 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const activatedProduct = await request(productPath + '/activate', 'PATCH', {}, token);
       expect(activatedProduct.status).toBe(200);
       expect(parseProduct(activatedProduct.data).active).toBe(true);
-      const image = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg=='), (char) => char.charCodeAt(0));
+      const image = Uint8Array.from(
+        atob(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg==',
+        ),
+        (char) => char.charCodeAt(0),
+      );
       const form = new FormData();
       form.append('file', new Blob([image], { type: 'image/png' }), 'test.png');
       const photoPath = '/media/products/' + catalogueProduct.id + '/photo';
-      const uploaded = await fetch(base + apiPath(photoPath), { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: form, signal: AbortSignal.timeout(15000) });
+      const uploaded = await fetch(base + apiPath(photoPath), {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: form,
+        signal: AbortSignal.timeout(15000),
+      });
       expect(uploaded.status).toBe(201);
       const meta = await request(photoPath, 'GET', undefined, token);
       expect(meta.status).toBe(200);

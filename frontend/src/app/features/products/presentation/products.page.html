@@ -160,66 +160,103 @@
     </div>
   </form>
 </section>
-}
-@if (renameTarget(); as target) {
-  <section class="panel">
-    <h2>Modifier — {{ target.reference.name }}</h2>
-    <form class="ui-form-grid" (submit)="$event.preventDefault(); saveRename()">
-      <label class="ui-field">Libellé <input [formControl]="renameName" maxlength="200" /></label>
-      <p class="muted small ui-form-span">Le code, la hiérarchie et les taux fiscaux restent inchangés.</p>
-      <div class="ui-actions ui-form-span">
-        <button class="primary" type="submit" [disabled]="busy()">Enregistrer</button>
-        <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button>
-      </div>
-    </form>
-  </section>
-}
-@if (deleteTarget(); as target) {
-  <app-confirm
-    [heading]="'Supprimer ' + target.reference.name + ' ?'"
-    description="Seule une référence inutilisée, sans produit ni sous-catégorie, peut être supprimée."
-    [busy]="busy()"
-    (confirmed)="deleteReference()"
-    (cancelled)="close()"
-  />
+} @if (renameTarget(); as target) {
+<section class="panel">
+  <h2>Modifier — {{ target.reference.name }}</h2>
+  <form class="ui-form-grid" (submit)="$event.preventDefault(); saveRename()">
+    <label class="ui-field">Libellé <input [formControl]="renameName" maxlength="200" /></label>
+    <p class="muted small ui-form-span">Le code, la hiérarchie et les taux fiscaux restent inchangés.</p>
+    <div class="ui-actions ui-form-span">
+      <button class="primary" type="submit" [disabled]="busy()">Enregistrer</button>
+      <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </form>
+</section>
+} @if (deleteTarget(); as target) {
+<app-confirm
+  [heading]="'Supprimer ' + target.reference.name + ' ?'"
+  description="Seule une référence inutilisée, sans produit ni sous-catégorie, peut être supprimée."
+  [busy]="busy()"
+  (confirmed)="deleteReference()"
+  (cancelled)="close()"
+/>
 }
 <section class="panel">
   <div class="dashboard-report-heading">
     <h2>Référentiels du catalogue</h2>
     <div class="chart-segments" role="group" aria-label="Référentiels">
-      <button type="button" [attr.aria-pressed]="referenceList() === 'categories'" (click)="referenceList.set(referenceList() === 'categories' ? null : 'categories')">Catégories</button>
-      <button type="button" [attr.aria-pressed]="referenceList() === 'brands'" (click)="referenceList.set(referenceList() === 'brands' ? null : 'brands')">Marques</button>
-      <button type="button" [attr.aria-pressed]="referenceList() === 'tax-regimes'" (click)="referenceList.set(referenceList() === 'tax-regimes' ? null : 'tax-regimes')">Fiscalité</button>
+      <button
+        type="button"
+        [attr.aria-pressed]="referenceList() === 'categories'"
+        (click)="referenceList.set(referenceList() === 'categories' ? null : 'categories')"
+      >
+        Catégories
+      </button>
+      <button
+        type="button"
+        [attr.aria-pressed]="referenceList() === 'brands'"
+        (click)="referenceList.set(referenceList() === 'brands' ? null : 'brands')"
+      >
+        Marques
+      </button>
+      <button
+        type="button"
+        [attr.aria-pressed]="referenceList() === 'tax-regimes'"
+        (click)="referenceList.set(referenceList() === 'tax-regimes' ? null : 'tax-regimes')"
+      >
+        Fiscalité
+      </button>
     </div>
   </div>
-  @if (referenceList(); as kind) {
-    @if (kind === 'tax-regimes') {
-      <p class="muted small">Les taux et codes sont conservés pour la traçabilité. Créez un nouveau régime pour un nouveau taux.</p>
-    }
-    <div class="ui-table" tabindex="0" role="region" aria-label="Références du catalogue">
-      <table>
-        <thead><tr><th>Nom</th><th>Code</th><th>Taux</th><th>Actions</th></tr></thead>
-        <tbody>
-          @for (reference of referencesFor(kind); track reference.id) {
-            <tr>
-              <td>{{ reference.name }}</td><td>{{ reference.code ?? '—' }}</td><td>{{ reference.rate === undefined ? '—' : reference.rate + ' %' }}</td>
-              <td>
-                @if (session.can('products.manage')) {
-                  <div class="ui-actions">
-                    <button class="secondary" type="button" [disabled]="busy()" (click)="rename(kind, reference)">Modifier</button>
-                    @if (kind !== 'tax-regimes') {
-                      <button class="secondary" type="button" [disabled]="busy()" (click)="askDelete(kind, reference)">Supprimer</button>
-                    }
-                  </div>
-                } @else { <span class="muted small">Consultation</span> }
-              </td>
-            </tr>
-          } @empty {
-            <tr><td colspan="4">Aucune référence enregistrée.</td></tr>
-          }
-        </tbody>
-      </table>
-    </div>
+  @if (referenceList(); as kind) { @if (kind === 'tax-regimes') {
+  <p class="muted small">
+    Les taux et codes sont conservés pour la traçabilité. Créez un nouveau régime pour un nouveau taux.
+  </p>
+  }
+  <div class="ui-table" tabindex="0" role="region" aria-label="Références du catalogue">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Code</th>
+          <th>Taux</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (reference of referencesFor(kind); track reference.id) {
+        <tr>
+          <td>{{ reference.name }}</td>
+          <td>{{ reference.code ?? '—' }}</td>
+          <td>{{ reference.rate === undefined ? '—' : reference.rate + ' %' }}</td>
+          <td>
+            @if (session.can('products.manage')) {
+            <div class="ui-actions">
+              <button class="secondary" type="button" [disabled]="busy()" (click)="rename(kind, reference)">
+                Modifier
+              </button>
+              @if (kind !== 'tax-regimes') {
+              <button
+                class="secondary"
+                type="button"
+                [disabled]="busy()"
+                (click)="askDelete(kind, reference)"
+              >
+                Supprimer
+              </button>
+              }
+            </div>
+            } @else { <span class="muted small">Consultation</span> }
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4">Aucune référence enregistrée.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
   }
 </section>
 <section class="panel">
