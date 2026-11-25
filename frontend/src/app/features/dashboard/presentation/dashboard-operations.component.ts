@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
+import { RouterLink } from '@angular/router';
+import { ProductThumbnailComponent } from '../../../shared/ui/product-thumbnail.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { SessionService } from '../../auth/application/session.service';
@@ -10,7 +12,7 @@ import { DashboardOperationsApi } from '../infrastructure/dashboard-operations.a
 
 @Component({
   selector: 'app-dashboard-operations',
-  imports: [FeedbackComponent, UiIconComponent],
+  imports: [FeedbackComponent, UiIconComponent, RouterLink, ProductThumbnailComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-operations.component.html',
 })

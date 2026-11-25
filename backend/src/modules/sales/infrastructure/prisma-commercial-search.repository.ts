@@ -99,7 +99,7 @@ export class PrismaCommercialSearchRepository implements CommercialSearchPort {
           const [items, total] = await Promise.all([
             tx.salesOrder.findMany({
               where,
-              include: { lines: true },
+              include: { lines: true, customer: { select: { name: true } } },
               orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
               skip,
               take: limit,

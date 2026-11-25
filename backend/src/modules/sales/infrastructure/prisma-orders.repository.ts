@@ -43,7 +43,10 @@ export class PrismaOrdersRepository implements OrdersRepository {
           },
         },
       },
-      include: { lines: true },
+      include: {
+        customer: { select: { name: true } },
+        lines: { include: { product: { select: { name: true, sku: true } }, store: { select: { name: true } } } },
+      },
     });
   }
 

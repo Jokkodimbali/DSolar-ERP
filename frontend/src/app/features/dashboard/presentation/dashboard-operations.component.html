@@ -4,6 +4,7 @@
     <section class="panel">
       <div class="dashboard-report-heading">
         <h2 class="ui-section-title"><app-ui-icon name="layers" /> Alertes de stock</h2>
+        <a class="dashboard-see-all" routerLink="/stocks/alertes">Voir tout →</a>
         <button type="button" class="dashboard-icon-action" [disabled]="alertsLoading()" (click)="loadAlerts()" aria-label="Actualiser les alertes" title="Actualiser les alertes">
           <app-ui-icon name="refresh" />
         </button>
@@ -15,9 +16,9 @@
         @for (store of stores; track store.storeId) {
           <details class="stock-alert-group" [open]="store.items.length > 0">
             <summary>{{ store.storeName }} — {{ store.items.length }} alerte(s)</summary>
-            @for (item of store.items; track item.productId) {
+            @for (item of store.items.slice(0, 3); track item.productId) {
               <div class="stock-alert-item">
-                <span class="stock-product-icon"><app-ui-icon name="box" /></span>
+                <app-product-thumbnail [productId]="item.productId" />
                 <div class="stock-product-text">
                   <strong>{{ item.name }}</strong>
                   <p class="muted small">
@@ -46,6 +47,7 @@
     <section class="panel">
       <div class="dashboard-report-heading">
         <h2 class="ui-section-title"><app-ui-icon name="cart" /> Dernières commandes</h2>
+        <a class="dashboard-see-all" routerLink="/ventes/commandes">Voir tout →</a>
         <button type="button" class="dashboard-icon-action" [disabled]="ordersLoading()" (click)="loadOrders()" aria-label="Actualiser les commandes" title="Actualiser les commandes">
           <app-ui-icon name="refresh" />
         </button>
@@ -59,20 +61,24 @@
               <thead>
                 <tr>
                   <th scope="col">Référence</th>
+                  <th scope="col">Client</th>
                   <th scope="col">Montant</th>
                   <th scope="col">Statut</th>
                   <th scope="col">Paiement</th>
                   <th scope="col">Date</th>
+                  <th scope="col"><span class="sr-only">Détail</span></th>
                 </tr>
               </thead>
               <tbody>
                 @for (order of items; track order.id) {
                   <tr>
                     <td>{{ order.number }}</td>
+                    <td>{{ order.customerName }}</td>
                     <td>{{ order.total }}</td>
                     <td>{{ order.status }}</td>
                     <td><span class="dashboard-payment" [class.paid]="order.paymentStatus === 'Payée'">{{ order.paymentStatus }}</span></td>
                     <td>{{ order.createdAt }}</td>
+                    <td><a class="dashboard-see-all" [routerLink]="['/ventes/commandes', order.id]" [attr.aria-label]="'Voir la commande ' + order.number">Voir →</a></td>
                   </tr>
                 }
               </tbody>

@@ -18,6 +18,7 @@ export interface StoreAlerts {
 export interface RecentOrder {
   readonly id: string;
   readonly number: string;
+  readonly customerName: string;
   readonly total: string;
   readonly status: string;
   readonly paymentStatus: string;
@@ -73,8 +74,8 @@ const paymentStatuses: Record<string, string> = {
   PAID: 'Payée',
 };
 
-export function parseRecentOrders(value: unknown): RecentOrder[] {
-  if (!isRecord(value) || !Array.isArray(value['items']) || value['items'].length > 5) return invalid();
+export function parseRecentOrders(value: unknown, limit = 5): RecentOrder[] {
+  if (!isRecord(value) || !Array.isArray(value['items']) || value['items'].length > limit) return invalid();
   return value['items'].map((item: unknown) => {
     if (!isRecord(item)) return invalid();
     const status = text(item['status']);
@@ -86,6 +87,7 @@ export function parseRecentOrders(value: unknown): RecentOrder[] {
     return {
       id: storeId(item['id']),
       number: text(item['number']),
+      customerName: isRecord(item['customer']) ? text(item['customer']['name']) : '—',
       total: formatMoney(text(item['total'])),
       status: orderStatuses[status] ?? invalid(),
       paymentStatus: paymentStatuses[paymentStatus] ?? invalid(),
