@@ -1,17 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 export type UiIcon =
-  | 'home'
-  | 'dashboard'
-  | 'store'
-  | 'user'
-  | 'menu'
-  | 'trend'
-  | 'box'
-  | 'wallet'
-  | 'bell'
-  | 'search'
-  | 'alert';
+  'home' | 'dashboard' | 'store' | 'user' | 'menu' | 'trend' | 'box' | 'wallet' | 'bell' | 'search' | 'alert';
 
 const paths: Record<UiIcon, string> = {
   home: 'M3 10 12 3l9 7v10H3z M9 20v-7h6v7',

@@ -379,7 +379,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
       expect(orders.status).toBe(200);
       expect(parseRecentOrders(orders.data)).toEqual(
-        expect.arrayContaining([expect.objectContaining({ total: '2\u202f360,00 FCFA', paymentStatus: 'Impayée' })]),
+        expect.arrayContaining([
+          expect.objectContaining({ total: '2\u202f360,00 FCFA', paymentStatus: 'Impayée' }),
+        ]),
       );
     } finally {
       await request('/auth/logout', 'POST', { refreshToken: saleAdmin.jetonRenouvellement });

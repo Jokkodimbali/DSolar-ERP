@@ -1,4 +1,9 @@
-<section class="panel" [class.dashboard-featured]="definition().path === 'monthly-revenue' || definition().path === 'recent-activity'">
+<section
+  class="panel"
+  [class.dashboard-featured]="
+    definition().path === 'monthly-revenue' || definition().path === 'recent-activity'
+  "
+>
   <h2>{{ definition().title }}</h2>
   <div class="ui-toolbar">
     @if (definition().path === 'monthly-revenue') {
@@ -93,24 +98,24 @@
         <details [open]="!report.chart">
           <summary class="report-values">Afficher les valeurs détaillées</summary>
           <div class="ui-table" tabindex="0" role="region" [attr.aria-label]="definition().title">
-          <table>
-            <thead>
-              <tr>
-                @for (header of report.headers; track $index) {
-                  <th scope="col">{{ header }}</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of report.rows; track $index) {
+            <table>
+              <thead>
                 <tr>
-                  @for (cell of row; track $index) {
-                    <td>{{ cell }}</td>
+                  @for (header of report.headers; track $index) {
+                    <th scope="col">{{ header }}</th>
                   }
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (row of report.rows; track $index) {
+                  <tr>
+                    @for (cell of row; track $index) {
+                      <td>{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         </details>
       } @else {
