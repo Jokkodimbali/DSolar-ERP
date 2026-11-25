@@ -414,3 +414,40 @@
   color: var(--ink);
   resize: vertical;
 }
+
+.inventory-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--ui-gap);
+  margin-bottom: 14px;
+}
+.inventory-toolbar .ui-field {
+  min-width: min(100%, 240px);
+}
+.inventory-toolbar button,
+.inventory-toolbar a {
+  display: inline-flex;
+  align-items: center;
+}
+.inventory-product-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inventory-product-results button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.inventory-confirm {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius);
+  background: var(--canvas);
+}
+.stock-number {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

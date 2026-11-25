@@ -28,9 +28,9 @@ import { UiIconComponent } from '../shared/ui/ui-icon.component';
         </a>
       }
       @if (session.can('stores.read', 'inventory.read')) {
-        <a class="panel ui-shortcut" routerLink="/stocks/alertes">
+        <a class="panel ui-shortcut" routerLink="/stocks">
           <span class="ui-kpi-icon" data-tone="orange"><app-ui-icon name="box" /></span>
-          <span><strong>Stocks</strong><small>Alertes de disponibilité</small></span>
+          <span><strong>Stocks</strong><small>Quantités et disponibilités</small></span>
         </a>
       }
       @if (session.can('stores.read')) {

@@ -107,6 +107,7 @@ try {
     ['produits', '/produits', 'Produits'],
     ['magasins', '/magasins', 'Magasins'],
     ['commandes', '/ventes/commandes', 'Commandes'],
+    ['stocks', '/stocks', 'Stocks'],
     ['alertes', '/stocks/alertes', 'Alertes de stock'],
     ['activite', '/activite', 'Activité récente'],
     ['compte', '/mon-compte', 'Mon compte'],
@@ -136,6 +137,22 @@ try {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
   }
+  await page.goto('http://localhost:4200/stocks');
+  const storeSelector = page.getByLabel('Magasin', { exact: true });
+  const storeOption = storeSelector.locator('option').filter({ hasText: 'Magasin CI modifié' });
+  await storeOption.waitFor({ state: 'attached' });
+  const stockStoreId = await storeOption.getAttribute('value');
+  assert(stockStoreId);
+  await storeSelector.selectOption(stockStoreId);
+  const stockRow = page.getByRole('region', { name: 'État du stock' }).getByRole('row').filter({ hasText: 'PV-PROFORMA-CI' });
+  await stockRow.waitFor();
+  await stockRow.getByRole('button', { name: 'Ajuster', exact: true }).click();
+  await page.locator('input[formControlName="quantity"]').fill('1,250');
+  await page.locator('textarea[formControlName="reason"]').fill('Ajustement navigateur CI');
+  await page.getByRole('button', { name: 'Vérifier l’ajustement' }).click();
+  await page.getByRole('button', { name: 'Confirmer l’ajustement' }).click();
+  await stockRow.getByText('3.750', { exact: true }).first().waitFor();
+  await page.screenshot({ path: join(artifacts, 'stocks-adjustment.png'), fullPage: true });
   await page.goto('http://localhost:4200/produits');
   await page.getByRole('region', { name: 'Liste des produits' }).getByText('Panneau proforma CI', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Nouveau produit' }).click();
