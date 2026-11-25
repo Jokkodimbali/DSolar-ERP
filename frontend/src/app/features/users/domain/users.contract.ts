@@ -20,8 +20,10 @@ export function parseUsers(value: unknown): ManagedUser[] {
       !Array.isArray(raw['roleCodes']) || raw['roleCodes'].length !== 1 ||
       (raw['roleCodes'][0] !== 'ADMIN' && raw['roleCodes'][0] !== 'MAGASINIER'))
       throw new Error('Statut ou rôle utilisateur invalide.');
+    const role: unknown = raw['roleCodes'][0];
+    if (role !== 'ADMIN' && role !== 'MAGASINIER') throw new Error('Rôle utilisateur invalide.');
     const identity = parseIdentity(raw);
-    return { ...identity, id: storeId(identity.id), magasinsAutorises: identity.magasinsAutorises.map(storeId), status: raw['status'], role: raw['roleCodes'][0] };
+    return { ...identity, id: storeId(identity.id), magasinsAutorises: identity.magasinsAutorises.map(storeId), status: raw['status'], role };
   });
 }
 
