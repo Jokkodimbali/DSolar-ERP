@@ -1,0 +1,64 @@
+<section class="panel dashboard-featured period-panel">
+  <div class="dashboard-report-heading">
+    <h2 class="ui-section-title">
+      <app-ui-icon name="trend" />
+      {{ mode() === 'revenue' ? 'Évolution de la facturation' : 'Évolution des commandes' }}
+    </h2>
+    <div class="chart-segments" role="group" aria-label="Indicateur du graphique">
+      <button type="button" [attr.aria-pressed]="mode() === 'revenue'" (click)="mode.set('revenue')">
+        Facturation
+      </button>
+      <button type="button" [attr.aria-pressed]="mode() === 'orders'" (click)="mode.set('orders')">
+        Commandes
+      </button>
+    </div>
+  </div>
+  @if (stats()) {
+    <div
+      class="revenue-chart daily-chart"
+      [style.grid-template-columns]="'repeat(' + plot().bars.length + ', minmax(0, 1fr))'"
+      aria-label="Évolution quotidienne, valeurs exactes dans le détail"
+    >
+      <div class="chart-grid" aria-hidden="true">
+        @for (tick of plot().axis; track $index) {
+          <div class="chart-tick"><span>{{ tick }}</span></div>
+        }
+      </div>
+      @if (empty()) {
+        <p class="chart-empty muted">Aucune activité pour cette période.</p>
+      }
+      @for (bar of plot().bars; track bar.label; let i = $index) {
+        <div class="revenue-column">
+          <div class="revenue-track" [class.negative]="bar.negative" [attr.title]="bar.label + ' : ' + bar.amount">
+            <div class="revenue-positive">
+              @if (!bar.negative) {
+                <div class="revenue-bar" [style.height.%]="bar.height"></div>
+              }
+            </div>
+            <div class="revenue-negative">
+              @if (bar.negative) {
+                <div class="revenue-bar" [style.height.%]="bar.height"></div>
+              }
+            </div>
+          </div>
+          <span>{{ i % 5 === 0 || i === plot().bars.length - 1 ? bar.label : ' ' }}</span>
+        </div>
+      }
+    </div>
+    <details class="period-values">
+      <summary class="report-values">Valeurs quotidiennes</summary>
+      <div class="ui-table" role="region" aria-label="Valeurs quotidiennes" tabindex="0">
+        <table>
+          <thead><tr><th scope="col">Jour</th><th scope="col">Valeur</th></tr></thead>
+          <tbody>
+            @for (bar of plot().bars; track bar.label) {
+              <tr><td>{{ bar.label }}</td><td>{{ bar.amount }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </details>
+  } @else {
+    <p class="muted chart-placeholder">{{ loading() ? 'Chargement du graphique…' : 'Statistiques indisponibles.' }}</p>
+  }
+</section>

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { finalize, map, shareReplay, type Observable } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { SessionService } from '../../auth/application/session.service';
+import { parsePeriod } from '../domain/dashboard-period.contract';
 import { parseOverview } from '../domain/dashboard.contract';
 
 @Injectable({ providedIn: 'root' })
@@ -22,6 +23,12 @@ export class DashboardApi {
     );
     this.pending = { epoch, result };
     return result;
+  }
+
+  period(month: string) {
+    return this.http
+      .get<unknown>(apiPath('/dashboard/period'), { params: { month } })
+      .pipe(map((value) => parsePeriod(value, month)));
   }
 
   overview() {

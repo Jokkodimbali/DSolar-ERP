@@ -305,3 +305,103 @@ app-dashboard-page .dashboard-primary .ui-table td {
     flex-wrap: wrap;
   }
 }
+
+.dashboard-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  color: var(--muted);
+}
+.dashboard-period input {
+  min-width: 0;
+  width: 140px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+.dashboard-period svg {
+  width: 17px;
+  height: 17px;
+}
+.dashboard-primary > app-period-chart {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dashboard-primary .period-panel {
+  flex: 1;
+  margin-bottom: 0;
+}
+.chart-segments {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 18px;
+  background: #f5f6f8;
+  border: 1px solid #eceef2;
+}
+.chart-segments button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 16px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chart-segments button[aria-pressed='true'] {
+  color: white;
+  background: var(--accent);
+}
+.daily-chart .revenue-bar {
+  width: 82%;
+  background: #efafc2;
+}
+.daily-chart .revenue-negative .revenue-bar {
+  background: var(--danger);
+}
+.daily-chart .revenue-column > span {
+  display: block;
+  min-height: 14px;
+}
+.chart-placeholder {
+  text-align: center;
+  padding: 36px 0;
+  font-size: 0.85rem;
+}
+.kpi-comparison {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.kpi-comparison .kpi-delta {
+  background: #e7f8ed;
+  color: var(--success);
+  border-radius: 12px;
+  padding: 3px 6px;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+.kpi-comparison .kpi-delta.negative {
+  background: var(--accent-soft);
+  color: var(--danger);
+}
+@media (max-width: 760px) {
+  .dashboard-period input {
+    width: 115px;
+    font-size: 0.76rem;
+  }
+  app-dashboard-page app-page-header .page-heading {
+    flex-wrap: wrap;
+  }
+  .daily-chart {
+    gap: 2px;
+  }
+}
