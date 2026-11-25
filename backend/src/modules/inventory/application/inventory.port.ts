@@ -35,7 +35,10 @@ export interface StockMovementItem {
   createdAt: Date;
 }
 
+export type StockSearch = ListCriteria & { availability?: 'ALL' | 'AVAILABLE' | 'RESERVED' | 'EMPTY' };
+
 export interface InventoryRepository {
+  searchStock(storeId: string, actorId: string, query: StockSearch): Promise<Page<StoreStockItem>>;
   movements(storeId: string, actorId: string, query: ListCriteria): Promise<Page<StockMovementItem>>;
   listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]>;
   getBalance(storeId: string, productId: string, actorId: string): Promise<StockBalance>;

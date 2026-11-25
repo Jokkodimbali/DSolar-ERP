@@ -5,6 +5,7 @@ import { AccessGuard, RequirePermissions } from '../../identity/presentation/acc
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { InventoryService } from '../application/inventory.service';
 import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
+import { StockSearchDto } from './stock-search.dto';
 import { AdjustStockDto } from './adjust-stock.dto';
 
 @ApiTags('Stocks')
@@ -17,6 +18,11 @@ export class InventoryController {
   @RequirePermissions('inventory.read')
   listStoreStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string) {
     return this.inventory.listStoreStock(storeId, actorId);
+  }
+  @Get('stores/:storeId/stock/search')
+  @RequirePermissions('inventory.read')
+  searchStock(@Param('storeId', ParseUUIDPipe) storeId: string, @CurrentUserId() actorId: string, @Query() query: StockSearchDto) {
+    return this.inventory.searchStock(storeId, actorId, query);
   }
   @Get('stores/:storeId/movements/search')
   @RequirePermissions('inventory.read')

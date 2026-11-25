@@ -9,6 +9,7 @@ import {
   StockBalance,
   StoreStockItem,
   StockMovementItem,
+  StockSearch,
 } from '../application/inventory.port';
 
 @Injectable()
@@ -109,6 +110,36 @@ export class PrismaInventoryRepository implements InventoryRepository {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
+  }
+
+  async searchStock(storeId: string, actorId: string, query: StockSearch) {
+    const { page, limit, skip } = pageBounds(query);
+    return this.prisma.$transaction(async (tx) => {
+      await this.authorizeStore(tx, storeId, actorId);
+      const search = query.search?.trim();
+      const where: Prisma.StoreStockWhereInput = {
+        storeId,
+        product: { active: true, ...(search ? { OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+        ] } : {}) },
+        ...(query.availability === 'AVAILABLE' ? { quantity: { gt: tx.storeStock.fields.reserved } } : {}),
+        ...(query.availability === 'EMPTY' ? { quantity: { lte: tx.storeStock.fields.reserved } } : {}),
+        ...(query.availability === 'RESERVED' ? { reserved: { gt: 0 } } : {}),
+      };
+      const [total, stocks] = await Promise.all([
+        tx.storeStock.count({ where }),
+        tx.storeStock.findMany({
+          where, skip, take: limit,
+          orderBy: [{ product: { name: 'asc' } }, { productId: 'asc' }],
+          select: { productId: true, quantity: true, reserved: true, product: { select: { sku: true, name: true, unit: true } } },
+        }),
+      ]);
+      return pageResult(stocks.map((stock) => ({
+        ...this.format(storeId, stock.productId, stock.quantity, stock.reserved),
+        ...stock.product,
+      })), total, page, limit);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async listStoreStock(storeId: string, actorId: string): Promise<StoreStockItem[]> {

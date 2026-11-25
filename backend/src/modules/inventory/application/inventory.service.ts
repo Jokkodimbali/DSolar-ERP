@@ -1,6 +1,6 @@
 import type { ListCriteria } from '../../../shared/pagination';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { INVENTORY_REPOSITORY, InventoryRepository, StockAdjustment } from './inventory.port';
+import { INVENTORY_REPOSITORY, InventoryRepository, StockAdjustment, StockSearch } from './inventory.port';
 
 const toMilliunits = (value: string): bigint => {
   const negative = value.startsWith('-');
@@ -22,6 +22,9 @@ export class InventoryService {
   movements(storeId: string, actorId: string, query: ListCriteria) {
     return this.repository.movements(storeId, actorId, query);
   }
+  searchStock(storeId: string, actorId: string, query: StockSearch) {
+    return this.repository.searchStock(storeId, actorId, query);
+  }
   listStoreStock(storeId: string, actorId: string) {
     return this.repository.listStoreStock(storeId, actorId);
   }
@@ -33,6 +36,7 @@ export class InventoryService {
     return {
       storeId,
       products: stocks.length,
+      reservedProducts: stocks.filter((item) => toMilliunits(item.reserved) > 0n).length,
       outOfStock: stocks.filter((item) => toMilliunits(item.available) <= 0n).length,
       totalQuantity: formatMilliunits(totalQuantity),
       totalReserved: formatMilliunits(totalReserved),

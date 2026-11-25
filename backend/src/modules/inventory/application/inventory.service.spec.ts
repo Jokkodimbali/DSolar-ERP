@@ -4,6 +4,7 @@ import { InventoryRepository } from './inventory.port';
 describe('InventoryService', () => {
   const repository: InventoryRepository = {
     movements: jest.fn(),
+    searchStock: jest.fn(),
     listStoreStock: jest.fn(),
     getBalance: jest.fn(),
     adjust: jest.fn(),
@@ -25,6 +26,10 @@ describe('InventoryService', () => {
       limit: 10,
       search: 'PV',
     });
+  });
+  it('délègue la pagination du stock avec le filtre de disponibilité', () => {
+    service.searchStock('s', 'u', { page: 2, limit: 10, availability: 'RESERVED' });
+    expect(repository.searchStock).toHaveBeenCalledWith('s', 'u', { page: 2, limit: 10, availability: 'RESERVED' });
   });
   it('délègue la consultation du stock du magasin', async () => {
     await service.listStoreStock('store-id', 'actor-id');
@@ -69,6 +74,7 @@ describe('InventoryService', () => {
     await expect(service.stockSummary('s', 'u')).resolves.toEqual({
       storeId: 's',
       products: 3,
+      reservedProducts: 2,
       outOfStock: 1,
       totalQuantity: '15.625',
       totalReserved: '3.375',
@@ -102,6 +108,7 @@ describe('InventoryService', () => {
     await expect(service.stockSummary('s', 'u')).resolves.toEqual({
       storeId: 's',
       products: 0,
+      reservedProducts: 0,
       outOfStock: 0,
       totalQuantity: '0.000',
       totalReserved: '0.000',
