@@ -7,7 +7,12 @@ export function apiPath(path: string): string {
 export function isInternalApi(url: string): boolean {
   if (!url.startsWith(API_PREFIX + '/')) return false;
   const path = url.split(/[?#]/, 1)[0] ?? '';
-  if (path.includes('\\') || /%(?:2e|2f|5c|25)/i.test(path) || path.split('/').some(segment => segment === '..' || segment === '.')) return false;
+  if (
+    path.includes('\\') ||
+    /%(?:2e|2f|5c|25)/i.test(path) ||
+    path.split('/').some((segment) => segment === '..' || segment === '.')
+  )
+    return false;
   return new URL(url, 'https://erp.invalid').pathname.startsWith(API_PREFIX + '/');
 }
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -31,5 +36,9 @@ export function parseErrorMessage(body: unknown, status: number): string {
 }
 export function decodeSuccessMessage(value: string | null): string | null {
   if (!value) return null;
-  try { return decodeURIComponent(value); } catch { return null; }
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
 }

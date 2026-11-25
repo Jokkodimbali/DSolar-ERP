@@ -1,0 +1,87 @@
+name: Livraison DSolar-ERP
+on:
+  workflow_call:
+    inputs:
+      deploy_production:
+        type: boolean
+        required: true
+permissions:
+  contents: read
+jobs:
+  package:
+    name: Assembler les livrables validés
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-${{ github.sha }}
+          path: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: release
+      - name: Vérifier et sceller la version
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release
+          test -s backend.tar.gz && test -s frontend.tar.gz
+          tar -tzf backend.tar.gz > "$RUNNER_TEMP/backend-files.txt"
+          grep -Fx 'dist/main.js' "$RUNNER_TEMP/backend-files.txt"
+          tar -tzf frontend.tar.gz > "$RUNNER_TEMP/frontend-files.txt"
+          grep -Fx './index.html' "$RUNNER_TEMP/frontend-files.txt"
+          printf '%s\n' "$GITHUB_SHA" > COMMIT
+          sha256sum COMMIT backend.tar.gz frontend.tar.gz > SHA256SUMS
+          sha256sum --check SHA256SUMS
+          tar -czf "$RUNNER_TEMP/dsolar-release.tar.gz" COMMIT SHA256SUMS backend.tar.gz frontend.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsolar-release-${{ github.sha }}
+          path: ${{ runner.temp }}/dsolar-release.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  production:
+    name: Déployer la version validée
+    needs: package
+    if: ${{ inputs.deploy_production && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: dsolar-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsolar-release-${{ github.sha }}
+          path: release
+      - name: Refuser un commit obsolète
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+      - name: Vérifier les prérequis et transférer au serveur
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test -s release/dsolar-release.tar.gz
+          umask 077
+          credentials="$(mktemp -d)"
+          trap 'rm -rf "$credentials"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$credentials/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$credentials/known_hosts"
+          # L'adaptateur serveur reçoit le bundle sur stdin, vérifie les sommes,
+          # active la version atomiquement et renvoie le SHA après les contrôles.
+          result="$(ssh -T -i "$credentials/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$credentials/known_hosts" -o ConnectTimeout=15 "$DEPLOY_USER@$DEPLOY_HOST" "/usr/local/bin/dsolar-deploy $GITHUB_SHA" < release/dsolar-release.tar.gz)"
+          test "$result" = "$GITHUB_SHA"

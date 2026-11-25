@@ -4,7 +4,7 @@ Application Angular 21 LTS, TypeScript 5.9 strict, composants standalone, routes
 
 ## Démarrage
 
-Node.js 22.12+ (branche 22), npm 11.6.2. Installer cette version de npm avec `npm install --global npm@11.6.2` si nécessaire. Depuis frontend/ : installer les dépendances, puis npm start. Le proxy de développement relaie /api vers localhost:3000. Démarrer le backend séparément avec sa base de développement. Aucun secret, URL PostgreSQL ou clé JWT dans le navigateur. En production, servir l'application et /api/v1 sous la même origine via reverse proxy ; le serveur doit renvoyer index.html pour les routes Angular, jamais pour /api.
+Node.js 22.12+ (branche 22), npm 11.6.2. Installer cette version de npm avec `npm install --global npm@11.6.2` si nécessaire. Depuis frontend/ : exécuter `npm ci`, puis `npm start`. Le proxy de développement relaie /api vers localhost:3000. Démarrer le backend séparément avec sa base de développement. Aucun secret, URL PostgreSQL ou clé JWT dans le navigateur. En production, servir l'application et /api/v1 sous la même origine via reverse proxy ; le serveur doit renvoyer index.html pour les routes Angular, jamais pour /api.
 
 ## Architecture
 
@@ -18,7 +18,7 @@ Les DTO externes sont validés à l'exécution depuis unknown. Les montants rest
 
 ## Qualité
 
-npm run typecheck, npm run lint, npm test, npm run format:check, npm run build. Le CI vérifie le socle indépendamment du backend. La charte initiale reprend framboise, bleu nuit, blanc et beige clair, sans dégradé. Le logo officiel reste à intégrer (le mot-symbole provisoire n'est pas le logo officiel).
+npm run typecheck, npm run lint, npm test, npm run format:check, npm run build. Le workflow frontend.yml est appelé par ci.yml et valide le socle indépendamment du backend. Les deux validations sont requises pour la livraison. La charte initiale reprend framboise, bleu nuit, blanc et beige clair, sans dégradé. Le logo officiel reste à intégrer (le mot-symbole provisoire n'est pas le logo officiel).
 
 ## Périmètre initial
 

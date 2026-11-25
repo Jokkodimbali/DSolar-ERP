@@ -24,7 +24,7 @@ Jest exécute les fichiers .spec.ts situés sous src/. Les tests conditionnels P
 
 ## GitHub Actions
 
-Le workflow [quality.yml](../../.github/workflows/quality.yml) s'exécute sur push main/dev, pull requests et déclenchement manuel. Son working-directory est backend/ et le cache npm pointe sur backend/package-lock.json. Il comporte trois jobs :
+Le workflow réutilisable [backend.yml](../../.github/workflows/backend.yml) est appelé par [ci.yml](../../.github/workflows/ci.yml) sur push main/dev, pull requests et déclenchement manuel. Son working-directory est backend/ et le cache npm pointe sur backend/package-lock.json. Il comporte trois jobs :
 
 | Job | Contenu |
 | --- | --- |
@@ -36,7 +36,7 @@ Les tests d'intégration couvrent parcours commercial avec avoirs et deux tranch
 
 Les tests HTTP sur notifications et images se trouvent dans [new-endpoints.spec.ts](../src/infrastructure/http/new-endpoints.spec.ts). Ils utilisent NestJS et des doubles des ports ; ils ne remplacent pas des tests de bout en bout sur une base réelle de préproduction.
 
-Le workflow de formatage fournit un patch de diagnostic en cas d'échec, sans rendre le contrôle facultatif. Les workflows ponctuels de remédiation sont manuels et ne sont pas un processus de déploiement.
+Le workflow de formatage fournit un patch de diagnostic en cas d'échec, sans rendre le contrôle facultatif. Les workflows ponctuels de remédiation ont été retirés ; consulter [l'organisation CI/CD](../../.github/README.md).
 
 ## Préparer une modification
 

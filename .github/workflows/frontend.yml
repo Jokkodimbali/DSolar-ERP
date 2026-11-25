@@ -1,11 +1,6 @@
 name: Qualité frontend
 on:
-  push:
-    branches: [main, dev]
-    paths: ['frontend/**', '.github/workflows/frontend-quality.yml']
-  pull_request:
-    paths: ['frontend/**', '.github/workflows/frontend-quality.yml']
-  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 defaults:
@@ -14,22 +9,21 @@ defaults:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Configurer npm 11
         run: npm install --global npm@11.6.2 --no-audit --no-fund
-      - name: Installer les dépendances
+      - name: Installer les dépendances verrouillées
         id: install
-        run: |
-          if test -f package-lock.json; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-            node -e "const fs=require('node:fs'); const data=fs.readFileSync('package-lock.json').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('FRONTEND_LOCK:'+data.slice(i,i+8000));"
-          fi
+        run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run lint
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -47,5 +41,17 @@ jobs:
           npm run format
           git diff --binary -- src angular.json 'tsconfig*.json' package.json > /tmp/dsolar-front-format.patch
           node -e "const fs=require('node:fs'); const data=fs.readFileSync('/tmp/dsolar-front-format.patch').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('FRONTEND_FORMAT:'+data.slice(i,i+8000));"
-      - run: npm audit --omit=dev --audit-level=high
+      - name: Audit des dépendances de production
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --omit=dev --audit-level=high
+      - name: Préparer le livrable frontend validé
+        run: |
+          test -s dist/dsolar-erp/browser/index.html
+          tar -czf "$RUNNER_TEMP/frontend.tar.gz" -C dist/dsolar-erp/browser .
+      - name: Publier le livrable frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: ${{ runner.temp }}/frontend.tar.gz
+          if-no-files-found: error
+          retention-days: 14
