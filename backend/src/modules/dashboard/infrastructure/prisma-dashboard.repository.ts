@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { readReceivableGroups } from '../../../shared/receivables-query';
-import { DashboardRepository, DashboardSnapshot } from '../application/dashboard.port';
+import { DashboardPeriodEvent, DashboardRepository, DashboardSnapshot } from '../application/dashboard.port';
 
 @Injectable()
 export class PrismaDashboardRepository implements DashboardRepository {
@@ -163,6 +163,57 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async receivables(actorId: string) {
     return this.read(actorId, async (tx) => {
       return readReceivableGroups(tx);
+    });
+  }
+
+  async periodEvents(start: Date, end: Date, actorId: string): Promise<DashboardPeriodEvent[]> {
+    return this.read(actorId, async (tx) => {
+      const range = { gte: start, lt: end };
+      const [invoices, credits, payments, reversals, orders] = await Promise.all([
+        tx.invoice.groupBy({
+          by: ['issuedAt'],
+          where: { status: 'ISSUED', issuedAt: range },
+          _sum: { totalTtc: true },
+        }),
+        tx.creditNote.groupBy({
+          by: ['issuedAt'],
+          where: { issuedAt: range, invoice: { status: 'ISSUED' } },
+          _sum: { amount: true },
+        }),
+        tx.payment.groupBy({
+          by: ['receivedAt'],
+          where: { receivedAt: range },
+          _sum: { amount: true },
+        }),
+        tx.paymentReversal.groupBy({
+          by: ['createdAt'],
+          where: { createdAt: range },
+          _sum: { amount: true },
+        }),
+        tx.salesOrder.groupBy({
+          by: ['createdAt'],
+          where: { createdAt: range, status: { in: ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'] } },
+          _count: { _all: true },
+        }),
+      ]);
+      const amount = (value: Prisma.Decimal | null): string => (value ?? new Prisma.Decimal(0)).toFixed(2);
+      const events: DashboardPeriodEvent[] = [];
+      for (const row of invoices) {
+        if (row.issuedAt) events.push({ date: row.issuedAt, kind: 'invoice', amount: amount(row._sum.totalTtc), count: 0 });
+      }
+      for (const row of credits) {
+        if (row.issuedAt) events.push({ date: row.issuedAt, kind: 'credit', amount: amount(row._sum.amount), count: 0 });
+      }
+      for (const row of payments) {
+        events.push({ date: row.receivedAt, kind: 'payment', amount: amount(row._sum.amount), count: 0 });
+      }
+      for (const row of reversals) {
+        events.push({ date: row.createdAt, kind: 'reversal', amount: amount(row._sum.amount), count: 0 });
+      }
+      for (const row of orders) {
+        events.push({ date: row.createdAt, kind: 'order', amount: '0.00', count: row._count._all });
+      }
+      return events;
     });
   }
 

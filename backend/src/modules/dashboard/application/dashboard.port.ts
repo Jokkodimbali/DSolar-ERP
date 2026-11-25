@@ -53,7 +53,15 @@ export interface DashboardReceivable {
   count: number;
 }
 
+export interface DashboardPeriodEvent {
+  date: Date;
+  kind: 'invoice' | 'credit' | 'payment' | 'reversal' | 'order';
+  amount: string;
+  count: number;
+}
+
 export interface DashboardRepository {
+  periodEvents(start: Date, end: Date, actorId: string): Promise<DashboardPeriodEvent[]>;
   isAdmin(actorId: string): Promise<boolean>;
   snapshot(actorId: string): Promise<DashboardSnapshot>;
   monthlyInvoices(year: number, actorId: string): Promise<Array<{ issuedAt: Date; total: string }>>;

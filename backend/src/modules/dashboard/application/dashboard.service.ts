@@ -153,6 +153,62 @@ export class DashboardService {
     };
   }
 
+  async period(actorId: string, month: string) {
+    if (!/^20[0-9]{2}-(0[1-9]|1[0-2])$/.test(month)) {
+      throw new BadRequestException('Mois invalide. Format attendu : AAAA-MM.');
+    }
+    if (!(await this.repository.isAdmin(actorId))) {
+      throw new ForbiddenException('Statistiques financières réservées au super administrateur.');
+    }
+    const [year, selected] = month.split('-').map(Number);
+    const start = new Date(Date.UTC(year, selected - 1, 1));
+    const previous = new Date(Date.UTC(year, selected - 2, 1));
+    const end = new Date(Date.UTC(year, selected, 1));
+    const events = await this.repository.periodEvents(previous, end, actorId);
+    const totals = () => ({ revenue: 0n, collected: 0n, orders: 0 });
+    const current = totals();
+    const prior = totals();
+    const days = Array.from({ length: new Date(end.getTime() - 1).getUTCDate() }, () => totals());
+    for (const event of events) {
+      const target = event.date < start ? prior : current;
+      const value = cents(event.amount);
+      const day = event.date >= start ? days[event.date.getUTCDate() - 1] : undefined;
+      for (const item of day ? [target, day] : [target]) {
+        if (event.kind === 'invoice') item.revenue += value;
+        if (event.kind === 'credit') item.revenue -= value;
+        if (event.kind === 'payment') item.collected += value;
+        if (event.kind === 'reversal') item.collected -= value;
+        if (event.kind === 'order') item.orders += event.count;
+      }
+    }
+    const variation = (value: bigint, before: bigint): string | null => {
+      if (before <= 0n) return null;
+      const difference = (value - before) * 1000n;
+      const absolute = difference < 0n ? -difference : difference;
+      const rounded = (absolute + before / 2n) / before;
+      return (difference < 0n && rounded !== 0n ? '-' : '') + String(rounded / 10n) + '.' + String(rounded % 10n);
+    };
+    return {
+      month,
+      currency: 'XOF',
+      basis: 'NET_ISSUED_INVOICES_AND_RECORDED_PAYMENTS',
+      comparison: 'PREVIOUS_CALENDAR_MONTH',
+      revenue: money(current.revenue),
+      collected: money(current.collected),
+      orders: current.orders,
+      variations: {
+        revenue: variation(current.revenue, prior.revenue),
+        collected: variation(current.collected, prior.collected),
+        orders: variation(BigInt(current.orders), BigInt(prior.orders)),
+      },
+      days: days.map((day, index) => ({
+        day: index + 1,
+        revenue: money(day.revenue),
+        orders: day.orders,
+      })),
+    };
+  }
+
   async monthlyRevenue(actorId: string, year: string) {
     if (!/^(20[0-9]{2}|2100)$/.test(year)) {
       throw new BadRequestException('Année invalide.');

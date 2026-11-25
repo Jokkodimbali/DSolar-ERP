@@ -6,6 +6,7 @@ describe('DashboardService', () => {
   const repository = {
     isAdmin: jest.fn(),
     monthlyInvoices: jest.fn(),
+    periodEvents: jest.fn(),
     receivables: jest.fn(),
     stockValuation: jest.fn(),
     snapshot: jest.fn(),
@@ -46,6 +47,34 @@ describe('DashboardService', () => {
     repository.isAdmin.mockResolvedValue(false);
     await expect(service.monthlyRevenue('magasinier', '2026')).rejects.toThrow(ForbiddenException);
     expect(repository.monthlyInvoices).not.toHaveBeenCalled();
+  });
+
+  it('calcule les jours et variations mensuelles avec les avoirs et annulations de paiement', async () => {
+    repository.periodEvents.mockResolvedValue([
+      { date: new Date('2026-01-10'), kind: 'invoice', amount: '100.00', count: 0 },
+      { date: new Date('2026-02-02'), kind: 'invoice', amount: '160.00', count: 0 },
+      { date: new Date('2026-02-02'), kind: 'credit', amount: '10.00', count: 0 },
+      { date: new Date('2026-02-03'), kind: 'payment', amount: '30.00', count: 0 },
+      { date: new Date('2026-02-03'), kind: 'reversal', amount: '5.00', count: 0 },
+      { date: new Date('2026-02-03'), kind: 'order', amount: '0.00', count: 2 },
+    ]);
+    const result = await service.period('admin', '2026-02');
+    expect(result).toMatchObject({
+      revenue: '150.00',
+      collected: '25.00',
+      orders: 2,
+      variations: { revenue: '50.0', collected: null, orders: null },
+    });
+    expect(result.days).toHaveLength(28);
+    expect(result.days[1]).toEqual({ day: 2, revenue: '150.00', orders: 0 });
+    expect(result.days[2]).toEqual({ day: 3, revenue: '0.00', orders: 2 });
+  });
+
+  it('refuse les périodes invalides et les utilisateurs non administrateurs', async () => {
+    await expect(service.period('admin', '2026-13')).rejects.toThrow(BadRequestException);
+    repository.isAdmin.mockResolvedValue(false);
+    await expect(service.period('magasinier', '2026-02')).rejects.toThrow(ForbiddenException);
+    expect(repository.periodEvents).not.toHaveBeenCalled();
   });
 
   it('rejette une année invalide', async () => {

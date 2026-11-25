@@ -65,6 +65,12 @@ export class DashboardController {
     return this.dashboard.receivables(actorId);
   }
 
+  @Get('period')
+  @RequirePermissions('sales.read')
+  period(@CurrentUserId() actorId: string, @Query('month') month: string) {
+    return this.dashboard.period(actorId, month);
+  }
+
   @Get('monthly-revenue')
   @RequirePermissions('sales.read')
   monthlyRevenue(@CurrentUserId() actorId: string, @Query('year') year: string) {
