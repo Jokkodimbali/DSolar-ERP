@@ -5,25 +5,18 @@ import { DashboardApi } from '../infrastructure/dashboard.api';
 import { type Overview, formatMoney } from '../domain/dashboard.contract';
 import { DashboardReportComponent } from './dashboard-report.component';
 import { reports } from '../domain/dashboard-reports.contract';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { errorMessage } from '../../../core/api/http-error';
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DashboardReportComponent],
+  imports: [DashboardReportComponent, PageHeaderComponent, FeedbackComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: ` <div class="page-heading">
-      <div>
-        <p class="eyebrow">VUE D'ENSEMBLE</p>
-        <h1>Tableau de bord</h1>
-        <p class="muted">Indicateurs réels de votre activité.</p>
-      </div>
+  template: ` <app-page-header eyebrow="VUE D’ENSEMBLE" heading="Tableau de bord" description="Indicateurs réels de votre activité.">
       <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
-    </div>
-    @if (loading()) {
-      <p role="status">Chargement des indicateurs…</p>
-    }
-    @if (error()) {
-      <p class="field-error" role="alert">{{ error() }}</p>
-    }
+    </app-page-header>
+    <app-feedback [message]="loading() ? 'Chargement des indicateurs…' : ''" />
+    <app-feedback [message]="error()" kind="error" />
     @if (data(); as d) {
       <div class="kpi-grid">
         <article class="panel kpi">

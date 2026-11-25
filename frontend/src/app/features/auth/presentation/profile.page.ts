@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { errorMessage } from '../../../core/api/http-error';
 import { SessionService } from '../application/session.service';
 import { ProfileApi } from '../infrastructure/profile.api';
@@ -8,22 +10,14 @@ import type { PublicIdentity } from '../domain/auth.contract';
 
 @Component({
   selector: 'app-profile-page',
+  imports: [PageHeaderComponent, FeedbackComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">MON ESPACE</p>
-        <h1>Mon compte</h1>
-        <p class="muted">Identité et droits retournés par le serveur.</p>
-      </div>
+    <app-page-header eyebrow="MON ESPACE" heading="Mon compte" description="Identité et droits retournés par le serveur.">
       <button class="secondary" type="button" [disabled]="loading()" (click)="load()">Actualiser</button>
-    </div>
-    @if (loading()) {
-      <p role="status">Vérification du compte…</p>
-    }
-    @if (error()) {
-      <p class="field-error" role="alert">{{ error() }}</p>
-    }
+    </app-page-header>
+    <app-feedback [message]="loading() ? 'Vérification du compte…' : ''" />
+    <app-feedback [message]="error()" kind="error" />
     @if (identity(); as user) {
       <section class="panel">
         <h2>Informations personnelles</h2>

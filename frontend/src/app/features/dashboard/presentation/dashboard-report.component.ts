@@ -9,43 +9,17 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { FeedbackComponent } from '../../../shared/ui/feedback.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { errorMessage } from '../../../core/api/http-error';
 import type { ReportDefinition, ReportView } from '../domain/dashboard-reports.contract';
 import { DashboardReportsApi } from '../infrastructure/dashboard-reports.api';
 
 @Component({
   selector: 'app-dashboard-report',
+  imports: [FeedbackComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-report.component.html',
-  styles: [
-    `
-      .report-table {
-        overflow-x: auto;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 12px;
-        border-bottom: 1px solid var(--line);
-        overflow-wrap: anywhere;
-      }
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: center;
-        margin-bottom: 16px;
-      }
-      select {
-        font: inherit;
-        padding: 8px;
-      }
-    `,
-  ],
 })
 export class DashboardReportComponent implements OnInit {
   readonly definition = input.required<ReportDefinition>();

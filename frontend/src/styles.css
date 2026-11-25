@@ -1,3 +1,5 @@
+@import './app/shared/ui/ui.css';
+
 :root {
   color-scheme: light;
   --accent: #cf1751;
@@ -7,6 +9,7 @@
   --line: #e1e7ef;
   --muted: #64748b;
   --danger: #a81e36;
+  --success: #166534;
   font-family:
     Inter,
     system-ui,
@@ -227,6 +230,9 @@ h2 {
   padding: 16px 10px;
   border-top: 1px solid #364050;
   line-height: 1.6;
+}
+.workspace-main {
+  min-width: 0;
 }
 .topbar {
   height: 72px;

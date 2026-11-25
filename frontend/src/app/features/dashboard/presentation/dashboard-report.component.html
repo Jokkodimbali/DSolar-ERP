@@ -1,8 +1,8 @@
 <section class="panel">
   <h2>{{ definition().title }}</h2>
-  <div class="controls">
+  <div class="ui-toolbar">
     @if (definition().path === 'monthly-revenue') {
-      <label>
+      <label class="ui-field">
         Année
         <select #yearSelect [value]="year()" [disabled]="loading()" (change)="changeYear(yearSelect.value)">
           @for (item of years; track item) {
@@ -12,7 +12,7 @@
       </label>
     }
     @if (definition().path === 'top-products' || definition().path === 'recent-activity') {
-      <label>
+      <label class="ui-field">
         Nombre de résultats
         <select
           #limitSelect
@@ -33,15 +33,9 @@
       </button>
     }
   </div>
-  @if (loading()) {
-    <p role="status">Chargement du rapport…</p>
-  }
-  @if (error()) {
-    <p class="field-error" role="alert">{{ error() }}</p>
-  }
-  @if (exportError()) {
-    <p class="field-error" role="alert">{{ exportError() }}</p>
-  }
+  <app-feedback [message]="loading() ? 'Chargement du rapport…' : ''" />
+  <app-feedback [message]="error()" kind="error" />
+  <app-feedback [message]="exportError()" kind="error" />
   @if (data(); as report) {
     @if (report.metrics.length) {
       <dl class="metrics">
@@ -55,7 +49,7 @@
     }
     @if (report.headers.length) {
       @if (report.rows.length) {
-        <div class="report-table" tabindex="0" role="region" [attr.aria-label]="definition().title">
+        <div class="ui-table" tabindex="0" role="region" [attr.aria-label]="definition().title">
           <table>
             <thead>
               <tr>
@@ -76,7 +70,7 @@
           </table>
         </div>
       } @else {
-        <p class="muted">Aucune donnée disponible.</p>
+        <app-empty-state />
       }
     }
   }

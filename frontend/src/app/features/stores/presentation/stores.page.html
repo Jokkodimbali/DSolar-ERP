@@ -1,20 +1,13 @@
-<div class="page-heading">
-  <div>
-    <p class="eyebrow">ORGANISATION</p>
-    <h1>Magasins</h1>
-    <p class="muted">Consultez les magasins et gérez leurs informations et accès.</p>
-  </div>
+<app-page-header eyebrow="ORGANISATION" heading="Magasins" description="Consultez les magasins et gérez leurs informations et accès.">
   @if (session.can('stores.manage')) {
   <button class="primary" type="button" [disabled]="busy() || loading()" (click)="edit('new')">
     Nouveau magasin
   </button>
   }
-</div>
-@if (error()) {
-<p class="field-error panel" role="alert">{{ error() }}</p>
-} @if (success()) {
-<p class="panel" role="status">{{ success() }}</p>
-} @if (detail(); as store) {
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (detail(); as store) {
 <section class="panel">
   <div class="page-heading">
     <h2>Fiche magasin — {{ store.name }}</h2>
@@ -31,7 +24,7 @@
     </div>
     <div>
       <dt>Statut</dt>
-      <dd>{{ store.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}</dd>
+      <dd><app-status-badge [active]="store.status === 'ACTIVE'" /></dd>
     </div>
   </dl>
 </section>
@@ -39,24 +32,23 @@
 <section class="panel">
   <h2>{{ target === 'new' ? 'Nouveau magasin' : 'Modifier le magasin' }}</h2>
   <form [formGroup]="form" (ngSubmit)="save()" class="store-form">
-    <label>Code <input formControlName="code" maxlength="30" /></label>
-    <label>Nom <input formControlName="name" maxlength="160" /></label>
-    <label>Adresse <input formControlName="address" /></label>
-    <div class="store-actions">
+    <label class="ui-field">Code <input formControlName="code" maxlength="30" /></label>
+    <label class="ui-field">Nom <input formControlName="name" maxlength="160" /></label>
+    <label class="ui-field">Adresse <input formControlName="address" /></label>
+    <div class="ui-actions">
       <button type="submit" class="primary" [disabled]="busy() || loading()">Enregistrer</button>
       <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Annuler</button>
     </div>
   </form>
 </section>
 } @if (pendingStatus(); as store) {
-<section class="panel" aria-label="Confirmation du changement de statut">
-  <h2>{{ store.status === 'ACTIVE' ? 'Désactiver' : 'Activer' }} {{ store.name }} ?</h2>
-  <p class="muted">La modification du statut peut affecter les opérations et les accès au magasin.</p>
-  <div class="store-actions">
-    <button type="button" class="primary" [disabled]="busy()" (click)="confirmStatus()">Confirmer</button>
-    <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Annuler</button>
-  </div>
-</section>
+<app-confirm
+    [heading]="(store.status === 'ACTIVE' ? 'Désactiver ' : 'Activer ') + store.name + ' ?'"
+    description="La modification du statut peut affecter les opérations et les accès au magasin."
+    [busy]="busy()"
+    (confirmed)="confirmStatus()"
+    (cancelled)="close()"
+  />
 } @if (selected(); as store) {
 <section class="panel">
   <div class="page-heading">
@@ -85,16 +77,16 @@
     </button>
   </div>
   } @empty { @if (!busy()) {
-  <p class="muted">Aucun autre utilisateur disponible.</p>
+  <app-empty-state heading="Aucun autre utilisateur disponible" description="Les utilisateurs affectables apparaîtront ici." />
   } }
 </section>
 }
 <section class="panel">
-  <div class="store-tools">
-    <label
+  <div class="ui-toolbar">
+    <label class="ui-field"
       >Rechercher <input #query type="search" [value]="search()" (input)="setSearch(query.value)"
     /></label>
-    <label>
+    <label class="ui-field">
       Statut
       <select #filter [value]="status()" (change)="setStatus(filter.value)">
         <option value="ALL">Tous</option>
@@ -113,15 +105,15 @@
   <p role="status">Chargement des magasins…</p>
   } @else {
   <p class="muted small">{{ filtered().length }} magasin(s)</p>
-  <div class="store-table">
+  <div class="ui-table" role="region" aria-label="Liste des magasins" tabindex="0">
     <table>
       <thead>
         <tr>
-          <th>Code</th>
-          <th>Nom</th>
-          <th>Adresse</th>
-          <th>Statut</th>
-          <th>Actions</th>
+          <th scope="col">Code</th>
+          <th scope="col">Nom</th>
+          <th scope="col">Adresse</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -130,9 +122,9 @@
           <td>{{ store.code }}</td>
           <td>{{ store.name }}</td>
           <td>{{ store.address || '—' }}</td>
-          <td>{{ store.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}</td>
+          <td><app-status-badge [active]="store.status === 'ACTIVE'" /></td>
           <td>
-            <div class="store-actions">
+            <div class="ui-actions">
               <button type="button" class="secondary" [disabled]="busy()" (click)="view(store)">
                 Détails
               </button>
@@ -156,14 +148,8 @@
     </table>
   </div>
   @if (!filtered().length) {
-  <p class="muted">Aucun magasin correspondant.</p>
+  <app-empty-state heading="Aucun magasin correspondant" description="Modifiez les filtres ou créez un magasin si vous y êtes autorisé." />
   }
-  <div class="store-actions pagination">
-    <button class="secondary" type="button" [disabled]="page() <= 1" (click)="movePage(-1)">Précédent</button>
-    <span>Page {{ page() }} / {{ pageCount() }}</span>
-    <button class="secondary" type="button" [disabled]="page() >= pageCount()" (click)="movePage(1)">
-      Suivant
-    </button>
-  </div>
+  <app-pagination [page]="page()" [pages]="pageCount()" [disabled]="busy()" (change)="movePage($event)" />
   }
 </section>

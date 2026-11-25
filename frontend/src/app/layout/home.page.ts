@@ -13,8 +13,9 @@ import { SessionService } from '../features/auth/application/session.service';
       <p>{{ session.user()?.magasinsAutorises?.length ?? 0 }} magasin(s) affecté(s) à votre compte.</p>
       @if (session.can('sales.read', 'users.manage')) {
         <a class="primary" routerLink="/tableau-de-bord">Ouvrir le tableau de bord</a>
-      } @else {
-        <p>Les interfaces de gestion des magasins seront ajoutées progressivement selon vos autorisations.</p>
+      }
+      @if (session.can('stores.read')) {
+        <a class="secondary" routerLink="/magasins">Ouvrir les magasins</a>
       }
     </section>`,
 })

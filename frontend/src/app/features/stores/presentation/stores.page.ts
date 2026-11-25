@@ -7,10 +7,24 @@ import { SessionService } from '../../auth/application/session.service';
 import type { PublicIdentity } from '../../auth/domain/auth.contract';
 import { filterStores, type Store, type StoreStatus } from '../domain/store.contract';
 import { StoresApi } from '../infrastructure/stores.api';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { FeedbackComponent } from '../../../shared/ui/feedback.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { PaginationComponent } from '../../../shared/ui/pagination.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { ConfirmComponent } from '../../../shared/ui/confirm.component';
 
 @Component({
   selector: 'app-stores-page',
-  imports: [ReactiveFormsModule],
+  imports: [
+    ReactiveFormsModule,
+    PageHeaderComponent,
+    FeedbackComponent,
+    StatusBadgeComponent,
+    PaginationComponent,
+    EmptyStateComponent,
+    ConfirmComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stores.page.html',
   styleUrl: './stores.page.css',
@@ -78,8 +92,8 @@ export class StoresPage {
     this.load();
   }
 
-  movePage(offset: number): void {
-    this.page.update((page) => Math.min(this.pageCount(), Math.max(1, page + offset)));
+  movePage(page: number): void {
+    if (Number.isInteger(page)) this.page.set(Math.min(this.pageCount(), Math.max(1, page)));
   }
 
   setSearch(search: string): void {
