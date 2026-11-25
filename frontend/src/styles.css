@@ -684,3 +684,73 @@ app-ui-icon {
     right: 12px;
   }
 }
+
+app-global-search {
+  flex: 1;
+  max-width: 520px;
+  min-width: 0;
+}
+.global-search {
+  position: relative;
+}
+.global-search-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+}
+.global-search-form input {
+  border: 0;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--ink);
+}
+.global-search-form button {
+  border: 0;
+  padding: 8px;
+}
+.search-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  width: min(520px, calc(100vw - 24px));
+  max-height: 75dvh;
+  overflow-y: auto;
+  z-index: 30;
+}
+.search-group h3 {
+  margin: 12px 0 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.search-result {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+@media (max-width: 760px) {
+  .topbar {
+    height: auto;
+    min-height: 72px;
+    flex-wrap: wrap;
+    padding-block: 10px;
+  }
+  app-global-search {
+    order: 5;
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .search-panel {
+    position: fixed;
+    top: 124px;
+    left: 12px;
+  }
+  .notification-panel {
+    top: 124px;
+  }
+}
