@@ -66,7 +66,6 @@ const paymentStatuses: Record<string, string> = {
   UNPAID: 'Impayée',
   PARTIALLY_PAID: 'Partiellement payée',
   PAID: 'Payée',
-  OVERPAID: 'Trop-perçu',
 };
 
 export function parseRecentOrders(value: unknown): RecentOrder[] {
