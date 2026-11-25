@@ -29,7 +29,7 @@ function setup() {
   const api = {
     login: vi.fn(() => of(initial)),
     refresh: vi.fn(() => pending.asObservable()),
-    logout: vi.fn<(token: string) => ReturnType<AuthApi['logout']>>(() =>
+    logout: vi.fn<() => ReturnType<AuthApi['logout']>>(() =>
       of({ message: 'Déconnexion effectuée.' }),
     ),
   };
@@ -53,6 +53,29 @@ function setup() {
 const unauthorized = () => new HttpErrorResponse({ status: 401 });
 
 describe('Cycle de session et intégration HTTP', () => {
+  it('restaure la session une seule fois avant la navigation', async () => {
+    const { session, api, pending, rotated } = setup();
+    const first = firstValueFrom(session.restore());
+    const second = firstValueFrom(session.restore());
+    expect(api.refresh).toHaveBeenCalledTimes(1);
+    pending.next(rotated);
+    pending.complete();
+    expect(await first).toBe(true);
+    expect(await second).toBe(true);
+    expect(await firstValueFrom(session.restore())).toBe(true);
+    expect(session.accessToken()).toBe('next-access');
+    expect(api.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('reste anonyme si le cookie de session est absent ou expiré', async () => {
+    const { session, api, pending } = setup();
+    const restored = firstValueFrom(session.restore());
+    pending.error(unauthorized());
+    expect(await restored).toBe(false);
+    expect(await firstValueFrom(session.restore())).toBe(false);
+    expect(api.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('connecte avec le contrat réel et filtre les permissions', async () => {
     const { session, login } = setup();
     expect(session.authenticated()).toBe(false);
@@ -121,7 +144,7 @@ describe('Cycle de session et intégration HTTP', () => {
     pending.complete();
     await refresh;
     await logout;
-    expect(api.logout).toHaveBeenCalledWith('next-refresh');
+    expect(api.logout).toHaveBeenCalledWith();
     expect(session.user()).toBeNull();
   });
 

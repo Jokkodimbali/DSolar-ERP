@@ -33,7 +33,12 @@ export class LoginRateLimitGuard implements CanActivate {
     const ip = request.ip ?? request.socket?.remoteAddress ?? 'unknown';
     // Use handler metadata, not a user-controlled path (including trailing slashes or casing).
     const handler = context.getHandler().name;
-    const endpoint = handler === 'refresh' || handler === 'logout' ? handler : 'login';
+    const endpoint =
+      handler === 'refresh' || handler === 'browserRefresh'
+        ? 'refresh'
+        : handler === 'logout' || handler === 'browserLogout'
+          ? 'logout'
+          : 'login';
     await this.consume(endpoint + ':ip:' + ip, endpoint === 'login' ? 60 : 120);
     if (endpoint === 'login') {
       const body: unknown = request.body;

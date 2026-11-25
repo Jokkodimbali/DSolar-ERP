@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import {
   catchError,
@@ -13,7 +14,7 @@ import {
 } from 'rxjs';
 import { AuthApi } from '../infrastructure/auth.api';
 import {
-  type AuthResult,
+  type BrowserAuthResult,
   type LoginInput,
   type Permission,
   type PublicIdentity,
@@ -24,10 +25,12 @@ import {
 export class SessionService {
   private readonly api = inject(AuthApi);
   private readonly router = inject(Router);
-  private readonly session = signal<AuthResult | null>(null);
+  private readonly session = signal<BrowserAuthResult | null>(null);
   private readonly sessionEpoch = signal(0);
   private readonly closing = signal(false);
   private readonly warning = signal('');
+  private restored = false;
+  private restoring: Observable<boolean> | null = null;
   private refreshing: { epoch: number; result: Observable<string> } | null = null;
   readonly sessionVersion = this.sessionEpoch.asReadonly();
   readonly notice = this.warning.asReadonly();
@@ -43,12 +46,37 @@ export class SessionService {
   }
 
   private invalidate(): number {
+    this.restored = true;
     this.sessionEpoch.update((epoch) => epoch + 1);
     this.session.set(null);
     return this.sessionEpoch();
   }
 
-  login(input: LoginInput): Observable<AuthResult> {
+  restore(): Observable<boolean> {
+    if (this.authenticated() || this.restored) return of(this.authenticated());
+    if (this.restoring) return this.restoring;
+    const epoch = this.sessionEpoch();
+    this.restoring = this.api.refresh().pipe(
+      map((result) => {
+        if (epoch !== this.sessionEpoch() || this.closing()) return false;
+        this.session.set(result);
+        return true;
+      }),
+      catchError((error: unknown) => {
+        if (epoch === this.sessionEpoch() && (!(error instanceof HttpErrorResponse) || error.status !== 401))
+          this.warning.set('Impossible de restaurer la session. Veuillez réessayer.');
+        return of(false);
+      }),
+      finalize(() => {
+        this.restored = true;
+        this.restoring = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.restoring;
+  }
+
+  login(input: LoginInput): Observable<BrowserAuthResult> {
     if (this.closing()) return throwError(() => new Error('Déconnexion en cours.'));
     const epoch = this.invalidate();
     this.warning.set('');
@@ -78,7 +106,7 @@ export class SessionService {
     if (current.jetonAcces !== rejected) return of(current.jetonAcces);
     if (this.refreshing?.epoch === epoch) return this.refreshing.result;
 
-    const result = this.api.refresh(current.jetonRenouvellement).pipe(
+    const result = this.api.refresh().pipe(
       map((next) => {
         if (epoch !== this.sessionEpoch() || next.utilisateur.id !== current.utilisateur.id)
           throw new Error('Session remplacée ou identité invalide.');
@@ -86,7 +114,8 @@ export class SessionService {
         return next.jetonAcces;
       }),
       catchError((error: unknown) => {
-        if (epoch === this.sessionEpoch()) this.expire();
+        if (epoch === this.sessionEpoch() && error instanceof HttpErrorResponse && error.status === 401)
+          this.expire();
         return throwError(() => error);
       }),
       finalize(() => {
@@ -112,9 +141,8 @@ export class SessionService {
     return pending.pipe(
       catchError(() => of(null)),
       switchMap(() => {
-        const token = this.session()?.jetonRenouvellement;
         this.invalidate();
-        return token ? this.api.logout(token) : of(null);
+        return this.api.logout();
       }),
       catchError((error: unknown) => {
         this.warning.set(

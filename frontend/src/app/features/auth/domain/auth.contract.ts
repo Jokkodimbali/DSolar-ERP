@@ -63,3 +63,11 @@ export function parseAuthResult(value: unknown): AuthResult {
 export function hasPermissions(user: PublicIdentity | null, required: readonly Permission[]): boolean {
   return user !== null && required.every((permission) => user.permissions.includes(permission));
 }
+
+export type BrowserAuthResult = Omit<AuthResult, 'jetonRenouvellement'>;
+
+export function parseBrowserAuthResult(value: unknown): BrowserAuthResult {
+  if (!isRecord(value) || typeof value['jetonAcces'] !== 'string' || !value['jetonAcces'])
+    throw new Error('Session invalide.');
+  return { jetonAcces: value['jetonAcces'], utilisateur: parseIdentity(value['utilisateur']) };
+}

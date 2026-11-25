@@ -118,8 +118,8 @@ export class DashboardPage {
   readonly otherReports = reports.filter(
     (report) => report !== this.revenueReport && report !== this.activityReport,
   );
-  displayMoney(value: string | undefined): string {
-    return value === undefined ? '—' : formatMoney(value);
+  displayMoney(value: string | null | undefined): string {
+    return value === undefined || value === null ? '—' : formatMoney(value);
   }
   constructor() {
     this.load();

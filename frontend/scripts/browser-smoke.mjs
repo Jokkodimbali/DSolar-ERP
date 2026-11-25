@@ -21,6 +21,13 @@ try {
   await page.locator('#password').fill(process.env.ADMIN_PASSWORD);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await page.waitForURL('**/tableau-de-bord');
+  const cookie = (await page.context().cookies()).find((item) => item.name === 'dsolar_refresh');
+  assert(cookie?.httpOnly && cookie.sameSite === 'Strict');
+  await page.reload();
+  await page.waitForURL('**/tableau-de-bord');
+  await page.locator('app-kpi-card').last().waitFor();
+  await page.reload();
+  await page.waitForURL('**/tableau-de-bord');
   await page.locator('app-kpi-card').last().waitFor();
   await page.locator('.revenue-chart').waitFor();
   assert.equal(await page.locator('app-dashboard-report select').first().inputValue(), String(new Date().getFullYear()));
@@ -86,6 +93,9 @@ try {
   assert.deepEqual(errors, [], 'Erreurs JavaScript dans le navigateur');
   await page.getByLabel('Menu du compte').click();
   await page.getByRole('button', { name: 'Déconnexion' }).click();
+  await page.waitForURL('**/connexion');
+  assert(!(await page.context().cookies()).some((item) => item.name === 'dsolar_refresh'));
+  await page.goto('http://localhost:4200/tableau-de-bord');
   await page.waitForURL('**/connexion');
   console.log('Validation navigateur : desktop, tablette, mobile et proforma réussis.');
 } finally {
