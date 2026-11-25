@@ -8,6 +8,7 @@ import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/d
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
+import { parseProduct, parseProductPage, parsePrices, parseReferences } from '../../products/domain/product.contract';
 import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 
@@ -326,6 +327,22 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         token,
       );
       expect(productResponse.status).toBe(201);
+      const catalogueProduct = parseProduct(productResponse.data);
+      const listedProducts = await request('/products/search?search=PV-PROFORMA-CI&page=1&limit=10&active=true', 'GET', undefined, token);
+      expect(listedProducts.status).toBe(200);
+      expect(parseProductPage(listedProducts.data).items).toContainEqual(catalogueProduct);
+      for (const kind of ['categories', 'brands', 'tax-regimes'] as const) {
+        const references = await request('/' + kind, 'GET', undefined, token);
+        expect(references.status).toBe(200);
+        expect(() => parseReferences(references.data, kind)).not.toThrow();
+      }
+      const pricePath = '/products/' + catalogueProduct.id + '/prices';
+      expect((await request(pricePath, 'POST', { salePrice: '1000.25', purchasePrice: '800.10' }, token)).status).toBe(201);
+      expect((await request(pricePath, 'POST', { salePrice: '1100.50' }, token)).status).toBe(201);
+      const history = parsePrices((await request(pricePath, 'GET', undefined, token)).data);
+      expect(history).toHaveLength(2);
+      expect(history.filter((price) => price.validTo === null)).toHaveLength(1);
+      expect(history[0]?.salePrice).toBe('1100.5');
       const [customer] = parseOptions([customerResponse.data]);
       const [product] = parseOptions([productResponse.data]);
       if (!customer || !product) throw new Error('Références manquantes.');
