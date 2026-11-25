@@ -5,7 +5,7 @@ export function apiPath(path: string): string {
   return API_PREFIX + path;
 }
 export function isInternalApi(url: string): boolean {
-  if (!url.startsWith(API_PREFIX + '/')) return false;
+  if (!url.startsWith(API_PREFIX + '/') || /[\u0000-\u0020\u007f]/u.test(url)) return false;
   const path = url.split(/[?#]/, 1)[0] ?? '';
   if (
     path.includes('\\') ||

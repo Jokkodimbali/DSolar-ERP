@@ -1,88 +1,109 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  catchError,
-  finalize,
-  map,
-  of,
-  shareReplay,
-  switchMap,
-  tap,
-  throwError,
-  type Observable,
-} from 'rxjs';
+import { catchError, finalize, map, of, shareReplay, switchMap, tap, throwError, type Observable } from 'rxjs';
 import { AuthApi } from '../infrastructure/auth.api';
-import { type AuthResult, type LoginInput, type Permission, hasPermissions } from '../domain/auth.contract';
+import { type AuthResult, type LoginInput, type Permission, type PublicIdentity, hasPermissions } from '../domain/auth.contract';
+
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly api = inject(AuthApi);
   private readonly router = inject(Router);
   private readonly session = signal<AuthResult | null>(null);
-  private refreshing: Observable<string> | null = null;
-  private generation = 0;
-  private readonly closing = signal(false);
-  readonly sessionVersion = computed(() => this.sessionEpoch());
   private readonly sessionEpoch = signal(0);
+  private readonly closing = signal(false);
+  private readonly warning = signal('');
+  private refreshing: { epoch: number; result: Observable<string> } | null = null;
+  readonly sessionVersion = this.sessionEpoch.asReadonly();
+  readonly notice = this.warning.asReadonly();
   readonly user = computed(() => this.session()?.utilisateur ?? null);
   readonly authenticated = computed(() => this.user() !== null && !this.closing());
+
   accessToken(): string | null {
     return this.closing() ? null : (this.session()?.jetonAcces ?? null);
   }
+
   can(...required: Permission[]): boolean {
-    return hasPermissions(this.user(), required);
+    return this.authenticated() && hasPermissions(this.user(), required);
   }
-  login(input: LoginInput) {
-    const generation = ++this.generation;
-    this.sessionEpoch.set(generation);
+
+  private invalidate(): number {
+    this.sessionEpoch.update((epoch) => epoch + 1);
     this.session.set(null);
+    return this.sessionEpoch();
+  }
+
+  login(input: LoginInput): Observable<AuthResult> {
+    if (this.closing()) return throwError(() => new Error('Déconnexion en cours.'));
+    const epoch = this.invalidate();
+    this.warning.set('');
     return this.api.login(input).pipe(
       tap((result) => {
-        if (generation !== this.generation || this.closing()) throw new Error('Connexion annulée.');
+        if (epoch !== this.sessionEpoch() || this.closing()) throw new Error('Connexion annulée.');
         this.session.set(result);
       }),
     );
   }
-  refreshAfter(rejected: string, generation: number): Observable<string> {
+
+  updateIdentity(epoch: number, identity: PublicIdentity): boolean {
     const current = this.session();
-    if (!current || this.closing() || generation !== this.generation)
+    if (!current || this.closing() || epoch !== this.sessionEpoch()) return false;
+    if (identity.id !== current.utilisateur.id) {
+      this.expire();
+      return false;
+    }
+    this.session.set({ ...current, utilisateur: identity });
+    return true;
+  }
+
+  refreshAfter(rejected: string, epoch: number): Observable<string> {
+    const current = this.session();
+    if (!current || this.closing() || epoch !== this.sessionEpoch())
       return throwError(() => new Error('Session expirée.'));
     if (current.jetonAcces !== rejected) return of(current.jetonAcces);
-    if (this.refreshing) return this.refreshing;
-    this.refreshing = this.api.refresh(current.jetonRenouvellement).pipe(
-      map((result) => {
-        if (generation !== this.generation) throw new Error('Session remplacée.');
-        this.session.set(result);
-        return result.jetonAcces;
+    if (this.refreshing?.epoch === epoch) return this.refreshing.result;
+
+    const result = this.api.refresh(current.jetonRenouvellement).pipe(
+      map((next) => {
+        if (epoch !== this.sessionEpoch() || next.utilisateur.id !== current.utilisateur.id)
+          throw new Error('Session remplacée ou identité invalide.');
+        this.session.set(next);
+        return next.jetonAcces;
       }),
       catchError((error: unknown) => {
-        if (generation === this.generation) this.expire();
+        if (epoch === this.sessionEpoch()) this.expire();
         return throwError(() => error);
       }),
       finalize(() => {
-        this.refreshing = null;
+        if (this.refreshing?.epoch === epoch) this.refreshing = null;
       }),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
-    return this.refreshing;
+    this.refreshing = { epoch, result };
+    return result;
   }
+
   expire(): void {
-    this.generation++;
-    this.sessionEpoch.set(this.generation);
-    this.session.set(null);
+    this.invalidate();
+    this.warning.set('Votre session a expiré. Veuillez vous reconnecter.');
     void this.router.navigateByUrl('/connexion');
   }
+
   logout(): Observable<unknown> {
     if (this.closing()) return of(null);
     this.closing.set(true);
-    const pending: Observable<string | null> = this.refreshing ?? of(null);
+    const pending: Observable<string | null> = this.refreshing?.epoch === this.sessionEpoch()
+      ? this.refreshing.result
+      : of(null);
     return pending.pipe(
       catchError(() => of(null)),
       switchMap(() => {
         const token = this.session()?.jetonRenouvellement;
-        this.generation++;
-        this.sessionEpoch.set(this.generation);
-        this.session.set(null);
+        this.invalidate();
         return token ? this.api.logout(token) : of(null);
+      }),
+      catchError((error: unknown) => {
+        this.warning.set('Vous êtes déconnecté de cet appareil. La révocation de la session serveur n’a pas pu être confirmée.');
+        return throwError(() => error);
       }),
       finalize(() => {
         this.closing.set(false);

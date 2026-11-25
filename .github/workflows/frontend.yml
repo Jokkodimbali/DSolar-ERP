@@ -39,7 +39,7 @@ jobs:
         if: ${{ !cancelled() && steps.format.outcome == 'failure' }}
         run: |
           npm run format
-          git diff --binary -- src angular.json 'tsconfig*.json' package.json > /tmp/dsolar-front-format.patch
+          git diff --binary -- src angular.json 'tsconfig*.json' package.json proxy.conf.json eslint.config.mjs .prettierrc.json > /tmp/dsolar-front-format.patch
           node -e "const fs=require('node:fs'); const data=fs.readFileSync('/tmp/dsolar-front-format.patch').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('FRONTEND_FORMAT:'+data.slice(i,i+8000));"
       - name: Audit des dépendances de production
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

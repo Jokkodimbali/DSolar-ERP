@@ -33,10 +33,12 @@ import { errorMessage } from '../../../core/api/http-error';
           <p class="field-error">Saisissez une adresse électronique valide (254 caractères maximum).</p>
         }
         <label for="password">Mot de passe</label
-        ><input id="password" type="password" autocomplete="current-password" formControlName="password" />
+        ><input id="password" [type]="revealPassword() ? 'text' : 'password'" autocomplete="current-password" formControlName="password" />
+        <button class="password-toggle" type="button" [attr.aria-pressed]="revealPassword()" (click)="revealPassword.set(!revealPassword())">{{ revealPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe' }}</button>
         @if (form.controls.password.touched && form.controls.password.invalid) {
           <p class="field-error">Le mot de passe est obligatoire (1 024 caractères maximum).</p>
         }
+        @if (notice()) { <p class="field-error" role="status">{{ notice() }}</p> }
         @if (error()) {
           <p class="field-error" role="alert">{{ error() }}</p>
         }
@@ -51,6 +53,8 @@ import { errorMessage } from '../../../core/api/http-error';
 export class LoginPage {
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
+  readonly notice = this.session.notice;
+  readonly revealPassword = signal(false);
   readonly busy = signal(false);
   readonly error = signal('');
   readonly form = inject(NonNullableFormBuilder).group({
@@ -62,6 +66,7 @@ export class LoginPage {
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
     this.error.set('');
+    this.revealPassword.set(false);
     this.busy.set(true);
     this.session
       .login(this.form.getRawValue())
@@ -73,7 +78,7 @@ export class LoginPage {
             this.session.can('sales.read', 'users.manage') ? '/tableau-de-bord' : '/',
           );
         },
-        error: (error: unknown) => this.error.set(errorMessage(error)),
+        error: (error: unknown) => { this.form.controls.password.reset(); this.error.set(errorMessage(error)); },
       });
   }
 }

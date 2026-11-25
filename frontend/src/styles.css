@@ -375,3 +375,27 @@ h2 {
     scroll-behavior: auto !important;
   }
 }
+
+.password-toggle {
+  border: 0;
+  padding: 8px 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+}
+.permission-list li {
+  padding: 7px 12px;
+  background: #f1f4f7;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}

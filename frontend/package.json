@@ -9,10 +9,12 @@
     "start": "ng serve --host localhost",
     "build": "ng build",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "lint": "eslint src",
+    "lint": "eslint src --max-warnings=0",
     "test": "vitest run",
-    "format": "prettier --write src angular.json tsconfig*.json package.json",
-    "format:check": "prettier --check src angular.json tsconfig*.json package.json"
+    "format": "prettier --write src angular.json tsconfig*.json package.json proxy.conf.json eslint.config.mjs .prettierrc.json",
+    "format:check": "prettier --check src angular.json tsconfig*.json package.json proxy.conf.json eslint.config.mjs .prettierrc.json",
+    "lint:fix": "eslint src --fix --max-warnings=0",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build"
   },
   "dependencies": {
     "@angular/common": "^21.0.0",

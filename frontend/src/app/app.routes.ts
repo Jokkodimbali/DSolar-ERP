@@ -9,6 +9,7 @@ export const routes: Routes = [
   {
     path: '',
     canActivate: [authenticatedGuard],
+    canActivateChild: [authenticatedGuard],
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     children: [
       {
@@ -21,6 +22,10 @@ export const routes: Routes = [
         canActivate: [dashboardGuard],
         loadComponent: () =>
           import('./features/dashboard/presentation/dashboard.page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'mon-compte',
+        loadComponent: () => import('./features/auth/presentation/profile.page').then((m) => m.ProfilePage),
       },
       {
         path: 'acces-refuse',

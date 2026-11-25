@@ -23,3 +23,9 @@ npm run typecheck, npm run lint, npm test, npm run format:check, npm run build. 
 ## Périmètre initial
 
 Connexion réelle, déconnexion, session, guards, shell responsive, lecture des indicateurs globaux du backend réservée au périmètre administratif. Les autres interfaces seront développées module par module. La compatibilité intégrale ne peut être affirmée qu'après tests de recette sur toutes les routes utilisées. Voir ../backend/docs/05-integration-frontend.md et ../backend/docs/07-swagger.md.
+
+## Module authentification
+
+Les quatre endpoints `/auth/login`, `/auth/refresh`, `/auth/logout` et `/auth/me` sont intégrés. La page Mon compte lit les droits effectifs et les magasins affectés. Aucun rôle n'est déduit de manière arbitraire. Les requêtes anciennes ne doivent jamais alimenter une nouvelle session. Les mutations ne sont pas rejouées après 401. En cas d'échec de révocation, la session locale est supprimée avec un avertissement explicite. Le renouvellement et la déconnexion sont bornés à 15 secondes par requête.
+
+Avant un commit : `npm run lint:fix`, `npm run format`, puis `npm run check`. ESLint n'accepte aucun avertissement. Le CI ne modifie pas Git ; une anomalie bloque la livraison. Tests Vitest du cycle de session et de l'intercepteur HTTP avec doubles contrôlés ; une recette navigateur avec backend réel reste nécessaire.
