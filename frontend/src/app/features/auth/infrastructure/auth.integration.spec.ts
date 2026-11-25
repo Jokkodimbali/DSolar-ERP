@@ -338,6 +338,49 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         subtitle: '',
       });
       expect((await request('/proformas/' + created.id + '/cancel', 'POST', {}, token)).status).toBe(201);
+
+      const adjustment = await request(
+        '/inventory/adjustments',
+        'POST',
+        {
+          storeId: store.id,
+          productId: product.id,
+          direction: 'IN',
+          quantity: '2.500',
+          reason: 'Stock initial de test CI',
+          operationKey: crypto.randomUUID(),
+        },
+        token,
+      );
+      expect(adjustment.status).toBe(201);
+      const alertsWithStock = await request(
+        '/inventory' + path + '/alerts?threshold=5',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(alertsWithStock.status).toBe(200);
+      expect(parseAlerts(alertsWithStock.data, store.id, store.name).items).toContainEqual({
+        productId: product.id,
+        name: product.name,
+        sku: 'PV-PROFORMA-CI',
+        unit: 'PIECE',
+        available: '2.500',
+        severity: 'LOW_STOCK',
+      });
+
+      const second = await request('/proformas', 'POST', input, token);
+      expect(second.status).toBe(201);
+      const draft = parseCreatedProforma(second.data);
+      expect((await request('/proformas/' + draft.id + '/issue', 'POST', {}, token)).status).toBe(201);
+      expect((await request('/proformas/' + draft.id + '/accept', 'POST', {}, token)).status).toBe(201);
+      const converted = await request('/sales-orders/from-proforma/' + draft.id, 'POST', {}, token);
+      expect(converted.status).toBe(201);
+      const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
+      expect(orders.status).toBe(200);
+      expect(parseRecentOrders(orders.data)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ total: '2\u202f360,00 FCFA', paymentStatus: 'Impayée' })]),
+      );
     } finally {
       await request('/auth/logout', 'POST', { refreshToken: saleAdmin.jetonRenouvellement });
     }
