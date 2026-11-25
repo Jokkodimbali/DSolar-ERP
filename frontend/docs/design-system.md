@@ -37,3 +37,7 @@ Le logo officiel fourni est conservé sans altération dans public/d-solar-and-a
 ## Contrôle de fidélité visuelle
 
 La validation doit porter sur les captures réelles à 1440 × 900, 1024 × 768 et 390 × 844, avec contrôle du logo, de la grille KPI, de la disposition des quatre panneaux, des débordements horizontaux et des parcours fonctionnels. Les statistiques de période et la comparaison au mois précédent nécessitent encore des contrats backend dédiés. Les photos de produits, la navigation des modules non livrés et les liens de détail ne doivent pas être simulés.
+
+## Synthèse mensuelle du tableau de bord
+
+Le sélecteur mensuel pilote les indicateurs financiers et le graphique quotidien via GET /dashboard/period?month=AAAA-MM. La facturation est nette des avoirs émis, les encaissements nets des annulations enregistrées. Les commandes comptées sont créées dans le mois et encore confirmées ou livrées. Les dates sont en UTC (heure de Dakar). La comparaison porte sur le mois civil précédent complet, même si le mois sélectionné est en cours ; aucune variation n'est affichée lorsque sa base est nulle ou négative. Le stock et les listes d'activité récente restent des vues instantanées. Le rapport annuel reste accessible dans les rapports détaillés.

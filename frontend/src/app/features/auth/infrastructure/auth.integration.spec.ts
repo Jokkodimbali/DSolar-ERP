@@ -5,6 +5,7 @@ import { parseAlerts, parseRecentOrders } from '../../dashboard/domain/dashboard
 import { parseSearch, sources } from '../../search/domain/search.contract';
 import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
 import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
+import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
@@ -93,6 +94,11 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const overview = await request('/dashboard/overview', 'GET', undefined, session.jetonAcces);
       expect(overview.status).toBe(200);
       expect(() => parseOverview(overview.data)).not.toThrow();
+      const period = await request('/dashboard/period?month=2028-02', 'GET', undefined, session.jetonAcces);
+      expect(period.status).toBe(200);
+      expect(parsePeriod(period.data, '2028-02').days).toHaveLength(29);
+      expect((await request('/dashboard/period?month=2028-13', 'GET', undefined, session.jetonAcces)).status).toBe(400);
+      expect((await request('/dashboard/period?month=2028-02')).status).toBe(401);
 
       for (const definition of reports) {
         const response = await request(reportPath(definition.path), 'GET', undefined, session.jetonAcces);
