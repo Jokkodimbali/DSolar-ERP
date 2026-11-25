@@ -30,37 +30,35 @@ import { errorMessage } from '../../../core/api/http-error';
     </app-page-header>
     <app-feedback [message]="loading() ? 'Chargement des indicateurs…' : ''" />
     <app-feedback [message]="error()" kind="error" />
-    @if (data(); as d) {
-      <div class="kpi-grid">
-        <app-kpi-card
-          icon="trend"
-          label="Facturation nette"
-          [value]="money(d.netInvoiced)"
-          description="Après déduction des avoirs"
-        />
-        <app-kpi-card
-          icon="box"
-          tone="blue"
-          label="Commandes confirmées"
-          [value]="d.confirmedOrders"
-          description="Vue globale"
-        />
-        <app-kpi-card
-          icon="alert"
-          tone="orange"
-          label="Alertes de stock"
-          [value]="operations()?.alertCount() ?? '—'"
-          description="Références par magasin actif"
-        />
-        <app-kpi-card
-          icon="wallet"
-          tone="green"
-          label="Encaissements"
-          [value]="money(d.collected)"
-          description="Montant enregistré"
-        />
-      </div>
-    }
+    <div class="kpi-grid">
+      <app-kpi-card
+        icon="trend"
+        label="Facturation nette"
+        [value]="displayMoney(data()?.netInvoiced)"
+        description="Après déduction des avoirs"
+      />
+      <app-kpi-card
+        icon="box"
+        tone="blue"
+        label="Commandes confirmées"
+        [value]="data()?.confirmedOrders ?? '—'"
+        description="Vue globale"
+      />
+      <app-kpi-card
+        icon="alert"
+        tone="orange"
+        label="Alertes de stock"
+        [value]="operations()?.alertCount() ?? '—'"
+        description="Références par magasin actif"
+      />
+      <app-kpi-card
+        icon="wallet"
+        tone="green"
+        label="Encaissements"
+        [value]="displayMoney(data()?.collected)"
+        description="Montant enregistré"
+      />
+    </div>
     <app-dashboard-operations>
       @if (revenueReport; as report) {
         <app-dashboard-report dashboardRevenue [definition]="report" />
@@ -120,6 +118,9 @@ export class DashboardPage {
   readonly otherReports = reports.filter(
     (report) => report !== this.revenueReport && report !== this.activityReport,
   );
+  displayMoney(value: string | undefined): string {
+    return value === undefined ? '—' : formatMoney(value);
+  }
   constructor() {
     this.load();
   }

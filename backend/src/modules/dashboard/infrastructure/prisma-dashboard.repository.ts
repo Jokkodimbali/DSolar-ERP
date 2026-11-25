@@ -30,7 +30,11 @@ export class PrismaDashboardRepository implements DashboardRepository {
           throw new ForbiddenException('Tableau de bord réservé aux administrateurs actifs.');
         return work(tx);
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        maxWait: 10000,
+        timeout: 20000,
+      },
     );
   }
 

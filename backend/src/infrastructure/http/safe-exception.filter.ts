@@ -68,7 +68,10 @@ export class SafeExceptionFilter extends BaseExceptionFilter {
       : exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
-    if (!conflict) this.logger.error('Erreur technique HTTP : ' + status);
+    if (!conflict) {
+      const code = exception instanceof Prisma.PrismaClientKnownRequestError ? exception.code : undefined;
+      this.logger.error('Erreur technique HTTP : ' + status + (code ? ' (Prisma ' + code + ')' : ''));
+    }
     if (this.adapter.httpAdapter.isHeadersSent(response)) {
       this.adapter.httpAdapter.end(response);
       return;

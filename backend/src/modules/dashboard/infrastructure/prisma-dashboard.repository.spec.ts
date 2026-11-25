@@ -51,6 +51,8 @@ describe('Autorisation transactionnelle du dashboard', () => {
     await expect(repository.recentActivity(10, 'actor')).resolves.toEqual([]);
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      maxWait: 10000,
+      timeout: 20000,
     });
     expect(tx.auditLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
