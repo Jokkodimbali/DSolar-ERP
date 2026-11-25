@@ -82,7 +82,7 @@ export class PrismaCatalogueRepository implements CatalogueRepository {
             await tx.brand.delete({ where: { id } });
           }
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
       );
     } catch (error: unknown) {
       this.map(error);

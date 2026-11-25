@@ -147,6 +147,8 @@ function successSchema(path: string, method: string): Schema | undefined {
   if (path === '/api/v1/auth/browser/logout') return ref('ApiMessage');
   if (path === '/api/v1/dashboard/period') return ref('ApiDashboardPeriod');
   if (path === '/api/v1/auth/logout') return ref('ApiMessage');
+  if (method === 'delete' && ['/api/v1/categories/{id}', '/api/v1/brands/{id}'].includes(path))
+    return ref('ApiMessage');
   if (path === '/api/v1/auth/me') return ref('ApiPublicIdentity');
   if (path === '/api/v1/users' && method === 'get') return array(ref('ApiManagedUser'));
   if (

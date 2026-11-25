@@ -59,6 +59,16 @@ export class ProductsApi {
       .pipe(map((value) => parseReferences([value], kind)));
   }
 
+  renameReference(kind: ReferenceKind, id: string, name: string) {
+    return this.http
+      .patch<unknown>(apiPath('/' + kind + '/' + storeId(id)), { name })
+      .pipe(map((value) => parseReferences([value], kind)));
+  }
+
+  deleteReference(kind: 'categories' | 'brands', id: string) {
+    return this.http.delete<unknown>(apiPath('/' + kind + '/' + storeId(id)));
+  }
+
   prices(id: string) {
     return this.http.get<unknown>(this.path(id) + '/prices').pipe(map(parsePrices));
   }

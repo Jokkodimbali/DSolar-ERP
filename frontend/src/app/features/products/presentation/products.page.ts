@@ -58,6 +58,13 @@ export class ProductsPage {
   readonly selected = signal<Product | null>(null);
   readonly prices = signal<ProductPrice[]>([]);
   readonly referenceKind = signal<ReferenceKind | null>(null);
+  readonly referenceList = signal<ReferenceKind | null>(null);
+  readonly renameTarget = signal<{ kind: ReferenceKind; reference: Reference } | null>(null);
+  readonly deleteTarget = signal<{ kind: 'categories' | 'brands'; reference: Reference } | null>(null);
+  readonly renameName = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.maxLength(200)],
+  });
   readonly photoVersion = signal(0);
   readonly money = formatMoney;
   readonly form = new FormGroup({
@@ -151,6 +158,8 @@ export class ProductsPage {
     this.pending.set(null);
     this.selected.set(null);
     this.referenceKind.set(null);
+    this.renameTarget.set(null);
+    this.deleteTarget.set(null);
     this.prices.set([]);
   }
 
@@ -268,6 +277,49 @@ export class ProductsPage {
     this.mutate(this.api.upload(product.id, file), 'Photo enregistrée.', () =>
       this.photoVersion.update((value) => value + 1),
     );
+  }
+
+  referencesFor(kind: ReferenceKind): Reference[] {
+    return kind === 'categories' ? this.categories() : kind === 'brands' ? this.brands() : this.taxes();
+  }
+
+  rename(kind: ReferenceKind, reference: Reference): void {
+    if (this.busy() || !this.session.can('products.manage')) return;
+    this.close();
+    this.renameName.reset(reference.name);
+    this.renameTarget.set({ kind, reference });
+  }
+
+  saveRename(): void {
+    const target = this.renameTarget();
+    if (!target || this.busy() || !this.session.can('products.manage')) return;
+    const name = this.renameName.value.trim();
+    if (!name || this.renameName.invalid) {
+      this.error.set('Renseignez un libellé valide.');
+      return;
+    }
+    this.mutate(this.api.renameReference(target.kind, target.reference.id, name), 'Référence mise à jour.', () => {
+      this.close();
+      this.loadReferences();
+    });
+  }
+
+  askDelete(kind: ReferenceKind, reference: Reference): void {
+    if (kind === 'tax-regimes' || this.busy() || !this.session.can('products.manage')) return;
+    this.close();
+    this.deleteTarget.set({ kind, reference });
+  }
+
+  deleteReference(): void {
+    const target = this.deleteTarget();
+    if (!target || this.busy() || !this.session.can('products.manage')) return;
+    this.mutate(this.api.deleteReference(target.kind, target.reference.id), 'Référence supprimée.', () => {
+      this.close();
+      this.loadReferences();
+      const key = target.kind === 'categories' ? 'categoryId' : 'brandId';
+      if (this.filters()[key] === target.reference.id) this.filters.update((value) => ({ ...value, [key]: '' }));
+      this.load(1);
+    });
   }
 
   openReference(kind: ReferenceKind): void {
