@@ -21,11 +21,13 @@ import { UiIconComponent } from './ui-icon.component';
 export class ProductThumbnailComponent {
   private readonly http = inject(HttpClient);
   readonly productId = input.required<string>();
+  readonly revision = input(0);
   readonly url = signal<string | null>(null);
 
   constructor() {
     effect((cleanup) => {
       const id = this.productId();
+      this.revision();
       this.url.set(null);
       let objectUrl: string | null = null;
       const subscription = this.http
@@ -41,7 +43,7 @@ export class ProductThumbnailComponent {
             return this.http.get(apiPath('/media/images/' + metadata['id']), { responseType: 'blob' });
           }),
           map((blob) =>
-            blob && ['image/png', 'image/jpeg'].includes(blob.type) && blob.size <= 5_000_000 ? blob : null,
+            blob && ['image/png', 'image/jpeg'].includes(blob.type) && blob.size <= 2 * 1024 * 1024 ? blob : null,
           ),
           catchError(() => of(null)),
         )

@@ -395,3 +395,22 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.catalogue-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+.catalogue-product p {
+  margin: 4px 0 0;
+}
+.ui-field textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius);
+  padding: 10px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+}

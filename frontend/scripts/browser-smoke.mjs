@@ -84,7 +84,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole('button', { name: 'Notifications', exact: true }).click();
   await page.getByRole('region', { name: 'Centre de notifications' }).waitFor();
-  await page.getByRole('heading', { level: 1 }).click();
+  await page.locator('.sidebar-footer').click();
   await page.getByRole('region', { name: 'Centre de notifications' }).waitFor({ state: 'hidden' });
   await page.getByRole('button', { name: 'Notifications', exact: true }).click();
   await page.getByRole('region', { name: 'Centre de notifications' }).waitFor();
@@ -92,18 +92,19 @@ try {
   await page.getByRole('region', { name: 'Centre de notifications' }).waitFor({ state: 'hidden' });
   await page.getByLabel('Menu du compte').click();
   await page.locator('.account-menu[open]').waitFor();
-  await page.getByRole('heading', { level: 1 }).click();
+  await page.locator('.sidebar-footer').click();
   await page.locator('.account-menu[open]').waitFor({ state: 'hidden' });
   await page.keyboard.press('Control+k');
   assert.equal(await page.locator('#global-query').evaluate((input) => input === document.activeElement), true);
   await page.locator('#global-query').fill('Panneau');
   await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await page.getByRole('region', { name: 'Résultats de recherche' }).getByText('Panneau proforma CI', { exact: true }).waitFor();
-  await page.getByRole('heading', { level: 1 }).click();
+  await page.locator('.sidebar-footer').click();
   await page.getByRole('region', { name: 'Résultats de recherche' }).waitFor({ state: 'hidden' });
   // Les pages métier partagent les mêmes primitives et doivent rester responsive.
   for (const [slug, route, heading] of [
     ['utilisateurs', '/utilisateurs', 'Utilisateurs'],
+    ['produits', '/produits', 'Produits'],
     ['magasins', '/magasins', 'Magasins'],
     ['commandes', '/ventes/commandes', 'Commandes'],
     ['alertes', '/stocks/alertes', 'Alertes de stock'],

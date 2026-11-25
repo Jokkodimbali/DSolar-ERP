@@ -8,6 +8,7 @@ import {
   ordersReadGuard,
   stockAlertsGuard,
   usersGuard,
+  productsGuard,
 } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
@@ -36,6 +37,11 @@ export const routes: Routes = [
         path: 'utilisateurs',
         canActivate: [usersGuard],
         loadComponent: () => import('./features/users/presentation/users.page').then((m) => m.UsersPage),
+      },
+      {
+        path: 'produits',
+        canActivate: [productsGuard],
+        loadComponent: () => import('./features/products/presentation/products.page').then((m) => m.ProductsPage),
       },
       {
         path: 'magasins',

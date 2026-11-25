@@ -31,3 +31,6 @@ export const stockAlertsGuard: CanActivateFn = () =>
 
 export const usersGuard: CanActivateFn = () =>
   inject(SessionService).can('users.manage') || inject(Router).createUrlTree(['/acces-refuse']);
+
+export const productsGuard: CanActivateFn = () =>
+  inject(SessionService).can('products.read') || inject(Router).createUrlTree(['/acces-refuse']);
