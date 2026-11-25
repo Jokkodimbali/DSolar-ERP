@@ -12,7 +12,12 @@ const base = 'http://127.0.0.1:3100';
 const email = 'auth-ci@example.test';
 const password = 'Dsolar-CI-local-only-2026';
 
-async function request(path: string, method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET', body?: object, token?: string) {
+async function request(
+  path: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET',
+  body?: object,
+  token?: string,
+) {
   const headers = new Headers();
   if (body) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', 'Bearer ' + token);
@@ -149,7 +154,12 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect((await request(path, 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
     expect((await request(path, 'PATCH', { name: 'Interdit' }, keeper.jetonAcces)).status).toBe(403);
 
-    const updated = await request(path, 'PATCH', { name: 'Magasin CI modifié', address: null }, admin.jetonAcces);
+    const updated = await request(
+      path,
+      'PATCH',
+      { name: 'Magasin CI modifié', address: null },
+      admin.jetonAcces,
+    );
     expect(updated.status).toBe(200);
     expect(parseStore(updated.data).address).toBeNull();
     const assignment = path + '/users/' + keeper.utilisateur.id;
@@ -161,7 +171,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const fresh = parseAuthResult(
       (await request('/auth/login', 'POST', { email: account.email, password })).data,
     );
-    expect(parseStores((await request('/stores/mine', 'GET', undefined, fresh.jetonAcces)).data)).toHaveLength(1);
+    expect(
+      parseStores((await request('/stores/mine', 'GET', undefined, fresh.jetonAcces)).data),
+    ).toHaveLength(1);
     expect((await request(path, 'GET', undefined, fresh.jetonAcces)).status).toBe(200);
     const revoked = await request(assignment, 'DELETE', undefined, admin.jetonAcces);
     expect(revoked.status).toBe(200);
