@@ -136,6 +136,36 @@ try {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
   }
+  await page.goto('http://localhost:4200/produits');
+  await page.getByRole('region', { name: 'Liste des produits' }).getByText('Panneau proforma CI', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Nouveau produit' }).click();
+  await page.locator('input[formControlName="sku"]').fill('CI-BROWSER-PV');
+  await page.locator('input[formControlName="name"]').fill('Produit navigateur CI');
+  await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  const createdRow = page.getByRole('region', { name: 'Liste des produits' }).getByRole('row').filter({ hasText: 'CI-BROWSER-PV' });
+  await createdRow.waitFor();
+  await createdRow.getByRole('button', { name: 'Modifier', exact: true }).click();
+  await page.locator('input[formControlName="name"]').fill('Produit navigateur CI modifié');
+  await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await createdRow.getByText('Produit navigateur CI modifié', { exact: true }).waitFor();
+  await createdRow.getByRole('button', { name: 'Détails', exact: true }).click();
+  await page.locator('input[formControlName="salePrice"]').fill('1250,25');
+  await page.getByRole('button', { name: 'Enregistrer le tarif' }).click();
+  await page.getByRole('region', { name: 'Historique des tarifs' }).getByText('1\u202f250,25 FCFA', { exact: true }).waitFor();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'test.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg==', 'base64'),
+  });
+  await createdRow.locator('app-product-thumbnail img').waitFor();
+  await page.getByRole('button', { name: 'Fermer', exact: true }).click();
+  await createdRow.getByRole('button', { name: 'Désactiver', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await createdRow.getByRole('button', { name: 'Activer', exact: true }).waitFor();
+  await createdRow.getByRole('button', { name: 'Activer', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await createdRow.getByRole('button', { name: 'Désactiver', exact: true }).waitFor();
+  await page.screenshot({ path: join(artifacts, 'catalogue-crud.png'), fullPage: true });
   await page.goto('http://localhost:4200/utilisateurs');
   await page.getByRole('region', { name: 'Liste des utilisateurs' }).getByText('Magasinier CI', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Nouvel utilisateur' }).click();

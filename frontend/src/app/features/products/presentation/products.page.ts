@@ -237,13 +237,13 @@ export class ProductsPage {
     });
   }
 
-  detail(product: Product): void {
+  detail(product: Product, message = ''): void {
     if (this.busy()) return;
     this.close();
     this.priceForm.reset();
     this.mutate(
       forkJoin({ product: this.api.get(product.id), prices: this.api.prices(product.id) }),
-      '',
+      message,
       (value) => {
         this.selected.set(value.product);
         this.prices.set(value.prices);
@@ -260,10 +260,10 @@ export class ProductsPage {
       const purchase = purchasePrice.trim() ? decimalInput(purchasePrice) : undefined;
       this.mutate(this.api.setPrice(product.id, sale, purchase), 'Nouveau tarif enregistré.', () => {
         this.priceForm.reset();
-        this.detail(product);
+        this.detail(product, 'Nouveau tarif enregistré.');
       });
     } catch (error: unknown) {
-      this.error.set(errorMessage(error));
+      this.error.set(error instanceof Error ? error.message : 'Tarif invalide.');
     }
   }
 
@@ -355,7 +355,7 @@ export class ProductsPage {
         this.loadReferences();
       });
     } catch (error: unknown) {
-      this.error.set(errorMessage(error));
+      this.error.set(error instanceof Error ? error.message : 'Référence invalide.');
     }
   }
 
@@ -367,8 +367,8 @@ export class ProductsPage {
     request.pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: (value) => {
         this.busy.set(false);
-        done(value);
         this.success.set(message);
+        done(value);
       },
       error: (error: unknown) => {
         this.busy.set(false);
