@@ -1,0 +1,110 @@
+<app-page-header eyebrow="GESTION DES STOCKS" [heading]="title" description="Suivez les opérations et leur traçabilité par magasin.">
+  <a class="secondary" routerLink="/stocks">Retour aux stocks</a>
+  @if (manageable()) {
+    <button class="primary" type="button" [disabled]="busy() || loading() || !store() || (mode === 'transfers' && stores().length < 2)" (click)="create()">{{ mode === 'counts' ? '+ Nouvel inventaire' : '+ Nouveau transfert' }}</button>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+<app-feedback [message]="loading() || busy() ? 'Chargement…' : ''" />
+<section class="panel">
+  <div class="ui-toolbar">
+    <label class="ui-field">Magasin <select #selected [disabled]="busy() || loading()" (change)="changeStore(selected.value)">
+      @if (!stores().length) { <option value="">Aucun magasin actif</option> }
+      @for (item of stores(); track item.id) { <option [value]="item.id" [selected]="item.id === store()">{{ item.name }}</option> }
+    </select></label>
+    <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(term.value)">
+      <label class="ui-field">Recherche <input #term type="search" maxlength="120" [placeholder]="mode === 'counts' ? 'DRAFT, VALIDATED, CANCELLED' : 'Référence du transfert'" /></label>
+      <button class="secondary" type="submit" [disabled]="loading() || busy()">Rechercher</button>
+    </form>
+  </div>
+  <p class="muted small">{{ total() }} opération(s)</p>
+  <div class="ui-table" role="region" [attr.aria-label]="title" tabindex="0">
+    @if (mode === 'transfers') {
+      <table><thead><tr><th>Référence</th><th>Source</th><th>Destination</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead>
+      <tbody>@for (row of transfers(); track row.id) {
+        <tr><td>{{ row.number }}</td><td>{{ row.origin }}</td><td>{{ row.destination }}</td><td>{{ date(row.createdAt) }}</td><td><span class="ui-status" [class.ui-status-active]="row.status === 'RECEIVED'">{{ labels[row.status] }}</span></td><td><button class="secondary" type="button" [disabled]="busy()" (click)="open(row.id)">Détails</button></td></tr>
+      } @empty { <tr><td colspan="6">Aucun transfert.</td></tr> }</tbody></table>
+    } @else {
+      <table><thead><tr><th>Référence</th><th>Ouverture</th><th>Validation</th><th>Statut</th><th>Action</th></tr></thead>
+      <tbody>@for (row of counts(); track row.id) {
+        <tr><td>{{ row.id.slice(0, 8) }}</td><td>{{ date(row.startedAt) }}</td><td>{{ row.validatedAt ? date(row.validatedAt) : '—' }}</td><td><span class="ui-status" [class.ui-status-active]="row.status === 'VALIDATED'">{{ labels[row.status] }}</span></td><td><button class="secondary" type="button" [disabled]="busy()" (click)="open(row.id)">Détails</button></td></tr>
+      } @empty { <tr><td colspan="5">Aucun inventaire.</td></tr> }</tbody></table>
+    }
+  </div>
+  <app-pagination [page]="page()" [pages]="pages()" [disabled]="loading() || busy()" (change)="load($event)" />
+</section>
+@if (editing()) {
+  <section class="panel">
+    <div class="dashboard-report-heading"><h2>Nouveau transfert</h2><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button></div>
+    <p class="muted small">{{ number() }}</p>
+    <label class="ui-field">Magasin destinataire <select #dest [disabled]="!!draft() || busy()" (change)="destination.set(dest.value)">
+      <option value="">Choisir un magasin</option>
+      @for (item of stores(); track item.id) { @if (item.id !== store()) { <option [value]="item.id">{{ item.name }}</option> } }
+    </select></label>
+    <div class="ui-table" role="region" aria-label="Lignes à transférer" tabindex="0"><table>
+      <thead><tr><th>Produit</th><th>Quantité à transférer</th><th>Action</th></tr></thead>
+      <tbody>@for (line of lines(); track $index; let i = $index) {
+        <tr><td><label class="ui-field"><span class="sr-only">Produit {{ i + 1 }}</span><select #product [disabled]="!!draft() || busy()" (change)="changeLine(i, 'productId', product.value)"><option value="">Choisir</option>@for (item of stock(); track item.productId) { <option [value]="item.productId" [selected]="line.productId === item.productId">{{ item.name }} · {{ item.sku }} ({{ item.available }} {{ item.unit }})</option> }</select></label></td>
+        <td><input #amount class="workflow-input" [attr.aria-label]="'Quantité ' + (i + 1)" [value]="line.quantity" inputmode="decimal" [disabled]="!!draft() || busy()" (input)="changeLine(i, 'quantity', amount.value)" /></td>
+        <td><button class="secondary" type="button" [disabled]="!!draft() || busy() || lines().length <= 1" (click)="removeLine(i)">Retirer</button></td></tr>
+      }</tbody>
+    </table></div>
+    <div class="ui-actions"><button class="secondary" type="button" [disabled]="!!draft() || busy() || lines().length >= 100" (click)="addLine()">+ Ajouter une ligne</button><button class="primary" type="button" [disabled]="busy()" (click)="saveTransfer()">{{ draft() ? 'Réessayer la même création' : 'Créer le transfert' }}</button></div>
+    @if (draft()) { <p class="muted small">En cas de réponse incertaine, recherchez cette référence dans la liste avant toute nouvelle création.</p> }
+  </section>
+}
+@if (transfer(); as target) {
+  <section class="panel">
+    <div class="dashboard-report-heading"><h2>{{ target.number }}</h2><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button></div>
+    <p>{{ target.origin }} → {{ target.destination }} · <strong>{{ labels[target.status] }}</strong></p>
+    <div class="ui-table" role="region" aria-label="Détail du transfert" tabindex="0"><table>
+      <thead><tr><th>Produit</th><th>Expédié / prévu</th><th>Reçu</th><th>Endommagé</th><th>Manquant</th></tr></thead>
+      <tbody>@for (line of target.lines; track line.id) { <tr><td>{{ line.name }} · {{ line.sku }}</td><td>{{ line.quantity }} {{ line.unit }}</td><td>{{ line.received }}</td><td>{{ line.damaged }}</td><td>{{ line.missing }}</td></tr> }</tbody>
+    </table></div>
+    @if (manageable() && canOrigin()) {
+      <div class="ui-actions">
+        @if (target.status === 'DRAFT') { <button class="primary" type="button" [disabled]="busy()" (click)="confirmation.set('approve')">Approuver</button> }
+        @if (target.status === 'APPROVED') { <button class="primary" type="button" [disabled]="busy()" (click)="confirmation.set('ship')">Expédier</button> }
+        @if (target.status === 'DRAFT' || target.status === 'APPROVED') { <button class="secondary" type="button" [disabled]="busy()" (click)="confirmation.set('cancel')">Annuler le transfert</button> }
+      </div>
+    }
+    @if (manageable() && canDestination() && target.status === 'SHIPPED') {
+      <h2>Nouvelle réception</h2>
+      <p class="muted small">Saisissez uniquement les quantités de cette réception, pas les cumuls précédents. Le serveur contrôle les restants et les écarts.</p>
+      <div class="ui-table" role="region" aria-label="Quantités de réception" tabindex="0"><table>
+        <thead><tr><th>Produit</th><th>Reçu conforme</th><th>Endommagé</th><th>Manquant</th></tr></thead>
+        <tbody>@for (line of target.lines; track line.id) { <tr><td>{{ line.name }}</td>
+          <td><input #good class="workflow-input" [attr.aria-label]="'Reçu ' + line.sku" inputmode="decimal" [value]="receiptFields()[line.id]?.received ?? '0'" [disabled]="!!receipt() || busy()" (input)="updateReceipt(line.id, 'received', good.value)" /></td>
+          <td><input #bad class="workflow-input" [attr.aria-label]="'Endommagé ' + line.sku" inputmode="decimal" [value]="receiptFields()[line.id]?.damaged ?? '0'" [disabled]="!!receipt() || busy()" (input)="updateReceipt(line.id, 'damaged', bad.value)" /></td>
+          <td><input #missing class="workflow-input" [attr.aria-label]="'Manquant ' + line.sku" inputmode="decimal" [value]="receiptFields()[line.id]?.missing ?? '0'" [disabled]="!!receipt() || busy()" (input)="updateReceipt(line.id, 'missing', missing.value)" /></td></tr> }</tbody>
+      </table></div>
+      <div class="ui-actions">
+        @if (receipt()) { <button class="primary" type="button" [disabled]="busy()" (click)="receive(false)">Réessayer la même réception</button><button class="secondary" type="button" [disabled]="busy()" (click)="open(target.id)">Relire le transfert</button> }
+        @else { <button class="secondary" type="button" [disabled]="busy()" (click)="receive(false)">Enregistrer la réception</button><button class="primary" type="button" [disabled]="busy()" (click)="receive(true)">Enregistrer et clôturer</button> }
+      </div>
+    }
+    <h2>Historique du transfert</h2>
+    <div class="ui-table" role="region" aria-label="Historique du transfert" tabindex="0"><table><thead><tr><th>Action</th><th>Date</th></tr></thead><tbody>@for (event of target.events; track event.id) { <tr><td>{{ labels[event.action] ?? event.action }}</td><td>{{ date(event.createdAt) }}</td></tr> }</tbody></table></div>
+  </section>
+}
+@if (count(); as target) {
+  <section class="panel">
+    <div class="dashboard-report-heading"><h2>Inventaire · {{ target.id.slice(0, 8) }}</h2><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button></div>
+    <p>{{ date(target.startedAt) }} · <strong>{{ labels[target.status] }}</strong></p>
+    <div class="ui-table" role="region" aria-label="Comptage physique" tabindex="0"><table>
+      <thead><tr><th>Produit</th><th>Théorique</th><th>Compté enregistré</th><th>Quantité comptée</th><th>Justification</th><th>Action</th></tr></thead>
+      <tbody>@for (line of target.lines; track line.productId) { <tr><td>{{ line.name }} · {{ line.sku }}</td><td>{{ line.expected }} {{ line.unit }}</td><td>{{ line.counted ?? 'Non compté' }}</td>
+        <td><input #actual class="workflow-input" [attr.aria-label]="'Compté ' + line.sku" [value]="counted()[line.productId]?.counted ?? ''" inputmode="decimal" [disabled]="busy() || !manageable() || target.status !== 'DRAFT'" (input)="updateCount(line.productId, 'counted', actual.value)" /></td>
+        <td><input #reason class="workflow-input" [attr.aria-label]="'Justification ' + line.sku" [value]="counted()[line.productId]?.reason ?? ''" maxlength="500" [disabled]="busy() || !manageable() || target.status !== 'DRAFT'" (input)="updateCount(line.productId, 'reason', reason.value)" /></td>
+        <td>@if (manageable() && target.status === 'DRAFT') { <button class="secondary" type="button" [disabled]="busy()" (click)="recordLine(line.productId)">Enregistrer</button> }</td></tr> }</tbody>
+    </table></div>
+    @if (manageable() && target.status === 'DRAFT') {
+      <p class="muted small">Enregistrez chaque ligne avant de valider. La validation régularise le stock en transaction côté serveur.</p>
+      <div class="ui-actions"><button class="primary" type="button" [disabled]="busy()" (click)="confirmation.set('validate')">Valider l’inventaire</button><button class="secondary" type="button" [disabled]="busy()" (click)="confirmation.set('cancel')">Annuler l’inventaire</button></div>
+    }
+  </section>
+}
+@if (confirmation(); as action) {
+  <app-confirm [heading]="action === 'start' ? 'Ouvrir un inventaire ?' : 'Confirmer cette opération ?'" description="Le serveur contrôle les permissions, l’état et les quantités avant toute écriture." [busy]="busy()" (confirmed)="confirm()" (cancelled)="confirmation.set(null)" />
+}

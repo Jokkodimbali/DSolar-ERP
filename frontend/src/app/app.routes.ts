@@ -62,6 +62,18 @@ export const routes: Routes = [
           import('./features/inventory/presentation/inventory.page').then((m) => m.InventoryPage),
       },
       {
+        path: 'stocks/transferts',
+        canActivate: [stockAlertsGuard],
+        data: { mode: 'transfers' },
+        loadComponent: () => import('./features/inventory/presentation/stock-workflows.page').then((m) => m.StockWorkflowsPage),
+      },
+      {
+        path: 'stocks/inventaires',
+        canActivate: [stockAlertsGuard],
+        data: { mode: 'counts' },
+        loadComponent: () => import('./features/inventory/presentation/stock-workflows.page').then((m) => m.StockWorkflowsPage),
+      },
+      {
         path: 'stocks/alertes',
         canActivate: [stockAlertsGuard],
         loadComponent: () =>

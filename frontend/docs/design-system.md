@@ -59,3 +59,7 @@ La page Produits utilise les filtres et la pagination du serveur, les référenc
 ## Stocks — consultation, ajustements et journal
 
 L'écran /stocks présente quatre compteurs de références (pas de somme de pièces et de mètres), le magasin actif autorisé, les quantités exactes retournées par NestJS, la recherche et une pagination d'affichage. Les ajustements conservent une clé UUID et une commande immuable pendant les tentatives de la même opération. Le journal /inventory/stores/:storeId/movements/search utilise une pagination serveur et inclut les mouvements des produits devenus inactifs. Les droits sont revérifiés côté serveur pour chaque consultation. Les transferts et inventaires physiques seront intégrés dans un lot distinct.
+
+## Transferts et inventaires physiques
+
+Les pages /stocks/transferts et /stocks/inventaires partagent les en-têtes, panneaux, tableaux et confirmations. Les listes sont paginées par magasin et filtrées par le serveur. Les réceptions sont incrémentales et conservent leur clé d'opération pendant une tentative ; la validation et les transitions restent exclusivement sous contrôle de NestJS. Les comptages sont enregistrés ligne par ligne et la validation régularise les écarts en transaction.

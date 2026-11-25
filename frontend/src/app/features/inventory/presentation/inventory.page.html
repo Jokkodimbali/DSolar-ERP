@@ -3,6 +3,8 @@
   heading="Stocks"
   description="Suivez les disponibilités et les réservations de chaque magasin."
 >
+  <a class="secondary" routerLink="/stocks/transferts">Transferts</a>
+  <a class="secondary" routerLink="/stocks/inventaires">Inventaires</a>
   <a class="secondary" routerLink="/stocks/alertes"><app-ui-icon name="alert" /> Alertes</a>
   @if (session.can('inventory.manage', 'products.read')) {
   <button

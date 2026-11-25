@@ -451,3 +451,16 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+.workflow-input {
+  width: 100%;
+  min-width: 100px;
+  max-width: 220px;
+  min-height: 38px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
