@@ -26,7 +26,9 @@
         @if (!stores().length) {
         <option value="">Aucun magasin actif</option>
         } @for (item of stores(); track item.id) {
-        <option [value]="item.id" [selected]="item.id === store()">{{ item.name }}{{ item.status === 'INACTIVE' ? ' (inactif)' : '' }}</option>
+        <option [value]="item.id" [selected]="item.id === store()">
+          {{ item.name }}{{ item.status === 'INACTIVE' ? ' (inactif)' : '' }}
+        </option>
         }
       </select></label
     >
@@ -234,7 +236,11 @@
     <h2>{{ target.number }}</h2>
     <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
   </div>
-  <p>{{ target.origin }}{{ target.originStatus === 'INACTIVE' ? ' (inactif)' : '' }} → {{ target.destination }}{{ target.destinationStatus === 'INACTIVE' ? ' (inactif)' : '' }} · <strong>{{ labels[target.status] }}</strong></p>
+  <p>
+    {{ target.origin }}{{ target.originStatus === 'INACTIVE' ? ' (inactif)' : '' }} → {{ target.destination
+    }}{{ target.destinationStatus === 'INACTIVE' ? ' (inactif)' : '' }} ·
+    <strong>{{ labels[target.status] }}</strong>
+  </p>
   <div class="ui-table" role="region" aria-label="Détail du transfert" tabindex="0">
     <table>
       <thead>

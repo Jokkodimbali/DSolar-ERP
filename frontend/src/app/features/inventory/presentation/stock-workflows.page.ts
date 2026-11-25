@@ -11,7 +11,12 @@ import { SessionService } from '../../auth/application/session.service';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import type { Store } from '../../stores/domain/store.contract';
 import { InventoryApi } from '../infrastructure/inventory.api';
-import { clearPending, pendingKey, readPending, savePending } from '../infrastructure/pending-stock-operation';
+import {
+  clearPending,
+  pendingKey,
+  readPending,
+  savePending,
+} from '../infrastructure/pending-stock-operation';
 import { StockWorkflowsApi } from '../infrastructure/stock-workflows.api';
 import { isZero, quantityInput, type StockItem } from '../domain/stock.contract';
 import {
@@ -94,7 +99,9 @@ export class StockWorkflowsPage {
   readonly activeStores = computed(() => this.stores().filter((store) => store.status === 'ACTIVE'));
   readonly selectedActive = computed(() => this.activeStores().some((store) => store.id === this.store()));
   readonly title = this.mode === 'counts' ? 'Inventaires physiques' : 'Transferts de stock';
-  readonly canOrigin = computed(() => this.stores().some((store) => store.id === this.transfer()?.originId && store.status === 'ACTIVE'));
+  readonly canOrigin = computed(() =>
+    this.stores().some((store) => store.id === this.transfer()?.originId && store.status === 'ACTIVE'),
+  );
   readonly canDestination = computed(() =>
     this.stores().some((store) => store.id === this.transfer()?.destinationId && store.status === 'ACTIVE'),
   );
@@ -109,7 +116,9 @@ export class StockWorkflowsPage {
       )
       .subscribe({
         next: (stores) => {
-          this.stores.set(this.mode === 'transfers' ? stores : stores.filter((store) => store.status === 'ACTIVE'));
+          this.stores.set(
+            this.mode === 'transfers' ? stores : stores.filter((store) => store.status === 'ACTIVE'),
+          );
           this.store.set(this.stores()[0]?.id ?? '');
           this.loading.set(false);
           this.load(1);
@@ -276,7 +285,14 @@ export class StockWorkflowsPage {
       const pending = readPending(this.receiptKey(id), parsePendingReceipt);
       if (!pending) return;
       this.receipt.set(pending);
-      this.receiptFields.set(Object.fromEntries(pending.lines.map((line) => [line.lineId, { received: line.received, damaged: line.damaged, missing: line.missing }])));
+      this.receiptFields.set(
+        Object.fromEntries(
+          pending.lines.map((line) => [
+            line.lineId,
+            { received: line.received, damaged: line.damaged, missing: line.missing },
+          ]),
+        ),
+      );
       this.success.set('Une réception précédente est à vérifier. Réessayez avec la même clé.');
     } catch {
       this.error.set('Réception conservée illisible. Vérifiez l’historique avant une nouvelle saisie.');
@@ -286,7 +302,12 @@ export class StockWorkflowsPage {
   discardReceipt(): void {
     const target = this.transfer();
     if (!target || this.busy() || !this.receipt()) return;
-    if (!window.confirm('Vérifiez que cette réception n’a pas déjà été enregistrée. Abandonner la tentative locale ?')) return;
+    if (
+      !window.confirm(
+        'Vérifiez que cette réception n’a pas déjà été enregistrée. Abandonner la tentative locale ?',
+      )
+    )
+      return;
     try {
       clearPending(this.receiptKey(target.id));
       this.receipt.set(null);
@@ -305,7 +326,13 @@ export class StockWorkflowsPage {
   }
   receive(finalizeReceipt: boolean): void {
     const target = this.transfer();
-    if (!target || this.busy() || !this.manageable() || !this.canDestination() || (target.status !== 'SHIPPED' && !this.receipt()))
+    if (
+      !target ||
+      this.busy() ||
+      !this.manageable() ||
+      !this.canDestination() ||
+      (target.status !== 'SHIPPED' && !this.receipt())
+    )
       return;
     try {
       if (!this.receipt()) {
@@ -328,7 +355,12 @@ export class StockWorkflowsPage {
         const key = this.receiptKey(target.id);
         savePending(key, input);
         this.run(this.api.receive(target.id, input), 'Réception enregistrée.', () => {
-          try { clearPending(key); } catch { this.error.set('Réception enregistrée ; reprise locale non supprimée.'); return; }
+          try {
+            clearPending(key);
+          } catch {
+            this.error.set('Réception enregistrée ; reprise locale non supprimée.');
+            return;
+          }
           this.open(target.id, 'Réception enregistrée.', true);
         });
       }

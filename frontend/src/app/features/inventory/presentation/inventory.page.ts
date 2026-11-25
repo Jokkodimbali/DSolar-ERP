@@ -26,7 +26,12 @@ import {
   type StockBalance,
   type parseStockSummary,
 } from '../domain/stock.contract';
-import { clearPending, pendingKey, readPending, savePending } from '../infrastructure/pending-stock-operation';
+import {
+  clearPending,
+  pendingKey,
+  readPending,
+  savePending,
+} from '../infrastructure/pending-stock-operation';
 import { InventoryApi } from '../infrastructure/inventory.api';
 
 @Component({
@@ -90,10 +95,16 @@ export class InventoryPage {
     if (this.busy() || this.loading() || this.editing()) return;
     this.busy.set(true);
     this.error.set('');
-    this.api.balance(item.storeId, item.productId).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
-      next: (balance) => this.detail.set({ item, balance }),
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .balance(item.storeId, item.productId)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (balance) => this.detail.set({ item, balance }),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
   readonly editing = signal(false);
   readonly pending = signal<StockAdjustment | null>(null);
@@ -142,7 +153,9 @@ export class InventoryPage {
       const command = readPending(this.adjustmentKey(), parsePendingAdjustment);
       if (!command) return;
       if (!this.stores().some((store) => store.id === command.storeId)) {
-        this.error.set('Un ajustement est en attente dans un magasin désormais inaccessible. Contactez un administrateur.');
+        this.error.set(
+          'Un ajustement est en attente dans un magasin désormais inaccessible. Contactez un administrateur.',
+        );
         return;
       }
       this.selectedStore.set(command.storeId);
@@ -154,12 +167,19 @@ export class InventoryPage {
       this.attempted.set(true);
       this.editing.set(true);
       this.success.set('Opération précédente retrouvée. Vérifiez-la ou réessayez avec la même clé.');
-      this.productsApi.get(command.productId).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-        next: (product) => { if (this.pending()?.operationKey === command.operationKey) this.chosen.set(product); },
-        error: () => undefined,
-      });
+      this.productsApi
+        .get(command.productId)
+        .pipe(takeUntilDestroyed(this.destroy))
+        .subscribe({
+          next: (product) => {
+            if (this.pending()?.operationKey === command.operationKey) this.chosen.set(product);
+          },
+          error: () => undefined,
+        });
     } catch {
-      this.error.set('Impossible de restaurer l’ajustement conservé. Vérifiez le journal avant une nouvelle écriture.');
+      this.error.set(
+        'Impossible de restaurer l’ajustement conservé. Vérifiez le journal avant une nouvelle écriture.',
+      );
     }
   }
 
@@ -183,7 +203,10 @@ export class InventoryPage {
     if (!id) return;
     this.loading.set(true);
     this.error.set('');
-    forkJoin({ result: this.api.search(id, page, this.query(), this.filter()), counters: this.api.summary(id) })
+    forkJoin({
+      result: this.api.search(id, page, this.query(), this.filter()),
+      counters: this.api.summary(id),
+    })
       .pipe(
         takeUntilDestroyed(this.destroy),
         finalize(() => this.loading.set(false)),
@@ -306,7 +329,12 @@ export class InventoryPage {
     )
       return;
     if (this.attempted()) {
-      try { clearPending(this.adjustmentKey()); } catch { this.error.set('Impossible de supprimer la tentative conservée.'); return; }
+      try {
+        clearPending(this.adjustmentKey());
+      } catch {
+        this.error.set('Impossible de supprimer la tentative conservée.');
+        return;
+      }
     }
     this.resetAdjustment();
     this.load();
@@ -345,7 +373,12 @@ export class InventoryPage {
       .subscribe({
         next: () => {
           this.busy.set(false);
-          try { clearPending(key); } catch { this.error.set('Ajustement enregistré ; impossible de supprimer sa reprise locale.'); return; }
+          try {
+            clearPending(key);
+          } catch {
+            this.error.set('Ajustement enregistré ; impossible de supprimer sa reprise locale.');
+            return;
+          }
           this.resetAdjustment();
           this.success.set('Ajustement de stock enregistré.');
           this.load();

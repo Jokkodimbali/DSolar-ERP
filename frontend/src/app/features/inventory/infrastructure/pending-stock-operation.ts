@@ -3,7 +3,9 @@
 import { storeId } from '../../stores/domain/store.contract';
 
 export function pendingKey(actor: string, operation: 'adjustment' | 'receipt', context?: string): string {
-  return ['dsolar.stock.pending.v1', storeId(actor), operation, ...(context ? [storeId(context)] : [])].join(':');
+  return ['dsolar.stock.pending.v1', storeId(actor), operation, ...(context ? [storeId(context)] : [])].join(
+    ':',
+  );
 }
 
 export function readPending<T>(key: string, parse: (value: unknown) => T): T | null {

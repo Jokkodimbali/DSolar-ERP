@@ -154,6 +154,7 @@ export function parsePendingReceipt(value: unknown): ReceiptInput {
       missing: quantity(line['missing']),
     };
   });
-  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.lineId)).size !== lines.length) return invalid();
+  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.lineId)).size !== lines.length)
+    return invalid();
   return { operationKey: storeId(row['operationKey']), finalize: row['finalize'], lines };
 }

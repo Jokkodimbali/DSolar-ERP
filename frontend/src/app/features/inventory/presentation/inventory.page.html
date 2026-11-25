@@ -83,13 +83,21 @@
     <button class="secondary" type="button" (click)="detail.set(null)">Fermer</button>
   </div>
   <dl class="metrics">
-    <div><dt>Stock physique</dt><dd>{{ data.balance.quantity }} {{ data.item.unit }}</dd></div>
-    <div><dt>Stock réservé</dt><dd>{{ data.balance.reserved }} {{ data.item.unit }}</dd></div>
-    <div><dt>Stock disponible</dt><dd>{{ data.balance.available }} {{ data.item.unit }}</dd></div>
+    <div>
+      <dt>Stock physique</dt>
+      <dd>{{ data.balance.quantity }} {{ data.item.unit }}</dd>
+    </div>
+    <div>
+      <dt>Stock réservé</dt>
+      <dd>{{ data.balance.reserved }} {{ data.item.unit }}</dd>
+    </div>
+    <div>
+      <dt>Stock disponible</dt>
+      <dd>{{ data.balance.available }} {{ data.item.unit }}</dd>
+    </div>
   </dl>
 </section>
-}
-@if (editing()) {
+} @if (editing()) {
 <section class="panel">
   <div class="dashboard-report-heading">
     <h2>Ajustement de stock</h2>
@@ -171,11 +179,7 @@
   <form class="ui-toolbar" (submit)="$event.preventDefault(); applyFilters(stockQuery.value, status.value)">
     <label class="ui-field"
       >Recherche
-      <input
-        #stockQuery
-        type="search"
-        placeholder="Nom ou référence SKU"
-        [value]="query()" maxlength="120"
+      <input #stockQuery type="search" placeholder="Nom ou référence SKU" [value]="query()" maxlength="120"
     /></label>
     <label class="ui-field"
       >Disponibilité
@@ -227,17 +231,25 @@
             >
           </td>
           <td>
-            <div class="ui-actions"><button class="secondary" type="button" [disabled]="busy() || editing()" (click)="showBalance(row)">Détails</button>
-            @if (session.can('inventory.manage', 'products.read')) {
-            <button
-              class="secondary"
-              type="button"
-              [disabled]="editing() || busy()"
-              (click)="openAdjustment(row)"
-            >
-              Ajuster
-            </button>
-            }
+            <div class="ui-actions">
+              <button
+                class="secondary"
+                type="button"
+                [disabled]="busy() || editing()"
+                (click)="showBalance(row)"
+              >
+                Détails
+              </button>
+              @if (session.can('inventory.manage', 'products.read')) {
+              <button
+                class="secondary"
+                type="button"
+                [disabled]="editing() || busy()"
+                (click)="openAdjustment(row)"
+              >
+                Ajuster
+              </button>
+              }
             </div>
           </td>
         </tr>

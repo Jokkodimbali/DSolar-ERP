@@ -14,7 +14,13 @@ import {
   parseCount,
   parseCountDetail,
 } from '../../inventory/domain/workflow.contract';
-import { parseMovements, parseStock, parseBalance, parseStockPage, parseStockSummary } from '../../inventory/domain/stock.contract';
+import {
+  parseMovements,
+  parseStock,
+  parseBalance,
+  parseStockPage,
+  parseStockSummary,
+} from '../../inventory/domain/stock.contract';
 import { parseOverview } from '../../dashboard/domain/dashboard.contract';
 import { parseReport, reports } from '../../dashboard/domain/dashboard-reports.contract';
 import {
@@ -564,23 +570,62 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(destinationResponse.status).toBe(201);
       const destination = parseStore(destinationResponse.data);
-      const stockPage = await request('/inventory' + path + '/stock/search?page=1&limit=1&availability=AVAILABLE&search=PV-PROFORMA-CI', 'GET', undefined, token);
+      const stockPage = await request(
+        '/inventory' + path + '/stock/search?page=1&limit=1&availability=AVAILABLE&search=PV-PROFORMA-CI',
+        'GET',
+        undefined,
+        token,
+      );
       expect(stockPage.status).toBe(200);
       expect(parseStockPage(stockPage.data, store.id).items[0]?.quantity).toBe('2.500');
       const summary = await request('/inventory' + path + '/summary', 'GET', undefined, token);
       expect(summary.status).toBe(200);
-      expect(parseStockSummary(summary.data, store.id)).toEqual({ products: 1, empty: 0, available: 1, reserved: 0 });
-      expect((await request('/inventory' + path + '/stock/search?availability=INVALID', 'GET', undefined, token)).status).toBe(400);
-      const emptySearch = await request('/inventory' + path + '/stock/search?availability=EMPTY', 'GET', undefined, token);
+      expect(parseStockSummary(summary.data, store.id)).toEqual({
+        products: 1,
+        empty: 0,
+        available: 1,
+        reserved: 0,
+      });
+      expect(
+        (await request('/inventory' + path + '/stock/search?availability=INVALID', 'GET', undefined, token))
+          .status,
+      ).toBe(400);
+      const emptySearch = await request(
+        '/inventory' + path + '/stock/search?availability=EMPTY',
+        'GET',
+        undefined,
+        token,
+      );
       expect(parseStockPage(emptySearch.data, store.id).total).toBe(0);
       const countStart = '/inventory/counts/stores/' + store.id;
-      const simultaneous = await Promise.all([request(countStart, 'POST', {}, token), request(countStart, 'POST', {}, token)]);
+      const simultaneous = await Promise.all([
+        request(countStart, 'POST', {}, token),
+        request(countStart, 'POST', {}, token),
+      ]);
       expect(simultaneous.map((result) => result.status).sort()).toEqual([201, 409]);
       const firstCountId = parseId(simultaneous.find((result) => result.status === 201)?.data);
       const firstCountPath = '/inventory/counts/' + firstCountId;
-      expect((await request(firstCountPath + '/lines', 'POST', { lines: [{ productId: product.id, counted: '2.500' }] }, token)).status).toBe(201);
+      expect(
+        (
+          await request(
+            firstCountPath + '/lines',
+            'POST',
+            { lines: [{ productId: product.id, counted: '2.500' }] },
+            token,
+          )
+        ).status,
+      ).toBe(201);
       for (const direction of ['IN', 'OUT'] as const) {
-        expect((await request('/inventory/adjustments', 'POST', { ...adjustmentInput, direction, quantity: '0.125', operationKey: crypto.randomUUID() }, token)).status).toBe(201);
+        expect(
+          (
+            await request(
+              '/inventory/adjustments',
+              'POST',
+              { ...adjustmentInput, direction, quantity: '0.125', operationKey: crypto.randomUUID() },
+              token,
+            )
+          ).status,
+        ).toBe(201);
       }
       expect((await request(firstCountPath + '/validate', 'POST', {}, token)).status).toBe(409);
       expect((await request(firstCountPath + '/cancel', 'POST', {}, token)).status).toBe(201);
@@ -679,25 +724,83 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         ).quantity,
       ).toBe('2.500');
 
-      const keeperAccount = await request('/users', 'POST', {
-        email: 'stock-scope-ci@example.test', fullName: 'Magasinier stocks CI', password,
-        roleCodes: ['MAGASINIER'], storeIds: [store.id],
-      }, token);
+      const keeperAccount = await request(
+        '/users',
+        'POST',
+        {
+          email: 'stock-scope-ci@example.test',
+          fullName: 'Magasinier stocks CI',
+          password,
+          roleCodes: ['MAGASINIER'],
+          storeIds: [store.id],
+        },
+        token,
+      );
       expect(keeperAccount.status).toBe(201);
-      const scopedKeeper = parseAuthResult((await request('/auth/login', 'POST', { email: 'stock-scope-ci@example.test', password })).data);
+      const scopedKeeper = parseAuthResult(
+        (await request('/auth/login', 'POST', { email: 'stock-scope-ci@example.test', password })).data,
+      );
       try {
         const sourcePage = '/inventory/stores/' + store.id;
         const otherPage = '/inventory/stores/' + destination.id;
-        for (const endpoint of ['/stock/search', '/summary', '/movements/search', '/products/' + product.id]) {
-          expect((await request(sourcePage + endpoint, 'GET', undefined, scopedKeeper.jetonAcces)).status).toBe(200);
-          expect((await request(otherPage + endpoint, 'GET', undefined, scopedKeeper.jetonAcces)).status).toBe(403);
+        for (const endpoint of [
+          '/stock/search',
+          '/summary',
+          '/movements/search',
+          '/products/' + product.id,
+        ]) {
+          expect(
+            (await request(sourcePage + endpoint, 'GET', undefined, scopedKeeper.jetonAcces)).status,
+          ).toBe(200);
+          expect(
+            (await request(otherPage + endpoint, 'GET', undefined, scopedKeeper.jetonAcces)).status,
+          ).toBe(403);
         }
         expect((await request(transferPath, 'GET', undefined, scopedKeeper.jetonAcces)).status).toBe(200);
-        expect((await request('/inventory/transfers/stores/' + destination.id + '/search', 'GET', undefined, scopedKeeper.jetonAcces)).status).toBe(403);
-        expect((await request('/inventory/counts/stores/' + destination.id + '/search', 'GET', undefined, scopedKeeper.jetonAcces)).status).toBe(403);
-        expect((await request('/inventory/counts/stores/' + destination.id, 'POST', {}, scopedKeeper.jetonAcces)).status).toBe(403);
-        expect((await request(transferPath + '/receive', 'POST', { ...receive, operationKey: crypto.randomUUID() }, scopedKeeper.jetonAcces)).status).toBe(403);
-        expect((await request('/inventory/adjustments', 'POST', { ...adjustmentInput, storeId: destination.id, operationKey: crypto.randomUUID() }, scopedKeeper.jetonAcces)).status).toBe(403);
+        expect(
+          (
+            await request(
+              '/inventory/transfers/stores/' + destination.id + '/search',
+              'GET',
+              undefined,
+              scopedKeeper.jetonAcces,
+            )
+          ).status,
+        ).toBe(403);
+        expect(
+          (
+            await request(
+              '/inventory/counts/stores/' + destination.id + '/search',
+              'GET',
+              undefined,
+              scopedKeeper.jetonAcces,
+            )
+          ).status,
+        ).toBe(403);
+        expect(
+          (await request('/inventory/counts/stores/' + destination.id, 'POST', {}, scopedKeeper.jetonAcces))
+            .status,
+        ).toBe(403);
+        expect(
+          (
+            await request(
+              transferPath + '/receive',
+              'POST',
+              { ...receive, operationKey: crypto.randomUUID() },
+              scopedKeeper.jetonAcces,
+            )
+          ).status,
+        ).toBe(403);
+        expect(
+          (
+            await request(
+              '/inventory/adjustments',
+              'POST',
+              { ...adjustmentInput, storeId: destination.id, operationKey: crypto.randomUUID() },
+              scopedKeeper.jetonAcces,
+            )
+          ).status,
+        ).toBe(403);
       } finally {
         await request('/auth/logout', 'POST', { refreshToken: scopedKeeper.jetonRenouvellement });
       }
