@@ -1,13 +1,15 @@
 <app-page-header
   eyebrow="VENTES"
   [heading]="detailMode ? 'Détail de la commande' : 'Commandes'"
-  description="Consultation des commandes accessibles à votre compte."
+  description="Consultez les commandes, leurs statuts et les réservations de stock."
 >
   @if (detailMode) {
   <a class="secondary" routerLink="/ventes/commandes">Retour aux commandes</a>
+  <button class="secondary" type="button" [disabled]="busy() || loading() || !!pending()" (click)="refreshDetail()">Actualiser</button>
   }
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
 <app-feedback [message]="loading() ? 'Chargement…' : ''" />
 @if (detailMode) { @if (detail(); as order) {
 <section class="panel">
@@ -41,8 +43,10 @@
           <th>Produit</th>
           <th>Magasin</th>
           <th>Quantité</th>
-          <th>Prix unitaire</th>
-          <th>Total</th>
+          <th>Prix unitaire HT</th>
+          <th>Remise</th>
+          <th>Taxe</th>
+          <th>Total TTC</th>
         </tr>
       </thead>
       <tbody>
@@ -52,20 +56,52 @@
           <td>{{ line.store }}</td>
           <td>{{ line.quantity }}</td>
           <td>{{ line.price }}</td>
+          <td>{{ line.discount }}</td>
+          <td>{{ line.taxRate }} %</td>
           <td>{{ line.total }}</td>
         </tr>
         }
       </tbody>
     </table>
   </div>
+  @if (order.proformaId) {
+  <a class="secondary" routerLink="/ventes/proformas">Consulter les devis</a>
+  }
+  @if (session.can('sales.manage')) {
+  <div class="ui-actions">
+    @for (action of actions(order.rawStatus); track action) {
+    <button type="button" [class]="action === 'confirm' ? 'primary' : 'secondary'" [disabled]="busy() || !!pending()" (click)="ask(action)">
+      {{ action === 'confirm' ? 'Confirmer la commande' : 'Annuler la commande' }}
+    </button>
+    }
+  </div>
+  }
 </section>
+@if (pending(); as action) {
+<app-confirm
+  [heading]="action === 'confirm' ? 'Confirmer la commande ?' : 'Annuler la commande ?'"
+  [description]="action === 'confirm' ? 'Le serveur réservera le stock disponible dans chaque magasin. Aucun paiement ne sera enregistré.' : 'Le serveur vérifiera les livraisons, les paiements et les factures avant de libérer les réservations éventuelles.'"
+  [busy]="busy()"
+  (confirmed)="apply()"
+  (cancelled)="pending.set(null)"
+/>
+}
 } } @else {
 <section class="panel">
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); search(term.value)">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); search(term.value, statusInput.value)">
     <label class="ui-field"
       >Recherche
-      <input #term type="search" maxlength="120" placeholder="Référence ou client" [disabled]="loading()"
+      <input #term type="search" maxlength="120" placeholder="Référence ou client" [value]="query()" [disabled]="loading()"
     /></label>
+    <label class="ui-field">
+      Statut
+      <select #statusInput [value]="status()" [disabled]="loading()">
+        <option value="">Tous</option>
+        @for (status of statuses; track status) {
+        <option [value]="status">{{ labels[status] }}</option>
+        }
+      </select>
+    </label>
     <button class="secondary" type="submit" [disabled]="loading()">Rechercher</button>
   </form>
   @if (result(); as data) {
@@ -105,15 +141,8 @@
       </tbody>
     </table>
   </div>
-  <div class="ui-pagination">
-    <button class="secondary" type="button" [disabled]="page() <= 1" (click)="load(page() - 1)">
-      Précédent
-    </button>
-    <span>{{ data.total }} commande(s) · Page {{ page() }} / {{ data.pages || 1 }}</span>
-    <button class="secondary" type="button" [disabled]="page() >= data.pages" (click)="load(page() + 1)">
-      Suivant
-    </button>
-  </div>
+  <p class="muted small">{{ data.total }} commande(s)</p>
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="loading()" (change)="load($event)" />
   }
 </section>
 }

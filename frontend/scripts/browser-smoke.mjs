@@ -420,6 +420,14 @@ try {
   await page.getByRole('link', { name: /^CMD-/ }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Convertir en commande', exact: true }).count(), 0);
   await page.screenshot({ path: join(artifacts, 'proformas-lifecycle.png'), fullPage: true });
+  await page.getByRole('link', { name: /^CMD-/ }).click();
+  await page.getByRole('button', { name: 'Confirmer la commande', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await page.getByText('Commande confirmée. Stock réservé.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Annuler la commande', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await page.getByText('Commande annulée.', { exact: true }).waitFor();
+  await page.screenshot({ path: join(artifacts, 'commandes-vente-lifecycle.png'), fullPage: true });
   assert.deepEqual(errors, [], 'Erreurs JavaScript dans le navigateur');
   await page.getByLabel('Menu du compte').click();
   await page.getByRole('button', { name: 'Déconnexion' }).click();

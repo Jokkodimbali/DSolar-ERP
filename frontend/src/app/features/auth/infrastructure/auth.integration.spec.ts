@@ -1145,6 +1145,18 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(linked.status).toBe(200);
       expect(parseLinkedOrder(linked.data, parseProforma(accepted.data))?.id).toBe(parseId(converted.data));
       expect((await request('/sales-orders/from-proforma/' + draft.id, 'POST', {}, token)).status).toBe(409);
+      const salesOrderPath = '/sales-orders/' + parseId(converted.data);
+      const stockPath = '/inventory' + path + '/products/' + product.id;
+      const stockBefore = parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id);
+      expect((await request(salesOrderPath + '/confirm', 'POST', {}, token)).status).toBe(201);
+      const stockReserved = parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id);
+      expect(stockReserved.quantity).toBe(stockBefore.quantity);
+      expect(Number(stockReserved.reserved)).toBe(Number(stockBefore.reserved) + 2);
+      expect((await request(salesOrderPath + '/confirm', 'POST', {}, token)).status).toBe(409);
+      expect(parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id)).toEqual(stockReserved);
+      expect((await request(salesOrderPath + '/cancel', 'POST', {}, token)).status).toBe(201);
+      expect((await request(salesOrderPath + '/cancel', 'POST', {}, token)).status).toBe(409);
+      expect(parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id)).toEqual(stockBefore);
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);
