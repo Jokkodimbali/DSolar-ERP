@@ -15,6 +15,7 @@ import { ProductsApi } from '../../products/infrastructure/products.api';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import { CustomersApi } from '../infrastructure/customers.api';
 import { ProformaApi } from '../infrastructure/proforma.api';
+import type { ConvertedOrder } from '../domain/proforma-conversion.contract';
 import {
   actionLabels,
   expectedStatus,
@@ -50,7 +51,7 @@ export class ProformasPage {
   readonly session = inject(SessionService);
   readonly labels = proformaLabels;
   readonly statuses = proformaStatuses;
-  readonly actionLabels = actionLabels;
+  readonly actionLabels = { ...actionLabels, convert: 'Convertir en commande' };
   readonly actions = proformaActions;
   readonly money = formatMoney;
   readonly result = signal<ReturnType<typeof parseProformaPage> | null>(null);
@@ -64,7 +65,10 @@ export class ProformasPage {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly success = signal('');
-  readonly pending = signal<ProformaAction | null>(null);
+  readonly pending = signal<ProformaAction | 'convert' | null>(null);
+  readonly linkedOrder = signal<ConvertedOrder | null>(null);
+  readonly linkChecked = signal(false);
+  readonly linkLoading = signal(false);
 
   constructor() {
     this.load(1);
@@ -127,8 +131,10 @@ export class ProformasPage {
   }
 
   open(id: string): void {
-    if (this.busy() || this.pending() || this.loading()) return;
+    if (this.busy() || this.pending() || this.loading() || this.linkLoading()) return;
     this.detail.set(null);
+    this.linkedOrder.set(null);
+    this.linkChecked.set(false);
     this.error.set('');
     this.busy.set(true);
     this.api
@@ -144,6 +150,7 @@ export class ProformasPage {
             return;
           }
           this.detail.set(item);
+          this.checkLink(item);
           this.loadCustomerNames([item.customerId]);
           if (!this.session.can('products.read')) return;
           const ids = [...new Set(item.lines.map((line) => line.productId))];
@@ -162,6 +169,63 @@ export class ProformasPage {
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
       });
+  }
+
+  private checkLink(item: Proforma): void {
+    this.linkedOrder.set(null);
+    this.linkChecked.set(false);
+    if (item.status !== 'ACCEPTED') return;
+    this.linkLoading.set(true);
+    this.api.linkedOrder(item)
+      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.linkLoading.set(false)))
+      .subscribe({
+        next: (order) => {
+          if (this.detail()?.id !== item.id) return;
+          this.linkedOrder.set(order);
+          this.linkChecked.set(true);
+        },
+        error: (error: unknown) => {
+          if (this.detail()?.id === item.id) this.error.set(errorMessage(error));
+        },
+      });
+  }
+
+  askConvert(): void {
+    const item = this.detail();
+    if (
+      !item || item.status !== 'ACCEPTED' || !this.linkChecked() || this.linkedOrder() ||
+      this.linkLoading() || this.loading() || this.busy() || this.pending() ||
+      !this.session.can('sales.manage')
+    ) return;
+    this.error.set('');
+    this.success.set('');
+    this.pending.set('convert');
+  }
+
+  private convert(item: Proforma): void {
+    this.busy.set(true);
+    this.api.convert(item)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (order) => {
+          this.busy.set(false);
+          this.pending.set(null);
+          this.linkedOrder.set(order);
+          this.linkChecked.set(true);
+          this.success.set('Commande associée : ' + order.number + '.');
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.pending.set(null);
+          this.linkChecked.set(false);
+          this.error.set(errorMessage(error) + ' Vérifiez la commande associée avant de réessayer.');
+        },
+      });
+  }
+
+  refreshLink(): void {
+    const item = this.detail();
+    if (item && !this.busy() && !this.pending() && !this.linkLoading()) this.checkLink(item);
   }
 
   ask(action: ProformaAction): void {
@@ -183,6 +247,11 @@ export class ProformasPage {
   apply(): void {
     const item = this.detail();
     const action = this.pending();
+    if (action === 'convert') {
+      if (item?.status === 'ACCEPTED' && !this.busy() && this.linkChecked() && !this.linkedOrder() && this.session.can('sales.manage'))
+        this.convert(item);
+      return;
+    }
     if (
       !item ||
       !action ||
@@ -204,6 +273,7 @@ export class ProformasPage {
             this.error.set('État non confirmé. Consultez de nouveau le devis.');
           } else {
             this.detail.set(updated);
+            this.checkLink(updated);
             this.success.set('Statut du devis : ' + this.labels[updated.status] + '.');
           }
           this.load(1);

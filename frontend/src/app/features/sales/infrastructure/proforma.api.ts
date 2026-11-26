@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { forkJoin, map, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import { storeId } from '../../stores/domain/store.contract';
@@ -16,6 +16,7 @@ import { ProductsApi } from '../../products/infrastructure/products.api';
 import { emptyFilters } from '../../products/domain/product.contract';
 import type { Proforma } from '../domain/proforma-view.contract';
 import { matchesProforma, type PendingProforma } from '../domain/pending-proforma.contract';
+import { parseConvertedOrder, parseLinkedOrder } from '../domain/proforma-conversion.contract';
 
 @Injectable({ providedIn: 'root' })
 export class ProformaApi {
@@ -74,6 +75,35 @@ export class ProformaApi {
     return this.http
       .post<unknown>(apiPath('/proformas/' + storeId(id) + '/' + action), {})
       .pipe(switchMap(() => this.get(id)));
+  }
+
+  linkedOrder(source: Proforma) {
+    return this.http
+      .get<unknown>(apiPath('/sales-orders/search'), {
+        params: { page: 1, limit: 2, proformaId: storeId(source.id) },
+      })
+      .pipe(map((value) => parseLinkedOrder(value, source)));
+  }
+
+  convert(source: Proforma) {
+    return this.linkedOrder(source).pipe(
+      switchMap((existing) => {
+        if (existing) return of(existing);
+        return this.http.post<unknown>(apiPath('/sales-orders/from-proforma/' + storeId(source.id)), {}).pipe(
+          map((value) => parseConvertedOrder(value, source)),
+          catchError((error: unknown) => {
+            if (!(error instanceof HttpErrorResponse) || ![0, 409].includes(error.status))
+              return throwError(() => error);
+            return this.linkedOrder(source).pipe(
+              map((order) => {
+                if (!order) throw error;
+                return order;
+              }),
+            );
+          }),
+        );
+      }),
+    );
   }
 
   create(input: PendingProforma) {

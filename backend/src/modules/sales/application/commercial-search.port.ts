@@ -7,6 +7,7 @@ export interface CommercialCriteria extends ListCriteria {
   customerId?: string;
   storeId?: string;
   orderId?: string;
+  proformaId?: string;
   invoiceId?: string;
 }
 export interface CommercialSearchPort {

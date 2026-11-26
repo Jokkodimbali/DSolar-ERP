@@ -95,6 +95,7 @@ export class PrismaCommercialSearchRepository implements CommercialSearchPort {
             ...common,
             ...visible,
             status: query.status as OrderStatus | undefined,
+            proformaId: query.proformaId,
           };
           const [items, total] = await Promise.all([
             tx.salesOrder.findMany({

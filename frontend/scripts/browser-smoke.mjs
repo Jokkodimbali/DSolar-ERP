@@ -408,6 +408,17 @@ try {
   await page.getByRole('button', { name: 'Accepter le devis', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
   await page.getByText('Statut du devis : Accepté.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Convertir en commande', exact: true }).click();
+  await page.route('**/api/v1/sales-orders/from-proforma/*', async (route) => {
+    const response = await route.fetch();
+    assert.equal(response.status(), 201);
+    await route.abort();
+  });
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await page.getByText(/^Commande associée : CMD-/).first().waitFor();
+  await page.unroute('**/api/v1/sales-orders/from-proforma/*');
+  await page.getByRole('link', { name: /^CMD-/ }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Convertir en commande', exact: true }).count(), 0);
   await page.screenshot({ path: join(artifacts, 'proformas-lifecycle.png'), fullPage: true });
   assert.deepEqual(errors, [], 'Erreurs JavaScript dans le navigateur');
   await page.getByLabel('Menu du compte').click();

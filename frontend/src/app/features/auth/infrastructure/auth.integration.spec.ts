@@ -7,6 +7,7 @@ import { notificationEvent, parseMark, parseFeed } from '../../notifications/dom
 import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
 import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
 import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-view.contract';
+import { parseLinkedOrder } from '../../sales/domain/proforma-conversion.contract';
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import {
   parseId,
@@ -1135,6 +1136,11 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect((await request('/proformas/' + draft.id + '/cancel', 'POST', {}, token)).status).toBe(409);
       const converted = await request('/sales-orders/from-proforma/' + draft.id, 'POST', {}, token);
       expect(converted.status).toBe(201);
+      const linked = await request('/sales-orders/search?proformaId=' + draft.id + '&page=1&limit=2', 'GET', undefined, token);
+      expect(linked.status).toBe(200);
+      expect(parseLinkedOrder(linked.data, parseProforma(accepted.data))?.id).toBe(parseId(converted.data));
+      expect((await request('/sales-orders/from-proforma/' + draft.id, 'POST', {}, token)).status).toBe(409);
+      expect((await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status).toBe(400);
       const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
       expect(orders.status).toBe(200);
       expect(parseRecentOrders(orders.data)).toEqual(

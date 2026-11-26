@@ -63,6 +63,17 @@
       </tbody>
     </table>
   </div>
+  @if (item.status === 'ACCEPTED') {
+    @if (linkedOrder(); as order) {
+    <p>Commande associée : <a [routerLink]="['/ventes/commandes', order.id]">{{ order.number }}</a></p>
+    } @else if (linkLoading()) {
+    <p role="status">Recherche de la commande associée…</p>
+    } @else if (!linkChecked()) {
+    <button class="secondary" type="button" [disabled]="busy()" (click)="refreshLink()">Vérifier la commande associée</button>
+    } @else if (session.can('sales.manage')) {
+    <button class="primary" type="button" [disabled]="busy() || loading() || !!pending()" (click)="askConvert()">Convertir en commande</button>
+    }
+  }
   @if (session.can('sales.manage')) {
   <div class="ui-actions">
     @if (item.status === 'DRAFT' && session.can('sales.read', 'products.read', 'stores.read')) {
@@ -83,7 +94,7 @@
 } @if (pending(); as action) {
 <app-confirm
   [heading]="actionLabels[action] + ' ?'"
-  description="Le serveur vérifiera à nouveau le statut, les droits d’accès et les règles commerciales avant d’enregistrer cette opération."
+  [description]="action === 'convert' ? 'Une seule commande brouillon sera associée à ce devis. Aucun stock ne sera réservé avant sa confirmation.' : 'Le serveur vérifiera à nouveau le statut, les droits d’accès et les règles commerciales avant d’enregistrer cette opération.'"
   [busy]="busy()"
   (confirmed)="apply()"
   (cancelled)="pending.set(null)"
