@@ -56,10 +56,28 @@
   <div class="ui-toolbar">
     <label class="ui-field">
       Rechercher un client
-      <input #customerSearch type="search" maxlength="120" [value]="customerQuery()" (keydown.enter)="$event.preventDefault(); searchCustomers(customerSearch.value)" />
+      <input
+        #customerSearch
+        type="search"
+        maxlength="120"
+        [value]="customerQuery()"
+        (keydown.enter)="$event.preventDefault(); searchCustomers(customerSearch.value)"
+      />
     </label>
-    <button type="button" class="secondary" [disabled]="loading() || busy() || referencesLoading() || form.disabled" (click)="searchCustomers(customerSearch.value)">Rechercher</button>
-    <app-pagination [page]="customerPage().page" [pages]="customerPage().pages || 1" [disabled]="loading() || busy() || referencesLoading() || form.disabled" (change)="searchCustomers(customerQuery(), $event)" />
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="loading() || busy() || referencesLoading() || form.disabled"
+      (click)="searchCustomers(customerSearch.value)"
+    >
+      Rechercher
+    </button>
+    <app-pagination
+      [page]="customerPage().page"
+      [pages]="customerPage().pages || 1"
+      [disabled]="loading() || busy() || referencesLoading() || form.disabled"
+      (change)="searchCustomers(customerQuery(), $event)"
+    />
   </div>
   <form [formGroup]="form" (ngSubmit)="save()" class="sale-form">
     <label class="ui-field">
@@ -78,10 +96,28 @@
     <div class="ui-toolbar">
       <label class="ui-field">
         Rechercher un produit
-        <input #productSearch type="search" maxlength="120" [value]="productQuery()" (keydown.enter)="$event.preventDefault(); searchProducts(productSearch.value)" />
+        <input
+          #productSearch
+          type="search"
+          maxlength="120"
+          [value]="productQuery()"
+          (keydown.enter)="$event.preventDefault(); searchProducts(productSearch.value)"
+        />
       </label>
-      <button type="button" class="secondary" [disabled]="loading() || busy() || referencesLoading() || form.disabled" (click)="searchProducts(productSearch.value)">Rechercher</button>
-      <app-pagination [page]="productPage().page" [pages]="productPage().pages || 1" [disabled]="loading() || busy() || referencesLoading() || form.disabled" (change)="searchProducts(productQuery(), $event)" />
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="loading() || busy() || referencesLoading() || form.disabled"
+        (click)="searchProducts(productSearch.value)"
+      >
+        Rechercher
+      </button>
+      <app-pagination
+        [page]="productPage().page"
+        [pages]="productPage().pages || 1"
+        [disabled]="loading() || busy() || referencesLoading() || form.disabled"
+        (change)="searchProducts(productQuery(), $event)"
+      />
     </div>
     <div formArrayName="lines">
       @for (line of form.controls.lines.controls; track line; let i = $index) {

@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize, map, of, switchMap } from 'rxjs';
+import { finalize, map, of, switchMap, type Observable } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
@@ -96,32 +96,41 @@ export class NewSalePage {
     this.loading.set(true);
     this.error.set('');
     try {
-      const detail = this.editId && !this.original() ? this.api.get(storeId(this.editId)) : of(null);
-      detail.pipe(
-        switchMap((item) =>
-          this.api.options(item ?? this.original()).pipe(map((options) => ({ options, detail: item }))),
-        ),
-      )
+      const detail: Observable<Proforma | null> =
+        this.editId && !this.original() ? this.api.get(storeId(this.editId)) : of(null);
+      detail
+        .pipe(
+          switchMap((item) =>
+            this.api.options(item ?? this.original()).pipe(map((options) => ({ options, detail: item }))),
+          ),
+        )
         .pipe(
           takeUntilDestroyed(this.destroy),
           finalize(() => this.loading.set(false)),
         )
         .subscribe({
-          next: ({ options: { customers, products, stores, selectedCustomer, selectedProducts }, detail: item }) => {
+          next: ({
+            options: { customers, products, stores, selectedCustomer, selectedProducts },
+            detail: item,
+          }) => {
             this.customerPage.set({ page: customers.page, pages: customers.pages });
             this.productPage.set({ page: products.page, pages: products.pages });
             this.customerQuery.set('');
             this.productQuery.set('');
-            this.customers.set(keepSelected(
-              this.customers(),
-              [...(selectedCustomer ? [selectedCustomer] : []), ...customers.items],
-              [this.form.controls.customerId.value],
-            ));
-            this.products.set(keepSelected(
-              this.products(),
-              [...selectedProducts, ...products.items],
-              this.form.controls.lines.getRawValue().map((line) => line.productId),
-            ));
+            this.customers.set(
+              keepSelected(
+                this.customers(),
+                [...(selectedCustomer ? [selectedCustomer] : []), ...customers.items],
+                [this.form.controls.customerId.value],
+              ),
+            );
+            this.products.set(
+              keepSelected(
+                this.products(),
+                [...selectedProducts, ...products.items],
+                this.form.controls.lines.getRawValue().map((line) => line.productId),
+              ),
+            );
             this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
             if (item) {
               if (item.id !== this.editId || item.status !== 'DRAFT') {
@@ -145,38 +154,50 @@ export class NewSalePage {
   }
 
   searchCustomers(search: string, page = 1): void {
-    if (this.loading() || this.busy() || this.referencesLoading() || this.pending() || this.form.disabled) return;
+    if (this.loading() || this.busy() || this.referencesLoading() || this.pending() || this.form.disabled)
+      return;
     this.referencesLoading.set(true);
     this.error.set('');
     this.customerQuery.set(search.trim());
     this.api
       .customerOptions(page, this.customerQuery())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.referencesLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.referencesLoading.set(false)),
+      )
       .subscribe({
         next: (result) => {
           this.customerPage.set({ page: result.page, pages: result.pages });
-          this.customers.set(keepSelected(this.customers(), result.items, [this.form.controls.customerId.value]));
+          this.customers.set(
+            keepSelected(this.customers(), result.items, [this.form.controls.customerId.value]),
+          );
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
       });
   }
 
   searchProducts(search: string, page = 1): void {
-    if (this.loading() || this.busy() || this.referencesLoading() || this.pending() || this.form.disabled) return;
+    if (this.loading() || this.busy() || this.referencesLoading() || this.pending() || this.form.disabled)
+      return;
     this.referencesLoading.set(true);
     this.error.set('');
     this.productQuery.set(search.trim());
     this.api
       .productOptions(page, this.productQuery())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.referencesLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.referencesLoading.set(false)),
+      )
       .subscribe({
         next: (result) => {
           this.productPage.set({ page: result.page, pages: result.pages });
-          this.products.set(keepSelected(
-            this.products(),
-            result.items,
-            this.form.controls.lines.getRawValue().map((line) => line.productId),
-          ));
+          this.products.set(
+            keepSelected(
+              this.products(),
+              result.items,
+              this.form.controls.lines.getRawValue().map((line) => line.productId),
+            ),
+          );
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
       });

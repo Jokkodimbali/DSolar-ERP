@@ -3,7 +3,10 @@ import { expiryInput, keepSelected, localExpiry } from './proforma-form.contract
 
 describe('Formulaire de devis', () => {
   it('conserve les références sélectionnées hors de la page courante', () => {
-    const old = [{ id: 'a', name: 'Client A' }, { id: 'b', name: 'Client B' }];
+    const old = [
+      { id: 'a', name: 'Client A' },
+      { id: 'b', name: 'Client B' },
+    ];
     const next = [{ id: 'c', name: 'Client C' }];
     expect(keepSelected(old, next, ['a'])).toEqual([old[0], next[0]]);
   });

@@ -25,9 +25,9 @@ export class ProformaApi {
   private readonly products = inject(ProductsApi);
 
   customerOptions(page: number, search: string) {
-    return this.customers.search(page, search).pipe(
-      map((result) => ({ ...result, items: result.items.map(({ id, name }) => ({ id, name })) })),
-    );
+    return this.customers
+      .search(page, search)
+      .pipe(map((result) => ({ ...result, items: result.items.map(({ id, name }) => ({ id, name })) })));
   }
 
   productOptions(page: number, search: string) {
@@ -50,7 +50,9 @@ export class ProformaApi {
         : of(null),
       selectedProducts: ids.length
         ? forkJoin(ids.map((id) => this.products.get(id))).pipe(
-            map((products) => products.filter((product) => product.active).map(({ id, name, sku }) => ({ id, name, sku }))),
+            map((products) =>
+              products.filter((product) => product.active).map(({ id, name, sku }) => ({ id, name, sku })),
+            ),
           )
         : of([]),
     });

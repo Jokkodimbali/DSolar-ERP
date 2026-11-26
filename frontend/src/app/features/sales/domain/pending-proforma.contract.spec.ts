@@ -44,9 +44,12 @@ describe('Reprise sécurisée des devis', () => {
     const item = parseProforma(row);
     expect(matchesProforma(item, input)).toBe(true);
     expect(matchesProforma(item, { ...input, number: 'PF-AUTRE' })).toBe(false);
-    expect(matchesProforma(item, { ...input, lines: input.lines.map((line) => ({ ...line, unitPrice: 1000.26 })) })).toBe(
-      false,
-    );
+    expect(
+      matchesProforma(item, {
+        ...input,
+        lines: input.lines.map((line) => ({ ...line, unitPrice: 1000.26 })),
+      }),
+    ).toBe(false);
     expect(matchesProforma(item, { ...input, expiresAt: '2027-01-01T00:00:00Z' })).toBe(false);
   });
 });
