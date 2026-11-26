@@ -18,10 +18,11 @@ import { ConfirmComponent } from '../../../shared/ui/confirm.component';
 import { PaginationComponent } from '../../../shared/ui/pagination.component';
 import { SessionService } from '../../auth/application/session.service';
 import { OrderViewApi } from '../infrastructure/order-view.api';
+import { OrderDeliveriesComponent } from './order-deliveries.component';
 
 @Component({
   selector: 'app-orders-page',
-  imports: [PageHeaderComponent, FeedbackComponent, RouterLink, ConfirmComponent, PaginationComponent],
+  imports: [PageHeaderComponent, FeedbackComponent, RouterLink, ConfirmComponent, PaginationComponent, OrderDeliveriesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './orders.page.html',
 })
