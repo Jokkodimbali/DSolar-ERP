@@ -219,6 +219,15 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
       });
       if (!line || line.receipt.status !== 'CONFIRMED' || line.receipt.store.status !== 'ACTIVE')
         throw new ConflictException('Réception confirmée et magasin actif requis.');
+      const existing = await tx.serialNumber.findMany({ where: { serial: { in: serials } } });
+      if (existing.length) {
+        if (
+          existing.length === serials.length &&
+          existing.every((item) => item.receiptLineId === receiptLineId && item.productId === line.productId)
+        )
+          return { count: existing.length, serials: existing };
+        throw new ConflictException('Numéro de série déjà enregistré. Vérifiez le lot complet.');
+      }
       const returned = await tx.supplierReturnLine.count({
         where: { receiptLineId, supplierReturn: { status: 'CONFIRMED' } },
       });

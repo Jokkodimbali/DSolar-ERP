@@ -118,6 +118,13 @@ integration('Retours fournisseurs PostgreSQL', () => {
         admin.id,
       );
       expect(registration.count).toBe(2);
+      const replay = await repo.registerSerials(receiptLineId, [suffix + '-01', suffix + '-02'], admin.id);
+      expect(replay.serials.map((item) => item.id).sort()).toEqual(
+        registration.serials.map((item) => item.id).sort(),
+      );
+      await expect(
+        repo.registerSerials(receiptLineId, [suffix + '-01', suffix + '-03'], admin.id),
+      ).rejects.toBeInstanceOf(ConflictException);
       const firstPage = await repo.availableSerials(receiptLineId, admin.id, { page: 1, limit: 1 });
       expect(firstPage.pagination).toEqual({ page: 1, limit: 1, total: 2, pages: 2 });
       const serialId = firstPage.items[0].id;

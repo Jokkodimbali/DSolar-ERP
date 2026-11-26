@@ -4,6 +4,7 @@ import { map, switchMap } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
 import { parseId } from '../../inventory/domain/workflow.contract';
+import { parseSerialRegistration } from '../domain/serial-registration.contract';
 import {
   parseAvailableSerials,
   parseReturnOptions,
@@ -48,6 +49,14 @@ export class SupplierReturnsApi {
         params: { page, limit: 10, search },
       })
       .pipe(map((value) => parseAvailableSerials(value, receiptLineId)));
+  }
+
+  registerSerials(receiptLineId: string, serials: string[]) {
+    return this.http
+      .post<unknown>(apiPath('/supplier-returns/receipt-lines/' + storeId(receiptLineId) + '/serials'), {
+        serials,
+      })
+      .pipe(map((value) => parseSerialRegistration(value, receiptLineId, serials)));
   }
 
   create(input: ReturnCreation) {

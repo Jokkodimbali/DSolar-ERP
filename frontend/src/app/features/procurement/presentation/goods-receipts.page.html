@@ -176,6 +176,9 @@
       </tbody>
     </table>
   </div>
+  @if (receipt.status === 'CONFIRMED' && session.can('users.manage', 'inventory.manage')) {
+  <app-receipt-serial-registration [receipt]="receipt" [names]="productNames()" />
+  }
   @if (receipt.status === 'DRAFT' && session.can('inventory.manage')) {
   <div class="ui-actions">
     <button class="primary" type="button" [disabled]="busy()" (click)="ask('confirm')">

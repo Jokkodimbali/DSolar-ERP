@@ -31,6 +31,7 @@ import type {
 } from '../domain/purchase-order.contract';
 import { GoodsReceiptsApi } from '../infrastructure/goods-receipts.api';
 import { PurchaseOrdersApi } from '../infrastructure/purchase-orders.api';
+import { ReceiptSerialRegistrationComponent } from './receipt-serial-registration.component';
 import {
   matchesReceipt,
   parsePendingReceipt,
@@ -46,6 +47,7 @@ import {
     FeedbackComponent,
     PageHeaderComponent,
     PaginationComponent,
+    ReceiptSerialRegistrationComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './goods-receipts.page.html',
