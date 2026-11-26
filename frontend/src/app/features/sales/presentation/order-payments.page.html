@@ -1,0 +1,64 @@
+<app-page-header eyebrow="VENTES" heading="Règlements de la commande" description="Enregistrez uniquement les paiements déjà reçus. Aucun débit réel n’est déclenché.">
+  <a class="secondary" [routerLink]="['/ventes/commandes', orderId()]">Retour à la commande</a>
+  <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation() || !!reversal()" (click)="load()">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (loading()) { <p role="status">Chargement des règlements…</p> }
+@if (pending(); as command) {
+<section class="panel">
+  <h2>Règlement en attente</h2>
+  <p>{{ money(command.amount) }} · {{ labels[command.method] }}</p>
+  <p class="muted">La même clé sera utilisée pour éviter tout double encaissement.</p>
+  <button class="primary" type="button" [disabled]="busy() || loading() || blocked()" (click)="resume()">Reprendre le règlement</button>
+</section>
+}
+@if (summary(); as data) {
+<section class="panel">
+  <h2>Situation financière</h2>
+  <dl class="metrics">
+    <div><dt>Total TTC</dt><dd>{{ money(data.total) }}</dd></div>
+    <div><dt>Avoirs</dt><dd>{{ money(data.credited) }}</dd></div>
+    <div><dt>Total net</dt><dd>{{ money(data.netTotal) }}</dd></div>
+    <div><dt>Encaissé</dt><dd>{{ money(data.paid) }}</dd></div>
+    <div><dt>Reste à payer</dt><dd>{{ money(data.remaining) }}</dd></div>
+    <div><dt>Tranches actives</dt><dd>{{ data.activeInstallments }} / 2</dd></div>
+  </dl>
+</section>
+@if (data.canRecord && session.can('sales.manage') && !pending() && !blocked()) {
+<section class="panel">
+  <h2>Enregistrer un règlement</h2>
+  @if (data.nextPaymentMustSettle) { <p>La deuxième tranche doit régler intégralement le solde.</p> }
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); askRecord(gross.value, mode.value, reference.value)">
+    <label class="ui-field">Montant reçu (FCFA)<input #gross type="text" inputmode="decimal" maxlength="19" [value]="data.nextPaymentMustSettle ? data.remaining : ''" [readOnly]="data.nextPaymentMustSettle" required /></label>
+    <label class="ui-field">Mode de règlement<select #mode>@for (value of methods; track value) { <option [value]="value">{{ labels[value] }}</option> }</select></label>
+    <label class="ui-field">Référence externe (facultative)<input #reference maxlength="200" /></label>
+    <button type="submit" class="primary" [disabled]="busy() || !!confirmation() || !!reversal()">Vérifier le règlement</button>
+  </form>
+</section>
+}
+<section class="panel">
+  <h2>Historique des règlements</h2>
+  <div class="ui-table" role="region" aria-label="Historique des règlements" tabindex="0">
+    <table><thead><tr><th scope="col">Tranche</th><th scope="col">Montant</th><th scope="col">Mode</th><th scope="col">Date</th><th scope="col">Statut</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (payment of data.payments; track payment.id) {
+      <tr><td>{{ payment.installmentNumber }}</td><td>{{ money(payment.amount) }}</td><td>{{ labels[payment.method] }}</td><td>{{ payment.receivedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+      <td>{{ payment.status === 'ACTIVE' ? 'Encaissé' : 'Contrepassé' }}</td><td>
+        <app-sales-document-button [document]="{ kind: 'payment', id: payment.id, orderId: orderId() }" label="Reçu PDF" />
+        @if (session.can('sales.manage') && canReverse(data, payment) && !pending()) {
+          <label class="ui-field">Motif de contrepassation<textarea #reason maxlength="500"></textarea></label>
+          <button type="button" class="secondary" [disabled]="busy() || !!confirmation() || !!reversal()" (click)="askReverse(payment, reason.value)">Contrepasser</button>
+        }
+      </td></tr>
+    } @empty { <tr><td colspan="6">Aucun règlement enregistré.</td></tr> }</tbody></table>
+  </div>
+</section>
+}
+@if (confirmation(); as command) {
+<app-confirm heading="Confirmer le règlement reçu ?" [description]="money(command.amount) + ' · ' + labels[command.method] + '. Cette saisie ne déclenche aucun paiement.'"
+ [busy]="busy()" (confirmed)="confirmRecord()" (cancelled)="confirmation.set(null)" />
+}
+@if (reversal(); as action) {
+<app-confirm heading="Contrepasser le règlement ?" [description]="money(action.payment.amount) + ' — ' + action.reason"
+ [busy]="busy()" (confirmed)="reverse()" (cancelled)="reversal.set(null)" />
+}

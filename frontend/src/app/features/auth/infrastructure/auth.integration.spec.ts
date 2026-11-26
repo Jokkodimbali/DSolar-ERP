@@ -10,6 +10,7 @@ import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-vi
 import { parseLinkedOrder } from '../../sales/domain/proforma-conversion.contract';
 import { parseInvoice, parseInvoicePage, verifyInvoiceOrder } from '../../sales/domain/invoice.contract';
 import { parseOrderDetail } from '../../sales/domain/order-view.contract';
+import { parsePaymentSummary, verifyRecordedPayment } from '../../sales/domain/payment.contract';
 import {
   parseDelivery,
   parseDeliveryPage,
@@ -1344,6 +1345,67 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(invoiceList.status).toBe(200);
       expect(parseInvoicePage(invoiceList.data).items.map((item) => item.id)).toEqual([invoice.id]);
+      const paymentPath = deliveryPath + '/payments';
+      const initialPaymentSummary = parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      expect(initialPaymentSummary.remaining).toBe('2360.00');
+      const firstPaymentInput = {
+        amount: '1000.25',
+        method: 'CASH' as const,
+        idempotencyKey: crypto.randomUUID(),
+      };
+      const firstPayment = await request(paymentPath, 'POST', firstPaymentInput, token);
+      expect(firstPayment.status).toBe(201);
+      const firstPaymentId = verifyRecordedPayment(firstPayment.data, deliveryOrderId, firstPaymentInput);
+      const firstReplay = await request(paymentPath, 'POST', firstPaymentInput, token);
+      expect(firstReplay.status).toBe(201);
+      expect(verifyRecordedPayment(firstReplay.data, deliveryOrderId, firstPaymentInput)).toBe(firstPaymentId);
+      const partialPaymentSummary = parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      expect(partialPaymentSummary.remaining).toBe('1359.75');
+      expect(partialPaymentSummary.nextPaymentMustSettle).toBe(true);
+      const secondPaymentInput = {
+        amount: '1359.75',
+        method: 'MOBILE_MONEY' as const,
+        idempotencyKey: crypto.randomUUID(),
+        externalReference: 'CI-REGLEMENT-2',
+      };
+      expect(
+        (await request(paymentPath, 'POST', { ...secondPaymentInput, amount: '1359.74' }, token)).status,
+      ).toBe(409);
+      const secondPayment = await request(paymentPath, 'POST', secondPaymentInput, token);
+      expect(secondPayment.status).toBe(201);
+      const secondPaymentId = verifyRecordedPayment(secondPayment.data, deliveryOrderId, secondPaymentInput);
+      const paid = parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      expect(paid.remaining).toBe('0.00');
+      expect(paid.activeInstallments).toBe(2);
+      expect(paid.canRecord).toBe(false);
+      expect(
+        (await request(paymentPath, 'POST', { ...firstPaymentInput, idempotencyKey: crypto.randomUUID() }, token)).status,
+      ).toBe(409);
+      const reason = { reason: 'Contrepassation de contrôle CI' };
+      expect((await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status).toBe(409);
+      expect((await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status).toBe(201);
+      expect((await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status).toBe(409);
+      const reversed = parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      expect(reversed.remaining).toBe('1359.75');
+      expect(reversed.activeInstallments).toBe(1);
+      expect(reversed.payments.find((item) => item.id === secondPaymentId)?.status).toBe('REVERSED');
+      expect((await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status).toBe(201);
+      expect(parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      ).remaining).toBe('2360.00');
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);

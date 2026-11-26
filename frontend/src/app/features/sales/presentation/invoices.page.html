@@ -102,6 +102,7 @@
   </div>
   <div class="ui-actions">
     <a class="secondary" [routerLink]="['/ventes/commandes', invoice.orderId]">Commande associée</a>
+    <a class="secondary" [routerLink]="['/ventes/reglements/commande', invoice.orderId]">Règlements de la commande</a>
     @if (invoice.status === 'DRAFT' && session.can('sales.manage')) {
     <button
       type="button"

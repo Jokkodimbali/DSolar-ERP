@@ -72,6 +72,7 @@
     </table>
   </div>
   <a class="secondary" [routerLink]="['/ventes/factures/commande', order.id]">Factures de la commande</a>
+  <a class="secondary" [routerLink]="['/ventes/reglements/commande', order.id]">Règlements de la commande</a>
   @if (order.proformaId) {
   <a class="secondary" routerLink="/ventes/proformas">Consulter les devis</a>
   } @if (session.can('sales.manage')) {
