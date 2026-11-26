@@ -4,14 +4,27 @@
   description="Réceptionnez les commandes fournisseurs dans les magasins autorisés."
 >
   @if (session.can('inventory.manage', 'stores.read')) {
-  <button class="primary" type="button" [disabled]="busy() || creating()" (click)="start()">
+  <button
+    class="primary"
+    type="button"
+    [disabled]="busy() || creating() || !!pendingCreation()"
+    (click)="start()"
+  >
     + Nouvelle réception
   </button>
   }
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
 <app-feedback [message]="success()" kind="success" />
-@if (creating()) {
+@if (pendingCreation(); as command) {
+<section class="panel">
+  <h2>Réception en attente</h2>
+  <p class="muted">Vérifiez le bon {{ command.number }} avant de relancer sa création.</p>
+  <button type="button" class="primary" [disabled]="busy()" (click)="resumeCreation()">
+    Reprendre la réception
+  </button>
+</section>
+} @if (creating()) {
 <section class="panel">
   <div class="page-heading">
     <h2>Nouveau bon de réception</h2>

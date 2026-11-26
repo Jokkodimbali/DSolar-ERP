@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -19,6 +20,7 @@ import {
   receiptStatuses,
   type GoodsReceipt,
   type ReceiptDraftLine,
+  type ReceiptInput,
   type ReceiptStatus,
   type parseReceiptPage,
 } from '../domain/goods-receipt.contract';
@@ -29,6 +31,11 @@ import type {
 } from '../domain/purchase-order.contract';
 import { GoodsReceiptsApi } from '../infrastructure/goods-receipts.api';
 import { PurchaseOrdersApi } from '../infrastructure/purchase-orders.api';
+import {
+  matchesReceipt,
+  parsePendingReceipt,
+  receiptStorageKey,
+} from '../infrastructure/pending-goods-receipt';
 
 @Component({
   selector: 'app-goods-receipts-page',
@@ -75,9 +82,21 @@ export class GoodsReceiptsPage {
   readonly busy = signal(false);
   readonly creating = signal(false);
   readonly pending = signal<'confirm' | 'cancel' | null>(null);
+  readonly pendingCreation = signal<ReceiptInput | null>(null);
+  private storageKey: string | null = null;
 
   constructor() {
     this.load();
+    const actor = this.session.user()?.id;
+    if (actor && this.session.can('inventory.manage')) {
+      this.storageKey = receiptStorageKey(actor);
+      try {
+        const raw = sessionStorage.getItem(this.storageKey);
+        if (raw !== null) this.pendingCreation.set(parsePendingReceipt(JSON.parse(raw)));
+      } catch {
+        this.error.set('Impossible de lire la réception en attente. Vérifiez le stockage du navigateur.');
+      }
+    }
     if (this.session.can('stores.read')) {
       this.storesApi
         .list()
@@ -120,7 +139,13 @@ export class GoodsReceiptsPage {
   }
 
   start(): void {
-    if (this.busy() || this.creating() || !this.session.can('inventory.manage', 'stores.read')) return;
+    if (
+      this.busy() ||
+      this.creating() ||
+      this.pendingCreation() ||
+      !this.session.can('inventory.manage', 'stores.read')
+    )
+      return;
     this.close();
     this.error.set('');
     this.success.set('');
@@ -147,10 +172,11 @@ export class GoodsReceiptsPage {
   }
 
   chooseOrder(id: string): void {
-    if (this.busy() || !this.options()?.items.some((item) => item.id === id)) return;
+    if (this.busy()) return;
     this.selectedOrder.set(null);
     this.progress.set(null);
     this.draft.set([]);
+    if (!this.options()?.items.some((item) => item.id === id)) return;
     this.busy.set(true);
     forkJoin({ order: this.ordersApi.get(id), progress: this.ordersApi.progress(id) })
       .pipe(
@@ -196,7 +222,14 @@ export class GoodsReceiptsPage {
   save(): void {
     const order = this.selectedOrder();
     const progress = this.progress();
-    if (this.busy() || !this.creating() || !order || !progress || !this.session.can('inventory.manage'))
+    if (
+      this.busy() ||
+      !this.creating() ||
+      this.pendingCreation() ||
+      !order ||
+      !progress ||
+      !this.session.can('inventory.manage')
+    )
       return;
     if (!this.stores().some((store) => store.id === this.destination())) {
       this.error.set('Sélectionnez un magasin actif autorisé.');
@@ -204,32 +237,81 @@ export class GoodsReceiptsPage {
     }
     try {
       const input = receiptInput(this.reference(), order.id, this.destination(), this.draft(), progress);
-      this.busy.set(true);
-      this.error.set('');
-      this.api
-        .create(input)
-        .pipe(takeUntilDestroyed(this.destroy))
-        .subscribe({
-          next: (receipt) => {
-            this.busy.set(false);
-            this.creating.set(false);
-            this.success.set('Bon de réception créé. Le stock reste inchangé.');
-            this.load(1);
-            this.open(receipt.id);
-          },
-          error: (error: unknown) => {
-            this.busy.set(false);
-            this.error.set(
-              errorMessage(error) +
-                ' Vérifiez la référence ' +
-                this.reference() +
-                ' avant toute nouvelle création.',
-            );
-          },
-        });
+      if (!this.storageKey) throw new Error('Session indisponible.');
+      sessionStorage.setItem(this.storageKey, JSON.stringify(input));
+      this.pendingCreation.set(input);
+      this.creating.set(false);
+      this.submit(input);
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : 'Vérifiez les quantités et les coûts.');
     }
+  }
+
+  resumeCreation(): void {
+    const input = this.pendingCreation();
+    if (!input || this.busy() || !this.session.can('inventory.manage')) return;
+    this.error.set('');
+    this.busy.set(true);
+    this.api
+      .search(1, input.number, '', input.storeId)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (page) => {
+          const receipt = page.items.find((item) => item.number === input.number);
+          this.busy.set(false);
+          if (receipt) {
+            this.creationSucceeded(receipt);
+          } else if (page.pages > 1) {
+            this.error.set('Recherche ambiguë. Vérifiez la référence avant de réessayer.');
+          } else {
+            this.submit(input);
+          }
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.error.set(errorMessage(error));
+        },
+      });
+  }
+
+  private clearCreation(): void {
+    this.pendingCreation.set(null);
+    if (this.storageKey) {
+      try {
+        sessionStorage.removeItem(this.storageKey);
+      } catch {
+        // La référence reste unique en base.
+      }
+    }
+  }
+
+  private submit(input: ReceiptInput): void {
+    this.busy.set(true);
+    this.error.set('');
+    this.api
+      .create(input)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (receipt) => this.creationSucceeded(receipt),
+        error: (error: unknown) => {
+          this.busy.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 400) this.clearCreation();
+          this.error.set(errorMessage(error) + ' Vérifiez la référence ' + input.number + '.');
+        },
+      });
+  }
+
+  private creationSucceeded(receipt: GoodsReceipt): void {
+    this.busy.set(false);
+    const input = this.pendingCreation();
+    if (!input || !matchesReceipt(receipt, input)) {
+      this.error.set('La réception trouvée ne correspond pas au bon en attente.');
+      return;
+    }
+    this.clearCreation();
+    this.success.set('Bon de réception retrouvé. Vérifiez son statut avant toute confirmation.');
+    this.load(1);
+    this.open(receipt.id);
   }
 
   open(id: string): void {
