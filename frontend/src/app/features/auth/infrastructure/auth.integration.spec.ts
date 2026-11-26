@@ -1468,17 +1468,28 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(creditPreview.status).toBe(201);
       const calculatedCredit = parseCreditPreview(creditPreview.data, invoice.id, creditLines);
       expect(calculatedCredit.amount).toBe('59.00');
-      const creditCommand = { operationKey: crypto.randomUUID(), amount: calculatedCredit.amount, reason: 'Correction de prix CI', lines: creditLines };
+      const creditCommand = {
+        operationKey: crypto.randomUUID(),
+        amount: calculatedCredit.amount,
+        reason: 'Correction de prix CI',
+        lines: creditLines,
+      };
       const creditIssued = await request(creditPath, 'POST', creditCommand, token);
       expect(creditIssued.status).toBe(201);
       const creditNote = verifyIssuedCredit(creditIssued.data, invoice.id, creditCommand);
       const creditReplay = await request(creditPath, 'POST', creditCommand, token);
       expect(creditReplay.status).toBe(201);
       expect(verifyIssuedCredit(creditReplay.data, invoice.id, creditCommand).id).toBe(creditNote.id);
-      expect((await request(creditPath, 'POST', { ...creditCommand, reason: 'Autre correction de prix' }, token)).status).toBe(409);
-      expect(parsePaymentSummary(
-        (await request(paymentPath + '/summary', 'GET', undefined, token)).data, deliveryOrderId,
-      ).remaining).toBe('2301.00');
+      expect(
+        (await request(creditPath, 'POST', { ...creditCommand, reason: 'Autre correction de prix' }, token))
+          .status,
+      ).toBe(409);
+      expect(
+        parsePaymentSummary(
+          (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+          deliveryOrderId,
+        ).remaining,
+      ).toBe('2301.00');
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);

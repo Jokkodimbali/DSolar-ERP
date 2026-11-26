@@ -24,7 +24,13 @@ export function documentPath(document: SalesDocument): string {
 }
 
 export function documentFilename(document: SalesDocument): string {
-  const prefix = { proforma: 'proforma', invoice: 'facture', delivery: 'livraison', payment: 'reglement', credit: 'avoir' };
+  const prefix = {
+    proforma: 'proforma',
+    invoice: 'facture',
+    delivery: 'livraison',
+    payment: 'reglement',
+    credit: 'avoir',
+  };
   return prefix[document.kind] + '-' + storeId(document.id) + '.pdf';
 }
 

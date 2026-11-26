@@ -107,8 +107,7 @@
     >
     @if (invoice.status === 'ISSUED') {
     <a class="secondary" [routerLink]="['/ventes/factures', invoice.id, 'avoirs']">Avoirs de la facture</a>
-    }
-    @if (invoice.status === 'DRAFT' && session.can('sales.manage')) {
+    } @if (invoice.status === 'DRAFT' && session.can('sales.manage')) {
     <button
       type="button"
       class="primary"

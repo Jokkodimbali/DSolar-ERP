@@ -14,7 +14,14 @@ import { SalesDocumentButtonComponent } from './sales-document-button.component'
 
 @Component({
   selector: 'app-credit-directory-page',
-  imports: [DatePipe, RouterLink, FeedbackComponent, PageHeaderComponent, PaginationComponent, SalesDocumentButtonComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+    SalesDocumentButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './credit-directory.page.html',
 })
@@ -26,7 +33,9 @@ export class CreditDirectoryPage {
   readonly query = signal('');
   readonly error = signal('');
   readonly money = formatMoney;
-  constructor() { this.load(1); }
+  constructor() {
+    this.load(1);
+  }
   search(value: string): void {
     if (this.loading()) return;
     this.query.set(value.trim());
@@ -37,8 +46,15 @@ export class CreditDirectoryPage {
     this.error.set('');
     this.loading.set(true);
     this.result.set(null);
-    this.api.search(page, this.query())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
-      .subscribe({ next: (result) => this.result.set(result), error: (error: unknown) => this.error.set(errorMessage(error)) });
+    this.api
+      .search(page, this.query())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (result) => this.result.set(result),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 }

@@ -11,7 +11,15 @@ import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { SessionService } from '../../auth/application/session.service';
 import { formatMoney } from '../../dashboard/domain/dashboard.contract';
 import { storeId } from '../../stores/domain/store.contract';
-import { creditLineInput, creditLines, creditStorageKey, parseCreditCommand, type CreditCommand, type CreditNote, type CreditPreview } from '../domain/credit-note.contract';
+import {
+  creditLineInput,
+  creditLines,
+  creditStorageKey,
+  parseCreditCommand,
+  type CreditCommand,
+  type CreditNote,
+  type CreditPreview,
+} from '../domain/credit-note.contract';
 import type { Invoice } from '../domain/invoice.contract';
 import { CreditNotesApi } from '../infrastructure/credit-notes.api';
 import { SalesDocumentButtonComponent } from './sales-document-button.component';
@@ -20,7 +28,14 @@ import { InvoicesApi } from '../infrastructure/invoices.api';
 
 @Component({
   selector: 'app-credit-notes-page',
-  imports: [DatePipe, RouterLink, ConfirmComponent, FeedbackComponent, PageHeaderComponent, SalesDocumentButtonComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    ConfirmComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    SalesDocumentButtonComponent,
+  ],
   templateUrl: './credit-notes.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -69,14 +84,30 @@ export class CreditNotesPage {
     this.invoice.set(null);
     this.loading.set(true);
     forkJoin({ invoice: this.invoices.get(this.invoiceId()), notes: this.api.list(this.invoiceId()) })
-      .pipe(map(({ invoice, notes }) => ({ invoice, notes, rows: creditLines(invoice, notes) })), takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+      .pipe(
+        map(({ invoice, notes }) => ({ invoice, notes, rows: creditLines(invoice, notes) })),
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
-        next: ({ invoice, notes, rows }) => { this.invoice.set(invoice); this.notes.set(notes); this.rows.set(rows);
+        next: ({ invoice, notes, rows }) => {
+          this.invoice.set(invoice);
+          this.notes.set(notes);
+          this.rows.set(rows);
           if (this.session.can('products.read')) {
             const ids = [...new Set(rows.map((line) => line.productId))];
-            if (ids.length) forkJoin(ids.map((id) => this.products.get(id).pipe(catchError(() => of(null)))))
-              .pipe(takeUntilDestroyed(this.destroy))
-              .subscribe((products) => this.productNames.set(Object.fromEntries(products.filter((product) => product !== null).map((product) => [product.id, product.name + ' · ' + product.sku]))));
+            if (ids.length)
+              forkJoin(ids.map((id) => this.products.get(id).pipe(catchError(() => of(null)))))
+                .pipe(takeUntilDestroyed(this.destroy))
+                .subscribe((products) =>
+                  this.productNames.set(
+                    Object.fromEntries(
+                      products
+                        .filter((product) => product !== null)
+                        .map((product) => [product.id, product.name + ' · ' + product.sku]),
+                    ),
+                  ),
+                );
           }
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
@@ -88,19 +119,39 @@ export class CreditNotesPage {
   }
   ask(reason: string): void {
     const invoice = this.invoice();
-    if (!invoice || this.busy() || this.loading() || this.blocked() || this.pending() || this.command() || !this.session.can('sales.manage')) return;
+    if (
+      !invoice ||
+      this.busy() ||
+      this.loading() ||
+      this.blocked() ||
+      this.pending() ||
+      this.command() ||
+      !this.session.can('sales.manage')
+    )
+      return;
     this.error.set('');
     this.success.set('');
     try {
       const normalized = reason.trim();
-      if (normalized.length < 10 || normalized.length > 500) throw new Error('Motif obligatoire : 10 à 500 caractères.');
+      if (normalized.length < 10 || normalized.length > 500)
+        throw new Error('Motif obligatoire : 10 à 500 caractères.');
       const lines = creditLineInput(invoice, this.notes(), this.values());
       this.busy.set(true);
-      this.api.preview(invoice.id, lines).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+      this.api
+        .preview(invoice.id, lines)
+        .pipe(
+          takeUntilDestroyed(this.destroy),
+          finalize(() => this.busy.set(false)),
+        )
         .subscribe({
           next: (preview) => {
             this.preview.set(preview);
-            this.command.set({ operationKey: crypto.randomUUID(), amount: preview.amount, reason: normalized, lines });
+            this.command.set({
+              operationKey: crypto.randomUUID(),
+              amount: preview.amount,
+              reason: normalized,
+              lines,
+            });
           },
           error: (error: unknown) => this.error.set(errorMessage(error)),
         });
@@ -110,7 +161,8 @@ export class CreditNotesPage {
   }
   confirm(): void {
     const command = this.command();
-    if (!command || this.busy() || this.blocked() || this.pending() || !this.session.can('sales.manage')) return;
+    if (!command || this.busy() || this.blocked() || this.pending() || !this.session.can('sales.manage'))
+      return;
     try {
       if (!this.storage) throw new Error('Session indisponible.');
       sessionStorage.setItem(this.storage, JSON.stringify(command));
@@ -121,31 +173,45 @@ export class CreditNotesPage {
       this.error.set('Impossible de conserver la demande. Aucun avoir envoyé.');
     }
   }
-  cancel(): void { this.command.set(null); this.preview.set(null); }
+  cancel(): void {
+    this.command.set(null);
+    this.preview.set(null);
+  }
   resume(): void {
     const command = this.pending();
-    if (!command || this.busy() || this.loading() || this.blocked() || !this.session.can('sales.manage')) return;
+    if (!command || this.busy() || this.loading() || this.blocked() || !this.session.can('sales.manage'))
+      return;
     this.busy.set(true);
     this.error.set('');
-    this.api.issue(this.invoiceId(), command).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (note) => {
-        this.busy.set(false);
-        try {
-          if (this.storage) sessionStorage.removeItem(this.storage);
-          this.pending.set(null);
-          this.values.set({});
-          this.success.set('Avoir émis : ' + note.number + '.');
+    this.api
+      .issue(this.invoiceId(), command)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (note) => {
+          this.busy.set(false);
+          try {
+            if (this.storage) sessionStorage.removeItem(this.storage);
+            this.pending.set(null);
+            this.values.set({});
+            this.success.set('Avoir émis : ' + note.number + '.');
+            this.load();
+          } catch {
+            this.error.set('Avoir enregistré, mais demande locale non effacée.');
+          }
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 400) {
+            try {
+              if (this.storage) sessionStorage.removeItem(this.storage);
+              this.pending.set(null);
+            } catch {
+              /* Conserver la référence. */
+            }
+          }
+          this.error.set(errorMessage(error) + ' Vérifiez l’historique avant de reprendre la même demande.');
           this.load();
-        } catch { this.error.set('Avoir enregistré, mais demande locale non effacée.'); }
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        if (error instanceof HttpErrorResponse && error.status === 400) {
-          try { if (this.storage) sessionStorage.removeItem(this.storage); this.pending.set(null); } catch { /* Conserver la référence. */ }
-        }
-        this.error.set(errorMessage(error) + ' Vérifiez l’historique avant de reprendre la même demande.');
-        this.load();
-      },
-    });
+        },
+      });
   }
 }
