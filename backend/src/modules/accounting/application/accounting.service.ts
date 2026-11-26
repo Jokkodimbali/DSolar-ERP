@@ -1,8 +1,8 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ACCOUNT_CLASSES, AccountClass } from '../domain/financial-statements';
-import { assertBalanced, calendarDate } from '../domain/ledger-policy';
+import { calendarDate } from '../domain/ledger-policy';
 import { PostingRuleInput, SourceType, validRuleKey } from '../domain/source-types';
-import { ACCOUNTING, AccountingPort, PostingInput } from './accounting.port';
+import { ACCOUNTING, AccountingPort } from './accounting.port';
 
 @Injectable()
 export class AccountingService {
@@ -84,14 +84,6 @@ export class AccountingService {
 
   close(id: string, actor: string) {
     return this.repository.close(id, actor);
-  }
-
-  post(input: PostingInput, actor: string) {
-    this.validate(() => {
-      calendarDate(input.date);
-      assertBalanced(input.lines);
-    });
-    return this.repository.post({ ...input, description: this.text(input.description, 500) }, actor);
   }
 
   reverse(id: string, periodId: string, date: string, reason: string, key: string, actor: string) {

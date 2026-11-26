@@ -68,7 +68,7 @@ describe('Sécurité HTTP de la comptabilité', () => {
     },
   );
 
-  it('refuse les écritures et clôtures d’un magasinier', async () => {
+  it('refuse les lectures et clôtures d’un magasinier', async () => {
     users.findById.mockResolvedValue({
       id: actor,
       status: 'ACTIVE',
@@ -83,13 +83,22 @@ describe('Sécurité HTTP de la comptabilité', () => {
       .post('/api/v1/accounting/entries')
       .set('Authorization', 'Bearer valid')
       .send({})
-      .expect(403);
+      .expect(404);
     await request(app.getHttpServer())
       .post('/api/v1/accounting/bank/statements/' + id + '/close')
       .set('Authorization', 'Bearer valid')
       .expect(403);
     expect(ledger.post).not.toHaveBeenCalled();
     expect(bank.close).not.toHaveBeenCalled();
+  });
+
+  it('ne permet aucune saisie manuelle, même à un administrateur', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/accounting/entries')
+      .set('Authorization', 'Bearer valid')
+      .send({})
+      .expect(404);
+    expect(ledger.post).not.toHaveBeenCalled();
   });
 
   it('refuse un jeton révoqué et un compte désactivé', async () => {

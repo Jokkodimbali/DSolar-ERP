@@ -2,19 +2,7 @@ import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-  ArrayMaxSize,
-  ArrayMinSize,
-  IsArray,
-  IsBoolean,
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-  ValidateNested,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { ACCOUNT_CLASSES, AccountClass } from '../domain/financial-statements';
@@ -54,45 +42,6 @@ class AccountingPeriodDto {
   @MaxLength(10)
   @SwaggerField({ type: String, maxLength: 10 })
   end!: string;
-}
-class AccountingLineDto {
-  @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' })
-  accountId!: string;
-  @IsString()
-  @MaxLength(19)
-  @SwaggerField({ type: String, maxLength: 19 })
-  debit!: string;
-  @IsString()
-  @MaxLength(19)
-  @SwaggerField({ type: String, maxLength: 19 })
-  credit!: string;
-}
-class AccountingPostingDto {
-  @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' })
-  journalId!: string;
-  @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' })
-  periodId!: string;
-  @IsUUID()
-  @SwaggerField({ type: String, format: 'uuid' })
-  operationKey!: string;
-  @IsString()
-  @MaxLength(10)
-  @SwaggerField({ type: String, maxLength: 10 })
-  date!: string;
-  @IsString()
-  @MaxLength(500)
-  @SwaggerField({ type: String, maxLength: 500 })
-  description!: string;
-  @IsArray()
-  @ArrayMinSize(2)
-  @ArrayMaxSize(100)
-  @ValidateNested({ each: true })
-  @Type(() => AccountingLineDto)
-  @SwaggerField({ type: () => [AccountingLineDto], minItems: 2, maxItems: 100 })
-  lines!: AccountingLineDto[];
 }
 class AccountingRuleDto {
   @IsString()
@@ -216,11 +165,6 @@ export class AccountingController {
   @SuccessMessage('Période comptable clôturée.')
   close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.close(id, actor);
-  }
-  @Post('entries')
-  @SuccessMessage('Écriture comptable enregistrée.')
-  post(@Body() dto: AccountingPostingDto, @CurrentUserId() actor: string) {
-    return this.service.post(dto, actor);
   }
   @Post('entries/:id/reverse')
   @SuccessMessage('Écriture comptable contrepassée.')

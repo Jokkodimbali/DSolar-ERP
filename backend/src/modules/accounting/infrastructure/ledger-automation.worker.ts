@@ -10,9 +10,10 @@ export class LedgerAutomationWorker implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(ACCOUNTING) private readonly repository: AccountingPort) {}
 
   onModuleInit() {
-    if (process.env.NODE_ENV === 'test' || process.env.LEDGER_AUTOMATION_WORKER !== 'true') return;
+    if (process.env.NODE_ENV === 'test' || process.env.LEDGER_AUTOMATION_WORKER === 'false') return;
     this.timer = setInterval(() => this.tick(), 60000);
     this.timer.unref();
+    this.tick();
   }
 
   private tick() {

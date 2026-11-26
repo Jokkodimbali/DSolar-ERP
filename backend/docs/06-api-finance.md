@@ -6,6 +6,13 @@ Les chemins incluent `/api/v1`. Les permissions déclarées dans les controllers
 
 [Controller source](../src/modules/accounting/presentation/accounting.controller.ts).
 
+Les nouvelles périodes activent la comptabilisation automatique dès leur création. Le worker
+est actif par défaut hors tests, avec arrêt explicite via `LEDGER_AUTOMATION_WORKER=false`.
+Les périodes existantes sans configuration ou désactivées nécessitent une activation par un
+administrateur. Les routes `sources` et `post-pending` permettent uniquement de reprendre des
+pièces métier réelles ; aucune route ne permet de saisir librement des lignes comptables.
+La contrepassation des anciennes écritures manuelles reste possible pour préserver leur historique.
+
 | Méthode | Route | Accès déclaré | Handler |
 | --- | --- | --- | --- |
 | GET | `/api/v1/accounting/setup` | users.manage | `setup` |
@@ -21,7 +28,6 @@ Les chemins incluent `/api/v1`. Les permissions déclarées dans les controllers
 | GET | `/api/v1/accounting/periods/:id/pending` | users.manage | `pending` |
 | POST | `/api/v1/accounting/periods/:id/post-pending` | users.manage | `postPending` |
 | POST | `/api/v1/accounting/periods/:id/close` | users.manage | `close` |
-| POST | `/api/v1/accounting/entries` | users.manage | `post` |
 | POST | `/api/v1/accounting/entries/:id/reverse` | users.manage | `reverse` |
 | GET | `/api/v1/accounting/periods/:id/entries` | users.manage | `entries` |
 | GET | `/api/v1/accounting/periods/:id/trial-balance` | users.manage | `balance` |
@@ -40,7 +46,6 @@ configureAutomation(@Param('id', ParseUUIDPipe) id: string, @Body() dto: Automat
 pending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string)
 postPending(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string)
 close(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string)
-post(@Body() dto: PostingDto, @CurrentUserId() actor: string)
 reverse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReverseDto, @CurrentUserId() actor: string)
 entries(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query('accountId', new ParseUUIDPipe({ optional: true })) accountId?: string, @Query('cursor', new ParseUUIDPipe({ optional: true })) cursor?: string,)
 balance(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string)
@@ -78,38 +83,6 @@ class PeriodDto {
   @IsString()
   @MaxLength(10)
   end!: string;
-}
-
-class LineDto {
-  @IsUUID()
-  accountId!: string;
-  @IsString()
-  @MaxLength(19)
-  debit!: string;
-  @IsString()
-  @MaxLength(19)
-  credit!: string;
-}
-
-class PostingDto {
-  @IsUUID()
-  journalId!: string;
-  @IsUUID()
-  periodId!: string;
-  @IsUUID()
-  operationKey!: string;
-  @IsString()
-  @MaxLength(10)
-  date!: string;
-  @IsString()
-  @MaxLength(500)
-  description!: string;
-  @IsArray()
-  @ArrayMinSize(2)
-  @ArrayMaxSize(100)
-  @ValidateNested({ each: true })
-  @Type(() => LineDto)
-  lines!: LineDto[];
 }
 
 class RuleDto {

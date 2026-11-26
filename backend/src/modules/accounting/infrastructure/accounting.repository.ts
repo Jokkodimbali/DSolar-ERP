@@ -397,7 +397,11 @@ export class AccountingRepository implements AccountingPort {
       )
         throw new ConflictException('Périodes comptables chevauchantes.');
       const result = await tx.ledgerPeriod.create({ data: { name, startsAt, endsAt } });
+      await tx.ledgerAutomation.create({
+        data: { periodId: result.id, enabled: true, actorId: actor },
+      });
       await this.audit(tx, actor, 'LEDGER_PERIOD_CREATED', result.id);
+      await this.audit(tx, actor, 'LEDGER_AUTOMATION_ENABLED', result.id);
       return result;
     });
   }

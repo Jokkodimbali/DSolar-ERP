@@ -466,8 +466,7 @@ integration('Comptabilité PostgreSQL', () => {
       expect(
         await prisma.ledgerEntry.count({ where: { sourceType: 'INVOICE', sourceId: autoInvoice.id } }),
       ).toBe(0);
-      expect((await repo.runAutomaticCycle()).processed).toBe(0);
-      await repo.configureAutomation(autoPeriod.id, true, admin.id);
+      expect((await repo.automation(autoPeriod.id, admin.id)).enabled).toBe(true);
       expect((await repo.runAutomaticCycle()).processed).toBe(1);
       expect((await repo.runAutomaticCycle()).processed).toBe(0);
       expect(
