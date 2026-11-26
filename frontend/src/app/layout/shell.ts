@@ -67,6 +67,13 @@ import { SessionService } from '../features/auth/application/session.service';
             aria-label="Ventes"
             ><app-ui-icon name="cart" /><span class="nav-text">Ventes</span></a
           >
+          <a
+            routerLink="/ventes/clients"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Clients"
+            ><app-ui-icon name="user" /><span class="nav-text">Clients</span></a
+          >
         }
         @if (session.can('products.read')) {
           <a

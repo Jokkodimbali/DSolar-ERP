@@ -112,6 +112,11 @@ export const routes: Routes = [
           import('./features/dashboard/presentation/stock-alerts.page').then((m) => m.StockAlertsPage),
       },
       {
+        path: 'ventes/clients',
+        canActivate: [ordersReadGuard],
+        loadComponent: () => import('./features/sales/presentation/customers.page').then((m) => m.CustomersPage),
+      },
+      {
         path: 'ventes/commandes',
         canActivate: [ordersReadGuard],
         loadComponent: () => import('./features/sales/presentation/orders.page').then((m) => m.OrdersPage),

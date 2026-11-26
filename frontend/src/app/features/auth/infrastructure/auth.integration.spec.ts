@@ -5,6 +5,7 @@ import { parseAlerts, parseRecentOrders } from '../../dashboard/domain/dashboard
 import { parseSearch, sources } from '../../search/domain/search.contract';
 import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
 import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
+import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import {
   parseId,
@@ -402,8 +403,30 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const saleAdmin = parseAuthResult((await request('/auth/login', 'POST', { email, password })).data);
     const token = saleAdmin.jetonAcces;
     try {
-      const customerResponse = await request('/customers', 'POST', { name: 'Client proforma CI' }, token);
+      const customerCommand = { name: 'Client proforma CI', operationKey: crypto.randomUUID() };
+      const customerResponse = await request('/customers', 'POST', customerCommand, token);
       expect(customerResponse.status).toBe(201);
+      const customerRecord = parseCustomer(customerResponse.data);
+      const customerReplay = await request('/customers', 'POST', customerCommand, token);
+      expect(customerReplay.status).toBe(201);
+      expect(parseCustomer(customerReplay.data).id).toBe(customerRecord.id);
+      const conflictingCustomer = await request(
+        '/customers', 'POST', { ...customerCommand, name: 'Autre client CI' }, token,
+      );
+      expect(conflictingCustomer.status).toBe(409);
+      const updatedCustomer = await request(
+        '/customers/' + customerRecord.id, 'PATCH', { phone: '770000000', email: 'test@example.test' }, token,
+      );
+      expect(updatedCustomer.status).toBe(200);
+      expect(parseCustomer(updatedCustomer.data).phone).toBe('770000000');
+      const clearedCustomer = await request('/customers/' + customerRecord.id, 'PATCH', { email: null }, token);
+      expect(clearedCustomer.status).toBe(200);
+      expect(parseCustomer(clearedCustomer.data).email).toBeNull();
+      const customerList = await request(
+        '/customers/search?search=Client%20proforma%20CI&page=1&limit=10', 'GET', undefined, token,
+      );
+      expect(customerList.status).toBe(200);
+      expect(parseCustomerPage(customerList.data).items.map((item) => item.id)).toContain(customerRecord.id);
       const productResponse = await request(
         '/products',
         'POST',

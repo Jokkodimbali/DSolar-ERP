@@ -1,0 +1,76 @@
+<app-page-header eyebrow="VENTES" heading="Clients" description="Consultez et gérez les coordonnées commerciales et fiscales de vos clients.">
+  @if (session.can('sales.manage')) {
+  <button type="button" class="primary" [disabled]="busy() || loading() || !!editing()" (click)="start()">
+    {{ pending() ? 'Reprendre la création' : '+ Nouveau client' }}
+  </button>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (detail(); as customer) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Fiche client — {{ customer.name }}</h2>
+    <button type="button" class="secondary" (click)="close()">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div><dt>NINEA</dt><dd>{{ customer.taxId || 'Non renseigné' }}</dd></div>
+    <div><dt>Téléphone</dt><dd>{{ customer.phone || 'Non renseigné' }}</dd></div>
+    <div><dt>Adresse e-mail</dt><dd>{{ customer.email || 'Non renseignée' }}</dd></div>
+    <div><dt>Adresse</dt><dd>{{ customer.address || 'Non renseignée' }}</dd></div>
+    <div><dt>Créé le</dt><dd>{{ customer.createdAt | date:'dd/MM/yyyy' }}</dd></div>
+  </dl>
+</section>
+} @if (editing(); as target) {
+<section class="panel">
+  <h2>{{ target === 'new' ? 'Nouveau client' : 'Modifier le client' }}</h2>
+  @if (target === 'new' && pending()) {
+  <p class="muted" role="status">Création en attente : la même clé est conservée pour éviter un doublon.</p>
+  }
+  <form class="customer-form" [formGroup]="form" (ngSubmit)="save()">
+    <label class="ui-field">Nom du client <input formControlName="name" required maxlength="180" [readonly]="busy() || (target === 'new' && !!pending())" /></label>
+    <label class="ui-field">Identifiant fiscal (NINEA) <input formControlName="taxId" maxlength="100" [readonly]="busy() || (target === 'new' && !!pending())" /></label>
+    <label class="ui-field">Téléphone <input formControlName="phone" type="tel" maxlength="50" [readonly]="busy() || (target === 'new' && !!pending())" /></label>
+    <label class="ui-field">Adresse e-mail <input formControlName="email" type="email" maxlength="254" [readonly]="busy() || (target === 'new' && !!pending())" /></label>
+    <label class="ui-field">Adresse <textarea formControlName="address" maxlength="500" [readonly]="busy() || (target === 'new' && !!pending())"></textarea></label>
+    <div class="ui-actions">
+      <button type="submit" class="primary" [disabled]="busy() || loading()">{{ target === 'new' && pending() ? 'Réessayer' : 'Enregistrer' }}</button>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Fermer</button>
+    </div>
+  </form>
+</section>
+}
+<section class="panel">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); filter()">
+    <label class="ui-field">Rechercher <input #query type="search" maxlength="120" placeholder="Nom, NINEA ou coordonnées" [value]="search()" (input)="search.set(query.value)" /></label>
+    <button type="submit" class="primary" [disabled]="loading() || busy()">Filtrer</button>
+    <button type="button" class="secondary" [disabled]="loading() || busy()" (click)="load()">Actualiser</button>
+  </form>
+  @if (loading()) {
+  <p role="status">Chargement des clients…</p>
+  } @else if (result(); as data) {
+  <p class="muted small">{{ data.total }} client(s)</p>
+  <div class="ui-table" role="region" aria-label="Liste des clients" tabindex="0">
+    <table>
+      <thead><tr><th scope="col">Client</th><th scope="col">NINEA</th><th scope="col">Téléphone</th><th scope="col">Adresse e-mail</th><th scope="col">Actions</th></tr></thead>
+      <tbody>
+        @for (customer of data.items; track customer.id) {
+        <tr>
+          <td>{{ customer.name }}</td><td>{{ customer.taxId || '—' }}</td><td>{{ customer.phone || '—' }}</td><td>{{ customer.email || '—' }}</td>
+          <td><div class="ui-actions">
+            <button type="button" class="secondary" [disabled]="busy() || !!editing()" (click)="view(customer.id)">Détails</button>
+            @if (session.can('sales.manage')) {
+            <button type="button" class="secondary" [disabled]="busy() || !!editing()" (click)="view(customer.id, true)">Modifier</button>
+            }
+          </div></td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!data.total) {
+  <app-empty-state heading="Aucun client correspondant" description="Modifiez la recherche ou créez un client si vous y êtes autorisé." />
+  }
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy()" (change)="load($event)" />
+  }
+</section>

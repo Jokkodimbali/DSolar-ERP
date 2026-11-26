@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CUSTOMERS_REPOSITORY, CustomerInput, CustomersRepository } from './customers.port';
 
@@ -12,19 +13,34 @@ export class CustomersService {
     if (!customer) throw new NotFoundException('Client introuvable.');
     return customer;
   }
-  async create(input: CustomerInput) {
+  async create(input: CustomerInput, actorId: string, operationKey?: string) {
     const cleaned = this.normalize(input);
     this.validate(cleaned);
     if (!cleaned.name) throw new BadRequestException('Le nom du client est obligatoire.');
-    return this.customers.create(cleaned as CustomerInput);
+    if (!operationKey) return this.customers.create(cleaned as CustomerInput, actorId);
+    const fingerprint = createHash('sha256')
+      .update(
+        JSON.stringify([
+          cleaned.name,
+          cleaned.taxId ?? null,
+          cleaned.phone ?? null,
+          cleaned.email ?? null,
+          cleaned.address ?? null,
+        ]),
+      )
+      .digest('hex');
+    return this.customers.create(cleaned as CustomerInput, actorId, {
+      key: 'customer.create:' + actorId + ':' + operationKey,
+      fingerprint,
+    });
   }
-  async update(id: string, input: Partial<CustomerInput>) {
+  async update(id: string, input: Partial<CustomerInput>, actorId: string) {
     await this.get(id);
     const cleaned = this.normalize(input);
     this.validate(cleaned);
     if (input.name !== undefined && !cleaned.name)
       throw new BadRequestException('Le nom du client est obligatoire.');
-    return this.customers.update(id, cleaned);
+    return this.customers.update(id, cleaned, actorId);
   }
   private validate(input: Partial<CustomerInput>): void {
     const limits: Array<[keyof CustomerInput, number]> = [
@@ -43,10 +59,11 @@ export class CustomersService {
 
   private normalize<T extends Partial<CustomerInput>>(input: T): T {
     const result: Partial<CustomerInput> = {};
-    for (const key of ['name', 'taxId', 'phone', 'email', 'address'] as const) {
-      if (input[key] !== undefined) {
-        result[key] = typeof input[key] === 'string' ? input[key].trim() : (input[key] ?? undefined);
-      }
+    if (input.name !== undefined)
+      result.name = typeof input.name === 'string' ? input.name.trim() : undefined;
+    for (const key of ['taxId', 'phone', 'email', 'address'] as const) {
+      const value = input[key];
+      if (value !== undefined) result[key] = typeof value === 'string' ? value.trim() || null : value;
     }
     if (typeof result.email === 'string') result.email = result.email.toLowerCase();
     return result as T;
