@@ -1,0 +1,88 @@
+<app-page-header
+  eyebrow="APPROVISIONNEMENTS"
+  heading="Retours fournisseurs"
+  description="Consultez les retours, les mouvements associés et les avoirs fournisseurs."
+/>
+<app-feedback [message]="error()" kind="error" />
+@if (detail(); as item) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Retour · {{ item.receiptNumber }}</h2>
+    <button class="secondary" type="button" (click)="detail.set(null)">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div><dt>Magasin</dt><dd>{{ storeName(item.storeId) }}</dd></div>
+    <div><dt>Statut</dt><dd>{{ labels[item.status] }}</dd></div>
+    <div><dt>Montant du retour</dt><dd>{{ money(item.total) }}</dd></div>
+    <div><dt>Avoir fournisseur</dt><dd>{{ item.credit ? item.credit.reference : 'Non enregistré' }}</dd></div>
+  </dl>
+  <p>Motif : {{ item.reason }}</p>
+  <div class="ui-table" role="region" aria-label="Détail du retour" tabindex="0">
+    <table>
+      <thead><tr><th>Produit</th><th>Quantité</th><th>Coût d'origine</th><th>Montant</th><th>Numéros de série</th></tr></thead>
+      <tbody>
+        @for (line of item.lines; track line.id) {
+        <tr>
+          <td>{{ names()[line.productId || ''] || line.productId || line.receiptLineId }}</td>
+          <td>{{ line.quantity }}</td>
+          <td>{{ money(line.unitCost) }}</td>
+          <td>{{ money(line.total) }}</td>
+          <td>@for (serial of line.serials; track serial.id) { <span>{{ serial.number || serial.id }} </span> } @empty { — }</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+}
+<section class="panel">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(query.value, state.value, storeFilter.value)">
+    <label class="ui-field">Recherche <input #query type="search" maxlength="120" placeholder="Réception, motif ou avoir" /></label>
+    <label class="ui-field">
+      Statut
+      <select #state>
+        <option value="">Tous</option>
+        @for (item of statuses; track item) {
+        <option [value]="item">{{ labels[item] }}</option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      Magasin
+      <select #storeFilter>
+        <option value="">Tous les magasins</option>
+        @for (item of stores(); track item.id) {
+        <option [value]="item.id">{{ item.name }}</option>
+        }
+      </select>
+    </label>
+    <button class="primary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">Actualiser</button>
+  </form>
+  @if (loading()) {
+  <p role="status">Chargement des retours…</p>
+  } @else if (result(); as data) {
+  <p class="muted small">{{ data.total }} retour(s)</p>
+  <div class="ui-table" role="region" aria-label="Liste des retours fournisseurs" tabindex="0">
+    <table>
+      <thead><tr><th>Réception</th><th>Magasin</th><th>Date</th><th>Statut</th><th>Montant</th><th>Actions</th></tr></thead>
+      <tbody>
+        @for (item of data.items; track item.id) {
+        <tr>
+          <td>{{ item.receiptNumber }}</td>
+          <td>{{ storeName(item.storeId) }}</td>
+          <td>{{ item.createdAt | date:'dd/MM/yyyy' }}</td>
+          <td><span class="ui-status" [class.ui-status-active]="item.status === 'CONFIRMED'">{{ labels[item.status] }}</span></td>
+          <td>{{ money(item.total) }}</td>
+          <td><button type="button" class="secondary" [disabled]="busy()" (click)="open(item.id)">Détails</button></td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!data.total) {
+  <app-empty-state heading="Aucun retour fournisseur" description="Modifiez les filtres pour consulter les retours enregistrés." />
+  }
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy()" (change)="load($event)" />
+  }
+</section>

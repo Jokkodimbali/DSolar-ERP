@@ -1,6 +1,11 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { validReturnQuantity } from '../domain/return-policy';
-import { ReturnInput, SUPPLIER_RETURNS, SupplierReturnsPort } from './supplier-returns.port';
+import {
+  ReturnInput,
+  SUPPLIER_RETURNS,
+  SupplierReturnCriteria,
+  SupplierReturnsPort,
+} from './supplier-returns.port';
 
 @Injectable()
 export class SupplierReturnsService {
@@ -34,6 +39,10 @@ export class SupplierReturnsService {
 
   list(actor: string, storeId?: string) {
     return this.repository.list(actor, storeId);
+  }
+
+  search(actor: string, criteria: SupplierReturnCriteria) {
+    return this.repository.search(actor, criteria);
   }
 
   get(id: string, actor: string) {

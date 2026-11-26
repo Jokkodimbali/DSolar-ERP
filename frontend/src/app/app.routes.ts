@@ -10,6 +10,7 @@ import {
   usersGuard,
   productsGuard,
   suppliersGuard,
+  supplierReturnsGuard,
 } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
@@ -64,6 +65,12 @@ export const routes: Routes = [
         canActivate: [suppliersGuard],
         loadComponent: () =>
           import('./features/procurement/presentation/goods-receipts.page').then((m) => m.GoodsReceiptsPage),
+      },
+      {
+        path: 'approvisionnements/retours',
+        canActivate: [supplierReturnsGuard],
+        loadComponent: () =>
+          import('./features/procurement/presentation/supplier-returns.page').then((m) => m.SupplierReturnsPage),
       },
       {
         path: 'magasins',

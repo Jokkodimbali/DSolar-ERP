@@ -106,6 +106,15 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="box" /><span class="nav-text">Réceptions</span></a
           >
         }
+        @if (session.can('users.manage', 'inventory.read')) {
+          <a
+            routerLink="/approvisionnements/retours"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Retours fournisseurs"
+            ><app-ui-icon name="box" /><span class="nav-text">Retours fournisseurs</span></a
+          >
+        }
         @if (session.can('stores.read')) {
           <a
             routerLink="/magasins"

@@ -1,7 +1,8 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { ReturnInput, SupplierReturnsPort } from '../application/supplier-returns.port';
+import { pageBounds, pageResult } from '../../../shared/pagination';
+import { ReturnInput, SupplierReturnCriteria, SupplierReturnsPort } from '../application/supplier-returns.port';
 import { validReturnQuantity } from '../domain/return-policy';
 
 @Injectable()
@@ -59,6 +60,42 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
         take: 200,
       }),
     );
+  }
+
+  search(actor: string, criteria: SupplierReturnCriteria) {
+    const { page, limit, skip } = pageBounds(criteria);
+    const term = criteria.search?.trim();
+    const contains = term ? { contains: term, mode: 'insensitive' as const } : undefined;
+    return this.transaction(actor, async (tx) => {
+      const where: Prisma.SupplierReturnWhereInput = {
+        status: criteria.status,
+        receipt: { storeId: criteria.storeId },
+        ...(contains
+          ? {
+              OR: [
+                { reason: contains },
+                { receipt: { number: contains } },
+                { credit: { reference: contains } },
+              ],
+            }
+          : {}),
+      };
+      const [items, total] = await Promise.all([
+        tx.supplierReturn.findMany({
+          where,
+          include: {
+            receipt: { select: { id: true, number: true, storeId: true } },
+            credit: true,
+            lines: { include: { serials: true } },
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        tx.supplierReturn.count({ where }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
   }
 
   get(id: string, actor: string) {

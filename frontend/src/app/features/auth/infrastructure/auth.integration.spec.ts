@@ -33,6 +33,7 @@ import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
+import { parseSupplierReturn, parseSupplierReturnPage } from '../../procurement/domain/supplier-return.contract';
 import {
   parsePurchaseOrder,
   parsePurchaseOrderPage,
@@ -989,6 +990,34 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(closedOutstanding.status).toBe(200);
       expect(parsePurchaseOrderPage(closedOutstanding.data).items).toEqual([]);
+
+      const returnDraft = await request(
+        '/supplier-returns',
+        'POST',
+        {
+          receiptId: receipt.id,
+          operationKey: crypto.randomUUID(),
+          reason: 'Retour brouillon CI',
+          lines: [{ receiptLineId: receipt.lines[0]?.id, quantity: '0.125' }],
+        },
+        token,
+      );
+      expect(returnDraft.status).toBe(201);
+      const returnId = parseId(returnDraft.data);
+      const returnPage = await request(
+        '/supplier-returns/search?search=BR-CONTRAT-CI&status=DRAFT&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(returnPage.status).toBe(200);
+      expect(parseSupplierReturnPage(returnPage.data).items[0]?.id).toBe(returnId);
+      const returnDetail = await request('/supplier-returns/' + returnId, 'GET', undefined, token);
+      expect(returnDetail.status).toBe(200);
+      expect(parseSupplierReturn(returnDetail.data).total).toBe('156.28');
+      expect(
+        (await request('/supplier-returns/' + returnId + '/cancel', 'POST', { reason: 'Annulation CI' }, token)).status,
+      ).toBe(201);
 
       const second = await request('/proformas', 'POST', input, token);
       expect(second.status).toBe(201);

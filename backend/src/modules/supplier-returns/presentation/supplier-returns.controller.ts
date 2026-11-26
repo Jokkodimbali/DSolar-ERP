@@ -8,6 +8,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsOptional,
+  IsIn,
   ArrayUnique,
   IsString,
   IsUUID,
@@ -17,6 +18,20 @@ import {
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { SupplierReturnsService } from '../application/supplier-returns.service';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
+import type { SupplierReturnCriteria } from '../application/supplier-returns.port';
+
+class SupplierReturnQueryDto extends PageQueryDto {
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  storeId?: string;
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'CONFIRMED', 'CANCELLED'])
+  @SwaggerField({ required: false, enum: ['DRAFT', 'CONFIRMED', 'CANCELLED'] })
+  status?: SupplierReturnCriteria['status'];
+}
 
 class SupplierReturnsReturnLineDto {
   @IsUUID()
@@ -94,6 +109,12 @@ export class SupplierReturnsController {
     @Query('storeId', new ParseUUIDPipe({ optional: true })) storeId?: string,
   ) {
     return this.service.list(actor, storeId);
+  }
+
+  @Get('search')
+  @RequirePermissions('inventory.read')
+  search(@CurrentUserId() actor: string, @Query() query: SupplierReturnQueryDto) {
+    return this.service.search(actor, query);
   }
 
   @Get(':id')

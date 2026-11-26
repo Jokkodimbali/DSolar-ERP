@@ -109,6 +109,7 @@ try {
     ['fournisseurs', '/approvisionnements/fournisseurs', 'Fournisseurs'],
     ['commandes-fournisseurs', '/approvisionnements/commandes', 'Commandes fournisseurs'],
     ['receptions', '/approvisionnements/receptions', 'Réceptions'],
+    ['retours-fournisseurs', '/approvisionnements/retours', 'Retours fournisseurs'],
     ['commandes', '/ventes/commandes', 'Commandes'],
     ['stocks', '/stocks', 'Stocks'],
     ['transferts', '/stocks/transferts', 'Transferts de stock'],
