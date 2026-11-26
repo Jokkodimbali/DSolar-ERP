@@ -27,6 +27,8 @@ describe('Reprise des commandes fournisseurs', () => {
   it('ne reconnaît que la même référence et les mêmes lignes', () => {
     expect(matchesPurchase(order, input)).toBe(true);
     expect(matchesPurchase(order, { ...input, number: 'CF-AUTRE' })).toBe(false);
-    expect(matchesPurchase(order, { ...input, lines: [{ productId: id, quantity: 3, unitCost: 1000.25 }] })).toBe(false);
+    expect(
+      matchesPurchase(order, { ...input, lines: [{ productId: id, quantity: 3, unitCost: 1000.25 }] }),
+    ).toBe(false);
   });
 });

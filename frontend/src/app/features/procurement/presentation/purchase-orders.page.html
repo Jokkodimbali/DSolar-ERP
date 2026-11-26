@@ -4,7 +4,12 @@
   description="Préparez les achats et suivez les quantités réceptionnées."
 >
   @if (session.can('inventory.manage', 'products.read')) {
-  <button class="primary" type="button" [disabled]="busy() || creating() || !!pendingCreation()" (click)="start()">
+  <button
+    class="primary"
+    type="button"
+    [disabled]="busy() || creating() || !!pendingCreation()"
+    (click)="start()"
+  >
     + Nouvelle commande
   </button>
   }

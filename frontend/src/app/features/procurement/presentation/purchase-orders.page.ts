@@ -236,7 +236,9 @@ export class PurchaseOrdersPage {
           if (existing) {
             if (matchesPurchase(existing, input)) this.creationSucceeded(existing);
             else
-              this.error.set('La référence existe avec des données différentes. Contactez un administrateur.');
+              this.error.set(
+                'La référence existe avec des données différentes. Contactez un administrateur.',
+              );
           } else if (page.pages > 1) {
             this.error.set('Recherche ambiguë. Vérifiez la référence avant de réessayer.');
           } else {
