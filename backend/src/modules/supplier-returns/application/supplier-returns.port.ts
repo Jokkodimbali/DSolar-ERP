@@ -20,6 +20,7 @@ export interface SupplierReturnsPort {
   list(actor: string, storeId?: string): Promise<unknown>;
   search(actor: string, criteria: SupplierReturnCriteria): Promise<unknown>;
   get(id: string, actor: string): Promise<unknown>;
+  receiptOptions(id: string, actor: string): Promise<unknown>;
   confirm(id: string, actor: string): Promise<unknown>;
   cancel(id: string, reason: string, actor: string): Promise<unknown>;
   credit(id: string, reference: string, actor: string): Promise<unknown>;

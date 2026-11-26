@@ -49,6 +49,10 @@ export class SupplierReturnsService {
     return this.repository.get(id, actor);
   }
 
+  receiptOptions(id: string, actor: string) {
+    return this.repository.receiptOptions(id, actor);
+  }
+
   confirm(id: string, actor: string) {
     return this.repository.confirm(id, actor);
   }

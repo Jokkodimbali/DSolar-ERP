@@ -117,6 +117,12 @@ export class SupplierReturnsController {
     return this.service.search(actor, query);
   }
 
+  @Get('receipts/:id/options')
+  @RequirePermissions('inventory.manage')
+  receiptOptions(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
+    return this.service.receiptOptions(id, actor);
+  }
+
   @Get(':id')
   @RequirePermissions('inventory.read')
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {

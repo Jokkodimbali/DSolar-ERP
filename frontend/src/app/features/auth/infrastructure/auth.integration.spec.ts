@@ -33,6 +33,7 @@ import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
+import { parseReturnOptions } from '../../procurement/domain/return-creation.contract';
 import {
   parseSupplierReturn,
   parseSupplierReturnPage,
@@ -994,17 +995,20 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(closedOutstanding.status).toBe(200);
       expect(parsePurchaseOrderPage(closedOutstanding.data).items).toEqual([]);
 
-      const returnDraft = await request(
-        '/supplier-returns',
-        'POST',
-        {
-          receiptId: receipt.id,
-          operationKey: crypto.randomUUID(),
-          reason: 'Retour brouillon CI',
-          lines: [{ receiptLineId: receipt.lines[0]?.id, quantity: '0.125' }],
-        },
-        token,
-      );
+      const returnOptions = await request('/supplier-returns/receipts/' + receipt.id + '/options', 'GET', undefined, token);
+      expect(returnOptions.status).toBe(200);
+      expect(parseReturnOptions(returnOptions.data).lines[0]?.maximum).toBe('1');
+      const returnCommand = {
+        receiptId: receipt.id,
+        operationKey: crypto.randomUUID(),
+        reason: 'Retour brouillon CI',
+        lines: [{ receiptLineId: receipt.lines[0]?.id, quantity: '0.125' }],
+      };
+      const returnDraft = await request('/supplier-returns', 'POST', returnCommand, token);
+      const replayReturn = await request('/supplier-returns', 'POST', returnCommand, token);
+      expect(replayReturn.status).toBe(201);
+      expect(parseId(replayReturn.data)).toBe(parseId(returnDraft.data));
+      expect((await request('/supplier-returns', 'POST', { ...returnCommand, reason: 'Autre motif' }, token)).status).toBe(409);
       expect(returnDraft.status).toBe(201);
       const returnId = parseId(returnDraft.data);
       const returnPage = await request(

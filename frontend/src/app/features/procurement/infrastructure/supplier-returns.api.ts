@@ -3,6 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { map, switchMap } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
+import { parseId } from '../../inventory/domain/workflow.contract';
+import { parseReturnOptions, type ReturnCreation } from '../domain/return-creation.contract';
 import {
   parseSupplierReturn,
   parseSupplierReturnPage,
@@ -28,6 +30,18 @@ export class SupplierReturnsApi {
   }
   get(id: string) {
     return this.http.get<unknown>(apiPath('/supplier-returns/' + storeId(id))).pipe(map(parseSupplierReturn));
+  }
+
+  options(receiptId: string) {
+    return this.http
+      .get<unknown>(apiPath('/supplier-returns/receipts/' + storeId(receiptId) + '/options'))
+      .pipe(map(parseReturnOptions));
+  }
+
+  create(input: ReturnCreation) {
+    return this.http
+      .post<unknown>(apiPath('/supplier-returns'), input)
+      .pipe(map(parseId), switchMap((id) => this.get(id)));
   }
 
   action(id: string, action: ReturnAction) {

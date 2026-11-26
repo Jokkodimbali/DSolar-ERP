@@ -106,6 +106,51 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
     return this.transaction(actor, (tx) => this.load(tx, id));
   }
 
+  receiptOptions(id: string, actor: string) {
+    return this.transaction(actor, async (tx) => {
+      const receipt = await tx.goodsReceipt.findUnique({
+        where: { id },
+        include: { lines: true, store: true },
+      });
+      if (!receipt || receipt.status !== 'CONFIRMED' || !receipt.purchaseOrderId || receipt.store.status !== 'ACTIVE')
+        throw new ConflictException('Réception confirmée liée à une commande et magasin actif requis.');
+      const productIds = receipt.lines.map((line) => line.productId);
+      const [returned, stocks, serialized, products] = await Promise.all([
+        tx.supplierReturnLine.groupBy({
+          by: ['receiptLineId'],
+          where: { receiptLineId: { in: receipt.lines.map((line) => line.id) }, supplierReturn: { status: 'CONFIRMED' } },
+          _sum: { quantity: true },
+        }),
+        tx.storeStock.findMany({ where: { storeId: receipt.storeId, productId: { in: productIds } } }),
+        tx.serialNumber.groupBy({ by: ['productId'], where: { productId: { in: productIds } } }),
+        tx.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, sku: true } }),
+      ]);
+      return {
+        receiptId: receipt.id,
+        number: receipt.number,
+        storeId: receipt.storeId,
+        lines: receipt.lines.map((line) => {
+          const stock = stocks.find((item) => item.productId === line.productId);
+          const previous = returned.find((item) => item.receiptLineId === line.id)?._sum.quantity ?? new Prisma.Decimal(0);
+          const remaining = Prisma.Decimal.max(0, line.quantity.minus(previous));
+          const available = stock ? Prisma.Decimal.max(0, stock.quantity.minus(stock.reserved)) : new Prisma.Decimal(0);
+          const product = products.find((item) => item.id === line.productId);
+          if (!product) throw new ConflictException('Produit de réception introuvable.');
+          return {
+            receiptLineId: line.id,
+            productId: line.productId,
+            name: product.name,
+            sku: product.sku,
+            remaining: remaining.toFixed(),
+            available: available.toFixed(),
+            maximum: Prisma.Decimal.min(remaining, available).toFixed(),
+            serialized: serialized.some((item) => item.productId === line.productId),
+          };
+        }),
+      };
+    });
+  }
+
   registerSerials(receiptLineId: string, serials: string[], actor: string) {
     return this.transaction(actor, async (tx) => {
       if (
