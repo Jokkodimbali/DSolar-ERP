@@ -12,6 +12,12 @@ import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component'
 import { SessionService } from '../../auth/application/session.service';
 import { type Supplier, type SupplierFilter, type parseSupplierPage } from '../domain/supplier.contract';
 import { SuppliersApi } from '../infrastructure/suppliers.api';
+import {
+  parsePendingSupplierCreation,
+  supplierCreationStorageKey,
+  type PendingSupplierCreation,
+} from '../infrastructure/pending-supplier-creation';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-suppliers-page',
@@ -44,7 +50,8 @@ export class SuppliersPage {
   readonly editing = signal<Supplier | 'new' | null>(null);
   readonly detail = signal<Supplier | null>(null);
   readonly pendingStatus = signal<Supplier | null>(null);
-  private creationKey: string | null = null;
+  readonly pendingCreation = signal<PendingSupplierCreation | null>(null);
+  private storageKey: string | null = null;
   readonly form = new FormGroup({
     name: new FormControl('', {
       nonNullable: true,
@@ -61,6 +68,44 @@ export class SuppliersPage {
 
   constructor() {
     this.load();
+    if (!this.session.can('inventory.manage')) return;
+    const actor = this.session.user()?.id;
+    if (!actor) return;
+    this.storageKey = supplierCreationStorageKey(actor);
+    try {
+      const raw = sessionStorage.getItem(this.storageKey);
+      if (raw !== null) {
+        this.pendingCreation.set(parsePendingSupplierCreation(JSON.parse(raw)));
+        this.restoreCreation();
+      }
+    } catch {
+      this.error.set('Impossible de récupérer la création en attente. Vérifiez le stockage du navigateur.');
+    }
+  }
+
+  private restoreCreation(): void {
+    const pending = this.pendingCreation();
+    if (!pending) return;
+    this.editing.set('new');
+    const { name, taxId, phone, email, address } = pending.input;
+    this.form.reset({
+      name,
+      taxId: taxId ?? '',
+      phone: phone ?? '',
+      email: email ?? '',
+      address: address ?? '',
+    });
+  }
+
+  private clearCreation(): void {
+    this.pendingCreation.set(null);
+    if (this.storageKey) {
+      try {
+        sessionStorage.removeItem(this.storageKey);
+      } catch {
+        // La clé conservée reste rejouable sans nouvelle création.
+      }
+    }
   }
 
   load(page = this.result()?.page ?? 1): void {
@@ -123,7 +168,10 @@ export class SuppliersPage {
     if (!this.session.can('inventory.manage') || this.busy() || this.loading()) return;
     this.close();
     this.editing.set(supplier);
-    this.creationKey = supplier === 'new' ? crypto.randomUUID() : null;
+    if (supplier === 'new' && this.pendingCreation()) {
+      this.restoreCreation();
+      return;
+    }
     this.form.reset(
       supplier === 'new'
         ? { name: '', taxId: '', phone: '', email: '', address: '' }
@@ -153,11 +201,19 @@ export class SuppliersPage {
       email: email.trim() || null,
       address: address.trim() || null,
     };
-    const request =
-      target === 'new'
-        ? this.api.create(input, (this.creationKey ??= crypto.randomUUID()))
-        : this.api.update(target.id, input);
-    this.mutate(request, target === 'new' ? 'Fournisseur créé.' : 'Fournisseur mis à jour.');
+    if (target !== 'new') {
+      this.mutate(this.api.update(target.id, input), 'Fournisseur mis à jour.');
+      return;
+    }
+    try {
+      if (!this.storageKey) throw new Error('Session invalide.');
+      const pending = this.pendingCreation() ?? { operationKey: crypto.randomUUID(), input };
+      sessionStorage.setItem(this.storageKey, JSON.stringify(pending));
+      this.pendingCreation.set(pending);
+      this.mutate(this.api.create(pending.input, pending.operationKey), 'Fournisseur créé.', true);
+    } catch {
+      this.error.set('Impossible de sécuriser la création. Vérifiez le stockage du navigateur.');
+    }
   }
 
   askStatus(supplier: Supplier): void {
@@ -178,14 +234,13 @@ export class SuppliersPage {
   close(): void {
     if (this.busy()) return;
     this.editing.set(null);
-    this.creationKey = null;
     this.detail.set(null);
     this.pendingStatus.set(null);
     this.error.set('');
     this.success.set('');
   }
 
-  private mutate(request: Observable<Supplier>, message: string): void {
+  private mutate(request: Observable<Supplier>, message: string, creation = false): void {
     if (this.busy() || this.loading()) return;
     this.busy.set(true);
     this.error.set('');
@@ -193,12 +248,14 @@ export class SuppliersPage {
     request.pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: () => {
         this.busy.set(false);
+        if (creation) this.clearCreation();
         this.close();
         this.success.set(message);
         this.load(1);
       },
       error: (error: unknown) => {
         this.busy.set(false);
+        if (creation && error instanceof HttpErrorResponse && error.status === 400) this.clearCreation();
         this.error.set(errorMessage(error));
       },
     });

@@ -144,7 +144,19 @@ try {
   await page.getByRole('button', { name: 'Nouveau fournisseur' }).click();
   await page.locator('input[formControlName="name"]').fill('Fournisseur navigateur CI');
   await page.locator('input[formControlName="email"]').fill('browser@example.test');
+  // Simule une réponse perdue après la persistance réelle côté serveur.
+  await page.route('**/api/v1/suppliers', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    assert.equal(response.status(), 201);
+    await route.abort();
+  });
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await page.getByRole('button', { name: 'Réessayer', exact: true }).waitFor();
+  await page.getByText('Connexion au serveur impossible. Vérifiez votre réseau.', { exact: true }).waitFor();
+  await page.unroute('**/api/v1/suppliers');
+  await page.reload();
+  await page.getByRole('button', { name: 'Réessayer', exact: true }).click();
   const supplierRow = page.getByRole('region', { name: 'Liste des fournisseurs' }).getByRole('row').filter({ hasText: 'Fournisseur navigateur CI' });
   await supplierRow.waitFor();
   await supplierRow.getByRole('button', { name: 'Modifier', exact: true }).click();
