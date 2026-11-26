@@ -467,6 +467,23 @@ try {
   assert.equal(await downloadedDelivery.failure(), null);
   await deliveriesPanel.getByRole('region', { name: 'Reliquat de livraison' }).getByText('0.000', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'commandes-vente-livraisons.png'), fullPage: true });
+  await page.getByRole('link', { name: 'Factures de la commande', exact: true }).click();
+  await page.getByRole('button', { name: 'Créer la facture', exact: true }).click();
+  await page.route('**/api/v1/invoices/from-order/*', async (route) => {
+    const response = await route.fetch();
+    assert.equal(response.status(), 201);
+    await route.abort();
+  });
+  await page.getByRole('region', { name: 'Créer la facture ?' }).getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await page.getByRole('region', { name: 'Lignes de facture' }).waitFor();
+  await page.unroute('**/api/v1/invoices/from-order/*');
+  await page.getByRole('button', { name: 'Émettre la facture', exact: true }).click();
+  await page.getByRole('region', { name: 'Émettre la facture ?' }).getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: /Facture FAC-.*Émise/ }).waitFor();
+  const invoiceDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Télécharger la facture PDF', exact: true }).click();
+  assert.match((await invoiceDownload).suggestedFilename(), /^facture-[0-9a-f-]{36}\.pdf$/);
+  await page.screenshot({ path: join(artifacts, 'factures-lifecycle.png'), fullPage: true });
   assert.deepEqual(errors, [], 'Erreurs JavaScript dans le navigateur');
   await page.getByLabel('Menu du compte').click();
   await page.getByRole('button', { name: 'Déconnexion' }).click();

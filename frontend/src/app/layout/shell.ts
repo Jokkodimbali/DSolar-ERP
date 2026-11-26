@@ -75,6 +75,13 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="cart" /><span class="nav-text">Devis proforma</span></a
           >
           <a
+            routerLink="/ventes/factures"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Factures"
+            ><app-ui-icon name="cart" /><span class="nav-text">Factures</span></a
+          >
+          <a
             routerLink="/ventes/clients"
             routerLinkActive="active"
             (click)="menuOpen.set(false)"

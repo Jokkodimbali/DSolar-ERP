@@ -6,6 +6,7 @@ const order = {
   id,
   number: 'CMD-01',
   proformaId: id,
+  customerId: id,
   customer: { name: 'Client CI' },
   total: '2360.00',
   status: 'CONFIRMED',
@@ -15,6 +16,7 @@ const order = {
     {
       id,
       orderId: id,
+      productId: id,
       discount: '0',
       taxRate: '18',
       product: { name: 'Panneau', sku: 'PV-01' },

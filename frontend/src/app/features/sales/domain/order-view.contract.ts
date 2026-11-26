@@ -59,12 +59,15 @@ export function parseOrderDetail(value: unknown, id: string) {
     if (!/[1-9]/.test(quantity) || Number(taxRate) > 100) return invalid();
     return {
       id: storeId(line['id']),
+      productId: storeId(line['productId']),
       product: text(line['product']['name']),
       sku: text(line['product']['sku']),
       store: text(line['store']['name']),
       quantity,
       price: formatMoney(decimal(line['unitPrice'], 2, 16)),
+      rawPrice: decimal(line['unitPrice'], 2, 16),
       discount: formatMoney(decimal(line['discount'], 2, 16)),
+      rawDiscount: decimal(line['discount'], 2, 16),
       taxRate,
       total: formatMoney(rawTotal),
       rawTotal,
@@ -78,6 +81,8 @@ export function parseOrderDetail(value: unknown, id: string) {
     return invalid();
   return {
     ...order,
+    customerId: storeId(value['customerId']),
+    rawTotal: total,
     proformaId: value['proformaId'] === null ? null : storeId(value['proformaId']),
     lines,
   };

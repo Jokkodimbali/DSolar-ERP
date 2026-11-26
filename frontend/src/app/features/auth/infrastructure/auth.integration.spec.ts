@@ -8,6 +8,8 @@ import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/d
 import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
 import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-view.contract';
 import { parseLinkedOrder } from '../../sales/domain/proforma-conversion.contract';
+import { parseInvoice, parseInvoicePage, verifyInvoiceOrder } from '../../sales/domain/invoice.contract';
+import { parseOrderDetail } from '../../sales/domain/order-view.contract';
 import {
   parseDelivery,
   parseDeliveryPage,
@@ -1320,6 +1322,25 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         headers: { Authorization: 'Bearer ' + token },
       });
       expect(wrongOrder.status).toBe(404);
+      const invoiceResponse = await request('/invoices/from-order/' + deliveryOrderId, 'POST', {}, token);
+      expect(invoiceResponse.status).toBe(201);
+      const orderDetail = await request(deliveryPath, 'GET', undefined, token);
+      expect(orderDetail.status).toBe(200);
+      const invoice = verifyInvoiceOrder(
+        parseInvoice(invoiceResponse.data),
+        parseOrderDetail(orderDetail.data, deliveryOrderId),
+      );
+      expect(invoice.totalTtc).toBe('2360');
+      expect((await request('/invoices/from-order/' + deliveryOrderId, 'POST', {}, token)).status).toBe(409);
+      const issuedInvoice = await request('/invoices/' + invoice.id + '/issue', 'POST', {}, token);
+      expect(issuedInvoice.status).toBe(201);
+      expect(parseInvoice(issuedInvoice.data).status).toBe('ISSUED');
+      expect((await request('/invoices/' + invoice.id + '/cancel', 'POST', {}, token)).status).toBe(409);
+      const invoiceList = await request(
+        '/invoices/search?orderId=' + deliveryOrderId + '&page=1&limit=10', 'GET', undefined, token,
+      );
+      expect(invoiceList.status).toBe(200);
+      expect(parseInvoicePage(invoiceList.data).items.map((item) => item.id)).toEqual([invoice.id]);
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);
