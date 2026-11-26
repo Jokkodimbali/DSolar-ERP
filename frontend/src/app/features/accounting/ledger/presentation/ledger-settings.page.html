@@ -15,7 +15,10 @@
 } @if (setup(); as data) {
 <section class="panel">
   <h2>Plan comptable</h2>
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); code('accounts', accountCode.value, accountName.value)">
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); code('accounts', accountCode.value, accountName.value)"
+  >
     <label class="ui-field">Code<input #accountCode maxlength="30" required /></label>
     <label class="ui-field">Libellé<input #accountName maxlength="160" required /></label>
     <button type="submit" class="primary" [disabled]="busy() || !!pending()">Créer un compte</button>
@@ -35,19 +38,31 @@
           <td>{{ account.code }}</td>
           <td>{{ account.name }}</td>
           <td>
-            <select #category [value]="account.category ?? ''" [disabled]="busy() || !!pending()" aria-label="Classe comptable">
+            <select
+              #category
+              [value]="account.category ?? ''"
+              [disabled]="busy() || !!pending()"
+              aria-label="Classe comptable"
+            >
               <option value="">Non classé</option>
               @for (item of classes; track item.key) {
               <option [value]="item.key">{{ item.label }}</option>
               }
             </select>
-            <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="classify(account.id, category.value)">
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="busy() || !!pending()"
+              (click)="classify(account.id, category.value)"
+            >
               Classer
             </button>
           </td>
         </tr>
         } @empty {
-        <tr><td colspan="3">Aucun compte.</td></tr>
+        <tr>
+          <td colspan="3">Aucun compte.</td>
+        </tr>
         }
       </tbody>
     </table>
@@ -55,7 +70,10 @@
 </section>
 <section class="panel">
   <h2>Journaux comptables</h2>
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); code('journals', journalCode.value, journalName.value)">
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); code('journals', journalCode.value, journalName.value)"
+  >
     <label class="ui-field">Code<input #journalCode maxlength="30" required /></label>
     <label class="ui-field">Libellé<input #journalName maxlength="160" required /></label>
     <button type="submit" class="primary" [disabled]="busy() || !!pending()">Créer un journal</button>
@@ -68,7 +86,10 @@
 </section>
 <section class="panel">
   <h2>Périodes comptables</h2>
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); period(periodName.value, start.value, end.value)">
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); period(periodName.value, start.value, end.value)"
+  >
     <label class="ui-field">Libellé<input #periodName maxlength="100" required /></label>
     <label class="ui-field">Début<input #start type="date" required /></label>
     <label class="ui-field">Fin<input #end type="date" required /></label>
@@ -81,13 +102,28 @@
     <span>{{ item.start }} — {{ item.end }}</span>
     <span>{{ item.closedAt ? 'Clôturée' : 'Ouverte' }}</span>
     @if (!item.closedAt) {
-    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="periodOperation('automation', item.id)">
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || !!pending()"
+      (click)="periodOperation('automation', item.id)"
+    >
       Activer / rétablir l’automatisation
     </button>
-    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="periodOperation('post-pending', item.id)">
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || !!pending()"
+      (click)="periodOperation('post-pending', item.id)"
+    >
       Relancer les pièces existantes
     </button>
-    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="periodOperation('close', item.id)">
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || !!pending()"
+      (click)="periodOperation('close', item.id)"
+    >
       Clôturer
     </button>
     }
@@ -100,9 +136,13 @@
   <h2>Règles d’imputation automatique</h2>
   <p class="muted">
     INVOICE, GOODS_RECEIPT, CASH_IN, CASH_OUT, PAYMENT:MODE, EXPENSE:MODE:ID_CATEGORIE ou
-    CASH_TRANSFER:ID_CAISSE_SOURCE:ID_CAISSE_DESTINATION. Modes : CASH, BANK_TRANSFER, CHEQUE, MOBILE_MONEY, OTHER.
+    CASH_TRANSFER:ID_CAISSE_SOURCE:ID_CAISSE_DESTINATION. Modes : CASH, BANK_TRANSFER, CHEQUE, MOBILE_MONEY,
+    OTHER.
   </p>
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); rule(key.value, journal.value, debit.value, credit.value, tax.value)">
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); rule(key.value, journal.value, debit.value, credit.value, tax.value)"
+  >
     <label class="ui-field">Clé<input #key maxlength="120" required /></label>
     <label class="ui-field">
       Journal
@@ -144,7 +184,10 @@
   </form>
   <p class="muted">Une clé existante est mise à jour après confirmation.</p>
   @for (item of data.postingRules; track item.key) {
-  <p>{{ item.key }} — Débit {{ label(item.debitAccountId) }} / Crédit {{ label(item.creditAccountId) }} / Taxe {{ label(item.taxAccountId) }}</p>
+  <p>
+    {{ item.key }} — Débit {{ label(item.debitAccountId) }} / Crédit {{ label(item.creditAccountId) }} / Taxe
+    {{ label(item.taxAccountId) }}
+  </p>
   } @empty {
   <p>Aucune règle configurée.</p>
   }

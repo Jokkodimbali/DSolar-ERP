@@ -1,6 +1,6 @@
 # Guide d'intégration du frontend Angular
 
-Ce document décrit les contrats actuels de l'API. Le frontend n'est pas encore implémenté. Les exemples utilisent des valeurs fictives ; ne jamais envoyer de véritables secrets dans les journaux.
+Ce document décrit les contrats actuels de l'API. Le frontend Angular est organisé par domaines ; la présence d’une intégration ne vaut pas validation exhaustive de tous les scénarios. Les exemples utilisent des valeurs fictives ; ne jamais envoyer de véritables secrets dans les journaux.
 
 ## 1. Base et authentification
 
@@ -98,3 +98,14 @@ GET /notifications permet de relire une page. POST /notifications/:id/read et PO
 Conserver une couche HTTP par domaine, des types de contrats vérifiés, un service d'authentification et d'erreur commun, des composants réutilisables pour listes, formulaires, pagination, états vides et chargements. Ne pas réimplémenter les transitions financières dans le navigateur. Prévoir des confirmations explicites pour les annulations, clôtures et contrepassations. Le frontend doit rester français, responsive et sans dégradés, conformément à la direction graphique retenue.
 
 Sources : [DTO pagination](../src/infrastructure/http/page-query.dto.ts), [controllers](06-api-commerce.md), [authentification](../src/modules/identity/application/auth.use-cases.ts), [SSE](../src/modules/notifications/application/notifications.service.ts).
+
+## 8. Modules transversaux et comptabilité automatique
+
+- /comptabilite : consultation des écritures validées, états financiers, balance, anomalies et pièces en attente.
+- /comptabilite/parametres : référentiels comptables, classifications, périodes, règles, relance des pièces réelles et clôture. Aucune saisie d’écriture manuelle.
+- /banque : rapprochement des relevés importés, sans initiation de paiements.
+- /parametres : paramètres versionnés de l’entreprise, logo et préférences.
+- /audit : journal en lecture seule, filtres exacts et pagination par curseur, sans payload d’audit.
+- /notifications : historique paginé, filtres de lecture et recherche ; la cloche conserve son flux SSE.
+
+Les quatre premiers espaces d’administration financière et le journal d’audit sont soumis aux autorisations backend applicables. Les notifications sont limitées aux événements accessibles à chaque utilisateur. Les contrôles de contrats et les scénarios navigateur doivent réussir avant de considérer une intégration validée.

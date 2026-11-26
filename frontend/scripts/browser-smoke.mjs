@@ -118,6 +118,17 @@ try {
     ['activite', '/activite', 'Activité récente'],
     ['compte', '/mon-compte', 'Mon compte'],
     ['vente', '/ventes/nouvelle', 'Nouvelle vente'],
+    ['clients', '/ventes/clients', 'Clients'],
+    ['proformas', '/ventes/proformas', 'Devis proforma'],
+    ['factures', '/ventes/factures', 'Factures'],
+    ['depenses', '/depenses', 'Dépenses'],
+    ['tresorerie', '/tresorerie', 'Trésorerie et caisses'],
+    ['banque', '/banque', 'Rapprochement bancaire'],
+    ['comptabilite', '/comptabilite', 'Comptabilité automatique'],
+    ['comptabilite-parametres', '/comptabilite/parametres', 'Paramétrage comptable'],
+    ['parametres', '/parametres', 'Paramètres de l’entreprise'],
+    ['audit', '/audit', 'Journal d’audit'],
+    ['notifications', '/notifications', 'Centre de notifications'],
   ]) {
     await page.goto('http://localhost:4200' + route);
     await page.getByRole('heading', { level: 1, name: heading, exact: true }).waitFor();
