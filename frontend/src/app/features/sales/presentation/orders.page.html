@@ -73,8 +73,7 @@
   </div>
   @if (order.proformaId) {
   <a class="secondary" routerLink="/ventes/proformas">Consulter les devis</a>
-  }
-  @if (session.can('sales.manage')) {
+  } @if (session.can('sales.manage')) {
   <div class="ui-actions">
     @for (action of actions(order.rawStatus); track action) {
     <button
@@ -97,13 +96,18 @@
   (confirmed)="apply()"
   (cancelled)="pending.set(null)"
 />
-}
-} } @else {
+} } } @else {
 <section class="panel">
   <form class="ui-toolbar" (submit)="$event.preventDefault(); search(term.value, statusInput.value)">
     <label class="ui-field"
       >Recherche
-      <input #term type="search" maxlength="120" placeholder="Référence ou client" [value]="query()" [disabled]="loading()"
+      <input
+        #term
+        type="search"
+        maxlength="120"
+        placeholder="Référence ou client"
+        [value]="query()"
+        [disabled]="loading()"
     /></label>
     <label class="ui-field">
       Statut

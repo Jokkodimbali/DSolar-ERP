@@ -40,7 +40,11 @@ describe('Consultation des commandes', () => {
   });
 
   it('valide les compteurs de pagination', () => {
-    expect(parseOrderPage({ items: [order], pagination: { page: 1, limit: 20, total: 1, pages: 1 } }).total).toBe(1);
-    expect(() => parseOrderPage({ items: [order], pagination: { page: 1, limit: 20, total: -1, pages: 1 } })).toThrow();
+    expect(
+      parseOrderPage({ items: [order], pagination: { page: 1, limit: 20, total: 1, pages: 1 } }).total,
+    ).toBe(1);
+    expect(() =>
+      parseOrderPage({ items: [order], pagination: { page: 1, limit: 20, total: -1, pages: 1 } }),
+    ).toThrow();
   });
 });

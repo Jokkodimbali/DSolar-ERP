@@ -120,7 +120,10 @@ export class OrdersPage {
     this.busy.set(true);
     this.api
       .action(item.id, action)
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
       .subscribe({
         next: (updated) => {
           this.pending.set(null);
