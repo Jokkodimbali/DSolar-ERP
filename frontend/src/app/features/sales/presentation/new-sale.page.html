@@ -9,7 +9,10 @@
 <app-feedback [message]="loading() ? 'Chargement des références…' : ''" />
 @if (created(); as result) {
 <section class="panel">
-  <app-feedback [message]="'Proforma ' + result.number + (editId ? ' modifiée.' : ' créée.')" kind="success" />
+  <app-feedback
+    [message]="'Proforma ' + result.number + (editId ? ' modifiée.' : ' créée.')"
+    kind="success"
+  />
   <dl class="metrics">
     <div>
       <dt>Statut</dt>
@@ -49,9 +52,7 @@
     message="Un client existant, un produit actif et un magasin actif affecté à votre compte sont nécessaires."
   />
   <a routerLink="/magasins" class="secondary">Gérer mes affectations</a>
-  }
-  @if (!editId || original()) {
-  @if (original()?.expiresAt; as expiry) {
+  } @if (!editId || original()) { @if (original()?.expiresAt; as expiry) {
   <p class="muted small">Date de validité conservée : {{ expiry }}</p>
   }
   <form [formGroup]="form" (ngSubmit)="save()" class="sale-form">
@@ -125,7 +126,8 @@
         type="submit"
         [disabled]="busy() || loading() || form.disabled || !customers().length || !products().length || !stores().length"
       >
-        {{ busy() ? 'Enregistrement…' : editId ? 'Enregistrer les modifications' : 'Créer le devis brouillon' }}
+        {{ busy() ? 'Enregistrement…' : editId ? 'Enregistrer les modifications' : 'Créer le devis brouillon'
+        }}
       </button>
     </div>
   </form>

@@ -147,7 +147,9 @@ export class NewSalePage {
     this.form.markAllAsTouched();
     this.error.set('');
     if (this.form.invalid) {
-      this.error.set('Renseignez le client, le magasin, le produit, les quantités, les prix et le taux fiscal.');
+      this.error.set(
+        'Renseignez le client, le magasin, le produit, les quantités, les prix et le taux fiscal.',
+      );
       return;
     }
     const value = this.form.getRawValue();

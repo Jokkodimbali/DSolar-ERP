@@ -67,8 +67,7 @@
   <div class="ui-actions">
     @if (item.status === 'DRAFT' && session.can('sales.read', 'products.read', 'stores.read')) {
     <a class="secondary" [routerLink]="['/ventes/proformas', item.id, 'modifier']">Modifier le brouillon</a>
-    }
-    @for (action of actions(item); track action) {
+    } @for (action of actions(item); track action) {
     <button
       type="button"
       [class]="action === 'cancel' ? 'secondary' : 'primary'"

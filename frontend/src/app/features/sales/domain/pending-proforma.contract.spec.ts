@@ -37,18 +37,16 @@ describe('Reprise sécurisée des devis', () => {
   it('restaure une demande sans modifier la référence ni les quantités', () => {
     expect(parsePendingProforma(JSON.parse(JSON.stringify(input)))).toEqual(input);
     expect(() => parsePendingProforma({ ...input, number: 'PF-INVALID' })).toThrow();
-    expect(() =>
-      parsePendingProforma({ ...input, lines: [{ ...input.lines[0], quantity: '2' }] }),
-    ).toThrow();
+    expect(() => parsePendingProforma({ ...input, lines: [{ ...input.lines[0], quantity: '2' }] })).toThrow();
   });
 
   it('refuse toute divergence du devis retrouvé', () => {
     const item = parseProforma(row);
     expect(matchesProforma(item, input)).toBe(true);
     expect(matchesProforma(item, { ...input, number: 'PF-AUTRE' })).toBe(false);
-    expect(
-      matchesProforma(item, { ...input, lines: [{ ...input.lines[0], unitPrice: 1000.26 }] }),
-    ).toBe(false);
+    expect(matchesProforma(item, { ...input, lines: input.lines.map((line) => ({ ...line, unitPrice: 1000.26 })) })).toBe(
+      false,
+    );
     expect(matchesProforma(item, { ...input, expiresAt: '2027-01-01T00:00:00Z' })).toBe(false);
   });
 });

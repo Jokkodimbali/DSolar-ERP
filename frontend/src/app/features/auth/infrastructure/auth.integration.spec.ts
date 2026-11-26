@@ -56,7 +56,7 @@ const password = 'Dsolar-CI-local-only-2026';
 
 async function request(
   path: string,
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT' = 'GET',
   body?: object,
   token?: string,
 ) {
