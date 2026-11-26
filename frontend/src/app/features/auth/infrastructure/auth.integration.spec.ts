@@ -3,7 +3,22 @@ import { apiPath, decodeSuccessMessage, parseErrorMessage } from '../../../core/
 import { hasPermissions, parseAuthResult, parseIdentity } from '../domain/auth.contract';
 import { parseAlerts, parseRecentOrders } from '../../dashboard/domain/dashboard-operations.contract';
 import { parseSearch, sources } from '../../search/domain/search.contract';
-import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
+import {
+  notificationEvent,
+  parseMark,
+  parseFeed,
+  parseNotificationPage,
+} from '../../notifications/domain/notification.contract';
+import { blankFilters, parseAuditPage, parseAuditSummary } from '../../audit/domain/audit.contract';
+import { parseCompany } from '../../settings/domain/company.contract';
+import {
+  parseAutomation,
+  parseBalance as parseLedgerBalance,
+  parseEntries,
+  parsePending,
+  parseSetup,
+  parseStatements,
+} from '../../accounting/ledger/domain/ledger.contract';
 import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
 import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
 import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-view.contract';
@@ -226,6 +241,12 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect(hasPermissions(keeper.utilisateur, ['users.manage'])).toBe(false);
     expect((await request('/auth/me', 'GET', undefined, keeper.jetonAcces)).status).toBe(200);
     expect((await request('/users', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    for (const path of ['/audit', '/audit/summary', '/settings/company', '/accounting/setup']) {
+      expect((await request(path)).status, path).toBe(401);
+      expect((await request(path, 'GET', undefined, keeper.jetonAcces)).status, path).toBe(403);
+    }
+    expect((await request('/settings/company', 'PUT', {}, keeper.jetonAcces)).status).toBe(403);
+    expect((await request('/accounting/rules', 'POST', {}, keeper.jetonAcces)).status).toBe(403);
     expect((await request('/suppliers/search')).status).toBe(401);
     const supplierResponse = await request(
       '/suppliers',
@@ -1727,6 +1748,30 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         ).status,
       ).toBe(409);
       expect((await request(sourcePath + '/movements')).status).toBe(401);
+      const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
+      expect(orders.status).toBe(200);
+      expect(parseRecentOrders(orders.data)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ total: '2\u202f360,00 FCFA', paymentStatus: 'Impayée' }),
+        ]),
+      );
+      // Le rapprochement repose sur un règlement métier réel, jamais sur une écriture saisie à la main.
+      const bankPaymentInput = {
+        amount: '100.25',
+        method: 'BANK_TRANSFER' as const,
+        idempotencyKey: crypto.randomUUID(),
+        externalReference: 'CI-1',
+      };
+      const bankPayment = await request(paymentPath, 'POST', bankPaymentInput, token);
+      expect(bankPayment.status).toBe(201);
+      const bankPaymentId = verifyRecordedPayment(bankPayment.data, deliveryOrderId, bankPaymentInput);
+      const bankPaymentSummary = parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      const bankPaymentRow = bankPaymentSummary.payments.find((item) => item.id === bankPaymentId);
+      if (!bankPaymentRow) throw new Error('Règlement bancaire manquant.');
+      const bankDay = new Date(bankPaymentRow.receivedAt).toISOString().slice(0, 10);
       const bankAsset = await request(
         '/accounting/accounts',
         'POST',
@@ -1748,11 +1793,21 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const bankRevenue = await request(
         '/accounting/accounts',
         'POST',
-        { code: '70-CI-BANK', name: 'Produits contrat CI' },
+        { code: '41-CI-BANK', name: 'Créances contrat CI' },
         token,
       );
       expect(bankRevenue.status).toBe(201);
       const bankRevenueId = parseId(bankRevenue.data);
+      expect(
+        (
+          await request(
+            '/accounting/accounts/' + bankRevenueId + '/classify',
+            'POST',
+            { category: 'ASSET' },
+            token,
+          )
+        ).status,
+      ).toBe(201);
       const bankJournal = await request(
         '/accounting/journals',
         'POST',
@@ -1763,7 +1818,7 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const bankPeriod = await request(
         '/accounting/periods',
         'POST',
-        { name: 'Période banque CI', start: '2096-01-01', end: '2096-12-31' },
+        { name: 'Période banque CI', start: bankDay, end: bankDay },
         token,
       );
       expect(bankPeriod.status).toBe(201);
@@ -1780,31 +1835,66 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const bank = parseBankAccount(bankCreated.data);
       const bankAccounts = await request('/accounting/bank/accounts', 'GET', undefined, token);
       expect(parseBankAccounts(bankAccounts.data).some((item) => item.id === bank.id)).toBe(true);
-      const bankEntry = await request(
-        '/accounting/entries',
+      expect((await request('/accounting/entries', 'POST', {}, token)).status).toBe(404);
+      const periodId = parseId(bankPeriod.data);
+      const ledgerPath = '/accounting/periods/' + periodId;
+      const rule = await request(
+        '/accounting/rules',
         'POST',
         {
+          key: 'PAYMENT:BANK_TRANSFER',
           journalId: parseId(bankJournal.data),
-          periodId: parseId(bankPeriod.data),
-          operationKey: crypto.randomUUID(),
-          date: '2096-01-04',
-          description: 'Encaissement bancaire contrat CI',
-          lines: [
-            { accountId: bankAssetId, debit: '100.25', credit: '0' },
-            { accountId: bankRevenueId, debit: '0', credit: '100.25' },
-          ],
+          debitAccountId: bankAssetId,
+          creditAccountId: bankRevenueId,
         },
         token,
       );
+      expect(rule.status).toBe(201);
+      const automation = await request(ledgerPath + '/automation', 'GET', undefined, token);
+      expect(automation.status).toBe(200);
+      expect(parseAutomation(automation.data, periodId).enabled).toBe(true);
+      const pending = await request(ledgerPath + '/pending', 'GET', undefined, token);
+      expect(pending.status).toBe(200);
+      expect(parsePending(pending.data, periodId).items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ type: 'PAYMENT', id: bankPaymentId })]),
+      );
+      // Le worker est volontairement désactivé en CI : relancer la pièce métier via son identifiant.
+      const source = { type: 'PAYMENT', id: bankPaymentId };
+      const bankEntry = await request('/accounting/sources', 'POST', source, token);
       expect(bankEntry.status).toBe(201);
+      const replayedEntry = await request('/accounting/sources', 'POST', source, token);
+      expect(replayedEntry.status).toBe(201);
+      expect(parseId(replayedEntry.data)).toBe(parseId(bankEntry.data));
+      const ledgerSetup = parseSetup((await request('/accounting/setup', 'GET', undefined, token)).data);
+      expect(ledgerSetup.postingRules.some((item) => item.key === 'PAYMENT:BANK_TRANSFER')).toBe(true);
+      const ledgerEntries = parseEntries(
+        (await request(ledgerPath + '/entries', 'GET', undefined, token)).data,
+        periodId,
+      );
+      expect(ledgerEntries.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ sourceId: bankPaymentId, sourceType: 'PAYMENT' }),
+        ]),
+      );
+      const balance = parseLedgerBalance(
+        (await request(ledgerPath + '/trial-balance', 'GET', undefined, token)).data,
+      );
+      expect(balance.balanced).toBe(true);
+      expect(balance.debit).toBe('100.25');
+      expect(balance.credit).toBe('100.25');
+      const statements = parseStatements(
+        (await request(ledgerPath + '/statements', 'GET', undefined, token)).data,
+        periodId,
+      );
+      expect(statements.provisional).toBe(true);
       const bankInput = {
         bankAccountId: bank.id,
         reference: 'REL-CONTRAT-CI',
-        start: '2096-01-01',
-        end: '2096-01-31',
+        start: bankDay,
+        end: bankDay,
         opening: '0',
         closing: '100.25',
-        lines: [{ reference: 'CI-1', date: '2096-01-05', description: 'Encaissement', amount: '100.25' }],
+        lines: [{ reference: 'CI-1', date: bankDay, description: 'Encaissement', amount: '100.25' }],
       };
       const bankImported = await request('/accounting/bank/statements', 'POST', bankInput, token);
       expect(bankImported.status).toBe(201);
@@ -1861,13 +1951,42 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       ).toBe(false);
       // Laisser un relevé équilibrable mais non clôturé pour le parcours navigateur.
       expect((await request(bankPath)).status).toBe(401);
-      const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
-      expect(orders.status).toBe(200);
-      expect(parseRecentOrders(orders.data)).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ total: '2\u202f360,00 FCFA', paymentStatus: 'Impayée' }),
-        ]),
+      const currentCompany = await request('/settings/company', 'GET', undefined, token);
+      expect(currentCompany.status).toBe(200);
+      const previousCompany = parseCompany(currentCompany.data);
+      const companyInput = {
+        ...previousCompany.input,
+        legalName: 'DSolar contrat CI',
+        expectedRevision: previousCompany.revision,
+      };
+      const updatedCompany = await request('/settings/company', 'PUT', companyInput, token);
+      expect(updatedCompany.status).toBe(200);
+      expect(parseCompany(updatedCompany.data).revision).toBe(previousCompany.revision + 1);
+      expect((await request('/settings/company', 'PUT', companyInput, token)).status).toBe(409);
+      const reloadedCompany = await request('/settings/company', 'GET', undefined, token);
+      expect(parseCompany(reloadedCompany.data)).toEqual(parseCompany(updatedCompany.data));
+
+      const auditFilters = { ...blankFilters(), action: 'COMPANY_SETTINGS_UPDATED' };
+      const audit = await request('/audit?action=COMPANY_SETTINGS_UPDATED&limit=30', 'GET', undefined, token);
+      expect(audit.status).toBe(200);
+      expect(parseAuditPage(audit.data, auditFilters, 30).items.length).toBeGreaterThan(0);
+      expect(JSON.stringify(audit.data)).not.toContain('"payload"');
+      const auditSummary = await request(
+        '/audit/summary?action=COMPANY_SETTINGS_UPDATED',
+        'GET',
+        undefined,
+        token,
       );
+      expect(auditSummary.status).toBe(200);
+      expect(parseAuditSummary(auditSummary.data).total).toBeGreaterThan(0);
+      const notificationPage = await request(
+        '/notifications?page=1&limit=30&read=false',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(notificationPage.status).toBe(200);
+      expect(() => parseNotificationPage(notificationPage.data, 1, 30, 'false')).not.toThrow();
     } finally {
       await request('/auth/logout', 'POST', { refreshToken: saleAdmin.jetonRenouvellement });
     }
