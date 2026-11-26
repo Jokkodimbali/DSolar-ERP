@@ -30,7 +30,11 @@ export function parseReturnOptions(value: unknown) {
     const remaining = quantity(line['remaining']);
     const available = quantity(line['available']);
     const maximum = quantity(line['maximum']);
-    if (typeof line['serialized'] !== 'boolean' || milli(maximum) !== (milli(remaining) < milli(available) ? milli(remaining) : milli(available))) return invalid();
+    if (
+      typeof line['serialized'] !== 'boolean' ||
+      milli(maximum) !== (milli(remaining) < milli(available) ? milli(remaining) : milli(available))
+    )
+      return invalid();
     return {
       receiptLineId: storeId(line['receiptLineId']),
       productId: storeId(line['productId']),
@@ -42,8 +46,18 @@ export function parseReturnOptions(value: unknown) {
       serialized: line['serialized'],
     };
   });
-  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.receiptLineId)).size !== lines.length) return invalid();
-  return { receiptId: storeId(row['receiptId']), number: text(row['number'], 100), storeId: storeId(row['storeId']), lines };
+  if (
+    !lines.length ||
+    lines.length > 100 ||
+    new Set(lines.map((line) => line.receiptLineId)).size !== lines.length
+  )
+    return invalid();
+  return {
+    receiptId: storeId(row['receiptId']),
+    number: text(row['number'], 100),
+    storeId: storeId(row['storeId']),
+    lines,
+  };
 }
 export type ReturnOptions = ReturnType<typeof parseReturnOptions>;
 
@@ -61,23 +75,52 @@ export function parseReturnCreation(value: unknown): ReturnCreation {
     if (typeof line['quantity'] !== 'string') return invalid();
     return { receiptLineId: storeId(line['receiptLineId']), quantity: quantityInput(line['quantity'], true) };
   });
-  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.receiptLineId)).size !== lines.length) return invalid();
-  return { receiptId: storeId(row['receiptId']), operationKey: storeId(row['operationKey']), reason: text(row['reason'], 500), lines };
+  if (
+    !lines.length ||
+    lines.length > 100 ||
+    new Set(lines.map((line) => line.receiptLineId)).size !== lines.length
+  )
+    return invalid();
+  return {
+    receiptId: storeId(row['receiptId']),
+    operationKey: storeId(row['operationKey']),
+    reason: text(row['reason'], 500),
+    lines,
+  };
 }
 
-export function returnCreation(options: ReturnOptions, quantities: Record<string, string>, reason: string, operationKey: string): ReturnCreation {
-  const lines = Object.entries(quantities).filter(([, value]) => value.trim()).map(([receiptLineId, value]) => {
-    const line = options.lines.find((item) => item.receiptLineId === receiptLineId);
-    const amount = quantityInput(value, true);
-    if (!line || line.serialized || milli(amount) > milli(line.maximum)) throw new Error('Quantité non disponible ou produit sérialisé.');
-    return { receiptLineId, quantity: amount };
-  });
+export function returnCreation(
+  options: ReturnOptions,
+  quantities: Record<string, string>,
+  reason: string,
+  operationKey: string,
+): ReturnCreation {
+  const lines = Object.entries(quantities)
+    .filter(([, value]) => value.trim())
+    .map(([receiptLineId, value]) => {
+      const line = options.lines.find((item) => item.receiptLineId === receiptLineId);
+      const amount = quantityInput(value, true);
+      if (!line || line.serialized || milli(amount) > milli(line.maximum))
+        throw new Error('Quantité non disponible ou produit sérialisé.');
+      return { receiptLineId, quantity: amount };
+    });
   return parseReturnCreation({ receiptId: options.receiptId, operationKey, reason, lines });
 }
 
 export function matchesReturnCreation(item: SupplierReturn, input: ReturnCreation): boolean {
-  return item.receiptId === input.receiptId && item.reason === input.reason && item.lines.length === input.lines.length &&
-    input.lines.every((line) => item.lines.some((actual) => actual.receiptLineId === line.receiptLineId && milli(actual.quantity) === milli(line.quantity) && actual.serials.length === 0));
+  return (
+    item.receiptId === input.receiptId &&
+    item.reason === input.reason &&
+    item.lines.length === input.lines.length &&
+    input.lines.every((line) =>
+      item.lines.some(
+        (actual) =>
+          actual.receiptLineId === line.receiptLineId &&
+          milli(actual.quantity) === milli(line.quantity) &&
+          actual.serials.length === 0,
+      ),
+    )
+  );
 }
 
 export function returnCreationStorageKey(actor: string): string {

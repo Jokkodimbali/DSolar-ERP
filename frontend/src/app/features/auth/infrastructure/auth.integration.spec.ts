@@ -995,7 +995,12 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(closedOutstanding.status).toBe(200);
       expect(parsePurchaseOrderPage(closedOutstanding.data).items).toEqual([]);
 
-      const returnOptions = await request('/supplier-returns/receipts/' + receipt.id + '/options', 'GET', undefined, token);
+      const returnOptions = await request(
+        '/supplier-returns/receipts/' + receipt.id + '/options',
+        'GET',
+        undefined,
+        token,
+      );
       expect(returnOptions.status).toBe(200);
       expect(parseReturnOptions(returnOptions.data).lines[0]?.maximum).toBe('1');
       const returnCommand = {
@@ -1008,7 +1013,10 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const replayReturn = await request('/supplier-returns', 'POST', returnCommand, token);
       expect(replayReturn.status).toBe(201);
       expect(parseId(replayReturn.data)).toBe(parseId(returnDraft.data));
-      expect((await request('/supplier-returns', 'POST', { ...returnCommand, reason: 'Autre motif' }, token)).status).toBe(409);
+      expect(
+        (await request('/supplier-returns', 'POST', { ...returnCommand, reason: 'Autre motif' }, token))
+          .status,
+      ).toBe(409);
       expect(returnDraft.status).toBe(201);
       const returnId = parseId(returnDraft.data);
       const returnPage = await request(

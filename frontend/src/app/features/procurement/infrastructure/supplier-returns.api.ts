@@ -39,9 +39,10 @@ export class SupplierReturnsApi {
   }
 
   create(input: ReturnCreation) {
-    return this.http
-      .post<unknown>(apiPath('/supplier-returns'), input)
-      .pipe(map(parseId), switchMap((id) => this.get(id)));
+    return this.http.post<unknown>(apiPath('/supplier-returns'), input).pipe(
+      map(parseId),
+      switchMap((id) => this.get(id)),
+    );
   }
 
   action(id: string, action: ReturnAction) {

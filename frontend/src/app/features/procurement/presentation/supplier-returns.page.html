@@ -4,7 +4,12 @@
   description="Consultez les retours, les mouvements associés et les avoirs fournisseurs."
 >
   @if (session.can('users.manage', 'inventory.manage')) {
-  <button type="button" class="primary" [disabled]="busy() || creating() || !!pendingCreation() || !!action()" (click)="start()">
+  <button
+    type="button"
+    class="primary"
+    [disabled]="busy() || creating() || !!pendingCreation() || !!action()"
+    (click)="start()"
+  >
     + Nouveau retour
   </button>
   }
@@ -16,7 +21,9 @@
   <h2>Retour en attente</h2>
   <p class="muted">La même clé d’opération est conservée pour éviter les doublons.</p>
   <p>{{ command.reason }}</p>
-  <button type="button" class="primary" [disabled]="busy()" (click)="resumeCreation()">Reprendre le retour</button>
+  <button type="button" class="primary" [disabled]="busy()" (click)="resumeCreation()">
+    Reprendre le retour
+  </button>
 </section>
 } @if (creating()) {
 <section class="panel">
@@ -34,22 +41,37 @@
   @if (receipts(); as page) {
   <label class="ui-field">
     Réception confirmée
-    <select #receiptSelect aria-label="Réception confirmée" [disabled]="busy() || receiptLoading()" [value]="options()?.receiptId ?? ''" (change)="chooseReceipt(receiptSelect.value)">
+    <select
+      #receiptSelect
+      aria-label="Réception confirmée"
+      [disabled]="busy() || receiptLoading()"
+      [value]="options()?.receiptId ?? ''"
+      (change)="chooseReceipt(receiptSelect.value)"
+    >
       <option value="">Sélectionner…</option>
-      @for (receipt of page.items; track receipt.id) {
-      @if (receipt.purchaseOrderId) {
+      @for (receipt of page.items; track receipt.id) { @if (receipt.purchaseOrderId) {
       <option [value]="receipt.id">{{ receipt.number }} · {{ storeName(receipt.storeId) }}</option>
-      }
-      }
+      } }
     </select>
   </label>
-  <app-pagination [page]="page.page" [pages]="page.pages || 1" [disabled]="busy() || receiptLoading()" (change)="lookupReceipts(receiptSearch(), $event)" />
-  }
-  @if (options(); as selected) {
+  <app-pagination
+    [page]="page.page"
+    [pages]="page.pages || 1"
+    [disabled]="busy() || receiptLoading()"
+    (change)="lookupReceipts(receiptSearch(), $event)"
+  />
+  } @if (options(); as selected) {
   <p class="muted">{{ selected.number }} · {{ storeName(selected.storeId) }}</p>
   <div class="ui-table" role="region" aria-label="Articles à retourner" tabindex="0">
     <table>
-      <thead><tr><th>Produit</th><th>Reliquat</th><th>Stock disponible</th><th>Quantité à retourner</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Reliquat</th>
+          <th>Stock disponible</th>
+          <th>Quantité à retourner</th>
+        </tr>
+      </thead>
       <tbody>
         @for (line of selected.lines; track line.receiptLineId) {
         <tr>
@@ -60,7 +82,14 @@
             @if (line.serialized) {
             <span class="muted">Sélection des séries requise</span>
             } @else {
-            <input #qty [attr.aria-label]="'Quantité à retourner ' + line.sku" inputmode="decimal" [disabled]="busy() || +line.maximum === 0" [value]="quantities()[line.receiptLineId] || ''" (input)="changeQuantity(line.receiptLineId, qty.value)" />
+            <input
+              #qty
+              [attr.aria-label]="'Quantité à retourner ' + line.sku"
+              inputmode="decimal"
+              [disabled]="busy() || +line.maximum === 0"
+              [value]="quantities()[line.receiptLineId] || ''"
+              (input)="changeQuantity(line.receiptLineId, qty.value)"
+            />
             }
           </td>
         </tr>
@@ -70,9 +99,17 @@
   </div>
   <label class="ui-field">
     Motif du retour
-    <textarea #returnReason maxlength="500" [disabled]="busy()" [value]="reason()" (input)="reason.set(returnReason.value)"></textarea>
+    <textarea
+      #returnReason
+      maxlength="500"
+      [disabled]="busy()"
+      [value]="reason()"
+      (input)="reason.set(returnReason.value)"
+    ></textarea>
   </label>
-  <button class="primary" type="button" [disabled]="busy() || !reason().trim()" (click)="save()">Créer le retour</button>
+  <button class="primary" type="button" [disabled]="busy() || !reason().trim()" (click)="save()">
+    Créer le retour
+  </button>
   }
 </section>
 } @if (detail(); as item) {
@@ -244,7 +281,12 @@
           </td>
           <td>{{ money(item.total) }}</td>
           <td>
-            <button type="button" class="secondary" [disabled]="busy() || !!action() || creating() || !!pendingCreation()" (click)="open(item.id)">
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="busy() || !!action() || creating() || !!pendingCreation()"
+              (click)="open(item.id)"
+            >
               Détails
             </button>
           </td>

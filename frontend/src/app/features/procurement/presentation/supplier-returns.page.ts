@@ -227,7 +227,14 @@ export class SupplierReturnsPage {
   }
 
   start(): void {
-    if (this.busy() || this.action() || this.creating() || this.pendingCreation() || !this.session.can('users.manage', 'inventory.manage')) return;
+    if (
+      this.busy() ||
+      this.action() ||
+      this.creating() ||
+      this.pendingCreation() ||
+      !this.session.can('users.manage', 'inventory.manage')
+    )
+      return;
     this.detail.set(null);
     this.options.set(null);
     this.quantities.set({});
@@ -242,8 +249,12 @@ export class SupplierReturnsPage {
     if (this.busy() || this.receiptLoading() || !this.creating()) return;
     this.receiptSearch.set(search.trim());
     this.receiptLoading.set(true);
-    this.receiptsApi.search(page, this.receiptSearch(), 'CONFIRMED', '')
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.receiptLoading.set(false)))
+    this.receiptsApi
+      .search(page, this.receiptSearch(), 'CONFIRMED', '')
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.receiptLoading.set(false)),
+      )
       .subscribe({
         next: (result) => this.receipts.set(result),
         error: (error: unknown) => this.error.set(errorMessage(error)),
@@ -257,8 +268,12 @@ export class SupplierReturnsPage {
     const receipt = this.receipts()?.items.find((item) => item.id === id);
     if (!receipt || !receipt.purchaseOrderId) return;
     this.busy.set(true);
-    this.api.options(id)
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+    this.api
+      .options(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
       .subscribe({
         next: (options) => {
           if (options.receiptId !== id || options.storeId !== receipt.storeId) {
@@ -277,7 +292,14 @@ export class SupplierReturnsPage {
 
   save(): void {
     const options = this.options();
-    if (!options || !this.creating() || this.busy() || this.pendingCreation() || !this.session.can('users.manage', 'inventory.manage')) return;
+    if (
+      !options ||
+      !this.creating() ||
+      this.busy() ||
+      this.pendingCreation() ||
+      !this.session.can('users.manage', 'inventory.manage')
+    )
+      return;
     this.error.set('');
     try {
       const input = returnCreation(options, this.quantities(), this.reason(), crypto.randomUUID());
@@ -301,35 +323,37 @@ export class SupplierReturnsPage {
     if (!input || this.busy() || !this.session.can('users.manage', 'inventory.manage')) return;
     this.busy.set(true);
     this.error.set('');
-    this.api.create(input).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (item) => {
-        this.busy.set(false);
-        if (!matchesReturnCreation(item, input)) {
-          this.error.set('Le retour enregistré ne correspond pas à la demande en attente.');
-          return;
-        }
-        try {
-          this.clearCreation();
-        } catch {
-          this.error.set('Retour enregistré. Le stockage local ne peut pas être effacé.');
-          return;
-        }
-        this.load(1);
-        this.open(item.id);
-        this.success.set('Retour enregistré. Vérifiez son statut avant toute confirmation.');
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        if (error instanceof HttpErrorResponse && error.status === 400) {
+    this.api
+      .create(input)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (item) => {
+          this.busy.set(false);
+          if (!matchesReturnCreation(item, input)) {
+            this.error.set('Le retour enregistré ne correspond pas à la demande en attente.');
+            return;
+          }
           try {
             this.clearCreation();
           } catch {
-            // Conserver la clé si le stockage est indisponible.
+            this.error.set('Retour enregistré. Le stockage local ne peut pas être effacé.');
+            return;
           }
-        }
-        this.error.set(errorMessage(error) + ' Ne créez pas de nouveau retour avant résolution.');
-      },
-    });
+          this.load(1);
+          this.open(item.id);
+          this.success.set('Retour enregistré. Vérifiez son statut avant toute confirmation.');
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 400) {
+            try {
+              this.clearCreation();
+            } catch {
+              // Conserver la clé si le stockage est indisponible.
+            }
+          }
+          this.error.set(errorMessage(error) + ' Ne créez pas de nouveau retour avant résolution.');
+        },
+      });
   }
-
 }

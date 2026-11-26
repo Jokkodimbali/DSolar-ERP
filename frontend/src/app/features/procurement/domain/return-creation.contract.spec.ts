@@ -1,12 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { parseReturnCreation, parseReturnOptions, returnCreation, returnCreationStorageKey } from './return-creation.contract';
+import {
+  parseReturnCreation,
+  parseReturnOptions,
+  returnCreation,
+  returnCreationStorageKey,
+} from './return-creation.contract';
 
 const id = 'c31ac59c-8148-4664-8745-496a9618f202';
 const row = {
   receiptId: id,
   number: 'BR-CI',
   storeId: id,
-  lines: [{ receiptLineId: id, productId: id, name: 'Panneau', sku: 'PV-CI', remaining: '1.125', available: '1', maximum: '1', serialized: false }],
+  lines: [
+    {
+      receiptLineId: id,
+      productId: id,
+      name: 'Panneau',
+      sku: 'PV-CI',
+      remaining: '1.125',
+      available: '1',
+      maximum: '1',
+      serialized: false,
+    },
+  ],
 };
 describe('Création des retours fournisseurs', () => {
   it('normalise les quantités, préserve la clé et refuse tout dépassement', () => {
