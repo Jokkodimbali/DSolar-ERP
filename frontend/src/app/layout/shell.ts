@@ -184,6 +184,13 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="cart" /><span class="nav-text">Banque</span></a
           >
           <a
+            routerLink="/parametres"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Paramètres"
+            ><app-ui-icon name="layers" /><span class="nav-text">Paramètres</span></a
+          >
+          <a
             routerLink="/utilisateurs"
             routerLinkActive="active"
             (click)="menuOpen.set(false)"

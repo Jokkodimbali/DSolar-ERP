@@ -1,0 +1,77 @@
+<app-page-header
+  eyebrow="ADMINISTRATION"
+  heading="Paramètres de l’entreprise"
+  description="Gérez les informations officielles, les documents commerciaux et les préférences internes."
+>
+  <button type="button" class="secondary" [disabled]="busy() || !!pending() || (!!saved() && dirty())" (click)="load()">
+    Actualiser
+  </button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (busy()) {
+<p role="status">Traitement en cours…</p>
+}
+@if (saved(); as current) {
+<form (submit)="$event.preventDefault(); prepare()">
+  <fieldset [disabled]="busy() || !!pending()">
+    @for (group of groups; track group.label) {
+    <section class="panel">
+      <h2>{{ group.label }}</h2>
+      <div class="ui-toolbar">
+        @for (field of group.fields; track field.key) {
+        <label class="ui-field">
+          {{ field.label }}
+          <input
+            #value
+            [value]="draft()[field.key]"
+            [maxLength]="field.max"
+            [required]="field.key === 'legalName'"
+            (input)="field(field.key, value.value)"
+          />
+        </label>
+        }
+      </div>
+    </section>
+    }
+    <section class="panel">
+      <h2>Logo de l’entreprise</h2>
+      <p class="muted">PNG ou JPEG, 2 Mo maximum. Le logo sera utilisé après enregistrement.</p>
+      <label class="ui-field">
+        Téléverser un logo
+        <input #file type="file" accept="image/png,image/jpeg" (change)="upload(file)" />
+      </label>
+      @if (draft().logoUrl) {
+      <p>Un logo est associé au formulaire.</p>
+      <button type="button" class="secondary" (click)="removeLogo()">Retirer le logo</button>
+      }
+    </section>
+    <section class="panel">
+      <h2>Notifications et alertes</h2>
+      <label>
+        <input #notifications type="checkbox" [checked]="draft().notificationsEnabled" (change)="notificationsChange(notifications.checked)" />
+        Activer les notifications
+      </label>
+      <label class="ui-field">
+        Seuil de stock faible
+        <input #threshold type="number" min="0" max="1000000" step="1" [value]="draft().lowStockThreshold" (input)="thresholdChange(threshold.valueAsNumber)" />
+      </label>
+    </section>
+    <div class="ui-actions">
+      <button type="submit" class="primary" [disabled]="!dirty()">Enregistrer les paramètres</button>
+      <button type="button" class="secondary" [disabled]="!dirty()" (click)="reset()">Annuler les modifications</button>
+      <span class="muted">Révision {{ current.revision }}</span>
+    </div>
+  </fieldset>
+</form>
+}
+@if (pending()) {
+<app-confirm
+  heading="Confirmer les paramètres"
+  description="Les nouvelles informations seront utilisées par l’entreprise et ses documents."
+  confirmLabel="Enregistrer"
+  [busy]="busy()"
+  (confirmed)="save()"
+  (cancelled)="pending.set(null)"
+/>
+}

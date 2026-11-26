@@ -48,6 +48,12 @@ import { UiIconComponent } from '../shared/ui/ui-icon.component';
           <span><strong>Comptabilité</strong><small>Écritures et états automatiques</small></span>
         </a>
       }
+      @if (session.can('users.manage')) {
+        <a class="panel ui-shortcut" routerLink="/parametres">
+          <span class="ui-kpi-icon"><app-ui-icon name="layers" /></span>
+          <span><strong>Paramètres</strong><small>Informations et préférences de l’entreprise</small></span>
+        </a>
+      }
       <a class="panel ui-shortcut" routerLink="/mon-compte">
         <span class="ui-kpi-icon"><app-ui-icon name="user" /></span>
         <span><strong>Mon compte</strong><small>Identité et autorisations</small></span>

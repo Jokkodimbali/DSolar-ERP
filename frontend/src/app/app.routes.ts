@@ -61,6 +61,12 @@ export const routes: Routes = [
           import('./features/expenses/presentation/expenses.page').then((m) => m.ExpensesPage),
       },
       {
+        path: 'parametres',
+        canActivate: [usersGuard],
+        loadComponent: () =>
+          import('./features/settings/presentation/company-settings.page').then((m) => m.CompanySettingsPage),
+      },
+      {
         path: 'utilisateurs',
         canActivate: [usersGuard],
         loadComponent: () => import('./features/users/presentation/users.page').then((m) => m.UsersPage),
