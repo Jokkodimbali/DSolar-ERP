@@ -13,6 +13,11 @@
 <section class="panel">
   <div class="page-heading">
     <h2>{{ item.number }}</h2>
+    <app-sales-document-button
+      [document]="{ kind: 'proforma', id: item.id }"
+      label="Télécharger le devis PDF"
+      [disabled]="busy() || !!pending()"
+    />
     <button class="secondary" type="button" [disabled]="busy() || !!pending()" (click)="close()">
       Fermer
     </button>

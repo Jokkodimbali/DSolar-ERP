@@ -459,6 +459,11 @@ try {
   await deliveriesPanel.getByRole('button', { name: 'Confirmer le bon', exact: true }).click();
   await page.getByRole('region', { name: 'Confirmer le bon de livraison ?' }).getByRole('button', { name: 'Confirmer', exact: true }).click();
   await page.getByTestId('sales-order-status').getByText('Livrée', { exact: true }).waitFor();
+  const deliveryDownload = page.waitForEvent('download');
+  await deliveriesPanel.getByRole('button', { name: 'Télécharger le bon PDF', exact: true }).first().click();
+  const downloadedDelivery = await deliveryDownload;
+  assert.match(downloadedDelivery.suggestedFilename(), /^livraison-[0-9a-f-]{36}\.pdf$/);
+  assert.equal(await downloadedDelivery.failure(), null);
   await deliveriesPanel.getByRole('region', { name: 'Reliquat de livraison' }).getByText('0.000', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'commandes-vente-livraisons.png'), fullPage: true });
   assert.deepEqual(errors, [], 'Erreurs JavaScript dans le navigateur');

@@ -15,6 +15,7 @@ import { ProductsApi } from '../../products/infrastructure/products.api';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import { CustomersApi } from '../infrastructure/customers.api';
 import { ProformaApi } from '../infrastructure/proforma.api';
+import { SalesDocumentButtonComponent } from './sales-document-button.component';
 import type { ConvertedOrder } from '../domain/proforma-conversion.contract';
 import {
   actionLabels,
@@ -38,6 +39,7 @@ import {
     FeedbackComponent,
     PageHeaderComponent,
     PaginationComponent,
+    SalesDocumentButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './proformas.page.html',

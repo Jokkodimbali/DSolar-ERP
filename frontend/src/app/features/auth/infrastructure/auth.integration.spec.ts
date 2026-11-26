@@ -1305,6 +1305,22 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(notes.status).toBe(200);
       expect(parseDeliveryPage(notes.data, deliveryOrderId).total).toBe(2);
+      const pdfPath = apiPath(notesPath + '/' + note.id + '/pdf');
+      const pdf = await fetch(base + pdfPath, {
+        headers: { Authorization: 'Bearer ' + token },
+        redirect: 'error',
+        signal: AbortSignal.timeout(10000),
+      });
+      expect(pdf.status).toBe(200);
+      expect(pdf.headers.get('content-type')).toContain('application/pdf');
+      expect(pdf.headers.get('cache-control')).toContain('no-store');
+      expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 8))).toBe('%PDF-1.4');
+      expect((await fetch(base + pdfPath)).status).toBe(401);
+      const wrongOrder = await fetch(
+        base + apiPath(salesOrderPath + '/deliveries/' + note.id + '/pdf'),
+        { headers: { Authorization: 'Bearer ' + token } },
+      );
+      expect(wrongOrder.status).toBe(404);
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);

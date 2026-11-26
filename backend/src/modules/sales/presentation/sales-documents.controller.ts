@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, StreamableFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Param, ParseUUIDPipe, StreamableFile, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
@@ -13,6 +13,7 @@ import { SalesDocumentsService } from '../application/sales-documents.service';
 export class SalesDocumentsController {
   constructor(private readonly service: SalesDocumentsService) {}
 
+  @Header('Cache-Control', 'private, no-store')
   @Get('proformas/:id/pdf')
   async proforma(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return new StreamableFile(await this.service.download('PROFORMA', id, actorId), {
@@ -21,6 +22,7 @@ export class SalesDocumentsController {
     });
   }
 
+  @Header('Cache-Control', 'private, no-store')
   @Get('sales-orders/:orderId/deliveries/:id/pdf')
   async delivery(
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -33,6 +35,7 @@ export class SalesDocumentsController {
     });
   }
 
+  @Header('Cache-Control', 'private, no-store')
   @Get('sales-orders/:orderId/payments/:id/pdf')
   async payment(
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -45,6 +48,7 @@ export class SalesDocumentsController {
     });
   }
 
+  @Header('Cache-Control', 'private, no-store')
   @Get('invoices/:id/pdf')
   async invoice(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return new StreamableFile(await this.service.download('INVOICE', id, actorId), {

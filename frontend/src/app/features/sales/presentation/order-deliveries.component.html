@@ -107,6 +107,11 @@
                 }
               </td>
               <td>
+                <app-sales-document-button
+                  [document]="{ kind: 'delivery', id: note.id, orderId: orderId() }"
+                  label="Télécharger le bon PDF"
+                  [disabled]="busy() || !!action()"
+                />
                 @if (session.can('sales.manage') && note.status === 'DRAFT') {
                   <div class="ui-actions">
                     @if (progress()?.status === 'CONFIRMED' || progress()?.status === 'PARTIALLY_DELIVERED') {

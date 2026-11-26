@@ -30,10 +30,11 @@ import {
   type parseDeliveryPage,
 } from '../domain/delivery.contract';
 import { DeliveriesApi } from '../infrastructure/deliveries.api';
+import { SalesDocumentButtonComponent } from './sales-document-button.component';
 
 @Component({
   selector: 'app-order-deliveries',
-  imports: [DatePipe, ConfirmComponent, FeedbackComponent, PaginationComponent],
+  imports: [DatePipe, ConfirmComponent, FeedbackComponent, PaginationComponent, SalesDocumentButtonComponent],
   templateUrl: './order-deliveries.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
