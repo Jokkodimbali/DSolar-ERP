@@ -33,9 +33,9 @@
     </div>
     }
   }
-  @if (session.can('sales.manage') && payment.active && positive(payment.available) && snapshot.invoices.length) {
+  @if (session.can('sales.manage') && payment.active && positive(payment.available) && eligibleInvoices(snapshot, payment).length) {
   <form class="ui-toolbar" (submit)="$event.preventDefault(); askAllocate(payment.id, invoiceSelect.value, amount.value)">
-    <label class="ui-field">Facture<select #invoiceSelect required><option value="">Sélectionner</option>@for (invoice of snapshot.invoices; track invoice.id) { @if (positive(invoice.remaining)) { <option [value]="invoice.id">{{ invoice.number }} — {{ money(invoice.remaining) }}</option> } }</select></label>
+    <label class="ui-field">Facture<select #invoiceSelect required><option value="">Sélectionner</option>@for (invoice of eligibleInvoices(snapshot, payment); track invoice.id) { <option [value]="invoice.id">{{ invoice.number }} — {{ money(invoice.remaining) }}</option> }</select></label>
     <label class="ui-field">Montant à affecter<input #amount inputmode="decimal" maxlength="19" required /></label>
     <button type="submit" class="primary" [disabled]="busy() || !!pending()">Vérifier l’affectation</button>
   </form>

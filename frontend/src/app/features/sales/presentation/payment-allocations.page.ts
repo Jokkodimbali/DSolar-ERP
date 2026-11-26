@@ -36,6 +36,11 @@ export class PaymentAllocationsPage {
   readonly error = signal('');
   readonly success = signal('');
   readonly money = formatMoney;
+  eligibleInvoices(snapshot: AllocationSnapshot, payment: AllocationSnapshot['payments'][number]) {
+    return snapshot.invoices.filter((invoice) =>
+      paymentCents(invoice.remaining) > 0n && !payment.allocations.some((allocation) => allocation.invoiceId === invoice.id),
+    );
+  }
   readonly positive = (value: string) => paymentCents(value) > 0n;
 
   constructor() {
