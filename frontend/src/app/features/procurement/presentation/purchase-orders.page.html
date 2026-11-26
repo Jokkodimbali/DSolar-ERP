@@ -4,14 +4,22 @@
   description="Préparez les achats et suivez les quantités réceptionnées."
 >
   @if (session.can('inventory.manage', 'products.read')) {
-  <button class="primary" type="button" [disabled]="busy() || creating()" (click)="start()">
+  <button class="primary" type="button" [disabled]="busy() || creating() || !!pendingCreation()" (click)="start()">
     + Nouvelle commande
   </button>
   }
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
 <app-feedback [message]="success()" kind="success" />
-@if (creating()) {
+@if (pendingCreation(); as command) {
+<section class="panel">
+  <h2>Commande en attente</h2>
+  <p class="muted">Vérifiez la commande {{ command.number }} avant de relancer sa création.</p>
+  <button type="button" class="primary" [disabled]="busy()" (click)="resumeCreation()">
+    Reprendre la création
+  </button>
+</section>
+} @if (creating()) {
 <section class="panel">
   <div class="page-heading">
     <h2>Nouvelle commande fournisseur</h2>

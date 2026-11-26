@@ -187,7 +187,18 @@ try {
   await page.getByRole('button', { name: /Panneau proforma CI · PV-PROFORMA-CI/ }).click();
   await page.getByLabel('Quantité', { exact: true }).fill('2,125');
   await page.getByLabel('Coût unitaire', { exact: true }).fill('1000,25');
+  await page.route('**/api/v1/purchase-orders', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    assert.equal(response.status(), 201);
+    await route.abort();
+  });
   await page.getByRole('button', { name: 'Créer le brouillon' }).click();
+  await page.getByRole('button', { name: 'Reprendre la création' }).waitFor();
+  await page.locator('app-feedback').filter({ hasText: 'Vérifiez la référence' }).waitFor();
+  await page.unroute('**/api/v1/purchase-orders');
+  await page.reload();
+  await page.getByRole('button', { name: 'Reprendre la création' }).click();
   await page.getByRole('button', { name: 'Confirmer la commande' }).click();
   await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmer la commande' }).waitFor({ state: 'hidden' });

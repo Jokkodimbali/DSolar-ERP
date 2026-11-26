@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -19,12 +20,18 @@ import {
   purchaseStatusLabels,
   type PurchaseDraftLine,
   type PurchaseOrder,
+  type PurchaseOrderInput,
   type PurchaseProgress,
   type PurchaseStatus,
   type parsePurchaseOrderPage,
 } from '../domain/purchase-order.contract';
 import { PurchaseOrdersApi } from '../infrastructure/purchase-orders.api';
 import { SuppliersApi } from '../infrastructure/suppliers.api';
+import {
+  matchesPurchase,
+  parsePendingPurchase,
+  purchaseStorageKey,
+} from '../infrastructure/pending-purchase-order';
 
 type DraftLine = PurchaseDraftLine & { label: string };
 
@@ -71,9 +78,31 @@ export class PurchaseOrdersPage {
   readonly progress = signal<PurchaseProgress | null>(null);
   readonly productNames = signal<Record<string, string>>({});
   readonly pending = signal<'confirm' | 'cancel' | null>(null);
+  readonly pendingCreation = signal<PurchaseOrderInput | null>(null);
+  private storageKey: string | null = null;
 
   constructor() {
     this.load(1);
+    const actor = this.session.user()?.id;
+    if (!actor || !this.session.can('inventory.manage')) return;
+    this.storageKey = purchaseStorageKey(actor);
+    try {
+      const raw = sessionStorage.getItem(this.storageKey);
+      if (raw !== null) this.pendingCreation.set(parsePendingPurchase(JSON.parse(raw)));
+    } catch {
+      this.error.set('Impossible de lire la commande en attente. Vérifiez le stockage du navigateur.');
+    }
+  }
+
+  private clearCreation(): void {
+    this.pendingCreation.set(null);
+    if (this.storageKey) {
+      try {
+        sessionStorage.removeItem(this.storageKey);
+      } catch {
+        // La référence reste unique en base même si le stockage local ne peut être effacé.
+      }
+    }
   }
 
   filter(search: string, status: string): void {
@@ -102,7 +131,13 @@ export class PurchaseOrdersPage {
   }
 
   start(): void {
-    if (this.busy() || this.creating() || !this.session.can('inventory.manage', 'products.read')) return;
+    if (
+      this.busy() ||
+      this.creating() ||
+      this.pendingCreation() ||
+      !this.session.can('inventory.manage', 'products.read')
+    )
+      return;
     this.detail.set(null);
     this.pending.set(null);
     this.error.set('');
@@ -172,37 +207,76 @@ export class PurchaseOrdersPage {
   save(): void {
     const supplier = this.supplier();
     if (this.busy() || !this.creating() || !supplier || !this.session.can('inventory.manage')) return;
+    if (this.pendingCreation()) return;
     this.error.set('');
     try {
       const input = purchaseOrderInput(this.number(), supplier.id, this.draft());
-      this.busy.set(true);
-      this.api
-        .create(input)
-        .pipe(takeUntilDestroyed(this.destroy))
-        .subscribe({
-          next: (order) => {
-            this.creating.set(false);
-            this.busy.set(false);
-            this.success.set('Commande fournisseur créée.');
-            this.load(1);
-            this.open(order.id);
-          },
-          error: (error: unknown) => {
-            this.busy.set(false);
-            this.error.set(
-              errorMessage(error) +
-                ' Vérifiez la référence ' +
-                this.number() +
-                ' avant toute nouvelle création.',
-            );
-          },
-        });
+      if (!this.storageKey) throw new Error('Session invalide.');
+      sessionStorage.setItem(this.storageKey, JSON.stringify(input));
+      this.pendingCreation.set(input);
+      this.creating.set(false);
+      this.submit(input);
     } catch {
-      this.busy.set(false);
-      this.error.set(
-        'Vérifiez le fournisseur, les produits, les quantités (3 décimales) et les coûts (2 décimales).',
-      );
+      this.error.set('Vérifiez les quantités, les coûts, le fournisseur et le stockage du navigateur.');
     }
+  }
+
+  resumeCreation(): void {
+    const input = this.pendingCreation();
+    if (!input || this.busy() || !this.session.can('inventory.manage')) return;
+    this.error.set('');
+    this.busy.set(true);
+    this.api
+      .search(1, input.number, '')
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (page) => {
+          const existing = page.items.find((order) => order.number === input.number);
+          this.busy.set(false);
+          if (existing) {
+            if (matchesPurchase(existing, input)) this.creationSucceeded(existing);
+            else
+              this.error.set('La référence existe avec des données différentes. Contactez un administrateur.');
+          } else if (page.pages > 1) {
+            this.error.set('Recherche ambiguë. Vérifiez la référence avant de réessayer.');
+          } else {
+            this.submit(input);
+          }
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.error.set(errorMessage(error));
+        },
+      });
+  }
+
+  private submit(input: PurchaseOrderInput): void {
+    this.busy.set(true);
+    this.api
+      .create(input)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (order) => this.creationSucceeded(order),
+        error: (error: unknown) => {
+          this.busy.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 400) this.clearCreation();
+          this.error.set(errorMessage(error) + ' Vérifiez la référence ' + input.number + '.');
+        },
+      });
+  }
+
+  private creationSucceeded(order: PurchaseOrder): void {
+    const input = this.pendingCreation();
+    this.busy.set(false);
+    if (!input || !matchesPurchase(order, input)) {
+      this.error.set('La réponse ne correspond pas à la commande en attente.');
+      return;
+    }
+    this.clearCreation();
+    this.creating.set(false);
+    this.success.set('Commande fournisseur créée.');
+    this.load(1);
+    this.open(order.id);
   }
 
   close(): void {
