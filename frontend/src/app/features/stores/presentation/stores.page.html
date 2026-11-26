@@ -1,0 +1,171 @@
+<app-page-header
+  eyebrow="ORGANISATION"
+  heading="Magasins"
+  description="Consultez les magasins et gérez leurs informations et accès."
+>
+  @if (session.can('stores.manage')) {
+  <button class="primary" type="button" [disabled]="busy() || loading()" (click)="edit('new')">
+    + Nouveau magasin
+  </button>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (detail(); as store) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Fiche magasin — {{ store.name }}</h2>
+    <button type="button" class="secondary" (click)="close()">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div>
+      <dt>Code</dt>
+      <dd>{{ store.code }}</dd>
+    </div>
+    <div>
+      <dt>Adresse</dt>
+      <dd>{{ store.address || 'Non renseignée' }}</dd>
+    </div>
+    <div>
+      <dt>Statut</dt>
+      <dd><app-status-badge [active]="store.status === 'ACTIVE'" /></dd>
+    </div>
+  </dl>
+</section>
+} @if (editing(); as target) {
+<section class="panel">
+  <h2>{{ target === 'new' ? 'Nouveau magasin' : 'Modifier le magasin' }}</h2>
+  <form [formGroup]="form" (ngSubmit)="save()" class="store-form">
+    <label class="ui-field">Code <input formControlName="code" maxlength="30" /></label>
+    <label class="ui-field">Nom <input formControlName="name" maxlength="160" /></label>
+    <label class="ui-field">Adresse <input formControlName="address" /></label>
+    <div class="ui-actions">
+      <button type="submit" class="primary" [disabled]="busy() || loading()">Enregistrer</button>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </form>
+</section>
+} @if (pendingStatus(); as store) {
+<app-confirm
+  [heading]="(store.status === 'ACTIVE' ? 'Désactiver ' : 'Activer ') + store.name + ' ?'"
+  description="La modification du statut peut affecter les opérations et les accès au magasin."
+  [busy]="busy()"
+  (confirmed)="confirmStatus()"
+  (cancelled)="close()"
+/>
+} @if (selected(); as store) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Affectations — {{ store.name }}</h2>
+    <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
+  </div>
+  <p class="muted">Les changements peuvent révoquer les sessions des utilisateurs concernés.</p>
+  <button type="button" class="secondary" [disabled]="busy()" (click)="loadUsers()">
+    Actualiser les accès
+  </button>
+  @if (busy()) {
+  <p role="status">Chargement ou modification en cours…</p>
+  } @for (user of users(); track user.id) {
+  <div class="assignment">
+    <div>
+      <strong>{{ user.nomComplet }} @if (user.id === session.user()?.id) { (vous) }</strong>
+      <p class="muted small">{{ user.email }}</p>
+    </div>
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || (store.status === 'INACTIVE' && !user.magasinsAutorises.includes(store.id))"
+      (click)="changeAssignment(user)"
+    >
+      {{ user.magasinsAutorises.includes(store.id) ? 'Retirer l’accès' : 'Accorder l’accès' }}
+    </button>
+  </div>
+  } @empty { @if (!busy()) {
+  <app-empty-state
+    heading="Aucun utilisateur disponible"
+    description="Les utilisateurs affectables apparaîtront ici."
+  />
+  } }
+</section>
+}
+<section class="panel">
+  <div class="ui-toolbar">
+    <label class="ui-field"
+      >Rechercher
+      <input
+        #query
+        type="search"
+        placeholder="Nom ou code du magasin"
+        [value]="search()"
+        (input)="setSearch(query.value)"
+    /></label>
+    <label class="ui-field">
+      Statut
+      <select #filter [value]="status()" (change)="setStatus(filter.value)">
+        <option value="ALL">Tous</option>
+        <option value="ACTIVE">Actifs</option>
+        <option value="INACTIVE">Inactifs</option>
+      </select>
+    </label>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="setMine(!mine())">
+      {{ mine() ? 'Tous les magasins accessibles' : 'Mes affectations' }}
+    </button>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">
+      Actualiser
+    </button>
+  </div>
+  @if (loading()) {
+  <p role="status">Chargement des magasins…</p>
+  } @else {
+  <p class="muted small">{{ filtered().length }} magasin(s)</p>
+  <div class="ui-table" role="region" aria-label="Liste des magasins" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Code</th>
+          <th scope="col">Nom</th>
+          <th scope="col">Adresse</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (store of visible(); track store.id) {
+        <tr>
+          <td>{{ store.code }}</td>
+          <td>{{ store.name }}</td>
+          <td>{{ store.address || '—' }}</td>
+          <td><app-status-badge [active]="store.status === 'ACTIVE'" /></td>
+          <td>
+            <div class="ui-actions">
+              <button type="button" class="secondary" [disabled]="busy()" (click)="view(store)">
+                Détails
+              </button>
+              @if (session.can('stores.manage')) {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="edit(store)">
+                Modifier
+              </button>
+              <button type="button" class="secondary" [disabled]="busy()" (click)="askStatus(store)">
+                {{ store.status === 'ACTIVE' ? 'Désactiver' : 'Activer' }}
+              </button>
+              @if (session.can('users.manage')) {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="assignments(store)">
+                Affectations
+              </button>
+              } }
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!filtered().length) {
+  <app-empty-state
+    heading="Aucun magasin correspondant"
+    description="Modifiez les filtres ou créez un magasin si vous y êtes autorisé."
+  />
+  }
+  <app-pagination [page]="page()" [pages]="pageCount()" [disabled]="busy()" (change)="movePage($event)" />
+  }
+</section>

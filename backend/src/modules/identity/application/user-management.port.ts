@@ -1,0 +1,27 @@
+import { PublicIdentity } from '../domain/identity.types';
+export const USER_MANAGEMENT_REPOSITORY = Symbol('USER_MANAGEMENT_REPOSITORY');
+export interface CreateUserRecord {
+  email: string;
+  fullName: string;
+  passwordHash: string;
+  roleCodes: string[];
+  storeIds: string[];
+}
+export interface ManagedUser extends PublicIdentity {
+  status: 'ACTIVE' | 'DISABLED';
+  roleCodes: string[];
+}
+export interface UserManagementRepository {
+  list(): Promise<ManagedUser[]>;
+  create(input: CreateUserRecord, actorId?: string): Promise<PublicIdentity>;
+  disableUnlessLastAdmin(id: string, actorId?: string): Promise<'disabled' | 'not_found' | 'last_admin'>;
+  replaceAccessUnlessLastAdmin(
+    id: string,
+    roleCodes: string[],
+    storeIds: string[],
+    actorId?: string,
+  ): Promise<PublicIdentity | 'last_admin' | null>;
+  rolesExist(codes: string[]): Promise<boolean>;
+  activeStoresExist(ids: string[]): Promise<boolean>;
+  emailExists(email: string): Promise<boolean>;
+}

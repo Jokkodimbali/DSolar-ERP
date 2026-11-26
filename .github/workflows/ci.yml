@@ -1,0 +1,51 @@
+name: CI
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: Déployer en production (main uniquement, après validations)
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: dsolar-ci-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.deploy_production && 'production' || 'validation' }}
+  # Ne jamais interrompre une livraison de production manuelle.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || !inputs.deploy_production }}
+jobs:
+  backend:
+    name: Validation backend
+    uses: ./.github/workflows/backend.yml
+  frontend:
+    name: Validation frontend
+    uses: ./.github/workflows/frontend.yml
+  quality-gate:
+    name: Contrôle qualité global
+    if: ${{ always() }}
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Vérifier les deux validations
+        env:
+          BACKEND: ${{ needs.backend.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+        run: |
+          printf 'Backend : %s\nFrontend : %s\n' "$BACKEND" "$FRONTEND"
+          test "$BACKEND" = success && test "$FRONTEND" = success
+  migration:
+    name: Validation migrations
+    needs: [quality-gate]
+    uses: ./.github/workflows/migration.yml
+  release:
+    name: Livraison et déploiement
+    needs: [quality-gate, migration]
+    if: ${{ !cancelled() && needs.quality-gate.result == 'success' && needs.migration.result == 'success' }}
+    uses: ./.github/workflows/deploy.yml
+    with:
+      deploy_production: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_production }}

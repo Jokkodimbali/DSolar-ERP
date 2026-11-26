@@ -1,0 +1,78 @@
+import { ApiProperty as SwaggerField } from '@nestjs/swagger';
+import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
+import { CustomersService } from '../application/customers.service';
+
+export class CreateCustomerDto {
+  @IsString() @IsNotEmpty() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) name!: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @SwaggerField({ required: false, type: String, maxLength: 100 })
+  taxId?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  @SwaggerField({ required: false, type: String, maxLength: 50 })
+  phone?: string;
+  @IsOptional() @IsEmail() @SwaggerField({ required: false, type: String, format: 'email' }) email?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @SwaggerField({ required: false, type: String, maxLength: 500 })
+  address?: string;
+}
+export class UpdateCustomerDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(180)
+  @SwaggerField({ required: false, type: String, maxLength: 180 })
+  name?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @SwaggerField({ required: false, type: String, maxLength: 100 })
+  taxId?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  @SwaggerField({ required: false, type: String, maxLength: 50 })
+  phone?: string;
+  @IsOptional() @IsEmail() @SwaggerField({ required: false, type: String, format: 'email' }) email?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @SwaggerField({ required: false, type: String, maxLength: 500 })
+  address?: string;
+}
+@ApiTags('Clients')
+@ApiBearerAuth()
+@UseGuards(AccessGuard)
+@Controller('customers')
+export class CustomersController {
+  constructor(private readonly customers: CustomersService) {}
+  @Get() @RequirePermissions('sales.read') list() {
+    return this.customers.list();
+  }
+  @Get(':id')
+  @RequirePermissions('sales.read')
+  get(@Param('id', ParseUUIDPipe) id: string) {
+    return this.customers.get(id);
+  }
+  @Post()
+  @RequirePermissions('sales.manage')
+  @SuccessMessage('Client créé avec succès.')
+  create(@Body() dto: CreateCustomerDto) {
+    return this.customers.create(dto);
+  }
+  @Patch(':id')
+  @RequirePermissions('sales.manage')
+  @SuccessMessage('Informations du client mises à jour.')
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCustomerDto) {
+    return this.customers.update(id, dto);
+  }
+}

@@ -1,0 +1,407 @@
+/* Finitions du tableau de bord : hiérarchie visuelle de la maquette validée. */
+app-shell .topbar {
+  gap: 12px;
+  justify-content: flex-start;
+  padding-inline: 24px;
+}
+app-shell .topbar .user-actions {
+  margin-left: auto;
+  gap: 10px;
+}
+app-shell .global-search-form {
+  gap: 2px;
+  border-color: #e7e9ee;
+  box-shadow: 0 1px 3px #101c3305;
+}
+app-shell .global-search-form button {
+  padding: 8px 6px 8px 10px;
+  min-height: 36px;
+  color: var(--muted);
+}
+app-shell .global-search-form input {
+  padding: 8px 4px;
+  font-size: 0.86rem;
+}
+app-shell .account-chip {
+  min-height: 40px;
+  padding: 5px 10px;
+  border-color: #e7e9ee;
+}
+app-shell .new-sale-action {
+  min-height: 38px;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+}
+app-shell .notification-trigger {
+  border-color: transparent;
+  min-height: 38px;
+}
+app-shell .sidebar nav a {
+  font-weight: 550;
+  font-size: 0.88rem;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 12px;
+}
+app-shell .sidebar nav a.active {
+  font-weight: 700;
+}
+app-shell .sidebar nav a svg {
+  width: 20px;
+  height: 20px;
+}
+app-shell .sidebar .brand {
+  margin-bottom: 12px;
+}
+app-dashboard-page app-page-header .page-heading {
+  margin-bottom: 14px;
+  align-items: center;
+}
+app-dashboard-page app-page-header .eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.83rem;
+}
+app-dashboard-page app-page-header h1 {
+  font-size: clamp(1.5rem, 2.1vw, 1.85rem);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+app-dashboard-page app-page-header .muted {
+  font-size: 0.9rem;
+  margin: 0;
+}
+app-dashboard-page .kpi-grid {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+app-dashboard-page .kpi-grid .ui-kpi {
+  height: 100%;
+  min-height: 94px;
+  padding: 14px;
+  margin: 0;
+  align-items: center;
+  border-color: #e9ebef;
+  border-radius: 14px;
+  box-shadow: 0 2px 5px #101c3305;
+}
+app-dashboard-page .ui-kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+app-dashboard-page .ui-kpi-content {
+  gap: 4px;
+}
+app-dashboard-page .ui-kpi-content span {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+app-dashboard-page .ui-kpi-content strong {
+  font-size: clamp(1rem, 1.45vw, 1.4rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+}
+app-dashboard-page .ui-kpi-content small {
+  font-size: 0.72rem;
+}
+app-dashboard-page .dashboard-primary {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+app-dashboard-page .dashboard-primary .panel {
+  padding: 15px;
+  border-radius: 14px;
+  border-color: #e9ebef;
+  box-shadow: 0 2px 5px #101c3305;
+}
+.dashboard-report-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dashboard-report-heading .ui-section-title {
+  font-size: 0.98rem;
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+.dashboard-report-heading .ui-section-title app-ui-icon {
+  color: var(--muted);
+}
+.dashboard-report-heading .ui-section-title svg {
+  width: 18px;
+  height: 18px;
+}
+.dashboard-report-heading .ui-toolbar {
+  margin: 0;
+  align-items: center;
+  gap: 6px;
+}
+.dashboard-report-heading .ui-field {
+  display: flex;
+  flex: 0 0 auto;
+}
+.dashboard-report-heading .ui-field select {
+  min-height: 34px;
+  padding: 5px 8px;
+  font-size: 0.8rem;
+}
+.dashboard-icon-action,
+.dashboard-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.dashboard-icon-action {
+  width: 36px;
+  height: 36px;
+}
+.dashboard-icon-action svg,
+.dashboard-refresh svg {
+  width: 17px;
+  height: 17px;
+}
+.dashboard-refresh {
+  padding: 8px 12px;
+  min-height: 36px;
+  font-size: 0.85rem;
+  border-color: var(--line);
+  background: var(--surface);
+}
+.dashboard-icon-action:hover:not(:disabled),
+.dashboard-refresh:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+app-dashboard-page .dashboard-primary .revenue-chart {
+  margin: 12px 0 2px;
+}
+app-dashboard-page .dashboard-primary .revenue-track {
+  height: 134px;
+}
+app-dashboard-page .dashboard-primary .report-values {
+  font-size: 0.76rem;
+  padding: 6px 0 0;
+}
+.dashboard-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 14px 8px;
+}
+.dashboard-empty-icon,
+.stock-product-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f6f8;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.dashboard-empty strong {
+  font-size: 0.88rem;
+}
+.dashboard-empty p {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+  max-width: 38ch;
+  line-height: 1.5;
+}
+.stock-product-text {
+  flex: 1;
+  min-width: 0;
+}
+app-dashboard-page .stock-alert-item {
+  flex-wrap: nowrap;
+  font-size: 0.83rem;
+}
+app-dashboard-page .dashboard-primary .ui-table th,
+app-dashboard-page .dashboard-primary .ui-table td {
+  font-size: 0.8rem;
+  padding: 10px 6px;
+  border-color: #edf0f3;
+}
+.dashboard-payment {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 20px;
+  color: #92400e;
+  background: #fff4df;
+  font-size: 0.72rem;
+}
+.dashboard-payment.paid {
+  color: var(--success);
+  background: #e7f8ed;
+}
+.dashboard-more {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.dashboard-more:hover {
+  border-color: var(--accent);
+}
+@media (min-width: 1101px) {
+  app-shell .topbar-title {
+    display: none;
+  }
+  app-shell .topbar app-global-search {
+    max-width: 590px;
+  }
+  app-shell .page {
+    padding: 24px;
+  }
+}
+@media (max-width: 760px) {
+  app-shell .topbar {
+    padding-inline: 12px;
+    gap: 8px;
+  }
+  app-dashboard-page app-page-header .page-heading {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  app-dashboard-page .dashboard-primary {
+    gap: 12px;
+  }
+  app-dashboard-page .dashboard-primary .panel {
+    height: auto;
+  }
+  app-dashboard-page .kpi-grid .ui-kpi {
+    min-height: 82px;
+  }
+  .dashboard-refresh {
+    font-size: 0;
+    padding: 8px;
+  }
+  .dashboard-refresh svg {
+    width: 20px;
+    height: 20px;
+  }
+  app-dashboard-page .stock-alert-item {
+    flex-wrap: wrap;
+  }
+}
+
+.dashboard-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  color: var(--muted);
+}
+.dashboard-period input {
+  min-width: 0;
+  width: 140px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+.dashboard-period svg {
+  width: 17px;
+  height: 17px;
+}
+.dashboard-primary > app-period-chart {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dashboard-primary .period-panel {
+  flex: 1;
+  margin-bottom: 0;
+}
+.chart-segments {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 18px;
+  background: #f5f6f8;
+  border: 1px solid #eceef2;
+}
+.chart-segments button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 16px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chart-segments button[aria-pressed='true'] {
+  color: white;
+  background: var(--accent);
+}
+.daily-chart .revenue-bar {
+  width: 82%;
+  background: #efafc2;
+}
+.daily-chart .revenue-negative .revenue-bar {
+  background: var(--danger);
+}
+.daily-chart .revenue-column > span {
+  display: block;
+  min-height: 14px;
+}
+.chart-placeholder {
+  text-align: center;
+  padding: 36px 0;
+  font-size: 0.85rem;
+}
+.kpi-comparison {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.kpi-comparison .kpi-delta {
+  background: #e7f8ed;
+  color: var(--success);
+  border-radius: 12px;
+  padding: 3px 6px;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+.kpi-comparison .kpi-delta.negative {
+  background: var(--accent-soft);
+  color: var(--danger);
+}
+@media (max-width: 760px) {
+  .dashboard-period input {
+    width: 115px;
+    font-size: 0.76rem;
+  }
+  app-dashboard-page app-page-header .page-heading {
+    flex-wrap: wrap;
+  }
+  .daily-chart {
+    gap: 2px;
+  }
+}

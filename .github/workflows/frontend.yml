@@ -1,0 +1,162 @@
+name: Frontend
+on:
+  workflow_call:
+permissions:
+  contents: read
+defaults:
+  run:
+    working-directory: frontend
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Configurer npm 11
+        run: npm install --global npm@11.6.2 --no-audit --no-fund
+      - name: Installer les dépendances verrouillées
+        id: install
+        run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+      - run: npm test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+      - run: npm run build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+      - name: Contrôler le formatage
+        id: format
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run format:check
+      - name: Préparer le correctif de formatage
+        if: ${{ !cancelled() && steps.format.outcome == 'failure' }}
+        run: |
+          npm run format
+          git diff --binary -- src angular.json 'tsconfig*.json' package.json proxy.conf.json eslint.config.mjs .prettierrc.json > /tmp/dsolar-front-format.patch
+          node -e "const fs=require('node:fs'); const data=fs.readFileSync('/tmp/dsolar-front-format.patch').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('FRONTEND_FORMAT:'+data.slice(i,i+8000));"
+      - name: Audit des dépendances de production
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --omit=dev --audit-level=high
+      - name: Préparer le livrable frontend validé
+        run: |
+          test -s dist/dsolar-erp/browser/index.html
+          tar -czf "$RUNNER_TEMP/frontend.tar.gz" -C dist/dsolar-erp/browser .
+      - name: Publier le livrable frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: ${{ runner.temp }}/frontend.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  integration:
+    name: Contrats API
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dsolar_test
+          POSTGRES_PASSWORD: dsolar_test
+          POSTGRES_DB: dsolar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dsolar_test -d dsolar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      DIRECT_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      NODE_ENV: test
+      PORT: '3100'
+      JWT_ACCESS_SECRET: local-ci-access-secret-unique-not-for-production
+      JWT_REFRESH_SECRET: local-ci-refresh-secret-distinct-not-for-production
+      DB_REQUIRE_RESTRICTED_ROLE: 'false'
+      LEDGER_AUTOMATION_WORKER: 'false'
+      ENABLE_SWAGGER: 'false'
+      CORS_ORIGINS: http://localhost:4200
+      ADMIN_EMAIL: auth-ci@example.test
+      ADMIN_NAME: Administrateur CI
+      ADMIN_PASSWORD: Dsolar-CI-local-only-2026
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Préparer NestJS et PostgreSQL de test
+        working-directory: backend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run prisma:generate
+          npm run prisma:deploy
+          npm run build
+          node dist/scripts/bootstrap-admin.js
+      - name: Préparer Angular
+        run: |
+          npm install --global npm@11.6.2 --no-audit --no-fund
+          npm ci --no-audit --no-fund
+      - name: Tester les contrats HTTP réels
+        env:
+          DSOLAR_AUTH_INTEGRATION: '1'
+        run: |
+          set -euo pipefail
+          (cd ../backend && exec node dist/main.js) > "$RUNNER_TEMP/dsolar-api.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3100/api/v1/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:3100/api/v1/health > /dev/null
+          npm test -- --run src/app/features/auth/infrastructure/auth.integration.spec.ts
+
+      - name: Installer Chromium de test
+        run: |
+          npm install --prefix "$RUNNER_TEMP/dsolar-browser" --no-save --no-package-lock --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/dsolar-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Tester les parcours et le responsive
+        env:
+          DSOLAR_BROWSER_DIR: ${{ runner.temp }}/dsolar-browser
+          DSOLAR_SCREENSHOTS: ${{ runner.temp }}/dsolar-screenshots
+        run: |
+          set -euo pipefail
+          (cd ../backend && exec node dist/main.js) > "$RUNNER_TEMP/dsolar-browser-api.log" 2>&1 &
+          api=$!
+          trap 'kill "$api" "${ui:-}" 2>/dev/null || true' EXIT
+          printf '%s\n' '{"/api":{"target":"http://127.0.0.1:3100","secure":false,"changeOrigin":false}}' > "$RUNNER_TEMP/dsolar-browser-proxy.json"
+          ./node_modules/.bin/ng serve --host localhost --port 4200 --proxy-config "$RUNNER_TEMP/dsolar-browser-proxy.json" > "$RUNNER_TEMP/dsolar-browser-ui.log" 2>&1 &
+          ui=$!
+          for attempt in $(seq 1 90); do
+            if curl --silent --fail http://localhost:4200/api/v1/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://localhost:4200/api/v1/health > /dev/null
+          node scripts/browser-smoke.mjs
+      - name: Publier les captures de validation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-browser-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/dsolar-screenshots/
+            ${{ runner.temp }}/dsolar-browser-api.log
+            ${{ runner.temp }}/dsolar-browser-ui.log
+          if-no-files-found: ignore
+          retention-days: 14

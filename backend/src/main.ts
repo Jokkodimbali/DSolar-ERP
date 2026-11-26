@@ -1,0 +1,37 @@
+import 'reflect-metadata';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { HttpAdapterHost, NestFactory, Reflector } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { configureSwagger } from './infrastructure/http/swagger';
+import { AppModule } from './app.module';
+import { configuredOrigins, securityHeaders, trustedProxyHops } from './infrastructure/http/http-security';
+import { frenchValidationErrors } from './infrastructure/http/french-validation';
+import { SuccessMessageInterceptor } from './infrastructure/http/success-message.interceptor';
+import { SafeExceptionFilter } from './infrastructure/http/safe-exception.filter';
+import { validatedJwtSecrets } from './modules/identity/infrastructure/jwt-configuration';
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  validatedJwtSecrets(process.env);
+  app.disable('x-powered-by');
+  app.set('trust proxy', trustedProxyHops(process.env.TRUST_PROXY_HOPS));
+  app.use(securityHeaders);
+  app.useGlobalFilters(new SafeExceptionFilter(app.get(HttpAdapterHost)));
+  app.useGlobalInterceptors(new SuccessMessageInterceptor(app.get(Reflector)));
+  app.enableShutdownHooks();
+  app.setGlobalPrefix('api/v1');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      validationError: { target: false, value: false },
+      exceptionFactory: (errors) => new BadRequestException(frenchValidationErrors(errors)),
+    }),
+  );
+  const origins = configuredOrigins(process.env.CORS_ORIGINS);
+  app.enableCors({ origin: origins, exposedHeaders: ['X-Success-Message'] });
+  configureSwagger(app, process.env);
+  await app.listen(Number(process.env.PORT ?? 3000));
+}
+void bootstrap();

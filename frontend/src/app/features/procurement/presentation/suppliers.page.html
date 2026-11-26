@@ -1,0 +1,183 @@
+<app-page-header
+  eyebrow="APPROVISIONNEMENTS"
+  heading="Fournisseurs"
+  description="Gérez les coordonnées et le statut de vos fournisseurs."
+>
+  @if (session.can('inventory.manage')) {
+  <button class="primary" type="button" [disabled]="busy() || loading()" (click)="edit('new')">
+    {{ pendingCreation() ? 'Reprendre la création' : '+ Nouveau fournisseur' }}
+  </button>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (detail(); as supplier) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Fiche fournisseur — {{ supplier.name }}</h2>
+    <button type="button" class="secondary" (click)="close()">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div>
+      <dt>Identifiant fiscal</dt>
+      <dd>{{ supplier.taxId || 'Non renseigné' }}</dd>
+    </div>
+    <div>
+      <dt>Téléphone</dt>
+      <dd>{{ supplier.phone || 'Non renseigné' }}</dd>
+    </div>
+    <div>
+      <dt>Adresse e-mail</dt>
+      <dd>{{ supplier.email || 'Non renseignée' }}</dd>
+    </div>
+    <div>
+      <dt>Adresse</dt>
+      <dd>{{ supplier.address || 'Non renseignée' }}</dd>
+    </div>
+    <div>
+      <dt>Statut</dt>
+      <dd><app-status-badge [active]="supplier.active" /></dd>
+    </div>
+  </dl>
+</section>
+} @if (editing(); as target) {
+<section class="panel">
+  <h2>{{ target === 'new' ? 'Nouveau fournisseur' : 'Modifier le fournisseur' }}</h2>
+  @if (target === 'new' && pendingCreation()) {
+  <p role="status" class="muted">
+    Création en attente : réessayez avec les mêmes données pour éviter un doublon.
+  </p>
+  }
+  <form [formGroup]="form" (ngSubmit)="save()" class="supplier-form">
+    <label class="ui-field"
+      >Nom du fournisseur
+      <input
+        formControlName="name"
+        [readonly]="target === 'new' && !!pendingCreation()"
+        maxlength="180"
+        required
+    /></label>
+    <label class="ui-field"
+      >Identifiant fiscal (NINEA)
+      <input formControlName="taxId" [readonly]="target === 'new' && !!pendingCreation()" maxlength="100"
+    /></label>
+    <label class="ui-field"
+      >Téléphone
+      <input
+        type="tel"
+        formControlName="phone"
+        [readonly]="target === 'new' && !!pendingCreation()"
+        maxlength="50"
+    /></label>
+    <label class="ui-field"
+      >Adresse e-mail
+      <input
+        type="email"
+        formControlName="email"
+        [readonly]="target === 'new' && !!pendingCreation()"
+        maxlength="254"
+    /></label>
+    <label class="ui-field"
+      >Adresse
+      <input formControlName="address" [readonly]="target === 'new' && !!pendingCreation()" maxlength="500"
+    /></label>
+    <div class="ui-actions">
+      <button type="submit" class="primary" [disabled]="busy() || loading()">
+        {{ target === 'new' && pendingCreation() ? 'Réessayer' : 'Enregistrer' }}
+      </button>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </form>
+</section>
+} @if (pendingStatus(); as supplier) {
+<app-confirm
+  [heading]="(supplier.active ? 'Désactiver ' : 'Activer ') + supplier.name + ' ?'"
+  description="Cette action modifie le statut du fournisseur sans supprimer son historique."
+  [busy]="busy()"
+  (confirmed)="confirmStatus()"
+  (cancelled)="close()"
+/>
+}
+<section class="panel">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); applyFilters()">
+    <label class="ui-field"
+      >Rechercher
+      <input
+        #query
+        type="search"
+        maxlength="120"
+        placeholder="Nom, NINEA ou coordonnées"
+        [value]="search()"
+        (input)="setSearch(query.value)"
+    /></label>
+    <label class="ui-field">
+      Statut
+      <select #filter [value]="status()" (change)="setStatus(filter.value)">
+        <option value="ALL">Tous</option>
+        <option value="ACTIVE">Actifs</option>
+        <option value="INACTIVE">Inactifs</option>
+      </select>
+    </label>
+    <button class="primary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">
+      Actualiser
+    </button>
+  </form>
+  @if (loading()) {
+  <p role="status">Chargement des fournisseurs…</p>
+  } @else {
+  <p class="muted small">{{ result()?.total ?? 0 }} fournisseur(s)</p>
+  <div class="ui-table" role="region" aria-label="Liste des fournisseurs" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Fournisseur</th>
+          <th scope="col">NINEA</th>
+          <th scope="col">Téléphone</th>
+          <th scope="col">Adresse e-mail</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (supplier of result()?.items ?? []; track supplier.id) {
+        <tr>
+          <td>{{ supplier.name }}</td>
+          <td>{{ supplier.taxId || '—' }}</td>
+          <td>{{ supplier.phone || '—' }}</td>
+          <td>{{ supplier.email || '—' }}</td>
+          <td><app-status-badge [active]="supplier.active" /></td>
+          <td>
+            <div class="ui-actions">
+              <button type="button" class="secondary" [disabled]="busy()" (click)="view(supplier)">
+                Détails
+              </button>
+              @if (session.can('inventory.manage')) {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="edit(supplier)">
+                Modifier
+              </button>
+              <button type="button" class="secondary" [disabled]="busy()" (click)="askStatus(supplier)">
+                {{ supplier.active ? 'Désactiver' : 'Activer' }}
+              </button>
+              }
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!result()?.total && !error()) {
+  <app-empty-state
+    heading="Aucun fournisseur correspondant"
+    description="Modifiez les filtres ou créez un fournisseur si vous y êtes autorisé."
+  />
+  }
+  <app-pagination
+    [page]="result()?.page ?? 1"
+    [pages]="result()?.pages || 1"
+    [disabled]="busy()"
+    (change)="movePage($event)"
+  />
+  }
+</section>

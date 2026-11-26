@@ -1,0 +1,273 @@
+<app-page-header
+  eyebrow="APPROVISIONNEMENTS"
+  heading="Réceptions"
+  description="Réceptionnez les commandes fournisseurs dans les magasins autorisés."
+>
+  @if (session.can('inventory.manage', 'stores.read')) {
+  <button
+    class="primary"
+    type="button"
+    [disabled]="busy() || creating() || !!pendingCreation()"
+    (click)="start()"
+  >
+    + Nouvelle réception
+  </button>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (pendingCreation(); as command) {
+<section class="panel">
+  <h2>Réception en attente</h2>
+  <p class="muted">Vérifiez le bon {{ command.number }} avant de relancer sa création.</p>
+  <button type="button" class="primary" [disabled]="busy()" (click)="resumeCreation()">
+    Reprendre la réception
+  </button>
+</section>
+} @if (creating()) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>Nouveau bon de réception</h2>
+    <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
+  </div>
+  <p class="muted">Référence : {{ reference() }}</p>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); lookup(orderQuery.value, 1)">
+    <label class="ui-field"
+      >Rechercher une commande <input #orderQuery type="search" maxlength="120"
+    /></label>
+    <button class="secondary" type="submit" [disabled]="busy() || optionsLoading()">Rechercher</button>
+  </form>
+  @if (options(); as choices) {
+  <label class="ui-field">
+    Commande fournisseur
+    <select
+      #orderSelect
+      [disabled]="busy()"
+      [value]="selectedOrder()?.id ?? ''"
+      (change)="chooseOrder(orderSelect.value)"
+    >
+      <option value="">Sélectionner…</option>
+      @for (order of choices.items; track order.id) {
+      <option [value]="order.id">{{ order.number }} · {{ order.supplier.name }}</option>
+      }
+    </select>
+  </label>
+  <app-pagination
+    [page]="choices.page"
+    [pages]="choices.pages || 1"
+    [disabled]="busy() || optionsLoading()"
+    (change)="lookup(orderSearch(), $event)"
+  />
+  }
+  <label class="ui-field">
+    Magasin de réception
+    <select
+      #destinationSelect
+      [value]="destination()"
+      [disabled]="busy()"
+      (change)="destination.set(destinationSelect.value)"
+    >
+      <option value="">Sélectionner…</option>
+      @for (store of stores(); track store.id) {
+      <option [value]="store.id">{{ store.name }}</option>
+      }
+    </select>
+  </label>
+  @if (selectedOrder(); as order) {
+  <p class="muted">
+    {{ order.number }} · {{ order.supplier.name }}. Laissez vides les lignes non réceptionnées.
+  </p>
+  <div class="ui-table" role="region" aria-label="Lignes de réception" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Restant</th>
+          <th>Quantité reçue</th>
+          <th>Coût unitaire (FCFA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of draft(); track line.productId) {
+        <tr>
+          <td>{{ productNames()[line.productId] || line.productId }}</td>
+          <td>{{ remaining(line.productId) }}</td>
+          <td>
+            <input
+              #qty
+              aria-label="Quantité reçue"
+              inputmode="decimal"
+              [disabled]="busy()"
+              [value]="line.quantity"
+              (input)="change(line.productId, 'quantity', qty.value)"
+            />
+          </td>
+          <td>
+            <input
+              #cost
+              aria-label="Coût unitaire"
+              inputmode="decimal"
+              [disabled]="busy()"
+              [value]="line.unitCost"
+              (input)="change(line.productId, 'unitCost', cost.value)"
+            />
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+  <div class="ui-actions">
+    <button
+      class="primary"
+      type="button"
+      [disabled]="busy() || !destination() || !draft().length"
+      (click)="save()"
+    >
+      Créer le bon de réception
+    </button>
+  </div>
+</section>
+} @if (detail(); as receipt) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>{{ receipt.number }}</h2>
+    <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div>
+      <dt>Magasin</dt>
+      <dd>{{ storeName(receipt.storeId) }}</dd>
+    </div>
+    <div>
+      <dt>Commande</dt>
+      <dd>{{ orderName() || receipt.purchaseOrderId || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Statut</dt>
+      <dd>{{ labels[receipt.status] }}</dd>
+    </div>
+    <div>
+      <dt>Réception le</dt>
+      <dd>{{ (receipt.receivedAt | date:'dd/MM/yyyy HH:mm') || '—' }}</dd>
+    </div>
+  </dl>
+  <div class="ui-table" role="region" aria-label="Détail de réception" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Quantité</th>
+          <th>Coût unitaire</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of receipt.lines; track line.id) {
+        <tr>
+          <td>{{ productNames()[line.productId] || line.productId }}</td>
+          <td>{{ line.quantity }}</td>
+          <td>{{ money(line.unitCost) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (receipt.status === 'DRAFT' && session.can('inventory.manage')) {
+  <div class="ui-actions">
+    <button class="primary" type="button" [disabled]="busy()" (click)="ask('confirm')">
+      Confirmer la réception
+    </button>
+    <button class="secondary" type="button" [disabled]="busy()" (click)="ask('cancel')">
+      Annuler la réception
+    </button>
+  </div>
+  }
+</section>
+} @if (pending(); as action) {
+<app-confirm
+  [heading]="action === 'confirm' ? 'Confirmer cette réception ?' : 'Annuler cette réception ?'"
+  [description]="action === 'confirm' ? 'La confirmation augmente le stock et actualise la commande fournisseur. Vérifiez les quantités physiques.' : 'Le brouillon sera annulé sans modifier le stock.'"
+  [busy]="busy()"
+  (confirmed)="applyAction()"
+  (cancelled)="pending.set(null)"
+/>
+}
+<section class="panel">
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); filter(query.value, state.value, storeFilter.value)"
+  >
+    <label class="ui-field"
+      >Recherche <input #query type="search" maxlength="120" placeholder="Référence ou fournisseur"
+    /></label>
+    <label class="ui-field">
+      Statut
+      <select #state>
+        <option value="">Tous</option>
+        @for (item of statuses; track item) {
+        <option [value]="item">{{ labels[item] }}</option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      Magasin
+      <select #storeFilter>
+        <option value="">Tous les magasins autorisés</option>
+        @for (store of stores(); track store.id) {
+        <option [value]="store.id">{{ store.name }}</option>
+        }
+      </select>
+    </label>
+    <button class="primary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">
+      Actualiser
+    </button>
+  </form>
+  @if (loading()) {
+  <p role="status">Chargement des réceptions…</p>
+  } @else if (result(); as data) {
+  <p class="muted small">{{ data.total }} réception(s)</p>
+  <div class="ui-table" role="region" aria-label="Liste des réceptions" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th>Référence</th>
+          <th>Magasin</th>
+          <th>Statut</th>
+          <th>Date de réception</th>
+          <th>Lignes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (receipt of data.items; track receipt.id) {
+        <tr>
+          <td>{{ receipt.number }}</td>
+          <td>{{ storeName(receipt.storeId) }}</td>
+          <td>
+            <span class="ui-status" [class.ui-status-active]="receipt.status === 'CONFIRMED'"
+              >{{ labels[receipt.status] }}</span
+            >
+          </td>
+          <td>{{ (receipt.receivedAt | date:'dd/MM/yyyy') || '—' }}</td>
+          <td>{{ receipt.lines.length }}</td>
+          <td>
+            <button class="secondary" type="button" [disabled]="busy()" (click)="open(receipt.id)">
+              Détails
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!data.total) {
+  <app-empty-state
+    heading="Aucune réception"
+    description="Modifiez les filtres ou créez un bon de réception."
+  />
+  }
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy()" (change)="load($event)" />
+  }
+</section>

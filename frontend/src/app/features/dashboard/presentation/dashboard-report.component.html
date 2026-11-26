@@ -1,0 +1,165 @@
+<section
+  class="panel"
+  [class.dashboard-featured]="
+    definition().path === 'monthly-revenue' || definition().path === 'recent-activity'
+  "
+>
+  <div class="dashboard-report-heading">
+    <h2 class="ui-section-title">
+      @if (definition().path === 'monthly-revenue') {
+        <app-ui-icon name="trend" />
+      } @else if (definition().path === 'recent-activity') {
+        <app-ui-icon name="clock" />
+      }
+      {{ definition().title }}
+    </h2>
+    <div class="ui-toolbar">
+      @if (compact() && definition().path === 'recent-activity') {
+        <a class="dashboard-see-all" routerLink="/activite">Voir tout →</a>
+      }
+      @if (definition().path === 'monthly-revenue') {
+        <label class="ui-field">
+          <span class="sr-only">Année</span>
+          <select #yearSelect [value]="year()" [disabled]="loading()" (change)="changeYear(yearSelect.value)">
+            @for (item of years; track item) {
+              <option [value]="item" [selected]="item === year()">{{ item }}</option>
+            }
+          </select>
+        </label>
+      }
+      @if (!compact() && (definition().path === 'top-products' || definition().path === 'recent-activity')) {
+        <label class="ui-field">
+          <span class="sr-only">Nombre de résultats</span>
+          <select
+            #limitSelect
+            [value]="limit()"
+            [disabled]="loading()"
+            (change)="changeLimit(limitSelect.value)"
+          >
+            @for (item of [10, 20, 50]; track item) {
+              <option [value]="item" [selected]="item === limit()">{{ item }}</option>
+            }
+          </select>
+        </label>
+      }
+      <button
+        type="button"
+        class="dashboard-icon-action"
+        [disabled]="loading()"
+        (click)="load()"
+        aria-label="Actualiser le rapport"
+        title="Actualiser le rapport"
+      >
+        <app-ui-icon name="refresh" />
+      </button>
+      @if (definition().exportName) {
+        <button type="button" class="secondary" [disabled]="exporting()" (click)="download()">
+          {{ exporting() ? 'Export en cours…' : 'Exporter CSV' }}
+        </button>
+      }
+    </div>
+  </div>
+  <app-feedback [message]="loading() ? 'Chargement du rapport…' : ''" />
+  <app-feedback [message]="error()" kind="error" />
+  <app-feedback [message]="exportError()" kind="error" />
+  @if (data(); as report) {
+    @if (report.chart; as chart) {
+      <div
+        class="revenue-chart"
+        aria-label="Facturation mensuelle, montants exacts dans le tableau ci-dessous"
+      >
+        <div class="chart-grid" aria-hidden="true">
+          @for (tick of report.chartAxis ?? []; track $index) {
+            <div class="chart-tick">
+              <span>{{ tick }}</span>
+            </div>
+          }
+        </div>
+        @if (chartIsEmpty(chart)) {
+          <p class="chart-empty muted">Aucune facturation sur cette année.</p>
+        }
+        @for (bar of chart; track $index) {
+          <div class="revenue-column">
+            <div
+              class="revenue-track"
+              [class.negative]="bar.negative"
+              [attr.title]="bar.label + ' : ' + bar.amount"
+            >
+              <div class="revenue-positive">
+                @if (!bar.negative) {
+                  <div class="revenue-bar" [style.height.%]="bar.height"></div>
+                }
+              </div>
+              <div class="revenue-negative">
+                @if (bar.negative) {
+                  <div class="revenue-bar" [style.height.%]="bar.height"></div>
+                }
+              </div>
+            </div>
+            <span>{{ bar.label }}</span>
+          </div>
+        }
+      </div>
+    }
+    @if (report.metrics.length) {
+      <dl class="metrics">
+        @for (metric of report.metrics; track metric.label) {
+          <div>
+            <dt>{{ metric.label }}</dt>
+            <dd>{{ metric.value }}</dd>
+          </div>
+        }
+      </dl>
+    }
+    @if (definition().path === 'recent-activity' && report.rows.length) {
+      <div class="recent-activity-list">
+        @for (row of compact() ? report.rows.slice(0, 4) : report.rows; track $index) {
+          <article>
+            <span class="activity-dot" aria-hidden="true"></span>
+            <div>
+              <strong>{{ row[0] }}</strong>
+              <p class="muted small">{{ row[1] }} · {{ row[3] }}</p>
+              <p class="muted small">{{ row[2] }}</p>
+            </div>
+          </article>
+        }
+      </div>
+    } @else if (report.headers.length) {
+      @if (report.rows.length) {
+        <details [open]="!report.chart">
+          <summary class="report-values">Afficher les valeurs détaillées</summary>
+          <div class="ui-table" tabindex="0" role="region" [attr.aria-label]="definition().title">
+            <table>
+              <thead>
+                <tr>
+                  @for (header of report.headers; track $index) {
+                    <th scope="col">{{ header }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of report.rows; track $index) {
+                  <tr>
+                    @for (cell of row; track $index) {
+                      <td>{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
+      } @else {
+        @if (definition().path === 'recent-activity') {
+          <div class="dashboard-empty">
+            <span class="dashboard-empty-icon"><app-ui-icon name="clock" /></span>
+            <strong>Aucune activité récente</strong>
+            <p>Les opérations enregistrées apparaîtront ici.</p>
+          </div>
+        } @else {
+          <app-empty-state />
+        }
+      }
+    }
+  }
+</section>

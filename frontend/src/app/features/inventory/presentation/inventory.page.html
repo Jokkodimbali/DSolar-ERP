@@ -1,0 +1,341 @@
+<app-page-header
+  eyebrow="GESTION DES STOCKS"
+  heading="Stocks"
+  description="Suivez les disponibilités et les réservations de chaque magasin."
+>
+  <a class="secondary" routerLink="/stocks/transferts">Transferts</a>
+  <a class="secondary" routerLink="/stocks/inventaires">Inventaires</a>
+  <a class="secondary" routerLink="/stocks/alertes"><app-ui-icon name="alert" /> Alertes</a>
+  @if (session.can('inventory.manage', 'products.read')) {
+  <button
+    class="primary"
+    type="button"
+    [disabled]="!selectedStore() || editing() || loading() || busy()"
+    (click)="openAdjustment()"
+  >
+    + Ajustement
+  </button>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+<app-feedback [message]="loading() || loadingStores() || busy() ? 'Chargement…' : ''" />
+<section class="inventory-toolbar">
+  <label class="ui-field"
+    >Magasin
+    <select
+      #store
+      [value]="selectedStore()"
+      [disabled]="loading() || loadingStores() || editing() || historyLoading()"
+      (change)="selectStore(store.value)"
+    >
+      @if (!stores().length) {
+      <option value="">Aucun magasin actif</option>
+      } @for (item of stores(); track item.id) {
+      <option [value]="item.id" [selected]="item.id === selectedStore()">
+        {{ item.name }} · {{ item.code }}
+      </option>
+      }
+    </select>
+  </label>
+  <button
+    class="secondary"
+    type="button"
+    [disabled]="loading() || loadingStores() || editing()"
+    (click)="selectedStore() ? load() : loadStores()"
+  >
+    <app-ui-icon name="refresh" /> Actualiser
+  </button>
+</section>
+<div class="kpi-grid">
+  <app-kpi-card
+    icon="box"
+    label="Références suivies"
+    [value]="counters()?.products ?? '—'"
+    description="Produits actifs en stock"
+  />
+  <app-kpi-card
+    icon="layers"
+    tone="green"
+    label="Disponibles"
+    [value]="counters()?.available ?? '—'"
+    description="Références disponibles"
+  />
+  <app-kpi-card
+    icon="clock"
+    tone="blue"
+    label="Réservées"
+    [value]="counters()?.reserved ?? '—'"
+    description="Références avec réservation"
+  />
+  <app-kpi-card
+    icon="alert"
+    tone="orange"
+    label="En rupture"
+    [value]="counters()?.empty ?? '—'"
+    description="Disponibilité nulle ou négative"
+  />
+</div>
+@if (detail(); as data) {
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2>{{ data.item.name }} · {{ data.item.sku }}</h2>
+    <button class="secondary" type="button" (click)="detail.set(null)">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div>
+      <dt>Stock physique</dt>
+      <dd>{{ data.balance.quantity }} {{ data.item.unit }}</dd>
+    </div>
+    <div>
+      <dt>Stock réservé</dt>
+      <dd>{{ data.balance.reserved }} {{ data.item.unit }}</dd>
+    </div>
+    <div>
+      <dt>Stock disponible</dt>
+      <dd>{{ data.balance.available }} {{ data.item.unit }}</dd>
+    </div>
+  </dl>
+</section>
+} @if (editing()) {
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2>Ajustement de stock</h2>
+    <button class="secondary" type="button" [disabled]="busy()" (click)="cancel()">Fermer</button>
+  </div>
+  @if (!pending()) {
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); searchProducts(term.value)">
+    <label class="ui-field"
+      >Produit <input #term type="search" maxlength="120" placeholder="Rechercher dans le catalogue"
+    /></label>
+    <button class="secondary" type="submit" [disabled]="productLoading()">Rechercher</button>
+  </form>
+  @if (productResults().length) {
+  <div class="inventory-product-results">
+    @for (product of productResults(); track product.id) {
+    <button
+      class="secondary"
+      type="button"
+      [attr.aria-pressed]="chosen()?.id === product.id"
+      (click)="choose(product)"
+    >
+      {{ product.name }} · {{ product.sku }}
+    </button>
+    }
+  </div>
+  } }
+  <p class="muted">
+    Produit sélectionné : <strong>{{ chosen()?.name ?? 'Aucun' }}</strong> {{ chosen()?.sku ?? '' }}
+  </p>
+  <form [formGroup]="form" class="ui-form-grid" (ngSubmit)="prepare()">
+    <label class="ui-field"
+      >Sens
+      <select formControlName="direction">
+        <option value="IN">Entrée</option>
+        <option value="OUT">Sortie</option>
+      </select></label
+    >
+    <label class="ui-field"
+      >Quantité <input formControlName="quantity" inputmode="decimal" placeholder="0,000"
+    /></label>
+    <label class="ui-field ui-form-span"
+      >Justification
+      <textarea
+        formControlName="reason"
+        maxlength="500"
+        rows="3"
+        placeholder="Motif de la correction"
+      ></textarea>
+    </label>
+    @if (!pending()) {
+    <div class="ui-actions ui-form-span">
+      <button class="primary" type="submit">Vérifier l’ajustement</button>
+    </div>
+    }
+  </form>
+  @if (pending(); as command) {
+  <div class="inventory-confirm">
+    <strong
+      >Confirmer {{ command.direction === 'IN' ? 'l’entrée' : 'la sortie' }} de {{ command.quantity }}</strong
+    >
+    <p class="muted small">
+      Le serveur contrôle la disponibilité et les réservations. En cas d’incertitude, relancez exactement
+      cette opération sans modifier ses données.
+    </p>
+    <div class="ui-actions">
+      <button class="primary" type="button" [disabled]="busy()" (click)="submit()">
+        {{ attempted() ? 'Réessayer la même opération' : 'Confirmer l’ajustement' }}</button
+      ><button class="secondary" type="button" [disabled]="busy()" (click)="cancel()">Annuler</button>
+    </div>
+  </div>
+  }
+</section>
+}
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2>État du stock</h2>
+    <span class="muted small">{{ total() }} référence(s)</span>
+  </div>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); applyFilters(stockQuery.value, status.value)">
+    <label class="ui-field"
+      >Recherche
+      <input #stockQuery type="search" placeholder="Nom ou référence SKU" [value]="query()" maxlength="120"
+    /></label>
+    <label class="ui-field"
+      >Disponibilité
+      <select #status [value]="filter()">
+        <option value="ALL">Toutes</option>
+        <option value="AVAILABLE">Disponibles</option>
+        <option value="RESERVED">Avec réservation</option>
+        <option value="EMPTY">En rupture</option>
+      </select></label
+    >
+    <button class="secondary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
+  </form>
+  @if (items() !== null) { @if (items()?.length) {
+  <div class="ui-table" tabindex="0" role="region" aria-label="État du stock">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Produit</th>
+          <th scope="col">Unité</th>
+          <th scope="col">Physique</th>
+          <th scope="col">Réservé</th>
+          <th scope="col">Disponible</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items() ?? []; track row.productId) {
+        <tr>
+          <td>
+            <div class="catalogue-product">
+              <app-product-thumbnail [productId]="row.productId" />
+              <div>
+                <strong>{{ row.name }}</strong>
+                <p class="muted small">{{ row.sku }}</p>
+              </div>
+            </div>
+          </td>
+          <td>{{ row.unit }}</td>
+          <td class="stock-number">{{ row.quantity }}</td>
+          <td class="stock-number">{{ row.reserved }}</td>
+          <td class="stock-number"><strong>{{ row.available }}</strong></td>
+          <td>
+            <span
+              class="ui-status"
+              [class.ui-status-active]="!unavailable(row.available)"
+              [class.stock-critical]="unavailable(row.available)"
+              >{{ unavailable(row.available) ? 'Rupture' : 'Disponible' }}</span
+            >
+          </td>
+          <td>
+            <div class="ui-actions">
+              <button
+                class="secondary"
+                type="button"
+                [disabled]="busy() || editing()"
+                (click)="showBalance(row)"
+              >
+                Détails
+              </button>
+              @if (session.can('inventory.manage', 'products.read')) {
+              <button
+                class="secondary"
+                type="button"
+                [disabled]="editing() || busy()"
+                (click)="openAdjustment(row)"
+              >
+                Ajuster
+              </button>
+              }
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="page()"
+    [pages]="pages()"
+    [disabled]="loading() || busy()"
+    (change)="load($event)"
+  />
+  } @else {
+  <app-empty-state
+    heading="Aucune référence correspondante"
+    description="Modifiez les filtres ou enregistrez un premier ajustement justifié."
+  />
+  } } @else if (!loading() && !loadingStores() && !error()) {
+  <app-empty-state
+    heading="Aucun magasin actif accessible"
+    description="Sélectionnez un magasin actif pour consulter son stock."
+  />
+  }
+</section>
+
+<section class="panel">
+  <div class="dashboard-report-heading">
+    <h2 class="ui-section-title"><app-ui-icon name="clock" /> Journal des mouvements</h2>
+    <button
+      class="secondary"
+      type="button"
+      [disabled]="!selectedStore() || historyLoading()"
+      [attr.aria-expanded]="historyOpen()"
+      (click)="toggleHistory()"
+    >
+      {{ historyOpen() ? 'Masquer' : 'Consulter les mouvements' }}
+    </button>
+  </div>
+  @if (historyOpen()) {
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); searchHistory(historyTerm.value)">
+    <label class="ui-field"
+      >Produit
+      <input #historyTerm type="search" maxlength="120" [value]="historyQuery()" placeholder="Nom ou SKU"
+    /></label>
+    <button class="secondary" type="submit" [disabled]="historyLoading()">Rechercher</button>
+  </form>
+  <app-feedback [message]="historyError()" kind="error" />
+  <app-feedback [message]="historyLoading() ? 'Chargement des mouvements…' : ''" />
+  @if (history(); as data) {
+  <div class="ui-table" role="region" aria-label="Journal des mouvements" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Produit</th>
+          <th>Nature</th>
+          <th>Quantité</th>
+          <th>Justification</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of data.items; track row.id) {
+        <tr>
+          <td>{{ historyDate.format(newDate(row.createdAt)) }}</td>
+          <td>
+            {{ row.name }}
+            <p class="muted small">{{ row.sku }}</p>
+          </td>
+          <td>{{ row.type }}</td>
+          <td class="stock-number">{{ row.quantity }} {{ row.unit }}</td>
+          <td>{{ row.reason ?? '—' }}</td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="5">Aucun mouvement correspondant.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="data.page"
+    [pages]="data.pages || 1"
+    [disabled]="historyLoading()"
+    (change)="loadHistory($event)"
+  />
+  } }
+</section>

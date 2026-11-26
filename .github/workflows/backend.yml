@@ -1,0 +1,169 @@
+name: Backend
+on:
+  workflow_call:
+defaults:
+  run:
+    working-directory: backend
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Installer les dépendances
+        run: npm ci --no-audit --no-fund
+      - name: Générer le client Prisma
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+          DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+      - name: Valider Prisma
+        run: npm run prisma:validate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+          DIRECT_URL: postgresql://user:password@localhost:5432/dsolar_erp?schema=public
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+        if: ${{ !cancelled() }}
+      - run: npm run build
+        if: ${{ !cancelled() }}
+      - run: node --test scripts/local-integration-database.test.cjs
+        if: ${{ !cancelled() }}
+      - name: Contrôler le formatage
+        id: format
+        if: ${{ !cancelled() }}
+        run: npm run format:check
+      - name: Préparer le correctif de formatage
+        if: ${{ !cancelled() && steps.format.outcome == 'failure' }}
+        run: |
+          npm run format
+          git diff --binary -- src '*.json' '*.md' > /tmp/dsolar-format.patch
+          node -e "const fs=require('node:fs'); const data=fs.readFileSync('/tmp/dsolar-format.patch').toString('base64'); for(let i=0;i<data.length;i+=8000) console.log('DSOLAR_FORMAT_PATCH:'+data.slice(i,i+8000));"
+      - name: Préparer le livrable backend validé
+        run: |
+          test -s dist/main.js
+          tar -czf "$RUNNER_TEMP/backend.tar.gz" dist package.json package-lock.json prisma
+      - name: Publier le livrable backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ github.sha }}
+          path: ${{ runner.temp }}/backend.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Audit des dépendances de production
+        run: npm audit --omit=dev --audit-level=high
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dsolar_test
+          POSTGRES_PASSWORD: dsolar_test
+          POSTGRES_DB: dsolar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dsolar_test -d dsolar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      DIRECT_URL: postgresql://dsolar_test:dsolar_test@localhost:5432/dsolar_test?schema=public
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Installer les dépendances
+        run: npm ci --no-audit --no-fund
+      - name: Générer Prisma
+        run: npm run prisma:generate
+      - name: Appliquer toutes les migrations sur PostgreSQL éphémère
+        run: npm run prisma:deploy
+      - name: Vérifier la conformité du schéma
+        run: npx prisma migrate status
+      - name: Exécuter les tests d'intégration PostgreSQL
+        run: npm run test:integration
+      - name: Tester le parcours commercial complet sur PostgreSQL
+        run: npm test -- --runTestsByPath src/modules/sales/infrastructure/sales-flow.integration.spec.ts
+        env:
+          TREASURY_INTEGRATION: '1'
+      - name: Tester les opérations de trésorerie sur PostgreSQL
+        run: npm test -- --runTestsByPath src/modules/treasury/infrastructure/treasury.integration.spec.ts src/modules/expenses/infrastructure/expenses.integration.spec.ts src/modules/supplier-returns/infrastructure/supplier-returns.integration.spec.ts src/modules/accounting/infrastructure/accounting.integration.spec.ts src/modules/accounting/infrastructure/bank.integration.spec.ts src/modules/identity/infrastructure/auth-rate-limit.integration.spec.ts src/modules/stores/infrastructure/store-isolation.integration.spec.ts
+        env:
+          TREASURY_INTEGRATION: '1'
+      - name: Tester les paramètres et notifications sur PostgreSQL
+        run: npm test -- --runTestsByPath src/modules/settings/infrastructure/settings-notifications.integration.spec.ts
+        env:
+          TREASURY_INTEGRATION: '1'
+      - name: Provisionner un rôle applicatif non propriétaire
+        env:
+          PGPASSWORD: dsolar_test
+        run: |
+          psql -h localhost -U dsolar_test -d dsolar_test -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE dsolar_runtime_test LOGIN PASSWORD 'dsolar_runtime_test' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT;
+          REVOKE TEMPORARY ON DATABASE dsolar_test FROM PUBLIC;
+          REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+          SQL
+          psql -h localhost -U dsolar_test -d dsolar_test -v runtime_role=dsolar_runtime_test -f scripts/provision-runtime-role.sql
+      - name: Vérifier les droits du compte applicatif réel
+        run: node scripts/runtime-role-smoke.cjs
+        env:
+          DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+          DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+      - name: Refuser le compte propriétaire au démarrage
+        run: npm test -- --runTestsByPath src/infrastructure/prisma/runtime-privileges.integration.spec.ts
+        env:
+          RUNTIME_ROLE_INTEGRATION: '1'
+          RUNTIME_ROLE_EXPECT_CHECK: ROLE_ATTRIBUTES
+      - name: Accepter le compte restreint au démarrage
+        run: npm test -- --runTestsByPath src/infrastructure/prisma/runtime-privileges.integration.spec.ts
+        env:
+          RUNTIME_ROLE_INTEGRATION: '1'
+          RUNTIME_ROLE_EXPECT_SAFE: 'true'
+          DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+          DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+      - name: Simuler une dérive des droits dans la base éphémère
+        env:
+          PGPASSWORD: dsolar_test
+        run: psql -h localhost -U dsolar_test -d dsolar_test -v ON_ERROR_STOP=1 -c 'GRANT UPDATE ON "AuditLog" TO dsolar_runtime_test'
+      - name: Refuser le démarrage après dérive des droits
+        run: npm test -- --runTestsByPath src/infrastructure/prisma/runtime-privileges.integration.spec.ts
+        env:
+          RUNTIME_ROLE_INTEGRATION: '1'
+          RUNTIME_ROLE_EXPECT_CHECK: AUDIT_OR_LEDGER_MUTATION
+          DATABASE_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public
+          DIRECT_URL: postgresql://dsolar_runtime_test:dsolar_runtime_test@localhost:5432/dsolar_test?schema=public

@@ -1,0 +1,45 @@
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  CreateReceiptInput,
+  GOODS_RECEIPTS_REPOSITORY,
+  GoodsReceiptsRepository,
+} from './goods-receipts.port';
+
+@Injectable()
+export class GoodsReceiptsService {
+  constructor(@Inject(GOODS_RECEIPTS_REPOSITORY) private readonly receipts: GoodsReceiptsRepository) {}
+  list(actorId: string) {
+    return this.receipts.list(actorId);
+  }
+  get(id: string, actorId: string) {
+    return this.receipts.get(id, actorId);
+  }
+  async create(input: CreateReceiptInput, actorId: string) {
+    const number = input.number.trim().toUpperCase();
+    if (!number || number.length > 100)
+      throw new BadRequestException('Le numéro de réception doit contenir entre 1 et 100 caractères.');
+    if (!input.lines.length || input.lines.length > 100)
+      throw new BadRequestException('Entre 1 et 100 lignes de réception sont requises.');
+    const seen = new Set<string>();
+    for (const line of input.lines) {
+      if (
+        !Number.isFinite(line.quantity) ||
+        line.quantity <= 0 ||
+        !Number.isFinite(line.unitCost) ||
+        line.unitCost < 0 ||
+        !/^\d+(?:\.\d{1,3})?$/.test(String(line.quantity)) ||
+        !/^\d+(?:\.\d{1,2})?$/.test(String(line.unitCost))
+      )
+        throw new BadRequestException('Quantité ou coût unitaire invalide.');
+      if (seen.has(line.productId)) throw new BadRequestException('Produit en double.');
+      seen.add(line.productId);
+    }
+    return this.receipts.create({ ...input, number }, actorId);
+  }
+  cancel(id: string, actorId: string) {
+    return this.receipts.cancel(id, actorId);
+  }
+  confirm(id: string, actorId: string) {
+    return this.receipts.confirm(id, actorId);
+  }
+}

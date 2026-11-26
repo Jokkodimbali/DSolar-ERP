@@ -1,0 +1,195 @@
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { NotificationsPort, NotificationFeed, NotificationQuery } from '../application/notifications.port';
+import {
+  ADMIN_EVENTS,
+  STORE_EVENTS,
+  TRANSFER_EVENTS,
+  notificationTitle,
+} from '../domain/notification-events';
+
+@Injectable()
+export class PrismaNotificationsRepository implements NotificationsPort {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async scope(tx: Prisma.TransactionClient, actorId: string): Promise<Prisma.AuditLogWhereInput> {
+    const user = await tx.user.findFirst({
+      where: { id: actorId, status: 'ACTIVE' },
+      select: {
+        roles: {
+          select: {
+            role: {
+              select: { code: true, permissions: { select: { permission: { select: { code: true } } } } },
+            },
+          },
+        },
+        stores: { where: { store: { status: 'ACTIVE' } }, select: { storeId: true } },
+      },
+    });
+    if (!user) throw new ForbiddenException('Compte inactif.');
+    if (user.roles.some((row) => row.role.code === 'ADMIN'))
+      return { action: { in: Object.keys(ADMIN_EVENTS) } };
+    const roles = user.roles.filter((row) => row.role.code === 'MAGASINIER');
+    if (!roles.length) throw new ForbiddenException('Rôle interne requis.');
+    const permissions = new Set(roles.flatMap((row) => row.role.permissions.map((p) => p.permission.code)));
+    const actions = Object.keys(STORE_EVENTS).filter((action) =>
+      ['GOODS_RECEIPT_CONFIRMED', 'LOW_STOCK'].includes(action)
+        ? permissions.has('inventory.read')
+        : permissions.has('sales.read'),
+    );
+    const stores = user.stores.map((row) => row.storeId);
+    return {
+      OR: [
+        { action: { in: actions }, storeId: { in: stores } },
+        ...(permissions.has('inventory.read') && stores.length
+          ? [
+              {
+                action: { in: Object.keys(TRANSFER_EVENTS) },
+                entityType: 'StockTransfer',
+                OR: [
+                  { storeId: { in: stores } },
+                  ...stores.map((storeId) => ({ payload: { path: ['destinationId'], equals: storeId } })),
+                ],
+              },
+            ]
+          : []),
+      ],
+    };
+  }
+
+  feed(actorId: string, query?: NotificationQuery): Promise<NotificationFeed> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const where = await this.scope(tx, actorId);
+        const settings = await tx.companySettings.findFirst({
+          orderBy: { revision: 'desc' },
+          select: { notificationsEnabled: true },
+        });
+        const page = query?.page ?? 1;
+        const limit = query?.limit ?? 50;
+        if (settings?.notificationsEnabled === false)
+          return {
+            enabled: false,
+            unread: 0,
+            items: [],
+            ...(query ? { pagination: { page, limit, total: 0, pages: 0 } } : {}),
+          };
+        const search = query?.search?.trim();
+        const matchingActions = search
+          ? Object.entries(ADMIN_EVENTS)
+              .filter(([action, title]) =>
+                (action + ' ' + title).toLocaleLowerCase('fr').includes(search.toLocaleLowerCase('fr')),
+              )
+              .map(([action]) => action)
+          : [];
+        const filtered: Prisma.AuditLogWhereInput = {
+          AND: [
+            where,
+            ...(query?.action ? [{ action: query.action }] : []),
+            ...(query?.storeId
+              ? [
+                  {
+                    OR: [
+                      { storeId: query.storeId },
+                      {
+                        entityType: 'StockTransfer',
+                        action: { in: Object.keys(TRANSFER_EVENTS) },
+                        payload: { path: ['destinationId'], equals: query.storeId },
+                      },
+                    ],
+                  },
+                ]
+              : []),
+            ...(query?.read === undefined
+              ? []
+              : [
+                  {
+                    notificationReads: query.read
+                      ? { some: { userId: actorId } }
+                      : { none: { userId: actorId } },
+                  },
+                ]),
+            ...(search
+              ? [
+                  {
+                    OR: [
+                      { action: { in: matchingActions } },
+                      { entityId: { contains: search, mode: 'insensitive' as const } },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        };
+        const [rows, unread, total] = await Promise.all([
+          tx.auditLog.findMany({
+            where: filtered,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: limit,
+            skip: (page - 1) * limit,
+            select: {
+              id: true,
+              action: true,
+              entityType: true,
+              entityId: true,
+              storeId: true,
+              createdAt: true,
+              notificationReads: { where: { userId: actorId }, select: { auditId: true } },
+            },
+          }),
+          tx.auditLog.count({
+            where: { AND: [where, { notificationReads: { none: { userId: actorId } } }] },
+          }),
+          tx.auditLog.count({ where: filtered }),
+        ]);
+        return {
+          enabled: true,
+          unread,
+          ...(query ? { pagination: { page, limit, total, pages: Math.ceil(total / limit) } } : {}),
+          items: rows.map((row) => ({
+            id: row.id,
+            action: row.action,
+            title: notificationTitle(row.action),
+            entityType: row.entityType,
+            entityId: row.entityId,
+            storeId: row.storeId,
+            createdAt: row.createdAt,
+            read: row.notificationReads.length > 0,
+          })),
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+  }
+
+  mark(actorId: string, id?: string): Promise<number> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const scope = await this.scope(tx, actorId);
+        if (id && !(await tx.auditLog.findFirst({ where: { AND: [scope, { id }] }, select: { id: true } })))
+          throw new NotFoundException('Notification introuvable.');
+        let marked = 0;
+        for (;;) {
+          const rows = await tx.auditLog.findMany({
+            where: {
+              AND: [scope, ...(id ? [{ id }] : []), { notificationReads: { none: { userId: actorId } } }],
+            },
+            select: { id: true },
+            take: 1000,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          });
+          if (!rows.length) return marked;
+          const result = await tx.notificationRead.createMany({
+            data: rows.map((row) => ({ userId: actorId, auditId: row.id })),
+            skipDuplicates: true,
+          });
+          if (result.count === 0) throw new Error('Impossible de marquer les notifications.');
+          marked += result.count;
+          if (rows.length < 1000 || id) return marked;
+        }
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30000 },
+    );
+  }
+}

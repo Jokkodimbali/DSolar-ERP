@@ -1,0 +1,187 @@
+import { randomUUID } from 'node:crypto';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { InvoicesRepository } from '../application/invoices.port';
+import { assertStoredSalesPricing } from './sales-pricing';
+
+@Injectable()
+export class PrismaInvoicesRepository implements InvoicesRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // prettier-ignore
+  private readonly visibleOrder = (actorId: string): Prisma.SalesOrderWhereInput => ({
+    lines: {
+      some: {},
+      every: { store: { status: 'ACTIVE', userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } } } },
+    },
+  });
+
+  list(actorId: string) {
+    return this.prisma.invoice.findMany({
+      where: { order: this.visibleOrder(actorId) },
+      include: { lines: true },
+      orderBy: { number: 'desc' },
+    });
+  }
+
+  find(id: string, actorId: string) {
+    return this.prisma.invoice.findFirst({
+      where: { id, order: this.visibleOrder(actorId) },
+      include: { lines: true },
+    });
+  }
+
+  async createFromOrder(orderId: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          include: { lines: true, invoices: true },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        const stores = [...new Set(order.lines.map((line) => line.storeId))];
+        // prettier-ignore
+        const authorized = await tx.userStoreAccess.count({
+          where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
+        });
+        if (!stores.length || authorized !== stores.length) {
+          throw new ForbiddenException('Accès insuffisant aux magasins de la commande.');
+        }
+        if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.status)) {
+          throw new ConflictException('Seule une commande confirmée peut être facturée.');
+        }
+        if (order.invoices.length) throw new ConflictException('Commande déjà facturée.');
+        const pricing = assertStoredSalesPricing(order.lines, order.total);
+        const lines = order.lines.map((line, index) => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          discount: line.discount,
+          taxRate: line.taxRate,
+          taxAmount: new Prisma.Decimal(pricing.lines[index].tax),
+          lineTotal: new Prisma.Decimal(pricing.lines[index].total),
+        }));
+        const totalHt = new Prisma.Decimal(pricing.totalHt);
+        const totalTax = new Prisma.Decimal(pricing.totalTax);
+        const totalTtc = new Prisma.Decimal(pricing.totalTtc);
+        const invoice = await tx.invoice.create({
+          data: {
+            number: `FAC-${randomUUID().slice(0, 12).toUpperCase()}`,
+            customerId: order.customerId,
+            orderId,
+            totalHt,
+            totalTax,
+            totalTtc,
+            lines: {
+              create: lines,
+            },
+          },
+          include: { lines: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'INVOICE_CREATED',
+            entityType: 'Invoice',
+            entityId: invoice.id,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId, storeIds: stores },
+          },
+        });
+        return invoice;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async issue(id: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${id}::uuid FOR UPDATE`;
+        const invoice = await tx.invoice.findUnique({
+          where: { id },
+          include: { order: { include: { lines: true } } },
+        });
+        if (!invoice) throw new NotFoundException('Facture introuvable.');
+        if (!invoice.order) throw new ForbiddenException('Accès insuffisant aux magasins.');
+        const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
+        // prettier-ignore
+        const authorized = await tx.userStoreAccess.count({
+          where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
+        });
+        if (!stores.length || authorized !== stores.length) {
+          throw new ForbiddenException('Accès insuffisant aux magasins.');
+        }
+        if (invoice.status !== 'DRAFT') throw new ConflictException('Facture déjà traitée.');
+        if (!['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(invoice.order.status))
+          throw new ConflictException(
+            'La commande doit être confirmée et non annulée pour émettre la facture.',
+          );
+        const updated = await tx.invoice.update({
+          where: { id },
+          data: { status: 'ISSUED', issuedAt: new Date() },
+          include: { lines: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'INVOICE_ISSUED',
+            entityType: 'Invoice',
+            entityId: id,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId: invoice.orderId, storeIds: stores },
+          },
+        });
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async cancel(id: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${id}::uuid FOR UPDATE`;
+        const invoice = await tx.invoice.findUnique({
+          where: { id },
+          include: { order: { include: { lines: true } }, allocations: true, creditNotes: true },
+        });
+        if (!invoice) throw new NotFoundException('Facture introuvable.');
+        if (!invoice.order) throw new ForbiddenException('Accès insuffisant aux magasins.');
+        const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
+        // prettier-ignore
+        const authorized = await tx.userStoreAccess.count({
+          where: { userId: actorId, user: { status: 'ACTIVE' }, storeId: { in: stores }, store: { status: 'ACTIVE' } },
+        });
+        if (!stores.length || authorized !== stores.length) {
+          throw new ForbiddenException('Accès insuffisant aux magasins.');
+        }
+        if (invoice.status !== 'DRAFT') {
+          throw new ConflictException('Une facture émise doit être corrigée par un avoir.');
+        }
+        if (invoice.allocations.length || invoice.creditNotes.length) {
+          throw new ConflictException('Facture déjà liée à des paiements ou avoirs.');
+        }
+        const updated = await tx.invoice.update({
+          where: { id },
+          data: { status: 'CANCELLED' },
+          include: { lines: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            action: 'INVOICE_CANCELLED',
+            entityType: 'Invoice',
+            entityId: id,
+            ...(stores.length === 1 ? { storeId: stores[0] } : {}),
+            payload: { orderId: invoice.orderId, storeIds: stores },
+          },
+        });
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+}

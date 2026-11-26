@@ -1,0 +1,76 @@
+<div
+  class="notification-widget"
+  [appDismissOutside]="open()"
+  dismissExceptions="[data-notification-trigger]"
+  (dismissed)="dismiss($event, trigger)"
+>
+  <button
+    #trigger
+    class="secondary notification-trigger"
+    type="button"
+    aria-label="Notifications"
+    [attr.aria-expanded]="open()"
+    (click)="open.set(!open())"
+  >
+    <app-ui-icon name="bell" />
+    @if (feed(); as current) {
+      @if (current.enabled && current.unread) {
+        <span class="notification-count">{{ current.unread > 99 ? '99+' : current.unread }}</span>
+      }
+    }
+  </button>
+  @if (open()) {
+    <section class="panel notification-panel" aria-label="Centre de notifications">
+      <div class="dashboard-report-heading">
+        <h2 class="ui-section-title"><app-ui-icon name="bell" />Notifications</h2>
+        <button type="button" class="secondary" (click)="open.set(false)">Fermer</button>
+      </div>
+      <app-feedback [message]="connectionError()" kind="error" />
+      <app-feedback [message]="mutationError()" kind="error" />
+      <app-feedback [message]="success()" kind="success" />
+      @if (feed(); as current) {
+        @if (current.enabled) {
+          <button
+            type="button"
+            class="notification-text-action"
+            [disabled]="busy() || !current.unread"
+            (click)="mark()"
+          >
+            Tout marquer comme lu
+          </button>
+          @for (item of current.items; track item.id) {
+            <article class="notification-item" [class.notification-unread]="!item.read">
+              <span class="notification-symbol"><app-ui-icon name="bell" /></span>
+              <div class="notification-text">
+                <strong>{{ item.title }}</strong>
+                <p class="muted small">{{ date(item.createdAt) }} · {{ item.read ? 'Lue' : 'Non lue' }}</p>
+              </div>
+              @if (!item.read) {
+                <button
+                  type="button"
+                  class="notification-text-action"
+                  [disabled]="busy()"
+                  (click)="mark(item.id)"
+                >
+                  Marquer comme lue
+                </button>
+              }
+            </article>
+          } @empty {
+            <app-empty-state
+              heading="Aucune notification"
+              description="Les activités autorisées apparaîtront ici."
+            />
+          }
+        } @else {
+          <app-empty-state
+            heading="Notifications désactivées"
+            description="Les paramètres de l’entreprise désactivent les notifications."
+          />
+        }
+      } @else {
+        <app-feedback message="Connexion au service de notifications…" />
+      }
+    </section>
+  }
+</div>

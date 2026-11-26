@@ -1,0 +1,22 @@
+.purchase-picker {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.purchase-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.purchase-options button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.ui-table input {
+  width: 120px;
+  max-width: 100%;
+}
+.ui-actions {
+  margin-top: 12px;
+}

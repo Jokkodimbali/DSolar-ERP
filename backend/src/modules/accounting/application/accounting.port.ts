@@ -1,0 +1,42 @@
+import { PostingRuleInput, SourceType } from '../domain/source-types';
+import { AccountClass } from '../domain/financial-statements';
+import { PostingLine } from '../domain/ledger-policy';
+
+export const ACCOUNTING = Symbol('ACCOUNTING');
+
+export interface PostingInput {
+  journalId: string;
+  periodId: string;
+  date: string;
+  description: string;
+  operationKey: string;
+  lines: PostingLine[];
+}
+
+export interface AccountingPort {
+  rule(input: PostingRuleInput, actor: string): Promise<unknown>;
+  postSource(type: SourceType, id: string, actor: string): Promise<unknown>;
+  pending(periodId: string, actor: string): Promise<unknown>;
+  postPending(periodId: string, actor: string): Promise<unknown>;
+  classify(accountId: string, category: AccountClass, actor: string): Promise<unknown>;
+  statements(periodId: string, actor: string): Promise<unknown>;
+  automation(periodId: string, actor: string): Promise<unknown>;
+  configureAutomation(periodId: string, enabled: boolean, actor: string): Promise<unknown>;
+  runAutomaticCycle(): Promise<{ processed: number; failed: number }>;
+  setup(actor: string): Promise<unknown>;
+  account(code: string, name: string, actor: string): Promise<unknown>;
+  journal(code: string, name: string, actor: string): Promise<unknown>;
+  period(name: string, start: string, end: string, actor: string): Promise<unknown>;
+  close(periodId: string, actor: string): Promise<unknown>;
+  post(input: PostingInput, actor: string): Promise<unknown>;
+  reverse(
+    id: string,
+    periodId: string,
+    date: string,
+    reason: string,
+    key: string,
+    actor: string,
+  ): Promise<unknown>;
+  entries(periodId: string, actor: string, accountId?: string, cursor?: string): Promise<unknown>;
+  trialBalance(periodId: string, actor: string): Promise<unknown>;
+}

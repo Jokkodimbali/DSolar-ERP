@@ -1,0 +1,148 @@
+<app-page-header
+  eyebrow="ADMINISTRATION"
+  heading="Utilisateurs"
+  description="Gérez les comptes, leurs rôles et leurs affectations."
+>
+  <button type="button" class="primary" [disabled]="loading() || busy()" (click)="edit('new')">
+    + Nouvel utilisateur
+  </button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+<app-feedback [message]="loading() ? 'Chargement des utilisateurs…' : ''" />
+@if (editing(); as target) {
+<section class="panel">
+  <h2>{{ target === 'new' ? 'Nouvel utilisateur' : 'Modifier les accès — ' + target.nomComplet }}</h2>
+  <form [formGroup]="form" (ngSubmit)="save()" class="ui-form-grid">
+    @if (target === 'new') {
+    <label class="ui-field"
+      >Nom complet <input formControlName="fullName" maxlength="180" autocomplete="off"
+    /></label>
+    <label class="ui-field"
+      >Adresse électronique <input type="email" formControlName="email" maxlength="254" autocomplete="off"
+    /></label>
+    <label class="ui-field"
+      >Mot de passe initial
+      <input type="password" formControlName="password" autocomplete="new-password" maxlength="1024" /><span
+        class="muted small"
+        >12 caractères minimum.</span
+      ></label
+    >
+    }
+    <label class="ui-field"
+      >Rôle
+      <select formControlName="role">
+        <option value="MAGASINIER">Magasinier</option>
+        <option value="ADMIN">Super administrateur</option>
+      </select></label
+    >
+    <fieldset class="ui-form-span ui-choice-group">
+      <legend>Magasins actifs autorisés</legend>
+      @for (store of stores(); track store.id) {
+      <label
+        ><input
+          #choice
+          type="checkbox"
+          [checked]="form.controls.stores.value.includes(store.id)"
+          [disabled]="busy()"
+          (change)="toggleStore(store.id, choice.checked)"
+        />
+        {{ store.name }}</label
+      >
+      } @empty {
+      <p class="muted small">Aucun magasin actif. Les affectations pourront être ajoutées ultérieurement.</p>
+      }
+    </fieldset>
+    @if (target !== 'new') {
+    <p class="muted small ui-form-span">
+      La modification remplace les affectations. Les accès aux magasins inactifs sont retirés et les sessions
+      peuvent être révoquées.
+    </p>
+    }
+    <div class="ui-actions ui-form-span">
+      <button class="primary" type="submit" [disabled]="busy()">Enregistrer</button
+      ><button class="secondary" type="button" [disabled]="busy()" (click)="close()">Annuler</button>
+    </div>
+  </form>
+</section>
+} @if (disabling(); as target) {
+<app-confirm
+  [heading]="'Désactiver ' + target.nomComplet + ' ?'"
+  description="Le serveur révoquera les sessions de ce compte. Le dernier administrateur actif ne peut pas être désactivé."
+  [busy]="busy()"
+  (confirmed)="disable()"
+  (cancelled)="close()"
+/>
+}
+<section class="panel">
+  <div class="ui-toolbar">
+    <label class="ui-field"
+      >Rechercher
+      <input
+        #term
+        type="search"
+        placeholder="Nom ou adresse électronique"
+        (input)="query.set(term.value); page.set(1)"
+    /></label>
+    <label class="ui-field"
+      >Statut
+      <select #state (change)="filter.set(state.value); page.set(1)">
+        <option value="ALL">Tous</option>
+        <option value="ACTIVE">Actifs</option>
+        <option value="DISABLED">Désactivés</option>
+      </select></label
+    >
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">
+      Actualiser
+    </button>
+  </div>
+  @if (!loading() && !error()) {
+  <p class="muted small">{{ filtered().length }} utilisateur(s)</p>
+  <div class="ui-table" tabindex="0" role="region" aria-label="Liste des utilisateurs">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Utilisateur</th>
+          <th scope="col">Rôle</th>
+          <th scope="col">Magasins</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of visible(); track user.id) {
+        <tr>
+          <td>
+            <strong>{{ user.nomComplet }}</strong>
+            <p class="muted small">{{ user.email }}</p>
+          </td>
+          <td>{{ user.role === 'ADMIN' ? 'Super administrateur' : 'Magasinier' }}</td>
+          <td>{{ user.magasinsAutorises.length }}</td>
+          <td><app-status-badge [active]="user.status === 'ACTIVE'" inactiveLabel="Désactivé" /></td>
+          <td>
+            <div class="ui-actions">
+              @if (user.status === 'ACTIVE') {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="edit(user)">
+                Modifier les accès
+              </button>
+              @if (user.id !== session.user()?.id) {
+              <button type="button" class="secondary" [disabled]="busy()" (click)="askDisable(user)">
+                Désactiver
+              </button>
+              } } @else { <span class="muted small">Compte désactivé</span> }
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!filtered().length) {
+  <app-empty-state
+    heading="Aucun utilisateur correspondant"
+    description="Modifiez vos filtres ou créez un utilisateur."
+  />
+  }
+  <app-pagination [page]="page()" [pages]="pages()" [disabled]="busy()" (change)="page.set($event)" />
+  }
+</section>
