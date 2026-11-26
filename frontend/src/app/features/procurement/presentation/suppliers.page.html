@@ -44,10 +44,16 @@
 <section class="panel">
   <h2>{{ target === 'new' ? 'Nouveau fournisseur' : 'Modifier le fournisseur' }}</h2>
   <form [formGroup]="form" (ngSubmit)="save()" class="supplier-form">
-    <label class="ui-field">Nom du fournisseur <input formControlName="name" maxlength="180" required /></label>
-    <label class="ui-field">Identifiant fiscal (NINEA) <input formControlName="taxId" maxlength="100" /></label>
+    <label class="ui-field"
+      >Nom du fournisseur <input formControlName="name" maxlength="180" required
+    /></label>
+    <label class="ui-field"
+      >Identifiant fiscal (NINEA) <input formControlName="taxId" maxlength="100"
+    /></label>
     <label class="ui-field">Téléphone <input type="tel" formControlName="phone" maxlength="50" /></label>
-    <label class="ui-field">Adresse e-mail <input type="email" formControlName="email" maxlength="254" /></label>
+    <label class="ui-field"
+      >Adresse e-mail <input type="email" formControlName="email" maxlength="254"
+    /></label>
     <label class="ui-field">Adresse <input formControlName="address" maxlength="500" /></label>
     <div class="ui-actions">
       <button type="submit" class="primary" [disabled]="busy() || loading()">Enregistrer</button>
