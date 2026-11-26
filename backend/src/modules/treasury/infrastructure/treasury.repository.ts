@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { pageBounds, pageResult, type ListCriteria } from '../../../shared/pagination';
 import { TreasuryPort } from '../application/treasury.port';
 import { validCashAmount } from '../domain/cash-amount';
 
@@ -56,6 +57,76 @@ export class TreasuryRepository implements TreasuryPort {
         },
       }),
     );
+  }
+
+  sessions(register: string, actor: string, query: ListCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    return this.transaction(actor, async (tx) => {
+      if (!(await tx.cashRegister.findUnique({ where: { id: register }, select: { id: true } })))
+        throw new NotFoundException('Caisse introuvable.');
+      const where = { registerId: register };
+      const [items, total] = await Promise.all([
+        tx.cashSession.findMany({ where, orderBy: [{ openedAt: 'desc' }, { id: 'desc' }], skip, take: limit }),
+        tx.cashSession.count({ where }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
+  }
+
+  movements(session: string, actor: string, query: ListCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    const search = query.search?.trim();
+    return this.transaction(actor, async (tx) => {
+      await this.session(tx, session, false);
+      const where: Prisma.CashMovementWhereInput = {
+        sessionId: session,
+        ...(search ? { reason: { contains: search, mode: 'insensitive' } } : {}),
+      };
+      const [items, total] = await Promise.all([
+        tx.cashMovement.findMany({
+          where,
+          include: {
+            reversal: { select: { id: true } },
+            expensePayment: { select: { id: true } },
+            expenseRefund: { select: { id: true } },
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        tx.cashMovement.count({ where }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
+  }
+
+  candidates(session: string, actor: string, query: ListCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    const search = query.search?.trim();
+    return this.transaction(actor, async (tx) => {
+      const current = await this.session(tx, session);
+      const where: Prisma.PaymentWhereInput = {
+        method: 'CASH',
+        amount: { gt: 0 },
+        reversals: { none: {} },
+        cashMovement: null,
+        order: {
+          lines: { some: {}, every: { storeId: current.register.storeId } },
+          ...(search ? { number: { contains: search, mode: 'insensitive' } } : {}),
+        },
+      };
+      const [items, total] = await Promise.all([
+        tx.payment.findMany({
+          where,
+          select: { id: true, amount: true, receivedAt: true, order: { select: { id: true, number: true } } },
+          orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        tx.payment.count({ where }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
   }
 
   create(store: string, name: string, actor: string) {

@@ -5,6 +5,9 @@ import { TreasuryService } from './treasury.service';
 describe('TreasuryService', () => {
   const repository: jest.Mocked<TreasuryPort> = {
     list: jest.fn(),
+    sessions: jest.fn(),
+    movements: jest.fn(),
+    candidates: jest.fn(),
     create: jest.fn(),
     open: jest.fn(),
     move: jest.fn(),

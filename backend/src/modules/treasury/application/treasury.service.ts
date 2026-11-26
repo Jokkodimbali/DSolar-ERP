@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import type { ListCriteria } from '../../../shared/pagination';
 import { TREASURY, TreasuryPort } from './treasury.port';
 
 @Injectable()
@@ -18,6 +19,18 @@ export class TreasuryService {
 
   list(actor: string) {
     return this.repository.list(actor);
+  }
+
+  sessions(register: string, actor: string, query: ListCriteria) {
+    return this.repository.sessions(register, actor, query);
+  }
+
+  movements(session: string, actor: string, query: ListCriteria) {
+    return this.repository.movements(session, actor, query);
+  }
+
+  candidates(session: string, actor: string, query: ListCriteria) {
+    return this.repository.candidates(session, actor, query);
   }
 
   create(store: string, name: string, actor: string) {

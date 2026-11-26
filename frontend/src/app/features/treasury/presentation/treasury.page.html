@@ -1,0 +1,127 @@
+<app-page-header eyebrow="FINANCES" heading="Trésorerie et caisses" description="Suivez les espèces, les sessions, les mouvements et les rapprochements par magasin.">
+  <a class="secondary" routerLink="/depenses">Dépenses</a>
+  <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="load()">Actualiser les caisses</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (loading()) { <p role="status">Chargement de la trésorerie…</p> }
+@if (pending(); as command) {
+<section class="panel">
+  <h2>Mouvement en attente</h2><p>{{ money(command.amount) }}</p>
+  <p>La même clé d’opération sera réutilisée pour éviter un double mouvement.</p>
+  <button type="button" class="primary" [disabled]="busy() || loading() || blocked()" (click)="resume()">Reprendre le mouvement</button>
+</section>
+}
+@if (ready()) {
+<section class="panel">
+  <h2>Caisses par magasin</h2>
+  @if (allowed() && !pending() && !blocked()) {
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); create(store.value, name.value)">
+    <label class="ui-field">Magasin<select #store required><option value="">Sélectionner</option>@for (item of activeStores(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
+    <label class="ui-field">Nom de la caisse<input #name maxlength="100" required /></label>
+    <button type="submit" class="primary" [disabled]="loading() || busy() || !!confirmation()">Créer une caisse</button>
+  </form>
+  }
+  <div class="ui-table" role="region" aria-label="Liste des caisses" tabindex="0">
+    <table><thead><tr><th scope="col">Caisse</th><th scope="col">Magasin</th><th scope="col">Session</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (item of registers(); track item.id) {
+      <tr><td>{{ item.name }}</td><td>{{ storeName(item.storeId) }}</td><td>{{ item.open ? 'Ouverte' : 'Fermée' }}</td><td>
+        <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="select(item)">Historique</button>
+        @if (item.open; as open) { <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="inspect(open)">Session ouverte</button> }
+        @else if (allowed() && !pending() && !blocked()) {
+          <form class="ui-toolbar" (submit)="$event.preventDefault(); askOpen(item, opening.value)">
+            <label class="ui-field">Fond de caisse<input #opening inputmode="decimal" maxlength="19" required /></label>
+            <button type="submit" class="primary" [disabled]="loading() || busy() || !!confirmation()">Ouvrir</button>
+          </form>
+        }
+      </td></tr>
+    } @empty { <tr><td colspan="4">Aucune caisse.</td></tr> }</tbody></table>
+  </div>
+</section>
+@if (register(); as item) {
+<section class="panel">
+  <h2>Sessions — {{ item.name }}</h2>
+  @if (sessions(); as data) {
+  <div class="ui-table" role="region" aria-label="Historique des sessions" tabindex="0">
+    <table><thead><tr><th scope="col">Ouverture</th><th scope="col">Clôture</th><th scope="col">Fond de caisse</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (row of data.items; track row.id) {
+      <tr><td>{{ row.openedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ (row.closedAt | date:'dd/MM/yyyy HH:mm') || 'Ouverte' }}</td><td>{{ money(row.opening) }}</td><td><button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="inspect(row)">Consulter</button></td></tr>
+    } @empty { <tr><td colspan="4">Aucune session.</td></tr> }</tbody></table>
+  </div>
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="loading() || busy() || !!confirmation()" (change)="select(item, $event)" />
+  }
+</section>
+}
+@if (summary(); as data) {
+<section class="panel">
+  <h2>Situation de la session</h2>
+  <dl class="metrics">
+    <div><dt>Fond initial</dt><dd>{{ money(data.opening) }}</dd></div>
+    <div><dt>Entrées</dt><dd>{{ money(data.entries) }}</dd></div>
+    <div><dt>Sorties</dt><dd>{{ money(data.exits) }}</dd></div>
+    <div><dt>Solde théorique</dt><dd data-testid="cash-balance">{{ money(data.expected) }}</dd></div>
+    <div><dt>Mouvements</dt><dd>{{ data.movementCount }}</dd></div>
+    <div><dt>Comptage</dt><dd>{{ data.counted === null ? '—' : money(data.counted) }}</dd></div>
+    <div><dt>Écart</dt><dd>{{ data.difference === null ? '—' : money(data.difference) }}</dd></div>
+  </dl>
+  @if (!data.closedAt && allowed() && !pending() && !blocked()) {
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); askMove(amount.value, reason.value)">
+    <label class="ui-field">Montant signé (FCFA)<input #amount inputmode="decimal" maxlength="20" required /></label>
+    <label class="ui-field">Motif du mouvement<input #reason maxlength="200" required /></label>
+    <button type="submit" class="primary" [disabled]="busy() || !!confirmation()">Enregistrer le mouvement</button>
+  </form>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); askTransfer(transferAmount.value, destination.value)">
+    <label class="ui-field">Caisse destinataire<select #destination required><option value="">Sélectionner</option>@for (item of destinations(); track item.id) { <option [value]="item.open?.id">{{ item.name }} — {{ storeName(item.storeId) }}</option> }</select></label>
+    <label class="ui-field">Montant du transfert<input #transferAmount inputmode="decimal" maxlength="19" required /></label>
+    <button type="submit" class="secondary" [disabled]="busy() || !!confirmation() || !destinations().length">Transférer</button>
+  </form>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); askClose(counted.value)">
+    <label class="ui-field">Espèces réellement comptées<input #counted inputmode="decimal" maxlength="19" required /></label>
+    <button type="submit" class="secondary" [disabled]="busy() || !!confirmation()">Clôturer la session</button>
+  </form>
+  }
+</section>
+}
+@if (movements(); as data) {
+<section class="panel">
+  <h2>Mouvements de caisse</h2>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); movementSearch.set(term.value.trim()); details()">
+    <label class="ui-field">Rechercher un mouvement<input #term type="search" maxlength="120" [value]="movementSearch()" /></label>
+    <button type="submit" class="secondary" [disabled]="busy() || !!confirmation()">Rechercher</button>
+  </form>
+  <div class="ui-table" role="region" aria-label="Historique des mouvements de caisse" tabindex="0">
+    <table><thead><tr><th scope="col">Date</th><th scope="col">Motif</th><th scope="col">Montant</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (row of data.items; track row.id) {
+      <tr><td>{{ row.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ row.reason }}</td><td>{{ money(row.amount) }}</td><td>
+        @if (!summary()?.closedAt && row.reversible && allowed() && !pending() && !blocked()) {
+          <label class="ui-field">Motif de contrepassation<input #reason maxlength="200" /></label>
+          <button type="button" class="secondary" [disabled]="busy() || !!confirmation()" (click)="askReverse(row, reason.value)">Contrepasser</button>
+        } @else { — }
+      </td></tr>
+    } @empty { <tr><td colspan="4">Aucun mouvement correspondant.</td></tr> }</tbody></table>
+  </div>
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy() || !!confirmation()" (change)="details($event, candidates()?.page ?? 1)" />
+</section>
+}
+@if (candidates(); as data) {
+<section class="panel">
+  <h2>Encaissements à rapprocher</h2>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); candidateSearch.set(term.value.trim()); details()">
+    <label class="ui-field">Référence de commande<input #term type="search" maxlength="120" [value]="candidateSearch()" /></label>
+    <button type="submit" class="secondary" [disabled]="busy() || !!confirmation()">Rechercher</button>
+  </form>
+  <div class="ui-table" role="region" aria-label="Encaissements à rapprocher" tabindex="0">
+    <table><thead><tr><th scope="col">Commande</th><th scope="col">Date</th><th scope="col">Montant</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (row of data.items; track row.id) {
+      <tr><td><a [routerLink]="['/ventes/reglements/commande', row.orderId]">{{ row.orderNumber }}</a></td><td>{{ row.receivedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ money(row.amount) }}</td><td>
+      @if (allowed() && !pending() && !blocked()) { <button class="primary" type="button" [disabled]="busy() || !!confirmation()" (click)="askReconcile(row)">Rapprocher</button> }
+      </td></tr>
+    } @empty { <tr><td colspan="4">Aucun encaissement éligible.</td></tr> }</tbody></table>
+  </div>
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy() || !!confirmation()" (change)="details(movements()?.page ?? 1, $event)" />
+</section>
+}
+}
+@if (confirmation(); as action) {
+<app-confirm heading="Confirmer l’opération de caisse ?" [description]="money(action.amount) + ' — vérifiez le montant avant de confirmer.'" [busy]="busy()" (confirmed)="apply()" (cancelled)="confirmation.set(null)" />
+}

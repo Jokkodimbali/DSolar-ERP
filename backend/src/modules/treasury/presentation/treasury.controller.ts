@@ -1,10 +1,11 @@
 import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsString, IsUUID, MaxLength } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
 import { TreasuryService } from '../application/treasury.service';
 
 class TreasuryRegisterDto {
@@ -71,6 +72,24 @@ export class TreasuryController {
   @RequirePermissions('sales.read')
   list(@CurrentUserId() actor: string) {
     return this.service.list(actor);
+  }
+
+  @Get('registers/:id/sessions')
+  @RequirePermissions('sales.read')
+  sessions(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+    return this.service.sessions(id, actor, query);
+  }
+
+  @Get('sessions/:id/movements')
+  @RequirePermissions('sales.read')
+  movements(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+    return this.service.movements(id, actor, query);
+  }
+
+  @Get('sessions/:id/reconciliation-candidates')
+  @RequirePermissions('sales.read')
+  candidates(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+    return this.service.candidates(id, actor, query);
   }
 
   @Post('registers')

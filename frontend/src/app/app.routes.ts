@@ -37,6 +37,12 @@ export const routes: Routes = [
           import('./features/dashboard/presentation/dashboard.page').then((m) => m.DashboardPage),
       },
       {
+        path: 'tresorerie',
+        canActivate: [expensesGuard],
+        loadComponent: () =>
+          import('./features/treasury/presentation/treasury.page').then((m) => m.TreasuryPage),
+      },
+      {
         path: 'depenses',
         canActivate: [expensesGuard],
         loadComponent: () =>
