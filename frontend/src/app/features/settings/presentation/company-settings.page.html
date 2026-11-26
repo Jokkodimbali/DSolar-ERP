@@ -3,7 +3,12 @@
   heading="Paramètres de l’entreprise"
   description="Gérez les informations officielles, les documents commerciaux et les préférences internes."
 >
-  <button type="button" class="secondary" [disabled]="busy() || !!pending() || (!!saved() && dirty() && !reloadRequired())" (click)="load()">
+  <button
+    type="button"
+    class="secondary"
+    [disabled]="busy() || !!pending() || (!!saved() && dirty() && !reloadRequired())"
+    (click)="load()"
+  >
     {{ reloadRequired() ? 'Recharger la version serveur' : 'Actualiser' }}
   </button>
 </app-page-header>
@@ -11,8 +16,7 @@
 <app-feedback [message]="success()" kind="success" />
 @if (busy()) {
 <p role="status">Traitement en cours…</p>
-}
-@if (saved(); as current) {
+} @if (saved(); as current) {
 <form (submit)="$event.preventDefault(); prepare()">
   <fieldset [disabled]="busy() || !!pending()">
     @for (group of groups; track group.label) {
@@ -49,23 +53,39 @@
     <section class="panel">
       <h2>Notifications et alertes</h2>
       <label>
-        <input #notifications type="checkbox" [checked]="draft().notificationsEnabled" (change)="notificationsChange(notifications.checked)" />
+        <input
+          #notifications
+          type="checkbox"
+          [checked]="draft().notificationsEnabled"
+          (change)="notificationsChange(notifications.checked)"
+        />
         Activer les notifications
       </label>
       <label class="ui-field">
         Seuil de stock faible
-        <input #threshold type="number" min="0" max="1000000" step="1" [value]="draft().lowStockThreshold" (input)="thresholdChange(threshold.valueAsNumber)" />
+        <input
+          #threshold
+          type="number"
+          min="0"
+          max="1000000"
+          step="1"
+          [value]="draft().lowStockThreshold"
+          (input)="thresholdChange(threshold.valueAsNumber)"
+        />
       </label>
     </section>
     <div class="ui-actions">
-      <button type="submit" class="primary" [disabled]="!dirty() || reloadRequired()">Enregistrer les paramètres</button>
-      <button type="button" class="secondary" [disabled]="!dirty()" (click)="reset()">Annuler les modifications</button>
+      <button type="submit" class="primary" [disabled]="!dirty() || reloadRequired()">
+        Enregistrer les paramètres
+      </button>
+      <button type="button" class="secondary" [disabled]="!dirty()" (click)="reset()">
+        Annuler les modifications
+      </button>
       <span class="muted">Révision {{ current.revision }}</span>
     </div>
   </fieldset>
 </form>
-}
-@if (pending()) {
+} @if (pending()) {
 <app-confirm
   heading="Confirmer les paramètres"
   description="Les nouvelles informations seront utilisées par l’entreprise et ses documents."

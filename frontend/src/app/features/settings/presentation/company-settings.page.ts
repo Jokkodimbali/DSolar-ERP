@@ -34,7 +34,10 @@ export class CompanySettingsPage {
   readonly success = signal('');
   readonly dirty = computed(() => JSON.stringify(this.saved()?.input) !== JSON.stringify(this.draft()));
   readonly groups = [
-    { label: 'Identité de l’entreprise', fields: companyFields.filter((field) => field.group === 'identity') },
+    {
+      label: 'Identité de l’entreprise',
+      fields: companyFields.filter((field) => field.group === 'identity'),
+    },
     { label: 'Coordonnées', fields: companyFields.filter((field) => field.group === 'contact') },
     { label: 'Documents commerciaux', fields: companyFields.filter((field) => field.group === 'documents') },
     { label: 'Préférences', fields: companyFields.filter((field) => field.group === 'preferences') },
@@ -144,7 +147,9 @@ export class CompanySettingsPage {
         error: (error: unknown) => {
           this.pending.set(null);
           this.reloadRequired.set(true);
-          this.error.set(errorMessage(error) + ' Rechargez la dernière version avant une nouvelle tentative.');
+          this.error.set(
+            errorMessage(error) + ' Rechargez la dernière version avant une nouvelle tentative.',
+          );
         },
       });
   }
