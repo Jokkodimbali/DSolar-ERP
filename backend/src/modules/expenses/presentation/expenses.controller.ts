@@ -5,8 +5,21 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
-import { ExpenseMethod } from '../application/expenses.port';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
+import { ExpenseCriteria, ExpenseMethod } from '../application/expenses.port';
 import { ExpensesService } from '../application/expenses.service';
+
+class ExpensesSearchDto extends PageQueryDto {
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  storeId?: string;
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'APPROVED', 'PAID', 'CANCELLED', 'REFUNDED'])
+  @SwaggerField({ required: false, enum: ['DRAFT', 'APPROVED', 'PAID', 'CANCELLED', 'REFUNDED'] })
+  status?: ExpenseCriteria['status'];
+}
 
 class ExpensesCategoryDto {
   @IsString()
@@ -75,6 +88,12 @@ export class ExpensesController {
   @SuccessMessage('Catégorie de dépense créée.')
   createCategory(@Body() dto: ExpensesCategoryDto, @CurrentUserId() actor: string) {
     return this.service.createCategory(dto.name, actor);
+  }
+
+  @Get('search')
+  @RequirePermissions('sales.read')
+  search(@CurrentUserId() actor: string, @Query() query: ExpensesSearchDto) {
+    return this.service.search(actor, query);
   }
 
   @Get('summary')

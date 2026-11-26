@@ -8,6 +8,7 @@ import {
   ordersReadGuard,
   stockAlertsGuard,
   usersGuard,
+  expensesGuard,
   productsGuard,
   suppliersGuard,
   supplierReturnsGuard,
@@ -34,6 +35,12 @@ export const routes: Routes = [
         canActivate: [dashboardGuard],
         loadComponent: () =>
           import('./features/dashboard/presentation/dashboard.page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'depenses',
+        canActivate: [expensesGuard],
+        loadComponent: () =>
+          import('./features/expenses/presentation/expenses.page').then((m) => m.ExpensesPage),
       },
       {
         path: 'utilisateurs',

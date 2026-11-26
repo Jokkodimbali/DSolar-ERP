@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { ExpensePayment, ExpensesPort, NewExpense } from '../application/expenses.port';
+import { pageBounds, pageResult } from '../../../shared/pagination';
+import { ExpenseCriteria, ExpensePayment, ExpensesPort, NewExpense } from '../application/expenses.port';
 import { validCashAmount } from '../../treasury/domain/cash-amount';
 
 @Injectable()
@@ -59,6 +60,37 @@ export class ExpensesRepository implements ExpensesPort {
         take: 200,
       }),
     );
+  }
+
+  search(actor: string, query: ExpenseCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    const search = query.search?.trim();
+    const contains = search ? { contains: search, mode: 'insensitive' as const } : undefined;
+    const where: Prisma.ExpenseWhereInput = {
+      storeId: query.storeId,
+      status: query.status,
+      ...(contains ? {
+        OR: [
+          { description: contains },
+          { reference: contains },
+          { category: { name: contains } },
+          { store: { name: contains } },
+        ],
+      } : {}),
+    };
+    return this.transaction(actor, async (tx) => {
+      const [items, total] = await Promise.all([
+        tx.expense.findMany({
+          where,
+          include: { category: true },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        tx.expense.count({ where }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
   }
 
   create(input: NewExpense, actor: string) {

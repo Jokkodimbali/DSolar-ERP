@@ -152,6 +152,15 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="store" /><span class="nav-text">Magasins</span></a
           >
         }
+        @if (session.can('users.manage', 'sales.read')) {
+          <a
+            routerLink="/depenses"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Dépenses"
+            ><app-ui-icon name="cart" /><span class="nav-text">Dépenses</span></a
+          >
+        }
         @if (session.can('users.manage')) {
           <a
             routerLink="/utilisateurs"

@@ -44,6 +44,7 @@ import {
 } from '../../products/domain/product.contract';
 import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
+import { category as parseExpenseCategory, parseExpensePage, parseExpenseSummary, parseOpenCashSessions, verifyCreatedExpense, verifyExpenseAction } from '../../expenses/domain/expense.contract';
 import { parseSupplierPurchases } from '../../procurement/domain/supplier-purchases.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
@@ -1501,6 +1502,42 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);
+      const expenseCategoryResponse = await request('/expenses/categories', 'POST', { name: 'Transport contrat CI' }, token);
+      expect(expenseCategoryResponse.status).toBe(201);
+      const expenseCategory = parseExpenseCategory(expenseCategoryResponse.data);
+      const expenseRegisterResponse = await request('/treasury/registers', 'POST', { storeId: store.id, name: 'Caisse contrat dépenses CI' }, token);
+      expect(expenseRegisterResponse.status).toBe(201);
+      const expenseOpenResponse = await request('/treasury/registers/' + parseId(expenseRegisterResponse.data) + '/open', 'POST', { amount: '100.00' }, token);
+      expect(expenseOpenResponse.status).toBe(201);
+      const expenseSessionId = parseId(expenseOpenResponse.data);
+      const expenseSessions = await request('/treasury/registers', 'GET', undefined, token);
+      expect(expenseSessions.status).toBe(200);
+      expect(parseOpenCashSessions(expenseSessions.data)).toContainEqual({ id: expenseSessionId, storeId: store.id, name: 'Caisse contrat dépenses CI' });
+      const expenseInput = { storeId: store.id, categoryId: expenseCategory.id, description: 'Transport contrat CI', amount: '70.25', operationKey: crypto.randomUUID() };
+      const expenseCreated = await request('/expenses', 'POST', expenseInput, token);
+      expect(expenseCreated.status).toBe(201);
+      const expense = verifyCreatedExpense(expenseCreated.data, expenseInput);
+      expect(verifyCreatedExpense((await request('/expenses', 'POST', expenseInput, token)).data, expenseInput).id).toBe(expense.id);
+      const expensePath = '/expenses/' + expense.id;
+      expect((await request(expensePath + '/pay', 'POST', { method: 'CASH', sessionId: expenseSessionId }, token)).status).toBe(409);
+      const expenseApproved = await request(expensePath + '/approve', 'POST', {}, token);
+      expect(expenseApproved.status).toBe(201);
+      const approvedExpense = verifyExpenseAction(expenseApproved.data, expense, 'approve');
+      const expensePaid = await request(expensePath + '/pay', 'POST', { method: 'CASH', sessionId: expenseSessionId }, token);
+      expect(expensePaid.status).toBe(201);
+      const paidExpense = verifyExpenseAction(expensePaid.data, approvedExpense, 'pay');
+      expect((await request(expensePath + '/pay', 'POST', { method: 'CASH', sessionId: expenseSessionId }, token)).status).toBe(409);
+      const expenseRefunded = await request(expensePath + '/refund', 'POST', { reason: 'Remboursement contrat CI' }, token);
+      expect(expenseRefunded.status).toBe(201);
+      expect(verifyExpenseAction(expenseRefunded.data, paidExpense, 'refund').status).toBe('REFUNDED');
+      const expenseSearch = await request('/expenses/search?status=REFUNDED&search=Transport%20contrat%20CI&page=1&limit=1', 'GET', undefined, token);
+      expect(expenseSearch.status).toBe(200);
+      expect(parseExpensePage(expenseSearch.data).items.map((item) => item.id)).toContain(expense.id);
+      const expenseSummary = await request('/expenses/summary?storeId=' + store.id, 'GET', undefined, token);
+      expect(expenseSummary.status).toBe(200);
+      expect(parseExpenseSummary(expenseSummary.data)).toContainEqual({ status: 'REFUNDED', categoryId: expenseCategory.id, count: 1, amount: '70.25' });
+      expect((await request('/expenses/search')).status).toBe(401);
+      expect((await request('/expenses/search?limit=101', 'GET', undefined, token)).status).toBe(400);
       const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
       expect(orders.status).toBe(200);
       expect(parseRecentOrders(orders.data)).toEqual(

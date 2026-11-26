@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { EXPENSES, ExpensePayment, ExpensesPort, NewExpense } from './expenses.port';
+import { EXPENSES, ExpenseCriteria, ExpensePayment, ExpensesPort, NewExpense } from './expenses.port';
 
 @Injectable()
 export class ExpensesService {
@@ -21,6 +21,10 @@ export class ExpensesService {
 
   list(actor: string, storeId?: string) {
     return this.repository.list(actor, storeId);
+  }
+
+  search(actor: string, query: ExpenseCriteria) {
+    return this.repository.search(actor, query);
   }
 
   create(input: NewExpense, actor: string) {
