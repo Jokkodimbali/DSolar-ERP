@@ -1,6 +1,6 @@
 # CI/CD — DSolar-ERP
 
-## Responsabilités des quatre workflows
+## Responsabilités des cinq workflows
 
 ```mermaid
 flowchart TD
@@ -9,7 +9,8 @@ flowchart TD
   B --> D[frontend.yml — qualité Angular]
   C --> E[Contrôle qualité global]
   D --> E
-  E --> F[deploy.yml — assemblage de la livraison]
+  E --> M[migration.yml — validation Prisma]
+  M --> F[deploy.yml — assemblage de la livraison]
   F --> G[Bundle versionné + SHA256]
   G --> H{Main + demande manuelle explicite}
   H -->|Non| I[Artefact disponible]
@@ -20,18 +21,23 @@ flowchart TD
 - `ci.yml` est le seul déclencheur automatique. Il ne compile ni ne déploie lui-même.
 - `backend.yml` exécute les contrôles historiques : Prisma, TypeScript, ESLint, Jest, Swagger, compilation, Prettier, audit npm et intégration PostgreSQL éphémère avec contrôle des privilèges SQL.
 - `frontend.yml` installe via npm ci avec le lockfile versionné et npm 11.6.2, vérifie TypeScript, ESLint, Vitest, compilation Angular, Prettier et audit npm.
+- `migration.yml` valide le schéma Prisma, applique toutes les migrations sur un PostgreSQL éphémère dédié, vérifie leur statut et rejoue la commande de déploiement. Il ne se connecte jamais à Neon et ne nécessite aucun secret GitHub.
 - `deploy.yml` assemble exclusivement les deux artefacts du même commit validé, vérifie leur présence, produit un bundle scellé par SHA256 et, uniquement sur demande explicite depuis main, appelle l'adaptateur de déploiement.
 
-Une erreur dans l'un des deux pipelines bloque le contrôle global et l'assemblage. Les workflows réutilisables ne possèdent pas de déclencheur push autonome. Les validations ordinaires peuvent annuler une validation obsolète de la même branche ; une mise en production manuelle utilise un groupe de concurrence distinct et ne peut pas être annulée par un nouveau push. Les anciens workflows ponctuels qui modifiaient Git sont retirés ; l'historique Git les conserve. Les contrôles utilisent des permissions de lecture ; aucun commit automatique ni désactivation de tests.
+Une erreur dans les validations backend ou frontend bloque le contrôle global. Une erreur de migration bloque également l'assemblage. Les workflows réutilisables ne possèdent pas de déclencheur push autonome. Les validations ordinaires peuvent annuler une validation obsolète de la même branche ; une mise en production manuelle utilise un groupe de concurrence distinct et ne peut pas être annulée par un nouveau push. Les anciens workflows ponctuels qui modifiaient Git sont retirés ; l'historique Git les conserve. Les contrôles utilisent des permissions de lecture ; aucun commit automatique ni désactivation de tests.
 
 ## Politique de branches
 
-- dev : développement et validation complète, aucune production.
+- dev : développement et validation complète sur des bases de test éphémères, aucune migration automatique sur Neon ni production.
 - Pull request vers dev ou main : mêmes validations, aucun déploiement de production.
 - main : livraison du commit validé, aucune publication automatique sans demande explicite.
 - Actions > CI > Run workflow > main > deploy_production : true : demande de mise en production après nouvelle validation complète.
 
 Configurer une règle de protection de main et dev dans GitHub, avec PR et statut obligatoire **Contrôle qualité global** (sélectionner le nom effectivement affiché dans les checks). Configurer l'environnement GitHub production avec reviewers requis et restriction à main ; ces protections dépendent des paramètres et de l'offre GitHub, et ne sont pas créées par YAML. Ne pas donner de secrets de production aux jobs CI.
+
+## Migrations de développement
+
+Le pipeline valide les migrations sans accès à une base distante. Pour mettre à jour la branche Neon develop, utiliser une procédure distincte depuis un environnement autorisé, avec une connexion directe configurée localement et les droits nécessaires. Vérifier la cible et les sauvegardes avant `npm run prisma:deploy`, puis exécuter `npx --no-install prisma migrate status` dans `backend/`. Aucun identifiant de base distante ne doit être ajouté au dépôt.
 
 ## Artefacts
 

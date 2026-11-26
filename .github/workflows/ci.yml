@@ -15,8 +15,8 @@ permissions:
   contents: read
 concurrency:
   group: dsolar-ci-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.deploy_production && 'production' || 'validation' }}
-  # Ne jamais interrompre une migration déjà lancée sur develop.
-  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' && (github.event_name != 'workflow_dispatch' || !inputs.deploy_production) }}
+  # Ne jamais interrompre une livraison de production manuelle.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || !inputs.deploy_production }}
 jobs:
   backend:
     name: Validation backend
@@ -39,14 +39,13 @@ jobs:
           printf 'Backend : %s\nFrontend : %s\n' "$BACKEND" "$FRONTEND"
           test "$BACKEND" = success && test "$FRONTEND" = success
   migration:
-    name: Migration develop
+    name: Validation migrations
     needs: [quality-gate]
-    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     uses: ./.github/workflows/migration.yml
   release:
     name: Livraison et déploiement
     needs: [quality-gate, migration]
-    if: ${{ !cancelled() && needs.quality-gate.result == 'success' && (needs.migration.result == 'success' || needs.migration.result == 'skipped') }}
+    if: ${{ !cancelled() && needs.quality-gate.result == 'success' && needs.migration.result == 'success' }}
     uses: ./.github/workflows/deploy.yml
     with:
       deploy_production: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_production }}
