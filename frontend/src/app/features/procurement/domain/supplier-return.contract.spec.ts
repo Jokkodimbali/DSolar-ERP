@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { parseSupplierReturn, parseSupplierReturnPage } from './supplier-return.contract';
+import {
+  matchesReturnAction,
+  parseSupplierReturn,
+  parseSupplierReturnPage,
+  returnAction,
+} from './supplier-return.contract';
 
 const id = 'c31ac59c-8148-4664-8745-496a9618f202';
 const row = {
@@ -36,5 +41,20 @@ describe('Contrats des retours fournisseurs', () => {
       parseSupplierReturn({ ...row, credit: { returnId: id, amount: '100.25', reference: 'AV-CI' } }),
     ).toThrow();
     expect(() => parseSupplierReturn({ ...row, lines: [] })).toThrow();
+  });
+  it('contrôle les transitions et impose les références et motifs', () => {
+    const draft = parseSupplierReturn(row);
+    expect(returnAction(draft, 'confirm')).toEqual({ kind: 'confirm' });
+    expect(returnAction(draft, 'cancel', ' Erreur de saisie ')).toEqual({
+      kind: 'cancel',
+      reason: 'Erreur de saisie',
+    });
+    expect(() => returnAction(draft, 'cancel', ' ')).toThrow();
+    expect(() => returnAction(draft, 'credit', 'AV-CI')).toThrow();
+    const confirmed = parseSupplierReturn({ ...row, status: 'CONFIRMED' });
+    expect(matchesReturnAction(confirmed, { kind: 'confirm' })).toBe(true);
+    expect(returnAction(confirmed, 'credit', ' AV-CI ')).toEqual({ kind: 'credit', reference: 'AV-CI' });
+    expect(() => returnAction(confirmed, 'cancel', 'Motif')).toThrow();
+    expect(matchesReturnAction(confirmed, { kind: 'credit', reference: 'AV-CI' })).toBe(false);
   });
 });

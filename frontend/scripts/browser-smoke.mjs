@@ -252,7 +252,7 @@ try {
   await page.locator('textarea[formControlName="reason"]').fill('Ajustement navigateur CI');
   await page.getByRole('button', { name: 'Vérifier l’ajustement' }).click();
   await page.getByRole('button', { name: 'Confirmer l’ajustement' }).click();
-  await stockRow.getByText('5.875', { exact: true }).first().waitFor();
+  await stockRow.getByText('5.750', { exact: true }).first().waitFor();
   await page.getByRole('button', { name: 'Consulter les mouvements' }).click();
   await page.getByRole('region', { name: 'Journal des mouvements' }).getByText('Ajustement navigateur CI', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'stocks-adjustment.png'), fullPage: true });

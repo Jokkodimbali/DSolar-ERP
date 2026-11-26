@@ -106,3 +106,36 @@ export function parseSupplierReturnPage(value: unknown) {
     return invalid();
   return page;
 }
+
+export type ReturnAction =
+  | { kind: 'confirm' }
+  | { kind: 'cancel'; reason: string }
+  | { kind: 'credit'; reference: string };
+
+export function returnAction(item: SupplierReturn, kind: ReturnAction['kind'], value = ''): ReturnAction {
+  if (kind === 'confirm' && item.status === 'DRAFT') return { kind };
+  const normalized = value.trim();
+  if (kind === 'cancel' && item.status === 'DRAFT' && normalized.length > 0 && normalized.length <= 500)
+    return { kind, reason: normalized };
+  if (
+    kind === 'credit' &&
+    item.status === 'CONFIRMED' &&
+    !item.credit &&
+    cents(item.total) > 0n &&
+    normalized.length > 0 &&
+    normalized.length <= 100
+  )
+    return { kind, reference: normalized };
+  throw new Error('Action, statut ou texte invalide pour ce retour.');
+}
+
+export function matchesReturnAction(item: SupplierReturn, action: ReturnAction): boolean {
+  switch (action.kind) {
+    case 'confirm':
+      return item.status === 'CONFIRMED';
+    case 'cancel':
+      return item.status === 'CANCELLED';
+    case 'credit':
+      return item.status === 'CONFIRMED' && item.credit?.reference === action.reference;
+  }
+}

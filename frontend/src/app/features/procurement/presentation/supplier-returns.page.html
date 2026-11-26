@@ -4,11 +4,14 @@
   description="Consultez les retours, les mouvements associés et les avoirs fournisseurs."
 />
 <app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
 @if (detail(); as item) {
 <section class="panel">
   <div class="page-heading">
     <h2>Retour · {{ item.receiptNumber }}</h2>
-    <button class="secondary" type="button" (click)="detail.set(null)">Fermer</button>
+    <button class="secondary" type="button" [disabled]="busy() || !!action()" (click)="detail.set(null)">
+      Fermer
+    </button>
   </div>
   <dl class="metrics">
     <div>
@@ -56,7 +59,59 @@
       </tbody>
     </table>
   </div>
+  @if (item.status === 'DRAFT' && session.can('inventory.manage', 'users.manage')) {
+  <div class="ui-actions">
+    <button type="button" class="primary" [disabled]="busy() || !!action()" (click)="ask('confirm')">
+      Confirmer le retour
+    </button>
+  </div>
+  <label class="ui-field">
+    Motif d’annulation
+    <textarea
+      #reason
+      maxlength="500"
+      [value]="actionText()"
+      [disabled]="busy() || !!action()"
+      (input)="actionText.set(reason.value)"
+    ></textarea>
+  </label>
+  <button
+    type="button"
+    class="secondary"
+    [disabled]="busy() || !!action() || !actionText().trim()"
+    (click)="ask('cancel')"
+  >
+    Annuler le retour
+  </button>
+  } @if (item.status === 'CONFIRMED' && !item.credit && +item.total > 0 && session.can('sales.manage', 'users.manage')) {
+  <label class="ui-field">
+    Référence de l’avoir fournisseur
+    <input
+      #creditRef
+      maxlength="100"
+      [value]="actionText()"
+      [disabled]="busy() || !!action()"
+      (input)="actionText.set(creditRef.value)"
+    />
+  </label>
+  <button
+    type="button"
+    class="primary"
+    [disabled]="busy() || !!action() || !actionText().trim()"
+    (click)="ask('credit')"
+  >
+    Enregistrer l’avoir
+  </button>
+  }
 </section>
+} @if (action(); as pending) {
+<app-confirm
+  [heading]="pending.kind === 'confirm' ? 'Confirmer le retour ?' : pending.kind === 'cancel' ? 'Annuler le retour ?' : 'Enregistrer cet avoir ?'"
+  [description]="pending.kind === 'confirm' ? 'Cette opération diminue le stock disponible et enregistre un mouvement définitif.' : pending.kind === 'cancel' ? 'Le brouillon sera annulé sans modifier le stock.' : 'Le montant sera déterminé par le backend à partir du retour confirmé.'"
+  [busy]="busy()"
+  (confirmed)="apply()"
+  (cancelled)="action.set(null)"
+/>
 }
 <section class="panel">
   <form
@@ -118,7 +173,7 @@
           </td>
           <td>{{ money(item.total) }}</td>
           <td>
-            <button type="button" class="secondary" [disabled]="busy()" (click)="open(item.id)">
+            <button type="button" class="secondary" [disabled]="busy() || !!action()" (click)="open(item.id)">
               Détails
             </button>
           </td>

@@ -83,7 +83,12 @@ describe('Protection de la valorisation des retours fournisseurs', () => {
       ],
     };
     expect(tx.supplierReturn.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where, skip: 10, take: 10, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
+      expect.objectContaining({
+        where,
+        skip: 10,
+        take: 10,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
     );
     expect(tx.supplierReturn.count).toHaveBeenCalledWith({ where });
   });

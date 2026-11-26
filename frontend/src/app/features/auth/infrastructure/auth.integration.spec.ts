@@ -1029,6 +1029,38 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         ).status,
       ).toBe(201);
 
+      const confirmedReturn = await request(
+        '/supplier-returns',
+        'POST',
+        {
+          receiptId: receipt.id,
+          operationKey: crypto.randomUUID(),
+          reason: 'Retour confirmé CI',
+          lines: [{ receiptLineId: receipt.lines[0]?.id, quantity: '0.125' }],
+        },
+        token,
+      );
+      expect(confirmedReturn.status).toBe(201);
+      const confirmedReturnPath = '/supplier-returns/' + parseId(confirmedReturn.data);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const confirmation = await request(confirmedReturnPath + '/confirm', 'POST', {}, token);
+        expect(confirmation.status).toBe(201);
+        expect(parseSupplierReturn(confirmation.data).status).toBe('CONFIRMED');
+        const credit = await request(confirmedReturnPath + '/credit', 'POST', { reference: 'AV-CI' }, token);
+        expect(credit.status).toBe(201);
+      }
+      const credited = await request(confirmedReturnPath, 'GET', undefined, token);
+      expect(credited.status).toBe(200);
+      expect(parseSupplierReturn(credited.data).credit).toEqual({ reference: 'AV-CI', amount: '156.28' });
+      const afterReturn = await request(
+        '/inventory' + path + '/products/' + catalogueProduct.id,
+        'GET',
+        undefined,
+        token,
+      );
+      expect(afterReturn.status).toBe(200);
+      expect(parseBalance(afterReturn.data, store.id, catalogueProduct.id).quantity).toBe('4.500');
+
       const second = await request('/proformas', 'POST', input, token);
       expect(second.status).toBe(201);
       const draft = parseCreatedProforma(second.data);

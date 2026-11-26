@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map } from 'rxjs';
+import { map, switchMap } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
 import {
   parseSupplierReturn,
   parseSupplierReturnPage,
   type ReturnStatus,
+  type ReturnAction,
 } from '../domain/supplier-return.contract';
 
 @Injectable({ providedIn: 'root' })
@@ -27,5 +28,17 @@ export class SupplierReturnsApi {
   }
   get(id: string) {
     return this.http.get<unknown>(apiPath('/supplier-returns/' + storeId(id))).pipe(map(parseSupplierReturn));
+  }
+
+  action(id: string, action: ReturnAction) {
+    const body =
+      action.kind === 'cancel'
+        ? { reason: action.reason }
+        : action.kind === 'credit'
+          ? { reference: action.reference }
+          : {};
+    return this.http
+      .post<unknown>(apiPath('/supplier-returns/' + storeId(id) + '/' + action.kind), body)
+      .pipe(switchMap(() => this.get(id)));
   }
 }
