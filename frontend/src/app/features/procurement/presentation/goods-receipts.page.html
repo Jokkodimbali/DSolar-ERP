@@ -33,7 +33,8 @@
   <p class="muted">Référence : {{ reference() }}</p>
   <form class="ui-toolbar" (submit)="$event.preventDefault(); lookup(orderQuery.value, 1)">
     <label class="ui-field"
-      >Rechercher une commande <input #orderQuery type="search" maxlength="120"
+      >Rechercher une commande
+      <input #orderQuery type="search" aria-label="Rechercher une commande" maxlength="120"
     /></label>
     <button class="secondary" type="submit" [disabled]="busy() || optionsLoading()">Rechercher</button>
   </form>
@@ -42,6 +43,7 @@
     Commande fournisseur
     <select
       #orderSelect
+      aria-label="Commande fournisseur"
       [disabled]="busy()"
       [value]="selectedOrder()?.id ?? ''"
       (change)="chooseOrder(orderSelect.value)"
@@ -63,6 +65,7 @@
     Magasin de réception
     <select
       #destinationSelect
+      aria-label="Magasin de réception"
       [value]="destination()"
       [disabled]="busy()"
       (change)="destination.set(destinationSelect.value)"

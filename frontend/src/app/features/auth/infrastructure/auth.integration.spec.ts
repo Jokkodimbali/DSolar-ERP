@@ -902,6 +902,14 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         await request('/auth/logout', 'POST', { refreshToken: scopedKeeper.jetonRenouvellement });
       }
 
+      const outstanding = await request(
+        '/purchase-orders/search?search=CF-CONTRAT-CI&outstanding=true&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(outstanding.status).toBe(200);
+      expect(parsePurchaseOrderPage(outstanding.data).items.map((order) => order.id)).toContain(purchase.id);
       const receiptInput = {
         number: 'BR-CONTRAT-CI',
         purchaseOrderId: purchase.id,
@@ -965,6 +973,14 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(delivered.status).toBe('DELIVERED');
       expect(delivered.lines[0]?.remaining).toBe('0');
+      const closedOutstanding = await request(
+        '/purchase-orders/search?search=CF-CONTRAT-CI&outstanding=true&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(closedOutstanding.status).toBe(200);
+      expect(parsePurchaseOrderPage(closedOutstanding.data).items).toEqual([]);
 
       const second = await request('/proformas', 'POST', input, token);
       expect(second.status).toBe(201);

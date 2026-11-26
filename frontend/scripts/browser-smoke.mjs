@@ -182,6 +182,9 @@ try {
   await page.screenshot({ path: join(artifacts, 'fournisseurs-crud.png'), fullPage: true });
   await page.goto('http://localhost:4200/approvisionnements/commandes');
   await page.getByRole('button', { name: 'Nouvelle commande' }).click();
+  const referenceText = await page.locator('main.page p').filter({ hasText: /^Référence : CF-/ }).innerText();
+  const purchaseReference = referenceText.replace(/^Référence :\s*/, '').trim();
+  assert.match(purchaseReference, /^CF-/);
   const supplierPicker = page.getByLabel('Sélectionner le fournisseur');
   await supplierPicker.locator('option').filter({ hasText: 'Fournisseur navigateur CI' }).waitFor({ state: 'attached' });
   await supplierPicker.selectOption({ label: 'Fournisseur navigateur CI' });
@@ -207,8 +210,11 @@ try {
   await page.screenshot({ path: join(artifacts, 'commandes-fournisseurs-crud.png'), fullPage: true });
   await page.goto('http://localhost:4200/approvisionnements/receptions');
   await page.getByRole('button', { name: 'Nouvelle réception' }).click();
-  const receiptOrder = page.getByLabel('Commande fournisseur', { exact: true });
-  const receiptOrderOption = receiptOrder.locator('option').filter({ hasText: 'Fournisseur navigateur CI' });
+  const receiptOrder = page.getByRole('combobox', { name: 'Commande fournisseur', exact: true });
+  await receiptOrder.waitFor();
+  await page.getByRole('searchbox', { name: 'Rechercher une commande', exact: true }).fill(purchaseReference);
+  await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  const receiptOrderOption = receiptOrder.locator('option').filter({ hasText: purchaseReference });
   await receiptOrderOption.waitFor({ state: 'attached' });
   const receiptOrderId = await receiptOrderOption.getAttribute('value');
   assert(receiptOrderId);
