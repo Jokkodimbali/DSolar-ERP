@@ -1,0 +1,48 @@
+<app-page-header eyebrow="VENTES" heading="Affectations comptables" description="Associez les règlements reçus aux factures émises, sans modifier les encaissements.">
+  <a class="secondary" [routerLink]="['/ventes/reglements/commande', orderId()]">Retour aux règlements</a>
+  <button type="button" class="secondary" [disabled]="loading() || busy() || !!pending()" (click)="load()">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (loading()) { <p role="status">Chargement des affectations…</p> }
+@if (data(); as snapshot) {
+<section class="panel">
+  <h2>Factures émises</h2>
+  <div class="ui-table" role="region" aria-label="Soldes des factures" tabindex="0">
+    <table><thead><tr><th scope="col">Référence</th><th scope="col">Total TTC</th><th scope="col">Avoirs</th><th scope="col">Solde non affecté</th></tr></thead>
+      <tbody>@for (invoice of snapshot.invoices; track invoice.id) {
+        <tr><td>{{ invoice.number }}</td><td>{{ money(invoice.total) }}</td><td>{{ money(invoice.credited) }}</td><td>{{ money(invoice.remaining) }}</td></tr>
+      } @empty { <tr><td colspan="4">Aucune facture émise.</td></tr> }</tbody>
+    </table>
+  </div>
+</section>
+@for (payment of snapshot.payments; track payment.id) {
+<section class="panel">
+  <h2>Règlement {{ payment.installment }}</h2>
+  <p>{{ money(payment.amount) }} · {{ payment.active ? 'Actif' : 'Contrepassé' }} · Disponible : {{ money(payment.available) }}</p>
+  @for (allocation of payment.allocations; track allocation.id) {
+    @for (invoice of snapshot.invoices; track invoice.id) {
+      @if (invoice.id === allocation.invoiceId) {
+      <p>{{ invoice.number }} — {{ money(allocation.amount) }}</p>
+      }
+    }
+    @if (session.can('sales.manage') && payment.active) {
+    <div class="ui-toolbar">
+      <label class="ui-field">Motif de désaffectation<textarea #reason maxlength="500"></textarea></label>
+      <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="askCancel(payment.id, allocation.id, reason.value)">Annuler l’affectation</button>
+    </div>
+    }
+  }
+  @if (session.can('sales.manage') && payment.active && positive(payment.available) && snapshot.invoices.length) {
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); askAllocate(payment.id, invoiceSelect.value, amount.value)">
+    <label class="ui-field">Facture<select #invoiceSelect required><option value="">Sélectionner</option>@for (invoice of snapshot.invoices; track invoice.id) { @if (positive(invoice.remaining)) { <option [value]="invoice.id">{{ invoice.number }} — {{ money(invoice.remaining) }}</option> } }</select></label>
+    <label class="ui-field">Montant à affecter<input #amount inputmode="decimal" maxlength="19" required /></label>
+    <button type="submit" class="primary" [disabled]="busy() || !!pending()">Vérifier l’affectation</button>
+  </form>
+  }
+</section>
+} @empty { <section class="panel"><p>Aucun règlement disponible.</p></section> }
+}
+@if (pending(); as action) {
+<app-confirm [heading]="action.kind === 'allocate' ? 'Confirmer l’affectation ?' : 'Annuler l’affectation ?'" [description]="action.kind === 'allocate' ? money(action.amount) + ' sera affecté à la facture.' : action.reason" [busy]="busy()" (confirmed)="apply()" (cancelled)="pending.set(null)" />
+}

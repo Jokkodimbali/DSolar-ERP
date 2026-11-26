@@ -56,6 +56,45 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     );
   }
 
+  allocationSnapshot(orderId: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.salesOrder.findUnique({
+          where: { id: orderId },
+          select: { lines: { select: { storeId: true } } },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable.');
+        await this.assertStoreAccess(tx, [...new Set(order.lines.map((line) => line.storeId))], actorId);
+        const [payments, invoices] = await Promise.all([
+          tx.payment.findMany({
+            where: { orderId },
+            select: {
+              id: true,
+              installmentNumber: true,
+              amount: true,
+              reversals: { select: { amount: true } },
+              allocations: { select: { id: true, invoiceId: true, amount: true } },
+            },
+            orderBy: { installmentNumber: 'asc' },
+          }),
+          tx.invoice.findMany({
+            where: { orderId, status: 'ISSUED' },
+            select: {
+              id: true,
+              number: true,
+              totalTtc: true,
+              creditNotes: { select: { amount: true } },
+              allocations: { select: { id: true, paymentId: true, amount: true } },
+            },
+            orderBy: { number: 'asc' },
+          }),
+        ]);
+        return { orderId, payments, invoices };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+  }
+
   summarySnapshot(orderId: string, actorId: string) {
     return this.prisma.$transaction(
       async (tx) => {

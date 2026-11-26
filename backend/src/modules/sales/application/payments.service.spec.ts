@@ -5,6 +5,7 @@ describe('PaymentsService', () => {
   const repository: jest.Mocked<PaymentsRepository> = {
     list: jest.fn(),
     summarySnapshot: jest.fn(),
+    allocationSnapshot: jest.fn(),
     record: jest.fn(),
     reverse: jest.fn(),
     allocate: jest.fn(),

@@ -118,6 +118,12 @@ export const routes: Routes = [
           import('./features/sales/presentation/proformas.page').then((m) => m.ProformasPage),
       },
       {
+        path: 'ventes/reglements/commande/:id/affectations',
+        canActivate: [ordersReadGuard],
+        loadComponent: () =>
+          import('./features/sales/presentation/payment-allocations.page').then((m) => m.PaymentAllocationsPage),
+      },
+      {
         path: 'ventes/reglements/commande/:id',
         canActivate: [ordersReadGuard],
         loadComponent: () =>

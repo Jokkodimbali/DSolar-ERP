@@ -10,6 +10,7 @@ describe('Isolation des paiements par magasin', () => {
     store: { count: jest.fn() },
     userStoreAccess: { count: jest.fn() },
     payment: { findMany: jest.fn(), create: jest.fn() },
+    invoice: { findMany: jest.fn() },
     $queryRaw: jest.fn(),
   };
   const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
@@ -56,6 +57,26 @@ describe('Isolation des paiements par magasin', () => {
     tx.user.findUnique.mockResolvedValue({ status: 'DISABLED', roles: [] });
     await expect(repository.list('order', 'actor')).rejects.toBeInstanceOf(ForbiddenException);
     expect(tx.payment.findMany).not.toHaveBeenCalled();
+  });
+
+  it('refuse la lecture des affectations en cas d’accès partiel', async () => {
+    tx.userStoreAccess.count.mockResolvedValue(1);
+    await expect(repository.allocationSnapshot('order', 'actor')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(tx.payment.findMany).not.toHaveBeenCalled();
+    expect(tx.invoice.findMany).not.toHaveBeenCalled();
+  });
+
+  it('lit les affectations et les avoirs dans un snapshot commun', async () => {
+    tx.payment.findMany.mockResolvedValue([]);
+    tx.invoice.findMany.mockResolvedValue([]);
+    await expect(repository.allocationSnapshot('order', 'actor')).resolves.toEqual({
+      orderId: 'order',
+      payments: [],
+      invoices: [],
+    });
+    expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    });
   });
 
   it('protège aussi la synthèse contre un accès partiel aux magasins', async () => {

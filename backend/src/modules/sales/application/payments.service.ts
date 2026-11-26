@@ -10,6 +10,10 @@ export class PaymentsService {
     return this.payments.list(orderId, actorId);
   }
 
+  allocations(orderId: string, actorId: string) {
+    return this.payments.allocationSnapshot(orderId, actorId);
+  }
+
   async summary(orderId: string, actorId: string) {
     return summarizeOrderPayments(await this.payments.summarySnapshot(orderId, actorId));
   }

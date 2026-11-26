@@ -21,6 +21,12 @@ export class PaymentsController {
     return this.payments.list(orderId, actorId);
   }
 
+  @Get('allocations')
+  @RequirePermissions('sales.read')
+  allocations(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
+    return this.payments.allocations(orderId, actorId);
+  }
+
   @Get('summary')
   @RequirePermissions('sales.read')
   summary(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
