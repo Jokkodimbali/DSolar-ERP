@@ -16,6 +16,8 @@ describe('Reprise des créations fournisseurs', () => {
     expect(supplierCreationStorageKey(id)).toContain(id);
     expect(() => supplierCreationStorageKey('../users')).toThrow();
     expect(() => parsePendingSupplierCreation({ ...command, operationKey: 'invalid' })).toThrow();
-    expect(() => parsePendingSupplierCreation({ ...command, input: { ...command.input, name: '' } })).toThrow();
+    expect(() =>
+      parsePendingSupplierCreation({ ...command, input: { ...command.input, name: '' } }),
+    ).toThrow();
   });
 });
