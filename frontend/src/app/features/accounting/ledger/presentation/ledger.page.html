@@ -1,0 +1,190 @@
+<app-page-header
+  eyebrow="FINANCES"
+  heading="Comptabilité automatique"
+  description="Consultez les écritures générées par les opérations métier, sans aucune saisie comptable manuelle."
+>
+  <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+@if (loading()) {
+<p role="status">Chargement des données comptables…</p>
+} @if (setup(); as config) {
+<section class="panel">
+  <div class="ui-toolbar">
+    <label class="ui-field"
+      >Période comptable<select
+        #period
+        [value]="periodId()"
+        [disabled]="loading()"
+        (change)="select(period.value)"
+      >
+        @for (item of config.periods; track item.id) {
+        <option [value]="item.id">{{ item.name }} — {{ item.closedAt ? 'Clôturée' : 'Ouverte' }}</option>
+        }
+      </select></label
+    >
+    <span class="muted">{{ config.accounts.length }} compte(s) · {{ config.rules }} règle(s)</span>
+  </div>
+  @if (!config.periods.length) {
+  <p>Aucune période comptable configurée. Le paramétrage initial est nécessaire.</p>
+  }
+</section>
+} @if (overview(); as data) {
+<section class="panel">
+  <h2>Suivi de la comptabilisation</h2>
+  <dl class="metrics">
+    <div>
+      <dt>Automatisation de la période</dt>
+      <dd>{{ data.automation.closed ? 'Clôturée' : data.automation.enabled ? 'Activée' : 'Non activée' }}</dd>
+    </div>
+    <div>
+      <dt>Pièces en attente sur la période</dt>
+      <dd>{{ data.pending.items.length }}{{ data.pending.hasMore ? '+' : '' }}</dd>
+    </div>
+    <div>
+      <dt>Anomalies recensées</dt>
+      <dd>{{ data.automation.failures.length }}{{ data.automation.failures.length === 100 ? '+' : '' }}</dd>
+    </div>
+    <div>
+      <dt>Balance des mouvements</dt>
+      <dd>{{ data.balance.balanced ? 'Équilibrée' : 'Déséquilibrée' }}</dd>
+    </div>
+  </dl>
+  <p class="muted">
+    Les états reflètent uniquement les écritures validées. Une configuration active ne garantit pas que
+    toutes les pièces ont déjà été traitées.
+  </p>
+  <div class="ui-toolbar" role="group" aria-label="Vues comptables">
+    <button type="button" class="secondary" [attr.aria-pressed]="view() === 'summary'" (click)="view.set('summary')">
+      États financiers
+    </button>
+    <button type="button" class="secondary" [attr.aria-pressed]="view() === 'balance'" (click)="view.set('balance')">
+      Balance
+    </button>
+    <button type="button" class="secondary" [attr.aria-pressed]="view() === 'entries'" (click)="view.set('entries')">
+      Grand livre
+    </button>
+    <button type="button" class="secondary" [attr.aria-pressed]="view() === 'pending'" (click)="view.set('pending')">
+      Pièces et anomalies
+    </button>
+  </div>
+</section>
+@if (view() === 'summary') {
+<section class="panel">
+  <h2>États financiers</h2>
+  <p>{{ data.statements.provisional ? 'États provisoires — à contrôler avant clôture.' : 'États non provisoires.' }}</p>
+  <p class="muted">
+    {{ data.statements.pendingSources }} pièce(s) non comptabilisées à fin de période ·
+    {{ data.statements.priorOpenPeriods }} période(s) antérieures ouvertes ·
+    {{ data.statements.unpostedEntries }} écriture(s) non validées
+  </p>
+  @if (data.statements.complete) {
+  <h3>Compte de résultat</h3>
+  <dl class="metrics">
+    <div><dt>Produits</dt><dd>{{ money(data.statements.incomeStatement.revenue) }}</dd></div>
+    <div><dt>Charges</dt><dd>{{ money(data.statements.incomeStatement.expenses) }}</dd></div>
+    <div><dt>Résultat</dt><dd>{{ money(data.statements.incomeStatement.result) }}</dd></div>
+  </dl>
+  <h3>Bilan</h3>
+  <dl class="metrics">
+    <div><dt>Actif</dt><dd>{{ money(data.statements.balanceSheet.assets) }}</dd></div>
+    <div><dt>Dettes</dt><dd>{{ money(data.statements.balanceSheet.liabilities) }}</dd></div>
+    <div><dt>Capitaux propres</dt><dd>{{ money(data.statements.balanceSheet.equity) }}</dd></div>
+    <div><dt>Total passif</dt><dd>{{ money(data.statements.balanceSheet.total) }}</dd></div>
+    <div><dt>Écart</dt><dd>{{ money(data.statements.balanceSheet.difference) }}</dd></div>
+  </dl>
+  } @else {
+  <p>États incomplets : des comptes utilisés ne sont pas classifiés.</p>
+  @for (item of data.statements.unclassified; track item.id) {
+  <p>{{ item.code }} — {{ item.name }}</p>
+  }
+  }
+</section>
+} @if (view() === 'balance') {
+<section class="panel">
+  <h2>Balance des mouvements de la période</h2>
+  <div class="ui-table" role="region" aria-label="Balance comptable" tabindex="0">
+    <table>
+      <thead>
+        <tr><th scope="col">Compte</th><th scope="col">Débit</th><th scope="col">Crédit</th><th scope="col">Solde débiteur net</th></tr>
+      </thead>
+      <tbody>
+        @for (item of data.balance.rows; track item.id) {
+        <tr><td>{{ item.code }} — {{ item.name }}</td><td>{{ money(item.debit) }}</td><td>{{ money(item.credit) }}</td><td>{{ money(item.balance) }}</td></tr>
+        } @empty {
+        <tr><td colspan="4">Aucun compte.</td></tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">Total</th><td>{{ money(data.balance.debit) }}</td><td>{{ money(data.balance.credit) }}</td><td>—</td></tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+} @if (view() === 'entries') {
+<section class="panel">
+  <h2>Grand livre — écritures validées</h2>
+  <label class="ui-field"
+    >Filtrer par compte<select #account [value]="accountId()" [disabled]="loading()" (change)="filter(account.value)">
+      <option value="">Tous les comptes</option>
+      @for (item of setup()?.accounts ?? []; track item.id) {
+      <option [value]="item.id">{{ item.code }} — {{ item.name }}</option>
+      }
+    </select></label
+  >
+  @if (entries(); as page) {
+  <p class="muted">Page {{ pageNumber }} · Les écritures sont affichées avec toutes leurs lignes.</p>
+  @for (entry of page.entries; track entry.id) {
+  <div class="ui-table" role="region" [attr.aria-label]="entry.description" tabindex="0">
+    <table>
+      <caption>{{ entry.date | date:'dd/MM/yyyy' }} · {{ entry.journal.code }} · {{ source(entry.sourceType) }} — {{ entry.description }}</caption>
+      <thead><tr><th scope="col">Compte</th><th scope="col">Débit</th><th scope="col">Crédit</th></tr></thead>
+      <tbody>
+        @for (line of entry.lines; track line.id) {
+        <tr><td>{{ line.account.code }} — {{ line.account.name }}</td><td>{{ money(line.debit) }}</td><td>{{ money(line.credit) }}</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  } @empty {
+  <p>Aucune écriture validée pour cette sélection.</p>
+  }
+  <div class="ui-toolbar">
+    <button type="button" class="secondary" [disabled]="loading() || pageNumber <= 1" (click)="previous()">Précédent</button>
+    <button type="button" class="secondary" [disabled]="loading() || !page.nextCursor" (click)="next()">Suivant</button>
+  </div>
+  }
+</section>
+} @if (view() === 'pending') {
+<section class="panel">
+  <h2>Pièces en attente</h2>
+  @if (data.pending.hasMore) {
+  <p>Affichage des 100 premières pièces en attente.</p>
+  }
+  <div class="ui-table" role="region" aria-label="Pièces en attente" tabindex="0">
+    <table>
+      <thead><tr><th scope="col">Type</th><th scope="col">Identifiant</th><th scope="col">Date</th></tr></thead>
+      <tbody>
+        @for (item of data.pending.items; track item.type + item.id) {
+        <tr><td>{{ source(item.type) }}</td><td>{{ item.id }}</td><td>{{ item.date ? (item.date | date:'dd/MM/yyyy') : 'Date manquante' }}</td></tr>
+        } @empty {
+        <tr><td colspan="3">Aucune pièce en attente.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <h2>Anomalies d’automatisation</h2>
+  <div class="ui-table" role="region" aria-label="Anomalies comptables" tabindex="0">
+    <table>
+      <thead><tr><th scope="col">Source</th><th scope="col">Tentatives</th><th scope="col">Motif</th><th scope="col">Nouvelle tentative</th></tr></thead>
+      <tbody>
+        @for (item of data.automation.failures; track item.type + item.id) {
+        <tr><td>{{ source(item.type) }} — {{ item.id }}</td><td>{{ item.attempts }}</td><td>{{ item.error }}</td><td>{{ item.nextAttemptAt | date:'dd/MM/yyyy HH:mm' }}</td></tr>
+        } @empty {
+        <tr><td colspan="4">Aucune anomalie recensée.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+} }

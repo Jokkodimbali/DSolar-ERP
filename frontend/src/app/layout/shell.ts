@@ -170,6 +170,13 @@ import { SessionService } from '../features/auth/application/session.service';
         }
         @if (session.can('users.manage')) {
           <a
+            routerLink="/comptabilite"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Comptabilité"
+            ><app-ui-icon name="layers" /><span class="nav-text">Comptabilité</span></a
+          >
+          <a
             routerLink="/banque"
             routerLinkActive="active"
             (click)="menuOpen.set(false)"

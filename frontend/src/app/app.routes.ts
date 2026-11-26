@@ -37,6 +37,12 @@ export const routes: Routes = [
           import('./features/dashboard/presentation/dashboard.page').then((m) => m.DashboardPage),
       },
       {
+        path: 'comptabilite',
+        canActivate: [usersGuard],
+        loadComponent: () =>
+          import('./features/accounting/ledger/presentation/ledger.page').then((m) => m.LedgerPage),
+      },
+      {
         path: 'banque',
         canActivate: [usersGuard],
         loadComponent: () =>
