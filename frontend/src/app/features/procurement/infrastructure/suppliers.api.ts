@@ -27,7 +27,9 @@ export class SuppliersApi {
   }
 
   create(input: SupplierInput, operationKey: string) {
-    return this.http.post<unknown>(apiPath('/suppliers'), { ...input, operationKey }).pipe(map(parseSupplier));
+    return this.http
+      .post<unknown>(apiPath('/suppliers'), { ...input, operationKey })
+      .pipe(map(parseSupplier));
   }
 
   update(id: string, input: SupplierInput) {
