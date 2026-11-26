@@ -69,11 +69,21 @@
     </table>
   </div>
   <div class="ui-actions">
-    <button type="button" class="secondary" [disabled]="busy() || current.page <= 1" (click)="load(current.page - 1)">
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || current.page <= 1"
+      (click)="load(current.page - 1)"
+    >
       Précédent
     </button>
     <span>Page {{ current.page }} / {{ current.pages || 1 }}</span>
-    <button type="button" class="secondary" [disabled]="busy() || current.page >= current.pages" (click)="load(current.page + 1)">
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || current.page >= current.pages"
+      (click)="load(current.page + 1)"
+    >
       Suivant
     </button>
   </div>

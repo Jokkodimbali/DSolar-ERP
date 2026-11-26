@@ -84,7 +84,12 @@ export function notificationEvent(block: string): NotificationFeed | null {
   return parseFeed(parsed);
 }
 
-export function parseNotificationPage(value: unknown, page: number, limit: number, read: '' | 'true' | 'false') {
+export function parseNotificationPage(
+  value: unknown,
+  page: number,
+  limit: number,
+  read: '' | 'true' | 'false',
+) {
   const feed = parseFeed(value);
   if (!isRecord(value) || !isRecord(value['pagination'])) return invalid();
   const pagination = value['pagination'];
