@@ -22,7 +22,8 @@ export class SupplierDto {
   @IsOptional()
   @IsEmail()
   @MaxLength(254)
-  @SwaggerField({ required: false, nullable: true, type: String, format: 'email', maxLength: 254 }) email?: string | null;
+  @SwaggerField({ required: false, nullable: true, type: String, format: 'email', maxLength: 254 })
+  email?: string | null;
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -49,7 +50,8 @@ export class UpdateSupplierDto {
   @IsOptional()
   @IsEmail()
   @MaxLength(254)
-  @SwaggerField({ required: false, nullable: true, type: String, format: 'email', maxLength: 254 }) email?: string | null;
+  @SwaggerField({ required: false, nullable: true, type: String, format: 'email', maxLength: 254 })
+  email?: string | null;
   @IsOptional()
   @IsString()
   @MaxLength(500)

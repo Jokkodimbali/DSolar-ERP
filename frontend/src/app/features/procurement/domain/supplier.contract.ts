@@ -46,7 +46,8 @@ export function parseSuppliers(value: unknown): Supplier[] {
 }
 
 export function parseSupplierPage(value: unknown) {
-  if (!isRecord(value) || !isRecord(value['pagination'])) throw new Error('Pagination fournisseurs invalide.');
+  if (!isRecord(value) || !isRecord(value['pagination']))
+    throw new Error('Pagination fournisseurs invalide.');
   const { page, limit, total, pages } = value['pagination'];
   if (
     typeof page !== 'number' ||
