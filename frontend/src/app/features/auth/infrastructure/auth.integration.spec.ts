@@ -1859,10 +1859,10 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         expect.arrayContaining([expect.objectContaining({ type: 'PAYMENT', id: bankPaymentId })]),
       );
       // Le worker est volontairement désactivé en CI : relancer la pièce métier via son identifiant.
-      const source = { type: 'PAYMENT', id: bankPaymentId };
-      const bankEntry = await request('/accounting/sources', 'POST', source, token);
+      const paymentSource = { type: 'PAYMENT', id: bankPaymentId };
+      const bankEntry = await request('/accounting/sources', 'POST', paymentSource, token);
       expect(bankEntry.status).toBe(201);
-      const replayedEntry = await request('/accounting/sources', 'POST', source, token);
+      const replayedEntry = await request('/accounting/sources', 'POST', paymentSource, token);
       expect(replayedEntry.status).toBe(201);
       expect(parseId(replayedEntry.data)).toBe(parseId(bankEntry.data));
       const ledgerSetup = parseSetup((await request('/accounting/setup', 'GET', undefined, token)).data);
@@ -1872,9 +1872,7 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         periodId,
       );
       expect(ledgerEntries.entries).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ sourceId: bankPaymentId, sourceType: 'PAYMENT' }),
-        ]),
+        expect.arrayContaining([expect.objectContaining({ sourceId: bankPaymentId, sourceType: 'PAYMENT' })]),
       );
       const balance = parseLedgerBalance(
         (await request(ledgerPath + '/trial-balance', 'GET', undefined, token)).data,
