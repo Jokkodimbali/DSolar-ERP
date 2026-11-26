@@ -18,6 +18,8 @@ describe('Documents commerciaux', () => {
     await expect(validatePdf(pdf)).resolves.toBe(pdf);
     await expect(validatePdf(new Blob(['%PDF-1.4'], { type: 'application/json' }))).rejects.toThrow();
     await expect(validatePdf(new Blob([''], { type: 'application/pdf' }))).rejects.toThrow();
-    await expect(validatePdf(new Blob(['<html>erreur</html>'], { type: 'application/pdf' }))).rejects.toThrow();
+    await expect(
+      validatePdf(new Blob(['<html>erreur</html>'], { type: 'application/pdf' })),
+    ).rejects.toThrow();
   });
 });

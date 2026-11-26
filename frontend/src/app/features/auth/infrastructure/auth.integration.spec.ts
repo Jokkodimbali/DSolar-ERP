@@ -1316,10 +1316,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(pdf.headers.get('cache-control')).toContain('no-store');
       expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 8))).toBe('%PDF-1.4');
       expect((await fetch(base + pdfPath)).status).toBe(401);
-      const wrongOrder = await fetch(
-        base + apiPath(salesOrderPath + '/deliveries/' + note.id + '/pdf'),
-        { headers: { Authorization: 'Bearer ' + token } },
-      );
+      const wrongOrder = await fetch(base + apiPath(salesOrderPath + '/deliveries/' + note.id + '/pdf'), {
+        headers: { Authorization: 'Bearer ' + token },
+      });
       expect(wrongOrder.status).toBe(404);
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
