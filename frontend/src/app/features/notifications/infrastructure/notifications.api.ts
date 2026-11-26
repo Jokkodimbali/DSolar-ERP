@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
@@ -7,6 +7,7 @@ import {
   notificationId,
   parseFeed,
   parseMark,
+  parseNotificationPage,
   type NotificationFeed,
 } from '../domain/notification.contract';
 
@@ -16,6 +17,16 @@ export class NotificationsApi {
 
   feed() {
     return this.http.get<unknown>(apiPath('/notifications')).pipe(map(parseFeed));
+  }
+
+  history(page: number, read: '' | 'true' | 'false', search: string) {
+    const limit = 30;
+    let params = new HttpParams().set('page', page).set('limit', limit);
+    if (read) params = params.set('read', read);
+    if (search.trim()) params = params.set('search', search.trim());
+    return this.http
+      .get<unknown>(apiPath('/notifications'), { params })
+      .pipe(map((value) => parseNotificationPage(value, page, limit, read)));
   }
 
   mark(id?: string) {

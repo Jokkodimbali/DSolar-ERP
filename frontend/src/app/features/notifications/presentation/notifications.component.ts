@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { defer, EMPTY, finalize, repeat, retry, switchMap, tap } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
 import { DismissOutsideDirective } from '../../../shared/ui/dismiss-outside.directive';
@@ -12,7 +13,7 @@ import { NotificationsApi } from '../infrastructure/notifications.api';
 
 @Component({
   selector: 'app-notifications',
-  imports: [DismissOutsideDirective, FeedbackComponent, EmptyStateComponent, UiIconComponent],
+  imports: [RouterLink, DismissOutsideDirective, FeedbackComponent, EmptyStateComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notifications.component.html',
 })

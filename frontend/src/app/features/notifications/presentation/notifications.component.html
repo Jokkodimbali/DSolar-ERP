@@ -23,6 +23,7 @@
     <section class="panel notification-panel" aria-label="Centre de notifications">
       <div class="dashboard-report-heading">
         <h2 class="ui-section-title"><app-ui-icon name="bell" />Notifications</h2>
+        <a routerLink="/notifications" (click)="open.set(false)">Tout afficher</a>
         <button type="button" class="secondary" (click)="open.set(false)">Fermer</button>
       </div>
       <app-feedback [message]="connectionError()" kind="error" />

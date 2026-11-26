@@ -1,0 +1,84 @@
+<app-page-header
+  eyebrow="ESPACE DE TRAVAIL"
+  heading="Centre de notifications"
+  description="Consultez les alertes et activités accessibles à votre compte. La cloche reste synchronisée en temps réel."
+>
+  <button type="button" class="secondary" [disabled]="busy()" (click)="load(1)">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+<section class="panel">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(status.value, query.value)">
+    <label class="ui-field">
+      Statut
+      <select #status [value]="read()" [disabled]="busy()">
+        <option value="">Toutes</option>
+        <option value="false">Non lues</option>
+        <option value="true">Lues</option>
+      </select>
+    </label>
+    <label class="ui-field">
+      Recherche
+      <input #query type="search" maxlength="120" [value]="search()" [disabled]="busy()" />
+    </label>
+    <button type="submit" class="primary" [disabled]="busy()">Rechercher</button>
+  </form>
+</section>
+@if (busy()) {
+<p role="status">Chargement des notifications…</p>
+} @if (data(); as current) {
+<section class="panel">
+  @if (current.enabled) {
+  <div class="ui-toolbar">
+    <strong>{{ current.unread }} non lue(s) au total</strong>
+    <span>{{ current.total }} résultat(s)</span>
+    <button type="button" class="secondary" [disabled]="busy() || !current.unread" (click)="mark()">
+      Tout marquer comme lu
+    </button>
+  </div>
+  <div class="ui-table" role="region" aria-label="Notifications" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Notification</th>
+          <th scope="col">Date</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of current.items; track item.id) {
+        <tr>
+          <td>{{ item.title }}</td>
+          <td>{{ item.createdAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</td>
+          <td>{{ item.read ? 'Lue' : 'Non lue' }}</td>
+          <td>
+            @if (!item.read) {
+            <button type="button" class="secondary" [disabled]="busy()" (click)="mark(item.id)">
+              Marquer comme lue
+            </button>
+            }
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4">Aucune notification correspondante.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="ui-actions">
+    <button type="button" class="secondary" [disabled]="busy() || current.page <= 1" (click)="load(current.page - 1)">
+      Précédent
+    </button>
+    <span>Page {{ current.page }} / {{ current.pages || 1 }}</span>
+    <button type="button" class="secondary" [disabled]="busy() || current.page >= current.pages" (click)="load(current.page + 1)">
+      Suivant
+    </button>
+  </div>
+  } @else {
+  <p>Les notifications sont désactivées dans les paramètres de l’entreprise.</p>
+  }
+</section>
+}

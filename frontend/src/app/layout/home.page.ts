@@ -60,6 +60,10 @@ import { UiIconComponent } from '../shared/ui/ui-icon.component';
           <span><strong>Journal d’audit</strong><small>Traçabilité des opérations</small></span>
         </a>
       }
+      <a class="panel ui-shortcut" routerLink="/notifications">
+        <span class="ui-kpi-icon"><app-ui-icon name="bell" /></span>
+        <span><strong>Notifications</strong><small>Historique et alertes</small></span>
+      </a>
       <a class="panel ui-shortcut" routerLink="/mon-compte">
         <span class="ui-kpi-icon"><app-ui-icon name="user" /></span>
         <span><strong>Mon compte</strong><small>Identité et autorisations</small></span>

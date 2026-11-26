@@ -83,3 +83,23 @@ export function notificationEvent(block: string): NotificationFeed | null {
   const parsed: unknown = JSON.parse(data.join('\n'));
   return parseFeed(parsed);
 }
+
+export function parseNotificationPage(value: unknown, page: number, limit: number, read: '' | 'true' | 'false') {
+  const feed = parseFeed(value);
+  if (!isRecord(value) || !isRecord(value['pagination'])) return invalid();
+  const pagination = value['pagination'];
+  const total = pagination['total'];
+  const pages = pagination['pages'];
+  if (
+    pagination['page'] !== page ||
+    pagination['limit'] !== limit ||
+    typeof total !== 'number' ||
+    !Number.isSafeInteger(total) ||
+    total < 0 ||
+    pages !== Math.ceil(total / limit) ||
+    feed.items.length !== Math.min(limit, Math.max(0, total - (page - 1) * limit)) ||
+    (read !== '' && feed.items.some((item) => item.read !== (read === 'true')))
+  )
+    return invalid();
+  return { ...feed, total, pages: Math.ceil(total / limit), page };
+}
