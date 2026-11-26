@@ -12,7 +12,17 @@ const row = {
   expiresAt: null,
   total: '2360',
   lines: [
-    { id, proformaId: id, productId: id, storeId: id, quantity: '2', unitPrice: '1000', discount: '0', taxRate: '18', lineTotal: '2360' },
+    {
+      id,
+      proformaId: id,
+      productId: id,
+      storeId: id,
+      quantity: '2',
+      unitPrice: '1000',
+      discount: '0',
+      taxRate: '18',
+      lineTotal: '2360',
+    },
   ],
 };
 describe('Consultation des proformas', () => {
@@ -20,12 +30,19 @@ describe('Consultation des proformas', () => {
     expect(parseProforma(row).total).toBe('2360');
     expect(() => parseProforma({ ...row, total: '2360.01' })).toThrow();
     expect(() => parseProforma({ ...row, lines: [{ ...row.lines[0], proformaId: 'invalide' }] })).toThrow();
-    expect(parseProformaPage({ items: [row], pagination: { page: 1, limit: 10, total: 1, pages: 1 } }).items).toHaveLength(1);
+    expect(
+      parseProformaPage({ items: [row], pagination: { page: 1, limit: 10, total: 1, pages: 1 } }).items,
+    ).toHaveLength(1);
   });
   it('autorise uniquement les transitions compatibles avec le statut et la validité', () => {
     expect(proformaActions(parseProforma(row))).toEqual(['issue', 'cancel']);
     expect(proformaActions(parseProforma({ ...row, status: 'ISSUED' }))).toEqual(['accept', 'cancel']);
     expect(proformaActions(parseProforma({ ...row, status: 'ACCEPTED' }))).toEqual([]);
-    expect(proformaActions(parseProforma({ ...row, status: 'ISSUED', expiresAt: '2026-01-01T00:00:00Z' }), Date.parse(row.createdAt))).toEqual(['expire']);
+    expect(
+      proformaActions(
+        parseProforma({ ...row, status: 'ISSUED', expiresAt: '2026-01-01T00:00:00Z' }),
+        Date.parse(row.createdAt),
+      ),
+    ).toEqual(['expire']);
   });
 });

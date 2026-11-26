@@ -4,7 +4,12 @@ import { forkJoin, map, switchMap } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import { storeId } from '../../stores/domain/store.contract';
-import { parseProforma, parseProformaPage, type ProformaAction, type ProformaStatus } from '../domain/proforma-view.contract';
+import {
+  parseProforma,
+  parseProformaPage,
+  type ProformaAction,
+  type ProformaStatus,
+} from '../domain/proforma-view.contract';
 import { parseCreatedProforma, parseOptions, type ProformaInput } from '../domain/proforma.contract';
 
 @Injectable({ providedIn: 'root' })

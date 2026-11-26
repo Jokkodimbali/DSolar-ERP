@@ -29,7 +29,15 @@ import {
 
 @Component({
   selector: 'app-proformas-page',
-  imports: [DatePipe, RouterLink, ConfirmComponent, EmptyStateComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    ConfirmComponent,
+    EmptyStateComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './proformas.page.html',
 })
@@ -61,10 +69,13 @@ export class ProformasPage {
   constructor() {
     this.load(1);
     if (this.session.can('stores.read')) {
-      this.stores.list(true).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-        next: (items) => this.storeNames.set(Object.fromEntries(items.map((item) => [item.id, item.name]))),
-        error: () => undefined,
-      });
+      this.stores
+        .list(true)
+        .pipe(takeUntilDestroyed(this.destroy))
+        .subscribe({
+          next: (items) => this.storeNames.set(Object.fromEntries(items.map((item) => [item.id, item.name]))),
+          error: () => undefined,
+        });
     }
   }
 
@@ -79,8 +90,12 @@ export class ProformasPage {
   load(page = this.result()?.page ?? 1): void {
     if (this.loading() || this.busy() || this.pending() || page < 1) return;
     this.loading.set(true);
-    this.api.search(page, this.query(), this.status())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+    this.api
+      .search(page, this.query(), this.status())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (data) => {
           this.result.set(data);
@@ -98,10 +113,12 @@ export class ProformasPage {
     if (!missing.length) return;
     forkJoin(missing.map((id) => this.customers.get(id).pipe(catchError(() => of(null)))))
       .pipe(takeUntilDestroyed(this.destroy))
-      .subscribe((items) => this.customerNames.update((names) => ({
-        ...names,
-        ...Object.fromEntries(items.filter((item) => item !== null).map((item) => [item.id, item.name])),
-      })));
+      .subscribe((items) =>
+        this.customerNames.update((names) => ({
+          ...names,
+          ...Object.fromEntries(items.filter((item) => item !== null).map((item) => [item.id, item.name])),
+        })),
+      );
   }
 
   close(): void {
@@ -114,30 +131,50 @@ export class ProformasPage {
     this.detail.set(null);
     this.error.set('');
     this.busy.set(true);
-    this.api.get(id).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
-      next: (item) => {
-        if (item.id !== id) {
-          this.error.set('Identifiant de devis incohérent.');
-          return;
-        }
-        this.detail.set(item);
-        this.loadCustomerNames([item.customerId]);
-        if (!this.session.can('products.read')) return;
-        const ids = [...new Set(item.lines.map((line) => line.productId))];
-        forkJoin(ids.map((productId) => this.products.get(productId).pipe(catchError(() => of(null)))))
-          .pipe(takeUntilDestroyed(this.destroy))
-          .subscribe((products) => this.productNames.update((names) => ({
-            ...names,
-            ...Object.fromEntries(products.filter((product) => product !== null).map((product) => [product.id, product.name + ' · ' + product.sku])),
-          })));
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .get(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (item) => {
+          if (item.id !== id) {
+            this.error.set('Identifiant de devis incohérent.');
+            return;
+          }
+          this.detail.set(item);
+          this.loadCustomerNames([item.customerId]);
+          if (!this.session.can('products.read')) return;
+          const ids = [...new Set(item.lines.map((line) => line.productId))];
+          forkJoin(ids.map((productId) => this.products.get(productId).pipe(catchError(() => of(null)))))
+            .pipe(takeUntilDestroyed(this.destroy))
+            .subscribe((products) =>
+              this.productNames.update((names) => ({
+                ...names,
+                ...Object.fromEntries(
+                  products
+                    .filter((product) => product !== null)
+                    .map((product) => [product.id, product.name + ' · ' + product.sku]),
+                ),
+              })),
+            );
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   ask(action: ProformaAction): void {
     const item = this.detail();
-    if (!item || this.busy() || this.loading() || this.pending() || !this.session.can('sales.manage') || !this.actions(item).includes(action)) return;
+    if (
+      !item ||
+      this.busy() ||
+      this.loading() ||
+      this.pending() ||
+      !this.session.can('sales.manage') ||
+      !this.actions(item).includes(action)
+    )
+      return;
     this.error.set('');
     this.success.set('');
     this.pending.set(action);
@@ -146,28 +183,38 @@ export class ProformasPage {
   apply(): void {
     const item = this.detail();
     const action = this.pending();
-    if (!item || !action || this.busy() || !this.session.can('sales.manage') || !this.actions(item).includes(action)) return;
+    if (
+      !item ||
+      !action ||
+      this.busy() ||
+      !this.session.can('sales.manage') ||
+      !this.actions(item).includes(action)
+    )
+      return;
     this.busy.set(true);
-    this.api.action(item.id, action).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (updated) => {
-        this.busy.set(false);
-        this.pending.set(null);
-        if (updated.id !== item.id || updated.status !== expectedStatus[action]) {
+    this.api
+      .action(item.id, action)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (updated) => {
+          this.busy.set(false);
+          this.pending.set(null);
+          if (updated.id !== item.id || updated.status !== expectedStatus[action]) {
+            this.detail.set(null);
+            this.error.set('État non confirmé. Consultez de nouveau le devis.');
+          } else {
+            this.detail.set(updated);
+            this.success.set('Statut du devis : ' + this.labels[updated.status] + '.');
+          }
+          this.load(1);
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.pending.set(null);
           this.detail.set(null);
-          this.error.set('État non confirmé. Consultez de nouveau le devis.');
-        } else {
-          this.detail.set(updated);
-          this.success.set('Statut du devis : ' + this.labels[updated.status] + '.');
-        }
-        this.load(1);
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        this.pending.set(null);
-        this.detail.set(null);
-        this.error.set(errorMessage(error) + ' Consultez de nouveau le devis avant toute nouvelle action.');
-        this.load(1);
-      },
-    });
+          this.error.set(errorMessage(error) + ' Consultez de nouveau le devis avant toute nouvelle action.');
+          this.load(1);
+        },
+      });
   }
 }
