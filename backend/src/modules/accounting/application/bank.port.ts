@@ -1,3 +1,4 @@
+import type { ListCriteria } from '../../../shared/pagination';
 import { BankStatementInput } from '../domain/bank-policy';
 import { ReconciliationSnapshot } from '../domain/bank-suggestions';
 
@@ -8,6 +9,7 @@ export interface BankPort {
   accounts(actor: string): Promise<unknown>;
   importStatement(input: BankStatementInput, actor: string): Promise<unknown>;
   statements(bankAccountId: string, actor: string): Promise<unknown>;
+  searchStatements(bankAccountId: string, actor: string, query: ListCriteria): Promise<unknown>;
   detail(id: string, actor: string): Promise<unknown>;
   suggestionSnapshot(id: string, actor: string): Promise<ReconciliationSnapshot>;
   match(lineId: string, ledgerLineId: string, actor: string): Promise<unknown>;

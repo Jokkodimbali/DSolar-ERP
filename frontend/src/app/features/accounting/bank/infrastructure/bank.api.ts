@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { map, switchMap } from 'rxjs';
 import { apiPath } from '../../../../core/api/api-contract';
 import { storeId } from '../../../stores/domain/store.contract';
-import { parseAssetAccounts, parseBankAccount, parseBankAccounts, parseBankReport, parseStatements, parseSuggestions, verifyImported, type BankAccount, type BankReport, type Statement, type StatementInput } from '../domain/bank.contract';
+import { parseAssetAccounts, parseBankAccount, parseBankAccounts, parseBankReport, parseStatementPage, parseSuggestions, verifyImported, type BankAccount, type BankReport, type Statement, type StatementInput } from '../domain/bank.contract';
 
 @Injectable({ providedIn: 'root' })
 export class BankApi {
@@ -19,8 +19,10 @@ export class BankApi {
       return bank;
     }));
   }
-  statements(bank: BankAccount) {
-    return this.http.get<unknown>(this.base + '/accounts/' + bank.id + '/statements').pipe(map((value) => parseStatements(value, bank.id)));
+  statements(bank: BankAccount, page: number, search: string) {
+    return this.http.get<unknown>(this.base + '/accounts/' + storeId(bank.id) + '/statements/search', {
+      params: { page, limit: 10, search },
+    }).pipe(map((value) => parseStatementPage(value, bank.id)));
   }
   import(input: StatementInput) {
     return this.http.post<unknown>(this.base + '/statements', input).pipe(map((value) => verifyImported(value, input)));

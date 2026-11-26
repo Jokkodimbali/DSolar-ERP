@@ -1,11 +1,12 @@
 import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
+import { PageQueryDto } from '../../../infrastructure/http/page-query.dto';
 import { BankService } from '../application/bank.service';
 
 class BankBankAccountDto {
@@ -97,6 +98,10 @@ export class BankController {
   @Get('accounts/:id/statements')
   statements(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {
     return this.service.statements(id, actor);
+  }
+  @Get('accounts/:id/statements/search')
+  searchStatements(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+    return this.service.searchStatements(id, actor, query);
   }
   @Get('statements/:id')
   detail(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string) {

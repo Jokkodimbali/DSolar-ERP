@@ -6,18 +6,19 @@ import { finalize, forkJoin } from 'rxjs';
 import { errorMessage } from '../../../../core/api/http-error';
 import { ConfirmComponent } from '../../../../shared/ui/confirm.component';
 import { FeedbackComponent } from '../../../../shared/ui/feedback.component';
+import { PaginationComponent } from '../../../../shared/ui/pagination.component';
 import { PageHeaderComponent } from '../../../../shared/ui/page-header.component';
 import { SessionService } from '../../../auth/application/session.service';
 import { formatMoney } from '../../../dashboard/domain/dashboard.contract';
 import { cents } from '../../../treasury/domain/treasury.contract';
-import { bankStorageKey, parseStatementInput, parseTabularLines, type BankAccount, type BankLine, type BankReport, type BankSuggestions, type Statement, type StatementInput, type parseAssetAccounts } from '../domain/bank.contract';
+import { bankStorageKey, parseStatementInput, parseTabularLines, type BankAccount, type BankLine, type BankReport, type BankSuggestions, type Statement, type StatementInput, type parseAssetAccounts, type parseStatementPage } from '../domain/bank.contract';
 import { BankApi } from '../infrastructure/bank.api';
 
 type Action = { kind: 'import'; input: StatementInput } | { kind: 'match' | 'unmatch'; lineId: string; ledgerLineId: string | null } | { kind: 'close' };
 
 @Component({
   selector: 'app-bank-page',
-  imports: [DatePipe, ConfirmComponent, FeedbackComponent, PageHeaderComponent],
+  imports: [DatePipe, ConfirmComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent],
   templateUrl: './bank.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -29,11 +30,10 @@ export class BankPage {
   readonly assets = signal<ReturnType<typeof parseAssetAccounts>>([]);
   readonly availableAssets = computed(() => this.assets().filter((asset) => !this.accounts().some((bank) => bank.accountId === asset.id)));
   readonly selected = signal<BankAccount | null>(null);
-  readonly statements = signal<Statement[]>([]);
+  readonly statements = signal<ReturnType<typeof parseStatementPage> | null>(null);
   readonly report = signal<BankReport | null>(null);
   readonly suggestions = signal<BankSuggestions>([]);
   readonly query = signal('');
-  readonly visibleStatements = computed(() => this.statements().filter((item) => item.reference.toLocaleLowerCase('fr').includes(this.query().toLocaleLowerCase('fr'))));
   readonly raw = signal('reference\tdate\tdescription\tmontant\n');
   readonly pending = signal<StatementInput | null>(null);
   readonly confirmation = signal<Action | null>(null);
@@ -70,7 +70,7 @@ export class BankPage {
     this.loading.set(true);
     this.ready.set(false);
     this.selected.set(null);
-    this.statements.set([]);
+    this.statements.set(null);
     this.report.set(null);
     this.suggestions.set([]);
     forkJoin({ accounts: this.api.accounts(), assets: this.api.assets() })
@@ -97,15 +97,15 @@ export class BankPage {
     });
   }
 
-  select(bank: BankAccount): void {
+  select(bank: BankAccount, page = 1, query = ''): void {
     if (this.loading() || this.busy() || this.confirmation()) return;
     this.selected.set(bank);
     this.report.set(null);
     this.suggestions.set([]);
-    this.statements.set([]);
-    this.query.set('');
+    this.statements.set(null);
+    this.query.set(query.trim());
     this.loading.set(true);
-    this.api.statements(bank).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+    this.api.statements(bank, page, this.query()).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
       .subscribe({ next: (items) => this.statements.set(items), error: (error: unknown) => this.error.set(errorMessage(error)) });
   }
 
@@ -214,7 +214,7 @@ export class BankPage {
         this.confirmation.set(null);
         this.report.set(updated);
         this.suggestions.set([]);
-        this.statements.update((items) => items.map((item) => item.id === updated.statement.id ? updated.statement : item));
+        this.statements.update((page) => page ? { ...page, items: page.items.map((item) => item.id === updated.statement.id ? updated.statement : item) } : null);
         this.success.set(action.kind === 'close' ? 'Relevé clôturé.' : action.kind === 'match' ? 'Ligne rapprochée.' : 'Rapprochement annulé.');
       },
       error: (error: unknown) => {

@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import type { ListCriteria } from '../../../shared/pagination';
 import { BANK_RECONCILIATION, BankPort } from './bank.port';
 import { BankStatementInput, validateStatement } from '../domain/bank-policy';
 import { suggestReconciliations } from '../domain/bank-suggestions';
@@ -41,6 +42,10 @@ export class BankService {
 
   statements(id: string, actor: string) {
     return this.repository.statements(id, actor);
+  }
+
+  searchStatements(id: string, actor: string, query: ListCriteria) {
+    return this.repository.searchStatements(id, actor, query);
   }
 
   detail(id: string, actor: string) {

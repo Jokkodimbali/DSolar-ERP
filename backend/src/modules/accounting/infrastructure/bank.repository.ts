@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { pageBounds, pageResult, type ListCriteria } from '../../../shared/pagination';
 import { BankPort } from '../application/bank.port';
 import { BankStatementInput, validateStatement } from '../domain/bank-policy';
 import { aggregateCents, calendarDate, moneyText } from '../domain/ledger-policy';
@@ -122,6 +123,24 @@ export class BankRepository implements BankPort {
         take: 100,
       }),
     );
+  }
+
+  searchStatements(bankAccountId: string, actor: string, query: ListCriteria) {
+    const { page, limit, skip } = pageBounds(query);
+    const search = query.search?.trim();
+    return this.transaction(actor, async (tx) => {
+      if (!(await tx.ledgerBankAccount.findUnique({ where: { id: bankAccountId }, select: { id: true } })))
+        throw new NotFoundException('Compte bancaire introuvable.');
+      const where: Prisma.LedgerBankStatementWhereInput = {
+        bankAccountId,
+        ...(search ? { reference: { contains: search, mode: 'insensitive' } } : {}),
+      };
+      const [items, total] = await Promise.all([
+        tx.ledgerBankStatement.findMany({ where, orderBy: [{ startsAt: 'desc' }, { id: 'desc' }], skip, take: limit }),
+        tx.ledgerBankStatement.count({ where }),
+      ]);
+      return pageResult(items, total, page, limit);
+    });
   }
 
   private async report(tx: Prisma.TransactionClient, id: string) {

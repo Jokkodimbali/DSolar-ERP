@@ -46,13 +46,17 @@
     <button type="submit" class="primary" [disabled]="busy() || loading() || !!confirmation()">Vérifier le relevé</button>
   </form>
   }
-  <label class="ui-field">Filtrer les références<input #filter type="search" [value]="query()" (input)="query.set(filter.value)" /></label>
-  <p class="muted small">Les 100 relevés les plus récents sont affichés.</p>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); select(bank, 1, filter.value)">
+    <label class="ui-field">Filtrer les références<input #filter type="search" maxlength="120" [value]="query()" /></label>
+    <button type="submit" class="secondary" [disabled]="busy() || loading() || !!confirmation()">Rechercher</button>
+  </form>
+  <p class="muted small">{{ statements()?.total ?? 0 }} relevé(s)</p>
   <div class="ui-table" role="region" aria-label="Liste des relevés" tabindex="0">
     <table><thead><tr><th scope="col">Référence</th><th scope="col">Période</th><th scope="col">Solde final</th><th scope="col">Statut</th><th scope="col">Actions</th></tr></thead>
-    <tbody>@for (item of visibleStatements(); track item.id) { <tr><td>{{ item.reference }}</td><td>{{ item.start }} — {{ item.end }}</td><td>{{ money(item.closing) }}</td><td>{{ item.closedAt ? 'Clôturé' : 'Ouvert' }}</td><td><button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="inspect(item)">Consulter</button></td></tr> }
+    <tbody>@for (item of statements()?.items ?? []; track item.id) { <tr><td>{{ item.reference }}</td><td>{{ item.start }} — {{ item.end }}</td><td>{{ money(item.closing) }}</td><td>{{ item.closedAt ? 'Clôturé' : 'Ouvert' }}</td><td><button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="inspect(item)">Consulter</button></td></tr> }
     @empty { <tr><td colspan="5">Aucun relevé correspondant.</td></tr> }</tbody></table>
   </div>
+  <app-pagination [page]="statements()?.page ?? 1" [pages]="statements()?.pages || 1" [disabled]="busy() || loading() || !!confirmation()" (change)="select(bank, $event, query())" />
 </section>
 }
 @if (report(); as data) {

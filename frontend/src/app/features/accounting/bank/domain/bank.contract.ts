@@ -1,4 +1,5 @@
 import { isRecord } from '../../../../core/api/api-contract';
+import { parsePage } from '../../../inventory/domain/workflow.contract';
 import { storeId } from '../../../stores/domain/store.contract';
 import { cashAmount, cents } from '../../../treasury/domain/treasury.contract';
 
@@ -64,6 +65,12 @@ export function parseStatement(value: unknown, bankId: string) {
 export type Statement = ReturnType<typeof parseStatement>;
 export function parseStatements(value: unknown, bankId: string) {
   return unique(array(value).map((item) => parseStatement(item, bankId)));
+}
+export function parseStatementPage(value: unknown, bankId: string) {
+  const page = parsePage(value, (raw) => parseStatement(raw, bankId));
+  unique(page.items);
+  if (page.items.length !== Math.min(page.limit, Math.max(0, page.total - (page.page - 1) * page.limit))) return invalid();
+  return page;
 }
 export interface BankLineInput { reference: string; date: string; description: string; amount: string }
 export interface StatementInput {
