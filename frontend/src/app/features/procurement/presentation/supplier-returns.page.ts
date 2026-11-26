@@ -186,10 +186,11 @@ export class SupplierReturnsPage {
           this.busy.set(false);
           this.action.set(null);
           this.detail.set(null);
-          this.error.set(errorMessage(error) + ' Consultez de nouveau le retour avant toute nouvelle action.');
+          this.error.set(
+            errorMessage(error) + ' Consultez de nouveau le retour avant toute nouvelle action.',
+          );
           this.load(1);
         },
       });
   }
-
 }

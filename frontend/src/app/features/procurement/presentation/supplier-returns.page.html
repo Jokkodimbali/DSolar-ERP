@@ -83,7 +83,8 @@
   >
     Annuler le retour
   </button>
-  } @if (item.status === 'CONFIRMED' && !item.credit && +item.total > 0 && session.can('sales.manage', 'users.manage')) {
+  } @if (item.status === 'CONFIRMED' && !item.credit && +item.total > 0 && session.can('sales.manage',
+  'users.manage')) {
   <label class="ui-field">
     Référence de l’avoir fournisseur
     <input

@@ -108,9 +108,7 @@ export function parseSupplierReturnPage(value: unknown) {
 }
 
 export type ReturnAction =
-  | { kind: 'confirm' }
-  | { kind: 'cancel'; reason: string }
-  | { kind: 'credit'; reference: string };
+  { kind: 'confirm' } | { kind: 'cancel'; reason: string } | { kind: 'credit'; reference: string };
 
 export function returnAction(item: SupplierReturn, kind: ReturnAction['kind'], value = ''): ReturnAction {
   if (kind === 'confirm' && item.status === 'DRAFT') return { kind };
