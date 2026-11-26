@@ -98,6 +98,13 @@ import { SessionService } from '../features/auth/application/session.service';
             aria-label="Commandes fournisseurs"
             ><app-ui-icon name="box" /><span class="nav-text">Commandes fournisseurs</span></a
           >
+          <a
+            routerLink="/approvisionnements/receptions"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Réceptions"
+            ><app-ui-icon name="box" /><span class="nav-text">Réceptions</span></a
+          >
         }
         @if (session.can('stores.read')) {
           <a

@@ -32,6 +32,7 @@ import {
 import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
+import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
 import {
   parsePurchaseOrder,
   parsePurchaseOrderPage,
@@ -900,6 +901,40 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       } finally {
         await request('/auth/logout', 'POST', { refreshToken: scopedKeeper.jetonRenouvellement });
       }
+
+      const receiptInput = {
+        number: 'BR-CONTRAT-CI',
+        purchaseOrderId: purchase.id,
+        storeId: store.id,
+        lines: [{ productId: catalogueProduct.id, quantity: 1, unitCost: 1250.25 }],
+      };
+      const firstReceipt = await request('/goods-receipts', 'POST', receiptInput, token);
+      expect(firstReceipt.status).toBe(201);
+      const receipt = parseGoodsReceipt(firstReceipt.data);
+      expect(receipt.status).toBe('DRAFT');
+      const receiptPath = '/goods-receipts/' + receipt.id;
+      const receiptList = await request('/goods-receipts/search?search=BR-CONTRAT-CI&page=1&limit=10', 'GET', undefined, token);
+      expect(receiptList.status).toBe(200);
+      expect(parseReceiptPage(receiptList.data).items).toContainEqual(receipt);
+      expect(parseGoodsReceipt((await request(receiptPath, 'GET', undefined, token)).data)).toEqual(receipt);
+      const receiptConfirmation = await request(receiptPath + '/confirm', 'POST', {}, token);
+      expect(receiptConfirmation.status).toBe(201);
+      expect(parseGoodsReceipt(receiptConfirmation.data).status).toBe('CONFIRMED');
+      expect((await request(receiptPath + '/confirm', 'POST', {}, token)).status).toBe(409);
+      const partialPurchase = parsePurchaseProgress((await request(purchasePath + '/progress', 'GET', undefined, token)).data);
+      expect(partialPurchase.status).toBe('PARTIALLY_DELIVERED');
+      expect(partialPurchase.lines[0]?.remaining).toBe('1.125');
+      const excess = await request('/goods-receipts', 'POST', { ...receiptInput, number: 'BR-EXCES-CI', lines: [{ ...receiptInput.lines[0], quantity: 2 }] }, token);
+      expect(excess.status).toBe(201);
+      const excessPath = '/goods-receipts/' + parseGoodsReceipt(excess.data).id;
+      expect((await request(excessPath + '/confirm', 'POST', {}, token)).status).toBe(409);
+      expect(parseGoodsReceipt((await request(excessPath + '/cancel', 'POST', {}, token)).data).status).toBe('CANCELLED');
+      const lastReceipt = await request('/goods-receipts', 'POST', { ...receiptInput, number: 'BR-SOLDE-CI', lines: [{ ...receiptInput.lines[0], quantity: 1.125 }] }, token);
+      expect(lastReceipt.status).toBe(201);
+      expect((await request('/goods-receipts/' + parseGoodsReceipt(lastReceipt.data).id + '/confirm', 'POST', {}, token)).status).toBe(201);
+      const delivered = parsePurchaseProgress((await request(purchasePath + '/progress', 'GET', undefined, token)).data);
+      expect(delivered.status).toBe('DELIVERED');
+      expect(delivered.lines[0]?.remaining).toBe('0');
 
       const second = await request('/proformas', 'POST', input, token);
       expect(second.status).toBe(201);

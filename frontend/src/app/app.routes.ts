@@ -60,6 +60,12 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'approvisionnements/receptions',
+        canActivate: [suppliersGuard],
+        loadComponent: () =>
+          import('./features/procurement/presentation/goods-receipts.page').then((m) => m.GoodsReceiptsPage),
+      },
+      {
         path: 'magasins',
         canActivate: [storesGuard],
         loadComponent: () => import('./features/stores/presentation/stores.page').then((m) => m.StoresPage),

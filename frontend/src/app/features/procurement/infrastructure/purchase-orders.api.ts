@@ -24,6 +24,13 @@ export class PurchaseOrdersApi {
       })
       .pipe(map(parsePurchaseOrderPage));
   }
+  outstanding(page: number, search: string) {
+    return this.http
+      .get<unknown>(apiPath('/purchase-orders/search'), {
+        params: { page, limit: 10, search, outstanding: true },
+      })
+      .pipe(map(parsePurchaseOrderPage));
+  }
   get(id: string) {
     return this.http.get<unknown>(this.path(id)).pipe(map(parsePurchaseOrder));
   }
