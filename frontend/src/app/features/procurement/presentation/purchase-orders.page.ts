@@ -30,7 +30,14 @@ type DraftLine = PurchaseDraftLine & { label: string };
 
 @Component({
   selector: 'app-purchase-orders-page',
-  imports: [DatePipe, ConfirmComponent, EmptyStateComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent],
+  imports: [
+    DatePipe,
+    ConfirmComponent,
+    EmptyStateComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './purchase-orders.page.html',
   styleUrl: './purchase-orders.page.css',
@@ -79,8 +86,12 @@ export class PurchaseOrdersPage {
   load(page = this.result()?.page ?? 1): void {
     if (this.loading() || this.busy() || page < 1) return;
     this.loading.set(true);
-    this.api.search(page, this.search(), this.status())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+    this.api
+      .search(page, this.search(), this.status())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (value) => this.result.set(value),
         error: (error: unknown) => {
@@ -112,12 +123,14 @@ export class PurchaseOrdersPage {
     const fail = (error: unknown) => this.error.set(errorMessage(error));
     if (kind === 'supplier') {
       this.supplierTerm.set(term.trim());
-      this.suppliersApi.search(page, this.supplierTerm(), 'ACTIVE')
+      this.suppliersApi
+        .search(page, this.supplierTerm(), 'ACTIVE')
         .pipe(takeUntilDestroyed(this.destroy), finalize(finish))
         .subscribe({ next: (value) => this.supplierOptions.set(value), error: fail });
     } else {
       this.productTerm.set(term.trim());
-      this.productsApi.search(page, { ...emptyFilters, search: this.productTerm(), active: 'true' })
+      this.productsApi
+        .search(page, { ...emptyFilters, search: this.productTerm(), active: 'true' })
         .pipe(takeUntilDestroyed(this.destroy), finalize(finish))
         .subscribe({ next: (value) => this.productOptions.set(value), error: fail });
     }
@@ -133,12 +146,23 @@ export class PurchaseOrdersPage {
   }
 
   addProduct(product: Product): void {
-    if (this.busy() || this.draft().length >= 100 || this.draft().some((line) => line.productId === product.id)) return;
-    this.draft.update((lines) => [...lines, { productId: product.id, label: product.name + ' · ' + product.sku, quantity: '1', unitCost: '' }]);
+    if (
+      this.busy() ||
+      this.draft().length >= 100 ||
+      this.draft().some((line) => line.productId === product.id)
+    )
+      return;
+    this.draft.update((lines) => [
+      ...lines,
+      { productId: product.id, label: product.name + ' · ' + product.sku, quantity: '1', unitCost: '' },
+    ]);
   }
 
   changeLine(id: string, field: 'quantity' | 'unitCost', value: string): void {
-    if (!this.busy()) this.draft.update((lines) => lines.map((line) => line.productId === id ? { ...line, [field]: value } : line));
+    if (!this.busy())
+      this.draft.update((lines) =>
+        lines.map((line) => (line.productId === id ? { ...line, [field]: value } : line)),
+      );
   }
 
   removeLine(id: string): void {
@@ -152,7 +176,9 @@ export class PurchaseOrdersPage {
     try {
       const input = purchaseOrderInput(this.number(), supplier.id, this.draft());
       this.busy.set(true);
-      this.api.create(input).pipe(takeUntilDestroyed(this.destroy))
+      this.api
+        .create(input)
+        .pipe(takeUntilDestroyed(this.destroy))
         .subscribe({
           next: (order) => {
             this.creating.set(false);
@@ -164,13 +190,18 @@ export class PurchaseOrdersPage {
           error: (error: unknown) => {
             this.busy.set(false);
             this.error.set(
-              errorMessage(error) + ' Vérifiez la référence ' + this.number() + ' avant toute nouvelle création.',
+              errorMessage(error) +
+                ' Vérifiez la référence ' +
+                this.number() +
+                ' avant toute nouvelle création.',
             );
           },
         });
     } catch {
       this.busy.set(false);
-      this.error.set('Vérifiez le fournisseur, les produits, les quantités (3 décimales) et les coûts (2 décimales).');
+      this.error.set(
+        'Vérifiez le fournisseur, les produits, les quantités (3 décimales) et les coûts (2 décimales).',
+      );
     }
   }
 
@@ -191,7 +222,10 @@ export class PurchaseOrdersPage {
     this.productNames.set({});
     this.busy.set(true);
     forkJoin({ order: this.api.get(id), progress: this.api.progress(id) })
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
       .subscribe({
         next: ({ order, progress }) => {
           if (
@@ -206,14 +240,20 @@ export class PurchaseOrdersPage {
           this.detail.set(order);
           this.progress.set(progress);
           if (this.session.can('products.read')) {
-            forkJoin(order.lines.map((line) =>
-              this.productsApi.get(line.productId).pipe(
-                catchError(() => of(null)),
+            forkJoin(
+              order.lines.map((line) =>
+                this.productsApi.get(line.productId).pipe(catchError(() => of(null))),
               ),
-            )).pipe(takeUntilDestroyed(this.destroy)).subscribe((products) => {
-              if (this.detail()?.id !== order.id) return;
-              this.productNames.set(Object.fromEntries(products.filter((p) => p !== null).map((p) => [p.id, p.name + ' · ' + p.sku])));
-            });
+            )
+              .pipe(takeUntilDestroyed(this.destroy))
+              .subscribe((products) => {
+                if (this.detail()?.id !== order.id) return;
+                this.productNames.set(
+                  Object.fromEntries(
+                    products.filter((p) => p !== null).map((p) => [p.id, p.name + ' · ' + p.sku]),
+                  ),
+                );
+              });
           }
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
@@ -221,16 +261,20 @@ export class PurchaseOrdersPage {
   }
 
   ask(action: 'confirm' | 'cancel'): void {
-    if (!this.busy() && this.detail()?.status === 'DRAFT' && this.session.can('inventory.manage')) this.pending.set(action);
+    if (!this.busy() && this.detail()?.status === 'DRAFT' && this.session.can('inventory.manage'))
+      this.pending.set(action);
   }
 
   applyAction(): void {
     const order = this.detail();
     const action = this.pending();
-    if (this.busy() || !order || !action || order.status !== 'DRAFT' || !this.session.can('inventory.manage')) return;
+    if (this.busy() || !order || !action || order.status !== 'DRAFT' || !this.session.can('inventory.manage'))
+      return;
     this.busy.set(true);
     this.error.set('');
-    this.api.action(order.id, action).pipe(takeUntilDestroyed(this.destroy))
+    this.api
+      .action(order.id, action)
+      .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (updated) => {
           this.pending.set(null);

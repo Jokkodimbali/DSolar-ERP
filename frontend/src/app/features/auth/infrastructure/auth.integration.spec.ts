@@ -422,7 +422,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(purchaseList.status).toBe(200);
       expect(parsePurchaseOrderPage(purchaseList.data).items).toContainEqual(purchase);
-      expect(parsePurchaseOrder((await request(purchasePath, 'GET', undefined, token)).data)).toEqual(purchase);
+      expect(parsePurchaseOrder((await request(purchasePath, 'GET', undefined, token)).data)).toEqual(
+        purchase,
+      );
       const progress = await request(purchasePath + '/progress', 'GET', undefined, token);
       expect(progress.status).toBe(200);
       expect(parsePurchaseProgress(progress.data).lines[0]?.remaining).toBe('2.125');

@@ -55,7 +55,9 @@ export const routes: Routes = [
         path: 'approvisionnements/commandes',
         canActivate: [suppliersGuard],
         loadComponent: () =>
-          import('./features/procurement/presentation/purchase-orders.page').then((m) => m.PurchaseOrdersPage),
+          import('./features/procurement/presentation/purchase-orders.page').then(
+            (m) => m.PurchaseOrdersPage,
+          ),
       },
       {
         path: 'magasins',

@@ -21,26 +21,39 @@
   <div class="purchase-picker">
     <h3>Fournisseur actif</h3>
     <form class="ui-toolbar" (submit)="$event.preventDefault(); lookup('supplier', supplierQuery.value, 1)">
-      <label class="ui-field">Rechercher un fournisseur <input #supplierQuery type="search" maxlength="120" /></label>
+      <label class="ui-field"
+        >Rechercher un fournisseur <input #supplierQuery type="search" maxlength="120"
+      /></label>
       <button class="secondary" type="submit" [disabled]="busy() || optionsLoading()">Rechercher</button>
     </form>
     @if (supplierOptions(); as options) {
     <label class="ui-field">
       Sélectionner le fournisseur
-      <select #supplierSelect [value]="supplier()?.id ?? ''" [disabled]="busy()" (change)="chooseSupplier(supplierSelect.value)">
+      <select
+        #supplierSelect
+        [value]="supplier()?.id ?? ''"
+        [disabled]="busy()"
+        (change)="chooseSupplier(supplierSelect.value)"
+      >
         <option value="">Sélectionner…</option>
         @for (item of options.items; track item.id) {
         <option [value]="item.id">{{ item.name }}</option>
         }
       </select>
     </label>
-    <app-pagination [page]="options.page" [pages]="options.pages || 1" [disabled]="busy() || optionsLoading()" (change)="lookup('supplier', supplierTerm(), $event)" />
-    }
-    @if (supplier(); as selected) {
+    <app-pagination
+      [page]="options.page"
+      [pages]="options.pages || 1"
+      [disabled]="busy() || optionsLoading()"
+      (change)="lookup('supplier', supplierTerm(), $event)"
+    />
+    } @if (supplier(); as selected) {
     <p>Fournisseur sélectionné : <strong>{{ selected.name }}</strong></p>
     <h3>Produits actifs</h3>
     <form class="ui-toolbar" (submit)="$event.preventDefault(); lookup('product', productQuery.value, 1)">
-      <label class="ui-field">Rechercher un produit <input #productQuery type="search" maxlength="120" /></label>
+      <label class="ui-field"
+        >Rechercher un produit <input #productQuery type="search" maxlength="120"
+      /></label>
       <button class="secondary" type="submit" [disabled]="busy() || optionsLoading()">Rechercher</button>
     </form>
     @if (productOptions(); as options) {
@@ -51,58 +64,116 @@
       </button>
       }
     </div>
-    <app-pagination [page]="options.page" [pages]="options.pages || 1" [disabled]="busy() || optionsLoading()" (change)="lookup('product', productTerm(), $event)" />
-    }
-    }
+    <app-pagination
+      [page]="options.page"
+      [pages]="options.pages || 1"
+      [disabled]="busy() || optionsLoading()"
+      (change)="lookup('product', productTerm(), $event)"
+    />
+    } }
   </div>
   <h3>Lignes de commande</h3>
   <div class="ui-table" role="region" aria-label="Lignes du brouillon" tabindex="0">
     <table>
-      <thead><tr><th>Produit</th><th>Quantité</th><th>Coût unitaire (FCFA)</th><th>Action</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Quantité</th>
+          <th>Coût unitaire (FCFA)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
       <tbody>
         @for (line of draft(); track line.productId) {
         <tr>
           <td>{{ line.label }}</td>
-          <td><input #qty aria-label="Quantité" inputmode="decimal" [value]="line.quantity" [disabled]="busy()" (input)="changeLine(line.productId, 'quantity', qty.value)" /></td>
-          <td><input #cost aria-label="Coût unitaire" inputmode="decimal" [value]="line.unitCost" [disabled]="busy()" (input)="changeLine(line.productId, 'unitCost', cost.value)" /></td>
-          <td><button class="secondary" type="button" [disabled]="busy()" (click)="removeLine(line.productId)">Retirer</button></td>
+          <td>
+            <input
+              #qty
+              aria-label="Quantité"
+              inputmode="decimal"
+              [value]="line.quantity"
+              [disabled]="busy()"
+              (input)="changeLine(line.productId, 'quantity', qty.value)"
+            />
+          </td>
+          <td>
+            <input
+              #cost
+              aria-label="Coût unitaire"
+              inputmode="decimal"
+              [value]="line.unitCost"
+              [disabled]="busy()"
+              (input)="changeLine(line.productId, 'unitCost', cost.value)"
+            />
+          </td>
+          <td>
+            <button class="secondary" type="button" [disabled]="busy()" (click)="removeLine(line.productId)">
+              Retirer
+            </button>
+          </td>
         </tr>
         } @empty {
-        <tr><td colspan="4">Sélectionnez un produit actif pour commencer.</td></tr>
+        <tr>
+          <td colspan="4">Sélectionnez un produit actif pour commencer.</td>
+        </tr>
         }
       </tbody>
     </table>
   </div>
   <div class="ui-actions">
-    <button class="primary" type="button" [disabled]="busy() || !supplier() || !draft().length" (click)="save()">Créer le brouillon</button>
+    <button
+      class="primary"
+      type="button"
+      [disabled]="busy() || !supplier() || !draft().length"
+      (click)="save()"
+    >
+      Créer le brouillon
+    </button>
   </div>
 </section>
-}
-@if (detail(); as order) {
+} @if (detail(); as order) {
 <section class="panel">
   <div class="page-heading">
     <h2>{{ order.number }}</h2>
     <button class="secondary" type="button" [disabled]="busy()" (click)="close()">Fermer</button>
   </div>
   <dl class="metrics">
-    <div><dt>Fournisseur</dt><dd>{{ order.supplier.name }}</dd></div>
-    <div><dt>Statut</dt><dd>{{ labels[order.status] }}</dd></div>
-    <div><dt>Date</dt><dd>{{ order.orderedAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+    <div>
+      <dt>Fournisseur</dt>
+      <dd>{{ order.supplier.name }}</dd>
+    </div>
+    <div>
+      <dt>Statut</dt>
+      <dd>{{ labels[order.status] }}</dd>
+    </div>
+    <div>
+      <dt>Date</dt>
+      <dd>{{ order.orderedAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+    </div>
   </dl>
   <div class="ui-table" role="region" aria-label="Détail des lignes" tabindex="0">
     <table>
-      <thead><tr><th>Produit</th><th>Commandé</th><th>Coût unitaire</th><th>Réceptionné</th><th>Restant</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Commandé</th>
+          <th>Coût unitaire</th>
+          <th>Réceptionné</th>
+          <th>Restant</th>
+        </tr>
+      </thead>
       <tbody>
         @for (line of order.lines; track line.id) {
         <tr>
           <td>{{ productNames()[line.productId] || line.productId }}</td>
           <td>{{ line.quantity }}</td>
           <td>{{ money(line.unitCost) }}</td>
-          @for (item of progress()?.lines ?? []; track item.productId) {
-          @if (item.productId === line.productId) {
-          <td>{{ item.received }}</td><td>{{ item.remaining }}</td>
-          }
-          }
+          @for (item of progress()?.lines ?? []; track item.productId) { @if (item.productId ===
+          line.productId) {
+          <td>{{ item.received }}</td>
+          <td>{{ item.remaining }}</td>
+          } }
         </tr>
         }
       </tbody>
@@ -110,13 +181,16 @@
   </div>
   @if (order.status === 'DRAFT' && session.can('inventory.manage')) {
   <div class="ui-actions">
-    <button class="primary" type="button" [disabled]="busy()" (click)="ask('confirm')">Confirmer la commande</button>
-    <button class="secondary" type="button" [disabled]="busy()" (click)="ask('cancel')">Annuler la commande</button>
+    <button class="primary" type="button" [disabled]="busy()" (click)="ask('confirm')">
+      Confirmer la commande
+    </button>
+    <button class="secondary" type="button" [disabled]="busy()" (click)="ask('cancel')">
+      Annuler la commande
+    </button>
   </div>
   }
 </section>
-}
-@if (pending(); as action) {
+} @if (pending(); as action) {
 <app-confirm
   [heading]="action === 'confirm' ? 'Confirmer cette commande ?' : 'Annuler cette commande ?'"
   description="Cette action change le statut du brouillon et conserve son historique."
@@ -127,7 +201,9 @@
 }
 <section class="panel">
   <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(query.value, state.value)">
-    <label class="ui-field">Recherche <input #query type="search" maxlength="120" placeholder="Référence ou fournisseur" /></label>
+    <label class="ui-field"
+      >Recherche <input #query type="search" maxlength="120" placeholder="Référence ou fournisseur"
+    /></label>
     <label class="ui-field">
       Statut
       <select #state>
@@ -138,7 +214,9 @@
       </select>
     </label>
     <button class="primary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
-    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">Actualiser</button>
+    <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">
+      Actualiser
+    </button>
   </form>
   @if (loading()) {
   <p role="status">Chargement des commandes…</p>
@@ -146,23 +224,45 @@
   <p class="muted small">{{ data.total }} commande(s)</p>
   <div class="ui-table" role="region" aria-label="Liste des commandes fournisseurs" tabindex="0">
     <table>
-      <thead><tr><th>Référence</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Lignes</th><th>Actions</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Référence</th>
+          <th>Fournisseur</th>
+          <th>Date</th>
+          <th>Statut</th>
+          <th>Lignes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
       <tbody>
         @for (order of data.items; track order.id) {
         <tr>
           <td>{{ order.number }}</td>
           <td>{{ order.supplier.name }}</td>
           <td>{{ order.orderedAt | date:'dd/MM/yyyy' }}</td>
-          <td><span class="ui-status" [class.ui-status-active]="order.status === 'CONFIRMED' || order.status === 'DELIVERED'">{{ labels[order.status] }}</span></td>
+          <td>
+            <span
+              class="ui-status"
+              [class.ui-status-active]="order.status === 'CONFIRMED' || order.status === 'DELIVERED'"
+              >{{ labels[order.status] }}</span
+            >
+          </td>
           <td>{{ order.lines.length }}</td>
-          <td><button class="secondary" type="button" [disabled]="busy()" (click)="open(order.id)">Détails</button></td>
+          <td>
+            <button class="secondary" type="button" [disabled]="busy()" (click)="open(order.id)">
+              Détails
+            </button>
+          </td>
         </tr>
         }
       </tbody>
     </table>
   </div>
   @if (!data.total) {
-  <app-empty-state heading="Aucune commande fournisseur" description="Modifiez les filtres ou créez une commande." />
+  <app-empty-state
+    heading="Aucune commande fournisseur"
+    description="Modifiez les filtres ou créez une commande."
+  />
   }
   <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy()" (change)="load($event)" />
   }

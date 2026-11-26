@@ -1,7 +1,13 @@
 import { isRecord } from '../../../core/api/api-contract';
 import { parseSupplier, supplierId } from './supplier.contract';
 
-export const purchaseStatuses = ['DRAFT', 'CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED', 'CANCELLED'] as const;
+export const purchaseStatuses = [
+  'DRAFT',
+  'CONFIRMED',
+  'PARTIALLY_DELIVERED',
+  'DELIVERED',
+  'CANCELLED',
+] as const;
 export type PurchaseStatus = (typeof purchaseStatuses)[number];
 export const purchaseStatusLabels: Record<PurchaseStatus, string> = {
   DRAFT: 'Brouillon',
@@ -51,7 +57,11 @@ export function parsePurchaseOrder(value: unknown) {
       unitCost: decimal(line['unitCost'], 2),
     };
   });
-  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.productId)).size !== lines.length)
+  if (
+    !lines.length ||
+    lines.length > 100 ||
+    new Set(lines.map((line) => line.productId)).size !== lines.length
+  )
     return invalid();
   return { id, supplier, number: text(row['number']), orderedAt, status: status(row['status']), lines };
 }
@@ -83,7 +93,10 @@ export function parsePurchaseProgress(value: unknown) {
       complete: line['complete'],
     };
   });
-  if (count(row['totalLines']) !== lines.length || count(row['completedLines']) !== lines.filter((l) => l.complete).length)
+  if (
+    count(row['totalLines']) !== lines.length ||
+    count(row['completedLines']) !== lines.filter((l) => l.complete).length
+  )
     return invalid();
   if (count(row['pendingLines']) !== lines.filter((l) => !l.complete).length) return invalid();
   return {
