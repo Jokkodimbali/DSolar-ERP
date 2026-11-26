@@ -17,7 +17,13 @@ export class GoodsReceiptsApi {
   search(page: number, search: string, status: ReceiptStatus | '', store: string) {
     return this.http
       .get<unknown>(apiPath('/goods-receipts/search'), {
-        params: { page, limit: 10, search, ...(status ? { status } : {}), ...(store ? { storeId: storeId(store) } : {}) },
+        params: {
+          page,
+          limit: 10,
+          search,
+          ...(status ? { status } : {}),
+          ...(store ? { storeId: storeId(store) } : {}),
+        },
       })
       .pipe(map(parseReceiptPage));
   }

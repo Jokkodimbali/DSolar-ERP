@@ -54,7 +54,11 @@ export function parseGoodsReceipt(value: unknown) {
       unitCost: decimal(line['unitCost'], 2),
     };
   });
-  if (!lines.length || lines.length > 100 || new Set(lines.map((line) => line.productId)).size !== lines.length)
+  if (
+    !lines.length ||
+    lines.length > 100 ||
+    new Set(lines.map((line) => line.productId)).size !== lines.length
+  )
     return invalid();
   return {
     id,
@@ -75,7 +79,13 @@ export function parseReceiptPage(value: unknown) {
   const limit = count(pagination['limit']);
   const total = count(pagination['total']);
   const pages = count(pagination['pages']);
-  if (!Array.isArray(row['items']) || page < 1 || limit < 1 || limit > 100 || pages !== Math.ceil(total / limit))
+  if (
+    !Array.isArray(row['items']) ||
+    page < 1 ||
+    limit < 1 ||
+    limit > 100 ||
+    pages !== Math.ceil(total / limit)
+  )
     return invalid();
   const items = row['items'].map(parseGoodsReceipt);
   if (items.length !== Math.min(limit, Math.max(0, total - (page - 1) * limit))) return invalid();
@@ -102,6 +112,11 @@ export function receiptInput(
     if (!available || milli(line.quantity.trim().replace(',', '.')) > milli(available.remaining))
       throw new Error('La quantité réceptionnée dépasse le reliquat de la commande.');
   }
-  return { number: input.number, purchaseOrderId: input.supplierId, storeId: storeId(destination), lines: input.lines };
+  return {
+    number: input.number,
+    purchaseOrderId: input.supplierId,
+    storeId: storeId(destination),
+    lines: input.lines,
+  };
 }
 export type ReceiptInput = ReturnType<typeof receiptInput>;

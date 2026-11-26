@@ -22,13 +22,24 @@ import {
   type ReceiptStatus,
   type parseReceiptPage,
 } from '../domain/goods-receipt.contract';
-import type { PurchaseOrder, PurchaseProgress, parsePurchaseOrderPage } from '../domain/purchase-order.contract';
+import type {
+  PurchaseOrder,
+  PurchaseProgress,
+  parsePurchaseOrderPage,
+} from '../domain/purchase-order.contract';
 import { GoodsReceiptsApi } from '../infrastructure/goods-receipts.api';
 import { PurchaseOrdersApi } from '../infrastructure/purchase-orders.api';
 
 @Component({
   selector: 'app-goods-receipts-page',
-  imports: [DatePipe, ConfirmComponent, EmptyStateComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent],
+  imports: [
+    DatePipe,
+    ConfirmComponent,
+    EmptyStateComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './goods-receipts.page.html',
 })
@@ -68,10 +79,13 @@ export class GoodsReceiptsPage {
   constructor() {
     this.load();
     if (this.session.can('stores.read')) {
-      this.storesApi.list().pipe(takeUntilDestroyed(this.destroy)).subscribe({
-        next: (stores) => this.stores.set(stores.filter((store) => store.status === 'ACTIVE')),
-        error: (error: unknown) => this.error.set(errorMessage(error)),
-      });
+      this.storesApi
+        .list()
+        .pipe(takeUntilDestroyed(this.destroy))
+        .subscribe({
+          next: (stores) => this.stores.set(stores.filter((store) => store.status === 'ACTIVE')),
+          error: (error: unknown) => this.error.set(errorMessage(error)),
+        });
     }
   }
 
@@ -90,8 +104,12 @@ export class GoodsReceiptsPage {
   load(page = this.result()?.page ?? 1): void {
     if (this.loading() || this.busy() || page < 1) return;
     this.loading.set(true);
-    this.api.search(page, this.search(), this.status(), this.filterStore())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+    this.api
+      .search(page, this.search(), this.status(), this.filterStore())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (result) => this.result.set(result),
         error: (error: unknown) => {
@@ -116,8 +134,12 @@ export class GoodsReceiptsPage {
     if (this.busy() || this.optionsLoading() || page < 1) return;
     this.orderSearch.set(search.trim());
     this.optionsLoading.set(true);
-    this.ordersApi.outstanding(page, this.orderSearch())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.optionsLoading.set(false)))
+    this.ordersApi
+      .outstanding(page, this.orderSearch())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.optionsLoading.set(false)),
+      )
       .subscribe({
         next: (options) => this.options.set(options),
         error: (error: unknown) => this.error.set(errorMessage(error)),
@@ -131,19 +153,29 @@ export class GoodsReceiptsPage {
     this.draft.set([]);
     this.busy.set(true);
     forkJoin({ order: this.ordersApi.get(id), progress: this.ordersApi.progress(id) })
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
       .subscribe({
         next: ({ order, progress }) => {
-          if (progress.orderId !== order.id || progress.status !== order.status ||
-              !['CONFIRMED', 'PARTIALLY_DELIVERED'].includes(order.status)) {
+          if (
+            progress.orderId !== order.id ||
+            progress.status !== order.status ||
+            !['CONFIRMED', 'PARTIALLY_DELIVERED'].includes(order.status)
+          ) {
             this.error.set('La commande a changé. Sélectionnez une commande encore ouverte.');
             return;
           }
           this.selectedOrder.set(order);
           this.progress.set(progress);
-          this.draft.set(order.lines.filter((line) =>
-            progress.lines.some((item) => item.productId === line.productId && !item.complete),
-          ).map((line) => ({ productId: line.productId, quantity: '', unitCost: line.unitCost })));
+          this.draft.set(
+            order.lines
+              .filter((line) =>
+                progress.lines.some((item) => item.productId === line.productId && !item.complete),
+              )
+              .map((line) => ({ productId: line.productId, quantity: '', unitCost: line.unitCost })),
+          );
           this.loadNames(order.lines.map((line) => line.productId));
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),
@@ -152,7 +184,9 @@ export class GoodsReceiptsPage {
 
   change(id: string, field: 'quantity' | 'unitCost', value: string): void {
     if (!this.busy())
-      this.draft.update((lines) => lines.map((line) => line.productId === id ? { ...line, [field]: value } : line));
+      this.draft.update((lines) =>
+        lines.map((line) => (line.productId === id ? { ...line, [field]: value } : line)),
+      );
   }
 
   remaining(id: string): string {
@@ -162,7 +196,8 @@ export class GoodsReceiptsPage {
   save(): void {
     const order = this.selectedOrder();
     const progress = this.progress();
-    if (this.busy() || !this.creating() || !order || !progress || !this.session.can('inventory.manage')) return;
+    if (this.busy() || !this.creating() || !order || !progress || !this.session.can('inventory.manage'))
+      return;
     if (!this.stores().some((store) => store.id === this.destination())) {
       this.error.set('Sélectionnez un magasin actif autorisé.');
       return;
@@ -171,19 +206,27 @@ export class GoodsReceiptsPage {
       const input = receiptInput(this.reference(), order.id, this.destination(), this.draft(), progress);
       this.busy.set(true);
       this.error.set('');
-      this.api.create(input).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-        next: (receipt) => {
-          this.busy.set(false);
-          this.creating.set(false);
-          this.success.set('Bon de réception créé. Le stock reste inchangé.');
-          this.load(1);
-          this.open(receipt.id);
-        },
-        error: (error: unknown) => {
-          this.busy.set(false);
-          this.error.set(errorMessage(error) + ' Vérifiez la référence ' + this.reference() + ' avant toute nouvelle création.');
-        },
-      });
+      this.api
+        .create(input)
+        .pipe(takeUntilDestroyed(this.destroy))
+        .subscribe({
+          next: (receipt) => {
+            this.busy.set(false);
+            this.creating.set(false);
+            this.success.set('Bon de réception créé. Le stock reste inchangé.');
+            this.load(1);
+            this.open(receipt.id);
+          },
+          error: (error: unknown) => {
+            this.busy.set(false);
+            this.error.set(
+              errorMessage(error) +
+                ' Vérifiez la référence ' +
+                this.reference() +
+                ' avant toute nouvelle création.',
+            );
+          },
+        });
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : 'Vérifiez les quantités et les coûts.');
     }
@@ -193,21 +236,30 @@ export class GoodsReceiptsPage {
     if (this.busy()) return;
     this.close();
     this.busy.set(true);
-    this.api.get(id).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
-      next: (receipt) => {
-        this.detail.set(receipt);
-        this.loadNames(receipt.lines.map((line) => line.productId));
-        if (receipt.purchaseOrderId) {
-          this.ordersApi.get(receipt.purchaseOrderId).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-            next: (order) => {
-              if (this.detail()?.id === receipt.id) this.orderName.set(order.number);
-            },
-            error: () => undefined,
-          });
-        }
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .get(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (receipt) => {
+          this.detail.set(receipt);
+          this.loadNames(receipt.lines.map((line) => line.productId));
+          if (receipt.purchaseOrderId) {
+            this.ordersApi
+              .get(receipt.purchaseOrderId)
+              .pipe(takeUntilDestroyed(this.destroy))
+              .subscribe({
+                next: (order) => {
+                  if (this.detail()?.id === receipt.id) this.orderName.set(order.number);
+                },
+                error: () => undefined,
+              });
+          }
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   private loadNames(ids: string[]): void {
@@ -217,7 +269,9 @@ export class GoodsReceiptsPage {
       .subscribe((products) => {
         this.productNames.update((names) => ({
           ...names,
-          ...Object.fromEntries(products.filter((p) => p !== null).map((p) => [p.id, p.name + ' · ' + p.sku])),
+          ...Object.fromEntries(
+            products.filter((p) => p !== null).map((p) => [p.id, p.name + ' · ' + p.sku]),
+          ),
         }));
       });
   }
@@ -230,25 +284,36 @@ export class GoodsReceiptsPage {
   applyAction(): void {
     const receipt = this.detail();
     const action = this.pending();
-    if (this.busy() || !receipt || !action || receipt.status !== 'DRAFT' || !this.session.can('inventory.manage'))
+    if (
+      this.busy() ||
+      !receipt ||
+      !action ||
+      receipt.status !== 'DRAFT' ||
+      !this.session.can('inventory.manage')
+    )
       return;
     this.busy.set(true);
     this.error.set('');
-    this.api.action(receipt.id, action).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (updated) => {
-        this.busy.set(false);
-        this.pending.set(null);
-        this.success.set(action === 'confirm' ? 'Réception confirmée et stock mis à jour.' : 'Réception annulée.');
-        this.load(1);
-        this.open(updated.id);
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        this.pending.set(null);
-        this.error.set(errorMessage(error));
-        this.open(receipt.id);
-      },
-    });
+    this.api
+      .action(receipt.id, action)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (updated) => {
+          this.busy.set(false);
+          this.pending.set(null);
+          this.success.set(
+            action === 'confirm' ? 'Réception confirmée et stock mis à jour.' : 'Réception annulée.',
+          );
+          this.load(1);
+          this.open(updated.id);
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.pending.set(null);
+          this.error.set(errorMessage(error));
+          this.open(receipt.id);
+        },
+      });
   }
 
   close(): void {

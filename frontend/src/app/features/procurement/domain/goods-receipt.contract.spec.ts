@@ -28,7 +28,9 @@ describe('Contrats des réceptions', () => {
   });
   it('valide les données du serveur et la pagination', () => {
     expect(parseGoodsReceipt(receipt).status).toBe('DRAFT');
-    expect(parseReceiptPage({ items: [receipt], pagination: { page: 1, limit: 10, total: 1, pages: 1 } }).total).toBe(1);
+    expect(
+      parseReceiptPage({ items: [receipt], pagination: { page: 1, limit: 10, total: 1, pages: 1 } }).total,
+    ).toBe(1);
     expect(() => parseGoodsReceipt({ ...receipt, status: 'CONFIRMED' })).toThrow();
     expect(() => parseGoodsReceipt({ ...receipt, lines: [] })).toThrow();
   });
