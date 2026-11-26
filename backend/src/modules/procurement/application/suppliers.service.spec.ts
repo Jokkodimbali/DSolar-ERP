@@ -48,6 +48,16 @@ describe('SuppliersService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.update).not.toHaveBeenCalled();
   });
+  it('efface explicitement les coordonnées facultatives sans modifier les champs omis', async () => {
+    repository.find.mockResolvedValue(supplier);
+    repository.update.mockResolvedValue(supplier);
+    await service.update(supplier.id, { email: null, phone: '  ', address: null }, 'actor');
+    expect(repository.update).toHaveBeenCalledWith(
+      supplier.id,
+      { email: null, phone: null, address: null },
+      'actor',
+    );
+  });
   it('retourne 404 si le fournisseur est absent', async () => {
     repository.find.mockResolvedValue(null);
     await expect(service.get('absent')).rejects.toBeInstanceOf(NotFoundException);

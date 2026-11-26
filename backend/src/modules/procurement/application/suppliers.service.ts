@@ -53,9 +53,11 @@ export class SuppliersService {
 
   private normalize<T extends Partial<SupplierInput>>(input: T): T {
     const result: Partial<SupplierInput> = {};
-    for (const key of ['name', 'taxId', 'phone', 'email', 'address'] as const) {
-      if (input[key] !== undefined)
-        result[key] = typeof input[key] === 'string' ? input[key].trim() : (input[key] ?? undefined);
+    if (input.name !== undefined)
+      result.name = typeof input.name === 'string' ? input.name.trim() : undefined;
+    for (const key of ['taxId', 'phone', 'email', 'address'] as const) {
+      const value = input[key];
+      if (value !== undefined) result[key] = typeof value === 'string' ? value.trim() || null : value;
     }
     if (typeof result.email === 'string') result.email = result.email.toLowerCase();
     return result as T;

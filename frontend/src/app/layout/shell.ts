@@ -83,6 +83,15 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="box" /><span class="nav-text">Stocks</span></a
           >
         }
+        @if (session.can('inventory.read')) {
+          <a
+            routerLink="/approvisionnements/fournisseurs"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Fournisseurs"
+            ><app-ui-icon name="box" /><span class="nav-text">Fournisseurs</span></a
+          >
+        }
         @if (session.can('stores.read')) {
           <a
             routerLink="/magasins"

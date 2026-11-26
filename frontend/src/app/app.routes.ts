@@ -9,6 +9,7 @@ import {
   stockAlertsGuard,
   usersGuard,
   productsGuard,
+  suppliersGuard,
 } from './features/auth/application/auth.guards';
 export const routes: Routes = [
   {
@@ -43,6 +44,12 @@ export const routes: Routes = [
         canActivate: [productsGuard],
         loadComponent: () =>
           import('./features/products/presentation/products.page').then((m) => m.ProductsPage),
+      },
+      {
+        path: 'approvisionnements/fournisseurs',
+        canActivate: [suppliersGuard],
+        loadComponent: () =>
+          import('./features/procurement/presentation/suppliers.page').then((m) => m.SuppliersPage),
       },
       {
         path: 'magasins',

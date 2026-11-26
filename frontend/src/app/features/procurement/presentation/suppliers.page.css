@@ -1,0 +1,5 @@
+.supplier-form {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+}
