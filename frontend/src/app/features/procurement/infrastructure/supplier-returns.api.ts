@@ -4,7 +4,11 @@ import { map, switchMap } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
 import { parseId } from '../../inventory/domain/workflow.contract';
-import { parseReturnOptions, type ReturnCreation } from '../domain/return-creation.contract';
+import {
+  parseAvailableSerials,
+  parseReturnOptions,
+  type ReturnCreation,
+} from '../domain/return-creation.contract';
 import {
   parseSupplierReturn,
   parseSupplierReturnPage,
@@ -36,6 +40,14 @@ export class SupplierReturnsApi {
     return this.http
       .get<unknown>(apiPath('/supplier-returns/receipts/' + storeId(receiptId) + '/options'))
       .pipe(map(parseReturnOptions));
+  }
+
+  availableSerials(receiptLineId: string, page: number, search: string) {
+    return this.http
+      .get<unknown>(apiPath('/supplier-returns/receipt-lines/' + storeId(receiptLineId) + '/serials'), {
+        params: { page, limit: 10, search },
+      })
+      .pipe(map((value) => parseAvailableSerials(value, receiptLineId)));
   }
 
   create(input: ReturnCreation) {

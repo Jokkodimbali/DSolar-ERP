@@ -44,7 +44,7 @@
     <select
       #receiptSelect
       aria-label="Réception confirmée"
-      [disabled]="busy() || receiptLoading()"
+      [disabled]="busy() || receiptLoading() || serialLoading()"
       [value]="options()?.receiptId ?? ''"
       (change)="chooseReceipt(receiptSelect.value)"
     >
@@ -80,7 +80,28 @@
           <td>{{ line.available }}</td>
           <td>
             @if (line.serialized) {
-            <span class="muted">Sélection des séries requise</span>
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="busy() || serialLoading() || +line.maximum < 1"
+              (click)="pickSerials(line.receiptLineId)"
+            >
+              Choisir les séries ({{ selectedSerials()[line.receiptLineId]?.length || 0 }})
+            </button>
+            @for (serial of selectedSerials()[line.receiptLineId] || []; track serial.id) {
+            <div>
+              {{ serial.serial }}
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="busy() || serialLoading()"
+                [attr.aria-label]="'Retirer ' + serial.serial"
+                (click)="removeSerial(line.receiptLineId, serial.id)"
+              >
+                Retirer
+              </button>
+            </div>
+            }
             } @else {
             <input
               #qty
@@ -97,6 +118,48 @@
       </tbody>
     </table>
   </div>
+  @if (serialLine()) {
+  <section class="panel" aria-label="Numéros de série disponibles">
+    <div class="page-heading">
+      <h3>Numéros de série disponibles</h3>
+      <button type="button" class="secondary" [disabled]="serialLoading()" (click)="serialLine.set('')">
+        Fermer la sélection
+      </button>
+    </div>
+    <form class="ui-toolbar" (submit)="$event.preventDefault(); lookupSerials(serialQuery.value, 1)">
+      <label class="ui-field">
+        Rechercher un numéro
+        <input #serialQuery type="search" maxlength="120" [value]="serialSearch()" />
+      </label>
+      <button type="submit" class="secondary" [disabled]="serialLoading()">Rechercher</button>
+    </form>
+    @if (serialLoading()) {
+    <p role="status">Chargement des séries…</p>
+    } @else if (serialPage(); as page) {
+    @for (serial of page.items; track serial.id) {
+    <div class="ui-actions">
+      <span>{{ serial.serial }}</span>
+      <button
+        type="button"
+        class="secondary"
+        [attr.aria-pressed]="isSelected(serialLine(), serial.id)"
+        (click)="toggleSerial(serial)"
+      >
+        {{ isSelected(serialLine(), serial.id) ? 'Retirer' : 'Sélectionner' }}
+      </button>
+    </div>
+    } @empty {
+    <p class="muted">Aucun numéro de série disponible.</p>
+    }
+    <app-pagination
+      [page]="page.page"
+      [pages]="page.pages || 1"
+      [disabled]="serialLoading()"
+      (change)="lookupSerials(serialSearch(), $event)"
+    />
+    }
+  </section>
+  }
   <label class="ui-field">
     Motif du retour
     <textarea
@@ -107,7 +170,7 @@
       (input)="reason.set(returnReason.value)"
     ></textarea>
   </label>
-  <button class="primary" type="button" [disabled]="busy() || !reason().trim()" (click)="save()">
+  <button class="primary" type="button" [disabled]="busy() || serialLoading() || !reason().trim()" (click)="save()">
     Créer le retour
   </button>
   }

@@ -1,7 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { pageBounds, pageResult } from '../../../shared/pagination';
+import { pageBounds, pageResult, type ListCriteria } from '../../../shared/pagination';
 import {
   ReturnInput,
   SupplierReturnCriteria,
@@ -162,6 +162,42 @@ export class SupplierReturnsRepository implements SupplierReturnsPort {
           };
         }),
       };
+    });
+  }
+
+  availableSerials(id: string, actor: string, criteria: ListCriteria) {
+    const { page, limit, skip } = pageBounds(criteria);
+    return this.transaction(actor, async (tx) => {
+      const line = await tx.goodsReceiptLine.findUnique({
+        where: { id },
+        include: { receipt: { include: { store: true } } },
+      });
+      if (
+        !line ||
+        line.receipt.status !== 'CONFIRMED' ||
+        !line.receipt.purchaseOrderId ||
+        line.receipt.store.status !== 'ACTIVE'
+      )
+        throw new ConflictException('Réception confirmée liée à une commande et magasin actif requis.');
+      const term = criteria.search?.trim();
+      const where: Prisma.SerialNumberWhereInput = {
+        receiptLineId: id,
+        productId: line.productId,
+        currentStoreId: line.receipt.storeId,
+        status: 'AVAILABLE',
+        ...(term ? { serial: { contains: term, mode: 'insensitive' } } : {}),
+      };
+      const [items, total] = await Promise.all([
+        tx.serialNumber.findMany({
+          where,
+          select: { id: true, serial: true },
+          orderBy: [{ serial: 'asc' }, { id: 'asc' }],
+          skip,
+          take: limit,
+        }),
+        tx.serialNumber.count({ where }),
+      ]);
+      return { receiptLineId: id, ...pageResult(items, total, page, limit) };
     });
   }
 

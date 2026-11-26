@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { validReturnQuantity } from '../domain/return-policy';
+import type { ListCriteria } from '../../../shared/pagination';
 import {
   ReturnInput,
   SUPPLIER_RETURNS,
@@ -47,6 +48,10 @@ export class SupplierReturnsService {
 
   get(id: string, actor: string) {
     return this.repository.get(id, actor);
+  }
+
+  availableSerials(id: string, actor: string, criteria: ListCriteria) {
+    return this.repository.availableSerials(id, actor, criteria);
   }
 
   receiptOptions(id: string, actor: string) {

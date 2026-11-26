@@ -136,6 +136,16 @@ export class SupplierReturnsController {
     return this.service.create(dto, actor);
   }
 
+  @Get('receipt-lines/:id/serials')
+  @RequirePermissions('inventory.manage')
+  availableSerials(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: PageQueryDto,
+    @CurrentUserId() actor: string,
+  ) {
+    return this.service.availableSerials(id, actor, query);
+  }
+
   @Post('receipt-lines/:id/serials')
   @RequirePermissions('inventory.manage')
   @SuccessMessage('Numéros de série enregistrés.')

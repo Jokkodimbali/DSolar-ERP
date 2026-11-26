@@ -118,7 +118,16 @@ integration('Retours fournisseurs PostgreSQL', () => {
         admin.id,
       );
       expect(registration.count).toBe(2);
-      const serialId = registration.serials[0].id;
+      const firstPage = await repo.availableSerials(receiptLineId, admin.id, { page: 1, limit: 1 });
+      expect(firstPage.pagination).toEqual({ page: 1, limit: 1, total: 2, pages: 2 });
+      const serialId = firstPage.items[0].id;
+      const exact = await repo.availableSerials(receiptLineId, admin.id, {
+        search: firstPage.items[0].serial,
+      });
+      expect(exact.items.map((item) => item.id)).toEqual([serialId]);
+      await expect(repo.availableSerials(receiptLineId, randomUUID(), {})).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       const serialInput = {
         receiptId: serializedReceipt.id,
         reason: 'Équipement défectueux',
@@ -137,6 +146,9 @@ integration('Retours fournisseurs PostgreSQL', () => {
       const serial = await prisma.serialNumber.findUniqueOrThrow({ where: { id: serialId } });
       expect(serial.status).toBe('RETURNED_TO_SUPPLIER');
       expect(serial.currentStoreId).toBeNull();
+      const available = await repo.availableSerials(receiptLineId, admin.id, {});
+      expect(available.pagination.total).toBe(1);
+      expect(available.items.some((item) => item.id === serialId)).toBe(false);
       const serialStock = await prisma.storeStock.findUniqueOrThrow({
         where: { storeId_productId: { storeId: store.id, productId: serializedProduct.id } },
       });

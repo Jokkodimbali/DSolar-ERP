@@ -29,6 +29,8 @@ import { GoodsReceiptsApi } from '../infrastructure/goods-receipts.api';
 import type { parseReceiptPage } from '../domain/goods-receipt.contract';
 import {
   matchesReturnCreation,
+  type AvailableSerial,
+  type parseAvailableSerials,
   parseReturnCreation,
   returnCreation,
   returnCreationStorageKey,
@@ -79,6 +81,11 @@ export class SupplierReturnsPage {
   readonly receiptLoading = signal(false);
   readonly options = signal<ReturnOptions | null>(null);
   readonly quantities = signal<Record<string, string>>({});
+  readonly selectedSerials = signal<Record<string, AvailableSerial[]>>({});
+  readonly serialLine = signal('');
+  readonly serialPage = signal<ReturnType<typeof parseAvailableSerials> | null>(null);
+  readonly serialSearch = signal('');
+  readonly serialLoading = signal(false);
   readonly reason = signal('');
   readonly pendingCreation = signal<ReturnCreation | null>(null);
   private storageKey: string | null = null;
@@ -238,6 +245,9 @@ export class SupplierReturnsPage {
     this.detail.set(null);
     this.options.set(null);
     this.quantities.set({});
+    this.selectedSerials.set({});
+    this.serialLine.set('');
+    this.serialPage.set(null);
     this.reason.set('');
     this.error.set('');
     this.success.set('');
@@ -262,9 +272,12 @@ export class SupplierReturnsPage {
   }
 
   chooseReceipt(id: string): void {
-    if (this.busy() || !this.creating()) return;
+    if (this.busy() || this.serialLoading() || !this.creating()) return;
     this.options.set(null);
     this.quantities.set({});
+    this.selectedSerials.set({});
+    this.serialLine.set('');
+    this.serialPage.set(null);
     const receipt = this.receipts()?.items.find((item) => item.id === id);
     if (!receipt || !receipt.purchaseOrderId) return;
     this.busy.set(true);
@@ -286,6 +299,65 @@ export class SupplierReturnsPage {
       });
   }
 
+  pickSerials(id: string): void {
+    if (this.busy() || this.serialLoading() || !this.options()?.lines.some((line) => line.receiptLineId === id && line.serialized))
+      return;
+    this.serialLine.set(id);
+    this.serialPage.set(null);
+    this.lookupSerials('', 1);
+  }
+
+  lookupSerials(search: string, page: number): void {
+    const id = this.serialLine();
+    if (!id || this.serialLoading() || this.busy() || !this.creating()) return;
+    this.serialSearch.set(search.trim());
+    this.serialLoading.set(true);
+    this.api
+      .availableSerials(id, page, this.serialSearch())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.serialLoading.set(false)),
+      )
+      .subscribe({
+        next: (result) => {
+          if (this.creating() && this.serialLine() === id) this.serialPage.set(result);
+        },
+        error: (error: unknown) => {
+          this.serialPage.set(null);
+          this.error.set(errorMessage(error));
+        },
+      });
+  }
+
+  toggleSerial(serial: AvailableSerial): void {
+    const id = this.serialLine();
+    const line = this.options()?.lines.find((item) => item.receiptLineId === id && item.serialized);
+    if (!line || this.busy() || this.serialLoading() || !this.serialPage()?.items.some((item) => item.id === serial.id))
+      return;
+    const selected = this.selectedSerials()[id] ?? [];
+    if (selected.some((item) => item.id === serial.id)) {
+      this.removeSerial(id, serial.id);
+      return;
+    }
+    if (selected.length + 1 > Math.min(100, Math.floor(Number(line.maximum)))) {
+      this.error.set('Nombre maximal de séries atteint.');
+      return;
+    }
+    this.selectedSerials.update((items) => ({ ...items, [id]: [...selected, serial] }));
+  }
+
+  removeSerial(id: string, serialId: string): void {
+    if (this.busy() || this.serialLoading()) return;
+    this.selectedSerials.update((items) => ({
+      ...items,
+      [id]: (items[id] ?? []).filter((item) => item.id !== serialId),
+    }));
+  }
+
+  isSelected(id: string, serialId: string): boolean {
+    return this.selectedSerials()[id]?.some((item) => item.id === serialId) ?? false;
+  }
+
   changeQuantity(id: string, value: string): void {
     if (!this.busy() && this.creating()) this.quantities.update((items) => ({ ...items, [id]: value }));
   }
@@ -302,7 +374,13 @@ export class SupplierReturnsPage {
       return;
     this.error.set('');
     try {
-      const input = returnCreation(options, this.quantities(), this.reason(), crypto.randomUUID());
+      const input = returnCreation(
+        options,
+        this.quantities(),
+        this.reason(),
+        crypto.randomUUID(),
+        this.selectedSerials(),
+      );
       if (!this.storageKey) throw new Error('Session indisponible.');
       sessionStorage.setItem(this.storageKey, JSON.stringify(input));
       this.pendingCreation.set(input);

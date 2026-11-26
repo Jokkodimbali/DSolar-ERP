@@ -1,5 +1,6 @@
 import { isRecord } from '../../../core/api/api-contract';
 import { quantityInput } from '../../inventory/domain/stock.contract';
+import { parsePage } from '../../inventory/domain/workflow.contract';
 import { storeId } from '../../stores/domain/store.contract';
 import type { SupplierReturn } from './supplier-return.contract';
 
@@ -61,11 +62,31 @@ export function parseReturnOptions(value: unknown) {
 }
 export type ReturnOptions = ReturnType<typeof parseReturnOptions>;
 
+export interface AvailableSerial {
+  id: string;
+  serial: string;
+}
+
+export function parseAvailableSerials(value: unknown, receiptLineId: string) {
+  const row = record(value);
+  if (row['receiptLineId'] !== storeId(receiptLineId)) return invalid();
+  const page = parsePage(row, (raw): AvailableSerial => {
+    const item = record(raw);
+    return { id: storeId(item['id']), serial: text(item['serial'], 150) };
+  });
+  if (
+    page.items.length !== Math.min(page.limit, Math.max(0, page.total - (page.page - 1) * page.limit)) ||
+    new Set(page.items.map((item) => item.id)).size !== page.items.length
+  )
+    return invalid();
+  return page;
+}
+
 export interface ReturnCreation {
   receiptId: string;
   operationKey: string;
   reason: string;
-  lines: { receiptLineId: string; quantity: string }[];
+  lines: { receiptLineId: string; quantity: string; serialIds?: string[] }[];
 }
 export function parseReturnCreation(value: unknown): ReturnCreation {
   const row = record(value);
@@ -73,7 +94,19 @@ export function parseReturnCreation(value: unknown): ReturnCreation {
   const lines = row['lines'].map((raw: unknown) => {
     const line = record(raw);
     if (typeof line['quantity'] !== 'string') return invalid();
-    return { receiptLineId: storeId(line['receiptLineId']), quantity: quantityInput(line['quantity'], true) };
+    const receiptLineId = storeId(line['receiptLineId']);
+    const amount = quantityInput(line['quantity'], true);
+    if (line['serialIds'] === undefined) return { receiptLineId, quantity: amount };
+    if (!Array.isArray(line['serialIds'])) return invalid();
+    const serialIds = line['serialIds'].map((id: unknown) => storeId(id));
+    if (
+      !serialIds.length ||
+      serialIds.length > 100 ||
+      new Set(serialIds).size !== serialIds.length ||
+      milli(amount) !== BigInt(serialIds.length) * 1000n
+    )
+      return invalid();
+    return { receiptLineId, quantity: amount, serialIds };
   });
   if (
     !lines.length ||
@@ -81,6 +114,8 @@ export function parseReturnCreation(value: unknown): ReturnCreation {
     new Set(lines.map((line) => line.receiptLineId)).size !== lines.length
   )
     return invalid();
+  const allSerials = lines.flatMap((line) => line.serialIds ?? []);
+  if (new Set(allSerials).size !== allSerials.length) return invalid();
   return {
     receiptId: storeId(row['receiptId']),
     operationKey: storeId(row['operationKey']),
@@ -94,6 +129,7 @@ export function returnCreation(
   quantities: Record<string, string>,
   reason: string,
   operationKey: string,
+  selections: Record<string, AvailableSerial[]> = {},
 ): ReturnCreation {
   const lines = Object.entries(quantities)
     .filter(([, value]) => value.trim())
@@ -104,7 +140,15 @@ export function returnCreation(
         throw new Error('Quantité non disponible ou produit sérialisé.');
       return { receiptLineId, quantity: amount };
     });
-  return parseReturnCreation({ receiptId: options.receiptId, operationKey, reason, lines });
+  const serialized = Object.entries(selections)
+    .filter(([, selected]) => selected.length > 0)
+    .map(([receiptLineId, selected]) => {
+      const line = options.lines.find((item) => item.receiptLineId === receiptLineId);
+      if (!line?.serialized || BigInt(selected.length) * 1000n > milli(line.maximum))
+        throw new Error('Nombre de séries supérieur à la quantité disponible.');
+      return { receiptLineId, quantity: String(selected.length), serialIds: selected.map((item) => item.id) };
+    });
+  return parseReturnCreation({ receiptId: options.receiptId, operationKey, reason, lines: [...lines, ...serialized] });
 }
 
 export function matchesReturnCreation(item: SupplierReturn, input: ReturnCreation): boolean {
@@ -117,7 +161,8 @@ export function matchesReturnCreation(item: SupplierReturn, input: ReturnCreatio
         (actual) =>
           actual.receiptLineId === line.receiptLineId &&
           milli(actual.quantity) === milli(line.quantity) &&
-          actual.serials.length === 0,
+          actual.serials.length === (line.serialIds?.length ?? 0) &&
+          actual.serials.every((serial) => line.serialIds?.includes(serial.id)),
       ),
     )
   );

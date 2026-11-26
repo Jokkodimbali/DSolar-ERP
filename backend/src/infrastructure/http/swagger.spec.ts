@@ -36,7 +36,7 @@ describe('Documentation OpenAPI DSolar-ERP', () => {
         item[method] ? [{ path, method, operation: item[method] }] : [],
       ),
     );
-    expect(operations).toHaveLength(229);
+    expect(operations).toHaveLength(230);
     expect(
       operations
         .filter((row) => row.operation.security?.length === 0)
