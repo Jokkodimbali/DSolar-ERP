@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { forkJoin, map, switchMap } from 'rxjs';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
 import { storeId } from '../../stores/domain/store.contract';
@@ -10,21 +10,49 @@ import {
   type ProformaAction,
   type ProformaStatus,
 } from '../domain/proforma-view.contract';
-import { parseOptions, type ProformaInput } from '../domain/proforma.contract';
+import { type ProformaInput } from '../domain/proforma.contract';
+import { CustomersApi } from './customers.api';
+import { ProductsApi } from '../../products/infrastructure/products.api';
+import { emptyFilters } from '../../products/domain/product.contract';
+import type { Proforma } from '../domain/proforma-view.contract';
 import { matchesProforma, type PendingProforma } from '../domain/pending-proforma.contract';
 
 @Injectable({ providedIn: 'root' })
 export class ProformaApi {
   private readonly http = inject(HttpClient);
   private readonly stores = inject(StoresApi);
+  private readonly customers = inject(CustomersApi);
+  private readonly products = inject(ProductsApi);
 
-  options() {
+  customerOptions(page: number, search: string) {
+    return this.customers.search(page, search).pipe(
+      map((result) => ({ ...result, items: result.items.map(({ id, name }) => ({ id, name })) })),
+    );
+  }
+
+  productOptions(page: number, search: string) {
+    return this.products.search(page, { ...emptyFilters, active: 'true', search }).pipe(
+      map((result) => ({
+        ...result,
+        items: result.items.filter((item) => item.active).map(({ id, name, sku }) => ({ id, name, sku })),
+      })),
+    );
+  }
+
+  options(item: Proforma | null) {
+    const ids = [...new Set(item?.lines.map((line) => line.productId) ?? [])];
     return forkJoin({
-      customers: this.http.get<unknown>(apiPath('/customers')).pipe(map(parseOptions)),
-      products: this.http
-        .get<unknown>(apiPath('/products'), { params: { active: 'true' } })
-        .pipe(map(parseOptions)),
+      customers: this.customerOptions(1, ''),
+      products: this.productOptions(1, ''),
       stores: this.stores.list(true),
+      selectedCustomer: item
+        ? this.customers.get(item.customerId).pipe(map(({ id, name }) => ({ id, name })))
+        : of(null),
+      selectedProducts: ids.length
+        ? forkJoin(ids.map((id) => this.products.get(id))).pipe(
+            map((products) => products.filter((product) => product.active).map(({ id, name, sku }) => ({ id, name, sku }))),
+          )
+        : of([]),
     });
   }
 

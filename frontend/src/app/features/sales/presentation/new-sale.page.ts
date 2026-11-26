@@ -3,10 +3,11 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize, forkJoin, of } from 'rxjs';
+import { finalize, map, of, switchMap } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
+import { PaginationComponent } from '../../../shared/ui/pagination.component';
 import { SessionService } from '../../auth/application/session.service';
 import { formatMoney } from '../../dashboard/domain/dashboard.contract';
 import type { Store } from '../../stores/domain/store.contract';
@@ -17,6 +18,7 @@ import {
   type PendingProforma,
 } from '../domain/pending-proforma.contract';
 import { proformaInput, type LineDraft, type SaleOption } from '../domain/proforma.contract';
+import { expiryInput, keepSelected, localExpiry } from '../domain/proforma-form.contract';
 import { proformaLabels, type Proforma } from '../domain/proforma-view.contract';
 import { ProformaApi } from '../infrastructure/proforma.api';
 
@@ -35,7 +37,7 @@ function lineForm(line?: LineDraft) {
 
 @Component({
   selector: 'app-new-sale-page',
-  imports: [ReactiveFormsModule, RouterLink, PageHeaderComponent, FeedbackComponent],
+  imports: [ReactiveFormsModule, RouterLink, PageHeaderComponent, FeedbackComponent, PaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './new-sale.page.html',
 })
@@ -48,6 +50,11 @@ export class NewSalePage {
   readonly customers = signal<SaleOption[]>([]);
   readonly products = signal<SaleOption[]>([]);
   readonly stores = signal<Store[]>([]);
+  readonly customerPage = signal({ page: 1, pages: 0 });
+  readonly productPage = signal({ page: 1, pages: 0 });
+  readonly customerQuery = signal('');
+  readonly productQuery = signal('');
+  readonly referencesLoading = signal(false);
   readonly loading = signal(false);
   readonly busy = signal(false);
   readonly error = signal('');
@@ -60,6 +67,7 @@ export class NewSalePage {
   private storageKey: string | null = null;
   readonly form = new FormGroup({
     customerId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    expiry: new FormControl('', { nonNullable: true }),
     lines: new FormArray([lineForm()]),
   });
 
@@ -84,20 +92,36 @@ export class NewSalePage {
   }
 
   load(): void {
-    if (this.loading() || this.busy() || this.pending()) return;
+    if (this.loading() || this.busy() || this.pending() || this.referencesLoading()) return;
     this.loading.set(true);
     this.error.set('');
     try {
       const detail = this.editId && !this.original() ? this.api.get(storeId(this.editId)) : of(null);
-      forkJoin({ options: this.api.options(), detail })
+      detail.pipe(
+        switchMap((item) =>
+          this.api.options(item ?? this.original()).pipe(map((options) => ({ options, detail: item }))),
+        ),
+      )
         .pipe(
           takeUntilDestroyed(this.destroy),
           finalize(() => this.loading.set(false)),
         )
         .subscribe({
-          next: ({ options: { customers, products, stores }, detail: item }) => {
-            this.customers.set(customers);
-            this.products.set(products);
+          next: ({ options: { customers, products, stores, selectedCustomer, selectedProducts }, detail: item }) => {
+            this.customerPage.set({ page: customers.page, pages: customers.pages });
+            this.productPage.set({ page: products.page, pages: products.pages });
+            this.customerQuery.set('');
+            this.productQuery.set('');
+            this.customers.set(keepSelected(
+              this.customers(),
+              [...(selectedCustomer ? [selectedCustomer] : []), ...customers.items],
+              [this.form.controls.customerId.value],
+            ));
+            this.products.set(keepSelected(
+              this.products(),
+              [...selectedProducts, ...products.items],
+              this.form.controls.lines.getRawValue().map((line) => line.productId),
+            ));
             this.stores.set(stores.filter((store) => store.status === 'ACTIVE'));
             if (item) {
               if (item.id !== this.editId || item.status !== 'DRAFT') {
@@ -107,6 +131,7 @@ export class NewSalePage {
               this.original.set(item);
               this.reference.set(item.number);
               this.form.controls.customerId.setValue(item.customerId);
+              this.form.controls.expiry.setValue(item.expiresAt ? localExpiry(item.expiresAt) : '');
               this.form.controls.lines.clear();
               for (const line of item.lines) this.form.controls.lines.push(lineForm(line));
             }
@@ -117,6 +142,44 @@ export class NewSalePage {
       this.loading.set(false);
       this.error.set(error instanceof Error ? error.message : 'Référence invalide.');
     }
+  }
+
+  searchCustomers(search: string, page = 1): void {
+    if (this.loading() || this.busy() || this.referencesLoading() || this.pending() || this.form.disabled) return;
+    this.referencesLoading.set(true);
+    this.error.set('');
+    this.customerQuery.set(search.trim());
+    this.api
+      .customerOptions(page, this.customerQuery())
+      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.referencesLoading.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.customerPage.set({ page: result.page, pages: result.pages });
+          this.customers.set(keepSelected(this.customers(), result.items, [this.form.controls.customerId.value]));
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
+  }
+
+  searchProducts(search: string, page = 1): void {
+    if (this.loading() || this.busy() || this.referencesLoading() || this.pending() || this.form.disabled) return;
+    this.referencesLoading.set(true);
+    this.error.set('');
+    this.productQuery.set(search.trim());
+    this.api
+      .productOptions(page, this.productQuery())
+      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.referencesLoading.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.productPage.set({ page: result.page, pages: result.pages });
+          this.products.set(keepSelected(
+            this.products(),
+            result.items,
+            this.form.controls.lines.getRawValue().map((line) => line.productId),
+          ));
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   add(): void {
@@ -137,6 +200,7 @@ export class NewSalePage {
     if (
       this.busy() ||
       this.loading() ||
+      this.referencesLoading() ||
       this.created() ||
       this.pending() ||
       this.form.disabled ||
@@ -165,7 +229,7 @@ export class NewSalePage {
       return;
     }
     try {
-      const expiry = this.original()?.expiresAt;
+      const expiry = expiryInput(value.expiry, this.original()?.expiresAt);
       const input = {
         ...proformaInput(value.customerId, value.lines),
         number: this.reference(),
