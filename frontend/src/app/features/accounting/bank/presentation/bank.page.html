@@ -1,0 +1,110 @@
+<app-page-header eyebrow="FINANCES" heading="Rapprochement bancaire" description="Importez les relevés et rapprochez leurs mouvements des écritures comptables. Aucun accès bancaire direct ni paiement réel.">
+  <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="load()">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (loading()) { <p role="status">Chargement des données bancaires…</p> }
+@if (pending(); as request) {
+<section class="panel"><h2>Import en attente</h2><p>{{ request.reference }} — {{ request.lines.length }} ligne(s)</p>
+  <button type="button" class="primary" [disabled]="loading() || busy() || blocked()" (click)="resume()">Reprendre le relevé</button>
+</section>
+}
+@if (ready()) {
+<section class="panel">
+  <h2>Comptes bancaires</h2>
+  @if (!pending() && !blocked()) {
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); create(asset.value, name.value)">
+    <label class="ui-field">Compte d’actif<select #asset aria-label="Compte d’actif" required><option value="">Sélectionner</option>@for (item of availableAssets(); track item.id) { <option [value]="item.id">{{ item.code }} — {{ item.name }}</option> }</select></label>
+    <label class="ui-field">Nom de la banque<input #name maxlength="160" required /></label>
+    <button type="submit" class="primary" [disabled]="busy() || loading() || !!confirmation() || !availableAssets().length">Enregistrer le compte</button>
+  </form>
+  @if (!availableAssets().length) { <p class="muted">Créez et classez un compte d’actif dans le plan comptable pour l’associer à une banque.</p> }
+  }
+  <div class="ui-table" role="region" aria-label="Comptes bancaires" tabindex="0">
+    <table><thead><tr><th scope="col">Banque</th><th scope="col">Compte comptable</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (bank of accounts(); track bank.id) { <tr><td>{{ bank.name }}</td><td>{{ bank.ledger.code }} — {{ bank.ledger.name }}</td>
+      <td><button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="select(bank)">Relevés</button></td></tr> }
+      @empty { <tr><td colspan="3">Aucun compte bancaire.</td></tr> }</tbody></table>
+  </div>
+</section>
+}
+@if (selected(); as bank) {
+<section class="panel">
+  <h2>Relevés — {{ bank.name }}</h2>
+  @if (!pending() && !blocked()) {
+  <form (submit)="$event.preventDefault(); prepareImport(reference.value, start.value, end.value, opening.value, closing.value)">
+    <div class="ui-toolbar">
+      <label class="ui-field">Référence du relevé<input #reference maxlength="100" required /></label>
+      <label class="ui-field">Début<input #start type="date" required /></label>
+      <label class="ui-field">Fin<input #end type="date" required /></label>
+      <label class="ui-field">Solde initial<input #opening inputmode="decimal" maxlength="20" required /></label>
+      <label class="ui-field">Solde final<input #closing inputmode="decimal" maxlength="20" required /></label>
+    </div>
+    <p class="muted">Format TSV (colonnes séparées par des tabulations) : reference, date (AAAA-MM-JJ), description, montant signé. 500 mouvements maximum par relevé.</p>
+    <label class="ui-field">Fichier TSV<input #upload type="file" accept=".tsv,.txt,text/tab-separated-values" [disabled]="busy() || loading() || !!confirmation()" (change)="readFile(upload)" /></label>
+    <label class="ui-field">Mouvements du relevé<textarea #rows rows="6" [value]="raw()" [disabled]="busy() || loading() || !!confirmation()" (input)="raw.set(rows.value)"></textarea></label>
+    <button type="submit" class="primary" [disabled]="busy() || loading() || !!confirmation()">Vérifier le relevé</button>
+  </form>
+  }
+  <label class="ui-field">Filtrer les références<input #filter type="search" [value]="query()" (input)="query.set(filter.value)" /></label>
+  <p class="muted small">Les 100 relevés les plus récents sont affichés.</p>
+  <div class="ui-table" role="region" aria-label="Liste des relevés" tabindex="0">
+    <table><thead><tr><th scope="col">Référence</th><th scope="col">Période</th><th scope="col">Solde final</th><th scope="col">Statut</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (item of visibleStatements(); track item.id) { <tr><td>{{ item.reference }}</td><td>{{ item.start }} — {{ item.end }}</td><td>{{ money(item.closing) }}</td><td>{{ item.closedAt ? 'Clôturé' : 'Ouvert' }}</td><td><button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="inspect(item)">Consulter</button></td></tr> }
+    @empty { <tr><td colspan="5">Aucun relevé correspondant.</td></tr> }</tbody></table>
+  </div>
+</section>
+}
+@if (report(); as data) {
+<section class="panel">
+  <h2>Relevé {{ data.statement.reference }}</h2>
+  <dl class="metrics">
+    <div><dt>Solde bancaire initial</dt><dd>{{ money(data.statement.opening) }}</dd></div><div><dt>Solde comptable initial</dt><dd>{{ money(data.bookOpening) }}</dd></div>
+    <div><dt>Écart initial</dt><dd>{{ money(data.openingDifference) }}</dd></div><div><dt>Solde bancaire final</dt><dd>{{ money(data.statement.closing) }}</dd></div>
+    <div><dt>Solde comptable final</dt><dd>{{ money(data.bookClosing) }}</dd></div><div><dt>Écart final</dt><dd>{{ money(data.closingDifference) }}</dd></div>
+    <div><dt>Écart interne du relevé</dt><dd>{{ money(data.bankDifference) }}</dd></div><div><dt>Non rapprochées</dt><dd>{{ data.unmatchedBank }}</dd></div>
+    <div><dt>Rapprochements invalides</dt><dd>{{ data.invalidMatches }}</dd></div><div><dt>État</dt><dd>{{ data.statement.closedAt ? 'Clôturé' : data.balanced ? 'Équilibré' : 'À rapprocher' }}</dd></div>
+  </dl>
+  @if (!data.statement.closedAt && !pending() && !blocked()) {
+    <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="suggest()">Rechercher des suggestions</button>
+    <button type="button" class="primary" [disabled]="loading() || busy() || !!confirmation() || !data.balanced" (click)="askClose()">Clôturer le relevé</button>
+  }
+  <div class="ui-table" role="region" aria-label="Mouvements du relevé" tabindex="0">
+    <table><thead><tr><th scope="col">Référence</th><th scope="col">Date</th><th scope="col">Libellé</th><th scope="col">Montant</th><th scope="col">Rapprochement</th></tr></thead>
+    <tbody>@for (line of data.lines; track line.id) {
+    <tr><td>{{ line.reference }}</td><td>{{ line.date }}</td><td>{{ line.description }}</td><td>{{ money(line.amount) }}</td><td>
+      @if (line.ledgerLineId) {
+        <span>Rapprochée le {{ line.matchedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+        @if (!data.statement.closedAt && !pending() && !blocked()) { <button type="button" class="secondary" [disabled]="busy() || loading() || !!confirmation()" (click)="askUnmatch(line)">Annuler le rapprochement</button> }
+      } @else {
+        <span>Non rapprochée</span>
+        @if (!data.statement.closedAt && !pending() && !blocked()) {
+          @if (suggestion(line); as suggestion) {
+            <p>Suggestion : {{ suggestion.status }} ({{ suggestion.count }})</p>
+            @for (candidate of suggestion.candidates; track candidate.id) {
+              <p>{{ candidate.date }} — {{ candidate.description }} — {{ money(candidate.amount) }} <button type="button" class="secondary" [disabled]="busy() || loading() || !!confirmation()" (click)="askMatch(line, candidate.id)">Choisir</button></p>
+            }
+          }
+          <label class="ui-field">Écriture comptable<select #ledger aria-label="Écriture comptable"><option value="">Sélectionner</option>@for (candidate of candidates(line); track candidate.id) { <option [value]="candidate.id">{{ candidate.date }} — {{ candidate.description }} — {{ money(candidateAmount(candidate)) }}</option> }</select></label>
+          <button type="button" class="primary" [disabled]="loading() || busy() || !!confirmation() || !candidates(line).length" (click)="askMatch(line, ledger.value)">Rapprocher</button>
+        }
+      }
+    </td></tr>
+    } @empty { <tr><td colspan="5">Aucun mouvement bancaire.</td></tr> }</tbody></table>
+  </div>
+</section>
+<section class="panel">
+  <h2>Écritures comptables non rapprochées</h2>
+  @if (data.hasMoreLedger) { <p class="muted">Plus de 500 écritures non rapprochées. Utilisez les suggestions ou traitez les premières écritures avant actualisation.</p> }
+  <div class="ui-table" role="region" aria-label="Écritures non rapprochées" tabindex="0">
+    <table><thead><tr><th scope="col">Date</th><th scope="col">Libellé</th><th scope="col">Débit</th><th scope="col">Crédit</th></tr></thead>
+    <tbody>@for (line of data.ledger; track line.id) { <tr><td>{{ line.date }}</td><td>{{ line.description }}</td><td>{{ money(line.debit) }}</td><td>{{ money(line.credit) }}</td></tr> }
+    @empty { <tr><td colspan="4">Aucune écriture non rapprochée.</td></tr> }</tbody></table>
+  </div>
+</section>
+}
+@if (confirmation(); as action) {
+<app-confirm [heading]="action.kind === 'import' ? 'Importer le relevé ?' : action.kind === 'close' ? 'Clôturer le relevé ?' : action.kind === 'match' ? 'Confirmer le rapprochement ?' : 'Annuler le rapprochement ?'"
+ [description]="action.kind === 'import' ? action.input.reference + ' — ' + action.input.lines.length + ' mouvement(s), solde final : ' + money(action.input.closing) : 'Le serveur vérifie les écritures, les montants et les droits. Une clôture est définitive.'"
+ [busy]="busy()" (confirmed)="apply()" (cancelled)="confirmation.set(null)" />
+}
