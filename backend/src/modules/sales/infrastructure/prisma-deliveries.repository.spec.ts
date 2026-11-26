@@ -108,7 +108,10 @@ describe('PrismaDeliveriesRepository', () => {
     const saved = { id: deliveryId, orderId, status: 'CONFIRMED', lines: [line('1')] };
     tx.deliveryNote.findUnique.mockResolvedValue(saved);
     await expect(
-      repository.create(orderId, actorId, { operationKey, lines: [{ storeId, productId, quantity: '1.000' }] }),
+      repository.create(orderId, actorId, {
+        operationKey,
+        lines: [{ storeId, productId, quantity: '1.000' }],
+      }),
     ).resolves.toEqual(saved);
     await expect(
       repository.create(orderId, actorId, { operationKey, lines: [{ storeId, productId, quantity: '2' }] }),

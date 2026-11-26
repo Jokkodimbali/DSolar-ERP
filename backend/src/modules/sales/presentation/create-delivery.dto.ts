@@ -1,6 +1,14 @@
 import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional, Matches, IsUUID, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsOptional,
+  Matches,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 
 export class DeliveryLineDto {
   @IsUUID()
@@ -14,7 +22,10 @@ export class DeliveryLineDto {
   @Matches(/^(?!(?:0)(?:\.0{1,3})?$)(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/, {
     message: 'La quantité doit être un nombre positif avec au plus trois décimales.',
   })
-  @SwaggerField({ type: String, pattern: /^(?!(?:0)(?:\.0{1,3})?$)(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.source })
+  @SwaggerField({
+    type: String,
+    pattern: /^(?!(?:0)(?:\.0{1,3})?$)(?:0|[1-9]\d{0,14})(?:\.\d{1,3})?$/.source,
+  })
   quantity!: string;
 }
 

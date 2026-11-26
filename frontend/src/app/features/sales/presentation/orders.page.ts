@@ -22,7 +22,14 @@ import { OrderDeliveriesComponent } from './order-deliveries.component';
 
 @Component({
   selector: 'app-orders-page',
-  imports: [PageHeaderComponent, FeedbackComponent, RouterLink, ConfirmComponent, PaginationComponent, OrderDeliveriesComponent],
+  imports: [
+    PageHeaderComponent,
+    FeedbackComponent,
+    RouterLink,
+    ConfirmComponent,
+    PaginationComponent,
+    OrderDeliveriesComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './orders.page.html',
 })

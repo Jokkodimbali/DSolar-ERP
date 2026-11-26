@@ -86,7 +86,14 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         );
         const ordered = new Map<
           string,
-          { storeId: string; productId: string; store: string; product: string; sku: string; quantity: Prisma.Decimal }
+          {
+            storeId: string;
+            productId: string;
+            store: string;
+            product: string;
+            sku: string;
+            quantity: Prisma.Decimal;
+          }
         >();
         for (const line of order.lines) {
           const key = line.storeId + ':' + line.productId;
@@ -159,7 +166,8 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
                     saved.quantity.eq(line.quantity),
                 ),
               ) ||
-              new Set(input.lines.map((line) => line.storeId + ':' + line.productId)).size !== input.lines.length
+              new Set(input.lines.map((line) => line.storeId + ':' + line.productId)).size !==
+                input.lines.length
             )
               throw new ConflictException('Clé de livraison déjà utilisée avec des données différentes.');
             return existing;

@@ -1,79 +1,164 @@
 <section class="panel" aria-label="Livraisons de la commande">
   <div class="page-heading">
     <h2>Bons de livraison</h2>
-    <button type="button" class="secondary" [disabled]="busy() || loading() || !!action()" (click)="load()">Actualiser les livraisons</button>
+    <button type="button" class="secondary" [disabled]="busy() || loading() || !!action()" (click)="load()">
+      Actualiser les livraisons
+    </button>
   </div>
   <app-feedback [message]="error()" kind="error" />
   <app-feedback [message]="success()" kind="success" />
   @if (loading()) {
-  <p role="status">Chargement des livraisons…</p>
+    <p role="status">Chargement des livraisons…</p>
   }
   @if (pending()) {
-  <p>Un bon est en attente de vérification. La même clé de création sera réutilisée.</p>
-  <button type="button" class="primary" [disabled]="busy() || loading() || blocked()" (click)="resume()">Reprendre le bon</button>
+    <p>Un bon est en attente de vérification. La même clé de création sera réutilisée.</p>
+    <button type="button" class="primary" [disabled]="busy() || loading() || blocked()" (click)="resume()">
+      Reprendre le bon
+    </button>
   }
   @if (progress(); as data) {
-  <div class="ui-table" tabindex="0" role="region" aria-label="Reliquat de livraison">
-    <table>
-      <thead><tr><th scope="col">Produit</th><th scope="col">Magasin</th><th scope="col">Commandé</th><th scope="col">Livré</th><th scope="col">Reste à livrer</th>
-      @if (session.can('sales.manage') && !pending() && !blocked() && (data.status === 'CONFIRMED' || data.status === 'PARTIALLY_DELIVERED')) {
-      <th scope="col">Quantité à livrer</th>
-      }</tr></thead>
-      <tbody>
-        @for (line of data.lines; track key(line)) {
-        <tr>
-          <td>{{ line.product }} · {{ line.sku }}</td><td>{{ line.store }}</td><td>{{ line.ordered }}</td><td>{{ line.delivered }}</td><td>{{ line.remaining }}</td>
-          @if (session.can('sales.manage') && !pending() && !blocked() && (data.status === 'CONFIRMED' || data.status === 'PARTIALLY_DELIVERED')) {
-          <td><input #amount type="text" inputmode="decimal" maxlength="19" [attr.aria-label]="'Quantité à livrer ' + line.sku + ' — ' + line.store" [disabled]="busy() || !!action() || line.remaining === '0.000'" [value]="quantities()[key(line)] || ''" (input)="change(key(line), amount.value)" /></td>
+    <div class="ui-table" tabindex="0" role="region" aria-label="Reliquat de livraison">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Produit</th>
+            <th scope="col">Magasin</th>
+            <th scope="col">Commandé</th>
+            <th scope="col">Livré</th>
+            <th scope="col">Reste à livrer</th>
+            @if (
+              session.can('sales.manage') &&
+              !pending() &&
+              !blocked() &&
+              (data.status === 'CONFIRMED' || data.status === 'PARTIALLY_DELIVERED')
+            ) {
+              <th scope="col">Quantité à livrer</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of data.lines; track key(line)) {
+            <tr>
+              <td>{{ line.product }} · {{ line.sku }}</td>
+              <td>{{ line.store }}</td>
+              <td>{{ line.ordered }}</td>
+              <td>{{ line.delivered }}</td>
+              <td>{{ line.remaining }}</td>
+              @if (
+                session.can('sales.manage') &&
+                !pending() &&
+                !blocked() &&
+                (data.status === 'CONFIRMED' || data.status === 'PARTIALLY_DELIVERED')
+              ) {
+                <td>
+                  <input
+                    #amount
+                    type="text"
+                    inputmode="decimal"
+                    maxlength="19"
+                    [attr.aria-label]="'Quantité à livrer ' + line.sku + ' — ' + line.store"
+                    [disabled]="busy() || !!action() || line.remaining === '0.000'"
+                    [value]="quantities()[key(line)] || ''"
+                    (input)="change(key(line), amount.value)"
+                  />
+                </td>
+              }
+            </tr>
           }
-        </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-  @if (session.can('sales.manage') && !pending() && !blocked() && (data.status === 'CONFIRMED' || data.status === 'PARTIALLY_DELIVERED')) {
-  <button type="button" class="primary" [disabled]="busy() || !!action()" (click)="save()">Créer le bon de livraison</button>
-  }
+        </tbody>
+      </table>
+    </div>
+    @if (
+      session.can('sales.manage') &&
+      !pending() &&
+      !blocked() &&
+      (data.status === 'CONFIRMED' || data.status === 'PARTIALLY_DELIVERED')
+    ) {
+      <button type="button" class="primary" [disabled]="busy() || !!action()" (click)="save()">
+        Créer le bon de livraison
+      </button>
+    }
   }
   @if (result(); as page) {
-  <div class="ui-table" tabindex="0" role="region" aria-label="Liste des bons de livraison">
-    <table>
-      <thead><tr><th scope="col">Référence</th><th scope="col">Statut</th><th scope="col">Date de livraison</th><th scope="col">Lignes</th><th scope="col">Actions</th></tr></thead>
-      <tbody>
-        @for (note of page.items; track note.id) {
-        <tr>
-          <td>{{ note.number }}</td><td>{{ labels[note.status] }}</td><td>{{ (note.deliveredAt | date:'dd/MM/yyyy HH:mm') || '—' }}</td>
-          <td>@for (line of note.lines; track line.id) {
-            @for (reference of progress()?.lines || []; track key(reference)) {
-              @if (key(reference) === key(line)) {
-                <p>{{ reference.product }} · {{ reference.store }} : {{ line.quantity }}</p>
-              }
-            }
-          }</td>
-          <td>
-            @if (session.can('sales.manage') && note.status === 'DRAFT') {
-            <div class="ui-actions">
-              @if (progress()?.status === 'CONFIRMED' || progress()?.status === 'PARTIALLY_DELIVERED') {
-              <button type="button" class="primary" [disabled]="busy() || !!pending() || !!action()" (click)="ask(note, 'confirm')">Confirmer le bon</button>
-              }
-              <button type="button" class="secondary" [disabled]="busy() || !!pending() || !!action()" (click)="ask(note, 'cancel')">Annuler le bon</button>
-            </div>
-            }
-          </td>
-        </tr>
-        } @empty {
-        <tr><td colspan="5">Aucun bon de livraison.</td></tr>
-        }
-      </tbody>
-    </table>
-  </div>
-  <app-pagination [page]="page.page" [pages]="page.pages || 1" [disabled]="busy() || !!action()" (change)="load($event)" />
+    <div class="ui-table" tabindex="0" role="region" aria-label="Liste des bons de livraison">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Référence</th>
+            <th scope="col">Statut</th>
+            <th scope="col">Date de livraison</th>
+            <th scope="col">Lignes</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (note of page.items; track note.id) {
+            <tr>
+              <td>{{ note.number }}</td>
+              <td>{{ labels[note.status] }}</td>
+              <td>{{ (note.deliveredAt | date: 'dd/MM/yyyy HH:mm') || '—' }}</td>
+              <td>
+                @for (line of note.lines; track line.id) {
+                  @for (reference of progress()?.lines || []; track key(reference)) {
+                    @if (key(reference) === key(line)) {
+                      <p>{{ reference.product }} · {{ reference.store }} : {{ line.quantity }}</p>
+                    }
+                  }
+                }
+              </td>
+              <td>
+                @if (session.can('sales.manage') && note.status === 'DRAFT') {
+                  <div class="ui-actions">
+                    @if (progress()?.status === 'CONFIRMED' || progress()?.status === 'PARTIALLY_DELIVERED') {
+                      <button
+                        type="button"
+                        class="primary"
+                        [disabled]="busy() || !!pending() || !!action()"
+                        (click)="ask(note, 'confirm')"
+                      >
+                        Confirmer le bon
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="secondary"
+                      [disabled]="busy() || !!pending() || !!action()"
+                      (click)="ask(note, 'cancel')"
+                    >
+                      Annuler le bon
+                    </button>
+                  </div>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">Aucun bon de livraison.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pagination
+      [page]="page.page"
+      [pages]="page.pages || 1"
+      [disabled]="busy() || !!action()"
+      (change)="load($event)"
+    />
   }
 </section>
 @if (action(); as request) {
-<app-confirm
-  [heading]="request.kind === 'confirm' ? 'Confirmer le bon de livraison ?' : 'Annuler le bon de livraison ?'"
-  [description]="request.kind === 'confirm' ? 'Le stock physique et réservé sera diminué par le serveur. Cette confirmation est définitive.' : 'Le brouillon sera annulé sans mouvement de stock.'"
-  [busy]="busy()" (confirmed)="apply()" (cancelled)="action.set(null)"
-/>
+  <app-confirm
+    [heading]="
+      request.kind === 'confirm' ? 'Confirmer le bon de livraison ?' : 'Annuler le bon de livraison ?'
+    "
+    [description]="
+      request.kind === 'confirm'
+        ? 'Le stock physique et réservé sera diminué par le serveur. Cette confirmation est définitive.'
+        : 'Le brouillon sera annulé sans mouvement de stock.'
+    "
+    [busy]="busy()"
+    (confirmed)="apply()"
+    (cancelled)="action.set(null)"
+  />
 }

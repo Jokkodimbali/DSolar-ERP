@@ -1,6 +1,15 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, type OnInit, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  input,
+  type OnInit,
+  output,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
@@ -8,7 +17,18 @@ import { ConfirmComponent } from '../../../shared/ui/confirm.component';
 import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { PaginationComponent } from '../../../shared/ui/pagination.component';
 import { SessionService } from '../../auth/application/session.service';
-import { deliveryInput, deliveryKey, deliveryLabels, deliveryStorageKey, parseDeliveryInput, type Delivery, type DeliveryAction, type DeliveryInput, type DeliveryProgress, type parseDeliveryPage } from '../domain/delivery.contract';
+import {
+  deliveryInput,
+  deliveryKey,
+  deliveryLabels,
+  deliveryStorageKey,
+  parseDeliveryInput,
+  type Delivery,
+  type DeliveryAction,
+  type DeliveryInput,
+  type DeliveryProgress,
+  type parseDeliveryPage,
+} from '../domain/delivery.contract';
 import { DeliveriesApi } from '../infrastructure/deliveries.api';
 
 @Component({
@@ -59,13 +79,18 @@ export class OrderDeliveriesComponent implements OnInit {
     forkJoin({
       progress: this.api.progress(this.orderId()),
       result: this.api.search(this.orderId(), page),
-    }).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false))).subscribe({
-      next: ({ progress, result }) => {
-        this.progress.set(progress);
-        this.result.set(result);
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ progress, result }) => {
+          this.progress.set(progress);
+          this.result.set(result);
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
   change(key: string, value: string): void {
     if (this.busy() || this.pending() || this.action() || this.loading()) return;
@@ -73,7 +98,16 @@ export class OrderDeliveriesComponent implements OnInit {
   }
   save(): void {
     const progress = this.progress();
-    if (!progress || this.busy() || this.pending() || this.action() || this.loading() || this.blocked() || !this.session.can('sales.manage')) return;
+    if (
+      !progress ||
+      this.busy() ||
+      this.pending() ||
+      this.action() ||
+      this.loading() ||
+      this.blocked() ||
+      !this.session.can('sales.manage')
+    )
+      return;
     this.error.set('');
     this.success.set('');
     try {
@@ -88,33 +122,44 @@ export class OrderDeliveriesComponent implements OnInit {
   }
   resume(): void {
     const command = this.pending();
-    if (!command || this.busy() || this.loading() || this.action() || this.blocked() || !this.session.can('sales.manage')) return;
+    if (
+      !command ||
+      this.busy() ||
+      this.loading() ||
+      this.action() ||
+      this.blocked() ||
+      !this.session.can('sales.manage')
+    )
+      return;
     this.busy.set(true);
     this.error.set('');
-    this.api.create(this.orderId(), command).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (note) => {
-        this.busy.set(false);
-        try {
-          this.clearPending();
-          this.quantities.set({});
-          this.success.set('Bon enregistré : ' + note.number + '.');
-          this.load(1);
-        } catch {
-          this.error.set('Bon enregistré, mais la demande locale ne peut pas être effacée.');
-        }
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        if (error instanceof HttpErrorResponse && error.status === 400) {
+    this.api
+      .create(this.orderId(), command)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (note) => {
+          this.busy.set(false);
           try {
             this.clearPending();
+            this.quantities.set({});
+            this.success.set('Bon enregistré : ' + note.number + '.');
+            this.load(1);
           } catch {
-            // Conserver la clé si le stockage est indisponible.
+            this.error.set('Bon enregistré, mais la demande locale ne peut pas être effacée.');
           }
-        }
-        this.error.set(errorMessage(error) + ' En cas de résultat incertain, reprenez le même bon.');
-      },
-    });
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 400) {
+            try {
+              this.clearPending();
+            } catch {
+              // Conserver la clé si le stockage est indisponible.
+            }
+          }
+          this.error.set(errorMessage(error) + ' En cas de résultat incertain, reprenez le même bon.');
+        },
+      });
   }
   private clearPending(): void {
     if (this.storage) sessionStorage.removeItem(this.storage);
@@ -122,8 +167,16 @@ export class OrderDeliveriesComponent implements OnInit {
   }
   ask(note: Delivery, kind: DeliveryAction): void {
     const status = this.progress()?.status;
-    if (this.busy() || this.loading() || this.pending() || this.action() || note.status !== 'DRAFT' ||
-      !this.session.can('sales.manage') || (kind === 'confirm' && status !== 'CONFIRMED' && status !== 'PARTIALLY_DELIVERED')) return;
+    if (
+      this.busy() ||
+      this.loading() ||
+      this.pending() ||
+      this.action() ||
+      note.status !== 'DRAFT' ||
+      !this.session.can('sales.manage') ||
+      (kind === 'confirm' && status !== 'CONFIRMED' && status !== 'PARTIALLY_DELIVERED')
+    )
+      return;
     this.error.set('');
     this.success.set('');
     this.action.set({ note, kind });
@@ -132,18 +185,21 @@ export class OrderDeliveriesComponent implements OnInit {
     const action = this.action();
     if (!action || this.busy() || !this.session.can('sales.manage')) return;
     this.busy.set(true);
-    this.api.action(this.orderId(), action.note.id, action.kind).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.action.set(null);
-        this.changed.emit();
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        this.action.set(null);
-        this.error.set(errorMessage(error) + ' Vérifiez le statut avant toute nouvelle opération.');
-        this.load(1);
-      },
-    });
+    this.api
+      .action(this.orderId(), action.note.id, action.kind)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.action.set(null);
+          this.changed.emit();
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.action.set(null);
+          this.error.set(errorMessage(error) + ' Vérifiez le statut avant toute nouvelle opération.');
+          this.load(1);
+        },
+      });
   }
 }

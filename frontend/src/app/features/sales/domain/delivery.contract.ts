@@ -60,7 +60,8 @@ export function parseDelivery(value: unknown, orderId: string) {
   if (
     (status === 'CONFIRMED') !== (deliveredAt !== null) ||
     (deliveredAt !== null && !Number.isFinite(Date.parse(deliveredAt)))
-  ) return invalid();
+  )
+    return invalid();
   const lines = array(row['lines']).map((raw) => {
     const line = record(raw);
     if (line['deliveryId'] !== id) return invalid();
@@ -81,7 +82,8 @@ export function parseDeliveryPage(value: unknown, orderId: string) {
   if (
     page.items.length !== Math.min(page.limit, Math.max(0, page.total - (page.page - 1) * page.limit)) ||
     new Set(page.items.map((item) => item.id)).size !== page.items.length
-  ) return invalid();
+  )
+    return invalid();
   return page;
 }
 export interface DeliveryInput {
@@ -95,19 +97,29 @@ export function parseDeliveryInput(value: unknown): DeliveryInput {
     return invalid();
   const lines = array(row['lines']).map((raw) => {
     const line = record(raw);
-    return { storeId: storeId(line['storeId']), productId: storeId(line['productId']), quantity: quantity(line['quantity'], true) };
+    return {
+      storeId: storeId(line['storeId']),
+      productId: storeId(line['productId']),
+      quantity: quantity(line['quantity'], true),
+    };
   });
-  if (!lines.length || lines.length > 100 || new Set(lines.map(deliveryKey)).size !== lines.length) return invalid();
+  if (!lines.length || lines.length > 100 || new Set(lines.map(deliveryKey)).size !== lines.length)
+    return invalid();
   return { operationKey, lines };
 }
-export function deliveryInput(progress: DeliveryProgress, values: Record<string, string>, operationKey: string): DeliveryInput {
+export function deliveryInput(
+  progress: DeliveryProgress,
+  values: Record<string, string>,
+  operationKey: string,
+): DeliveryInput {
   if (!['CONFIRMED', 'PARTIALLY_DELIVERED'].includes(progress.status)) return invalid();
   const lines = Object.entries(values)
     .filter(([, value]) => value.trim() && milli(quantityInput(value)) > 0n)
     .map(([key, value]) => {
       const line = progress.lines.find((item) => deliveryKey(item) === key);
       const amount = quantityInput(value, true);
-      if (!line || milli(amount) > milli(line.remaining)) throw new Error('Quantité supérieure au reliquat de commande.');
+      if (!line || milli(amount) > milli(line.remaining))
+        throw new Error('Quantité supérieure au reliquat de commande.');
       return { storeId: line.storeId, productId: line.productId, quantity: amount };
     });
   return parseDeliveryInput({ operationKey, lines });
@@ -117,7 +129,11 @@ export function matchesDelivery(note: Delivery, input: DeliveryInput): boolean {
     note.number === 'BL-' + input.operationKey.toUpperCase() &&
     note.lines.length === input.lines.length &&
     new Set(note.lines.map(deliveryKey)).size === note.lines.length &&
-    input.lines.every((line) => note.lines.some((saved) => deliveryKey(saved) === deliveryKey(line) && milli(saved.quantity) === milli(line.quantity)))
+    input.lines.every((line) =>
+      note.lines.some(
+        (saved) => deliveryKey(saved) === deliveryKey(line) && milli(saved.quantity) === milli(line.quantity),
+      ),
+    )
   );
 }
 export function deliveryStorageKey(actor: string, orderId: string): string {

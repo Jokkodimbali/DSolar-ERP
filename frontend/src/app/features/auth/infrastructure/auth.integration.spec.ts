@@ -8,7 +8,11 @@ import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/d
 import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
 import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-view.contract';
 import { parseLinkedOrder } from '../../sales/domain/proforma-conversion.contract';
-import { parseDelivery, parseDeliveryPage, parseDeliveryProgress } from '../../sales/domain/delivery.contract';
+import {
+  parseDelivery,
+  parseDeliveryPage,
+  parseDeliveryProgress,
+} from '../../sales/domain/delivery.contract';
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import {
   parseId,
@@ -1222,11 +1226,18 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const firstNote = await request(notesPath, 'POST', command, token);
       expect(firstNote.status).toBe(201);
       const note = parseDelivery(firstNote.data, deliveryOrderId);
-      const replay = await request(notesPath, 'POST', command, token);
-      expect(replay.status).toBe(201);
-      expect(parseDelivery(replay.data, deliveryOrderId).id).toBe(note.id);
+      const deliveryReplay = await request(notesPath, 'POST', command, token);
+      expect(deliveryReplay.status).toBe(201);
+      expect(parseDelivery(deliveryReplay.data, deliveryOrderId).id).toBe(note.id);
       expect(
-        (await request(notesPath, 'POST', { ...command, lines: [{ storeId: store.id, productId: product.id, quantity: '0.126' }] }, token)).status,
+        (
+          await request(
+            notesPath,
+            'POST',
+            { ...command, lines: [{ storeId: store.id, productId: product.id, quantity: '0.126' }] },
+            token,
+          )
+        ).status,
       ).toBe(409);
       const beforeDelivery = parseBalance(
         (await request(stockPath, 'GET', undefined, token)).data,
@@ -1251,14 +1262,28 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(milli(partialStock.quantity)).toBe(milli(beforeDelivery.quantity) - 125n);
       expect(milli(partialStock.reserved)).toBe(milli(beforeDelivery.reserved) - 125n);
       expect(
-        (await request(notesPath, 'POST', { lines: [{ storeId: store.id, productId: product.id, quantity: '1.876' }] }, token)).status,
+        (
+          await request(
+            notesPath,
+            'POST',
+            { lines: [{ storeId: store.id, productId: product.id, quantity: '1.876' }] },
+            token,
+          )
+        ).status,
       ).toBe(409);
-      const finalNote = await request(notesPath, 'POST', {
-        operationKey: crypto.randomUUID(),
-        lines: [{ storeId: store.id, productId: product.id, quantity: '1.875' }],
-      }, token);
+      const finalNote = await request(
+        notesPath,
+        'POST',
+        {
+          operationKey: crypto.randomUUID(),
+          lines: [{ storeId: store.id, productId: product.id, quantity: '1.875' }],
+        },
+        token,
+      );
       expect(finalNote.status).toBe(201);
-      expect((await request(notesPath + '/' + parseId(finalNote.data) + '/confirm', 'POST', {}, token)).status).toBe(201);
+      expect(
+        (await request(notesPath + '/' + parseId(finalNote.data) + '/confirm', 'POST', {}, token)).status,
+      ).toBe(201);
       const completed = parseDeliveryProgress(
         (await request(notesPath + '/progress', 'GET', undefined, token)).data,
         deliveryOrderId,
@@ -1272,7 +1297,12 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(milli(afterDelivery.quantity)).toBe(milli(stockBefore.quantity) - 2000n);
       expect(afterDelivery.reserved).toBe(stockBefore.reserved);
-      const notes = await request('/deliveries/search?orderId=' + deliveryOrderId + '&page=1&limit=10', 'GET', undefined, token);
+      const notes = await request(
+        '/deliveries/search?orderId=' + deliveryOrderId + '&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
       expect(notes.status).toBe(200);
       expect(parseDeliveryPage(notes.data, deliveryOrderId).total).toBe(2);
       expect(
