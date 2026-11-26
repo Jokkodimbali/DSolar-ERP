@@ -176,8 +176,12 @@ export class ProformasPage {
     this.linkChecked.set(false);
     if (item.status !== 'ACCEPTED') return;
     this.linkLoading.set(true);
-    this.api.linkedOrder(item)
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.linkLoading.set(false)))
+    this.api
+      .linkedOrder(item)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.linkLoading.set(false)),
+      )
       .subscribe({
         next: (order) => {
           if (this.detail()?.id !== item.id) return;
@@ -193,10 +197,17 @@ export class ProformasPage {
   askConvert(): void {
     const item = this.detail();
     if (
-      !item || item.status !== 'ACCEPTED' || !this.linkChecked() || this.linkedOrder() ||
-      this.linkLoading() || this.loading() || this.busy() || this.pending() ||
+      !item ||
+      item.status !== 'ACCEPTED' ||
+      !this.linkChecked() ||
+      this.linkedOrder() ||
+      this.linkLoading() ||
+      this.loading() ||
+      this.busy() ||
+      this.pending() ||
       !this.session.can('sales.manage')
-    ) return;
+    )
+      return;
     this.error.set('');
     this.success.set('');
     this.pending.set('convert');
@@ -204,7 +215,8 @@ export class ProformasPage {
 
   private convert(item: Proforma): void {
     this.busy.set(true);
-    this.api.convert(item)
+    this.api
+      .convert(item)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (order) => {
@@ -248,7 +260,13 @@ export class ProformasPage {
     const item = this.detail();
     const action = this.pending();
     if (action === 'convert') {
-      if (item?.status === 'ACCEPTED' && !this.busy() && this.linkChecked() && !this.linkedOrder() && this.session.can('sales.manage'))
+      if (
+        item?.status === 'ACCEPTED' &&
+        !this.busy() &&
+        this.linkChecked() &&
+        !this.linkedOrder() &&
+        this.session.can('sales.manage')
+      )
         this.convert(item);
       return;
     }

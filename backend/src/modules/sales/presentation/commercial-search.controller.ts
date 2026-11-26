@@ -19,7 +19,10 @@ class CommercialSearchCommercialQueryDto extends PageQueryDto {
   customerId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) storeId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) orderId?: string;
-  @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) proformaId?: string;
+  @IsOptional()
+  @IsUUID()
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  proformaId?: string;
   @IsOptional() @IsUUID() @SwaggerField({ required: false, type: String, format: 'uuid' }) invoiceId?: string;
 }
 @ApiTags('Recherche commerciale')
