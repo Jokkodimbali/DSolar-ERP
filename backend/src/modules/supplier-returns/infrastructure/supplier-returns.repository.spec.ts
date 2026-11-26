@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { SupplierReturnsRepository } from './supplier-returns.repository';
@@ -30,7 +30,7 @@ describe('Protection de la valorisation des retours fournisseurs', () => {
   };
   const tx = {
     user: { findFirst: jest.fn() },
-    supplierReturn: { findUnique: jest.fn(), update: jest.fn() },
+    supplierReturn: { findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn(), count: jest.fn() },
     supplierReturnLine: { aggregate: jest.fn() },
     store: { findFirst: jest.fn() },
     serialNumber: { count: jest.fn(), updateMany: jest.fn() },
@@ -51,6 +51,41 @@ describe('Protection de la valorisation des retours fournisseurs', () => {
     tx.supplierReturnLine.aggregate.mockResolvedValue({
       _sum: { quantity: D('0.5'), total: D('0.01') },
     });
+  });
+
+  it('interdit la recherche à un utilisateur non administrateur', async () => {
+    tx.user.findFirst.mockResolvedValue(null);
+    await expect(repository.search('magasinier', { page: 1, limit: 10 })).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(tx.supplierReturn.findMany).not.toHaveBeenCalled();
+    expect(tx.supplierReturn.count).not.toHaveBeenCalled();
+  });
+
+  it('pagine les retours avec un filtre commun et un ordre stable', async () => {
+    tx.supplierReturn.findMany.mockResolvedValue([item]);
+    tx.supplierReturn.count.mockResolvedValue(11);
+    const result = await repository.search('admin', {
+      page: 2,
+      limit: 10,
+      status: 'DRAFT',
+      storeId: 'store',
+      search: ' BR-CI ',
+    });
+    expect(result).toEqual({ items: [item], pagination: { page: 2, limit: 10, total: 11, pages: 2 } });
+    const where = {
+      status: 'DRAFT',
+      receipt: { storeId: 'store' },
+      OR: [
+        { reason: { contains: 'BR-CI', mode: 'insensitive' } },
+        { receipt: { number: { contains: 'BR-CI', mode: 'insensitive' } } },
+        { credit: { reference: { contains: 'BR-CI', mode: 'insensitive' } } },
+      ],
+    };
+    expect(tx.supplierReturn.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where, skip: 10, take: 10, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
+    );
+    expect(tx.supplierReturn.count).toHaveBeenCalledWith({ where });
   });
 
   it('refuse le cumul des arrondis supérieur à la valeur de réception', async () => {

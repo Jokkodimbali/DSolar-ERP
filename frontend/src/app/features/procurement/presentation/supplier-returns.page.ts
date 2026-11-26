@@ -50,10 +50,13 @@ export class SupplierReturnsPage {
   constructor() {
     this.load(1);
     if (this.session.can('stores.read')) {
-      this.storesApi.list().pipe(takeUntilDestroyed(this.destroy)).subscribe({
-        next: (stores) => this.stores.set(stores),
-        error: (error: unknown) => this.error.set(errorMessage(error)),
-      });
+      this.storesApi
+        .list()
+        .pipe(takeUntilDestroyed(this.destroy))
+        .subscribe({
+          next: (stores) => this.stores.set(stores),
+          error: (error: unknown) => this.error.set(errorMessage(error)),
+        });
     }
   }
 
@@ -73,8 +76,12 @@ export class SupplierReturnsPage {
     if (this.loading() || this.busy() || page < 1) return;
     this.loading.set(true);
     this.error.set('');
-    this.api.search(page, this.search(), this.status(), this.store())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+    this.api
+      .search(page, this.search(), this.status(), this.store())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (result) => this.result.set(result),
         error: (error: unknown) => {
@@ -90,8 +97,12 @@ export class SupplierReturnsPage {
     this.names.set({});
     this.error.set('');
     this.busy.set(true);
-    this.api.get(id)
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+    this.api
+      .get(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
       .subscribe({
         next: (item) => {
           this.detail.set(item);
@@ -101,7 +112,11 @@ export class SupplierReturnsPage {
             .pipe(takeUntilDestroyed(this.destroy))
             .subscribe((products) => {
               if (this.detail()?.id !== item.id) return;
-              this.names.set(Object.fromEntries(products.filter((p) => p !== null).map((p) => [p.id, p.name + ' · ' + p.sku])));
+              this.names.set(
+                Object.fromEntries(
+                  products.filter((p) => p !== null).map((p) => [p.id, p.name + ' · ' + p.sku]),
+                ),
+              );
             });
         },
         error: (error: unknown) => this.error.set(errorMessage(error)),

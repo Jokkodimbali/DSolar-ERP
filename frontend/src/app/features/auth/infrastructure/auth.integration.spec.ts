@@ -33,7 +33,10 @@ import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
-import { parseSupplierReturn, parseSupplierReturnPage } from '../../procurement/domain/supplier-return.contract';
+import {
+  parseSupplierReturn,
+  parseSupplierReturnPage,
+} from '../../procurement/domain/supplier-return.contract';
 import {
   parsePurchaseOrder,
   parsePurchaseOrderPage,
@@ -1016,7 +1019,14 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(returnDetail.status).toBe(200);
       expect(parseSupplierReturn(returnDetail.data).total).toBe('156.28');
       expect(
-        (await request('/supplier-returns/' + returnId + '/cancel', 'POST', { reason: 'Annulation CI' }, token)).status,
+        (
+          await request(
+            '/supplier-returns/' + returnId + '/cancel',
+            'POST',
+            { reason: 'Annulation CI' },
+            token,
+          )
+        ).status,
       ).toBe(201);
 
       const second = await request('/proformas', 'POST', input, token);

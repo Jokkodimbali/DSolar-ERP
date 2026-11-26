@@ -36,7 +36,7 @@ describe('Documentation OpenAPI DSolar-ERP', () => {
         item[method] ? [{ path, method, operation: item[method] }] : [],
       ),
     );
-    expect(operations).toHaveLength(227);
+    expect(operations).toHaveLength(228);
     expect(
       operations
         .filter((row) => row.operation.security?.length === 0)
@@ -69,6 +69,15 @@ describe('Documentation OpenAPI DSolar-ERP', () => {
         lines: { type: 'array', items: { $ref: '#/components/schemas/ProformasProformaLineDto' } },
       },
     });
+    expect(doc.paths['/api/v1/supplier-returns/search'].get?.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'page', in: 'query', required: false }),
+        expect.objectContaining({ name: 'limit', in: 'query', required: false }),
+        expect.objectContaining({ name: 'search', in: 'query', required: false }),
+        expect.objectContaining({ name: 'storeId', in: 'query', required: false }),
+        expect.objectContaining({ name: 'status', in: 'query', required: false }),
+      ]),
+    );
     expect(doc.paths['/api/v1/products/search'].get?.parameters).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'page', in: 'query', required: false }),

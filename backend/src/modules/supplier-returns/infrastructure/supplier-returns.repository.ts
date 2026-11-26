@@ -2,7 +2,11 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { pageBounds, pageResult } from '../../../shared/pagination';
-import { ReturnInput, SupplierReturnCriteria, SupplierReturnsPort } from '../application/supplier-returns.port';
+import {
+  ReturnInput,
+  SupplierReturnCriteria,
+  SupplierReturnsPort,
+} from '../application/supplier-returns.port';
 import { validReturnQuantity } from '../domain/return-policy';
 
 @Injectable()

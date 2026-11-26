@@ -3,7 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
-import { parseSupplierReturn, parseSupplierReturnPage, type ReturnStatus } from '../domain/supplier-return.contract';
+import {
+  parseSupplierReturn,
+  parseSupplierReturnPage,
+  type ReturnStatus,
+} from '../domain/supplier-return.contract';
 
 @Injectable({ providedIn: 'root' })
 export class SupplierReturnsApi {

@@ -70,7 +70,9 @@ export const routes: Routes = [
         path: 'approvisionnements/retours',
         canActivate: [supplierReturnsGuard],
         loadComponent: () =>
-          import('./features/procurement/presentation/supplier-returns.page').then((m) => m.SupplierReturnsPage),
+          import('./features/procurement/presentation/supplier-returns.page').then(
+            (m) => m.SupplierReturnsPage,
+          ),
       },
       {
         path: 'magasins',

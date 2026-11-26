@@ -50,7 +50,8 @@ export function parseSupplierReturn(value: unknown) {
     if (line['returnId'] !== id || Number(quantity) <= 0) return invalid();
     const receiptLineId = storeId(line['receiptLineId']);
     const original = line['receiptLine'] === undefined ? null : record(line['receiptLine']);
-    if (original && (original['id'] !== receiptLineId || original['receiptId'] !== receiptId)) return invalid();
+    if (original && (original['id'] !== receiptLineId || original['receiptId'] !== receiptId))
+      return invalid();
     const serials = array(line['serials']).map((rawSerial) => {
       const selection = record(rawSerial);
       const serialId = storeId(selection['serialId']);
@@ -76,7 +77,12 @@ export function parseSupplierReturn(value: unknown) {
   )
     return invalid();
   const credit = row['credit'] === null ? null : record(row['credit']);
-  if (credit && (credit['returnId'] !== id || status !== 'CONFIRMED' || cents(decimal(credit['amount'], 2)) !== cents(total)))
+  if (
+    credit &&
+    (credit['returnId'] !== id ||
+      status !== 'CONFIRMED' ||
+      cents(decimal(credit['amount'], 2)) !== cents(total))
+  )
     return invalid();
   return {
     id,
