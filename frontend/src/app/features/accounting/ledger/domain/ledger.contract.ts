@@ -179,7 +179,7 @@ export function parseEntries(value: unknown, periodId: string) {
           const ledgerAccount = account(line['account']);
           const debit = positive(line['debit']);
           const credit = positive(line['credit']);
-          if (ledgerAccount.id !== line['accountId'] || (cents(debit) > 0n) === (cents(credit) > 0n))
+          if (ledgerAccount.id !== line['accountId'] || cents(debit) > 0n === cents(credit) > 0n)
             return invalid();
           return { id: storeId(line['id']), account: ledgerAccount, debit, credit };
         }),

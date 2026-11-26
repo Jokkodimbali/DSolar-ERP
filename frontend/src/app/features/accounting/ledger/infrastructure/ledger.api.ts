@@ -29,7 +29,9 @@ export class LedgerApi {
     const path = this.period(id);
     return forkJoin({
       balance: this.http.get<unknown>(path + '/trial-balance').pipe(map(parseBalance)),
-      statements: this.http.get<unknown>(path + '/statements').pipe(map((value) => parseStatements(value, id))),
+      statements: this.http
+        .get<unknown>(path + '/statements')
+        .pipe(map((value) => parseStatements(value, id))),
       automation: this.http
         .get<unknown>(path + '/automation')
         .pipe(map((value) => parseAutomation(value, id))),
