@@ -152,18 +152,24 @@ export class PurchaseOrdersPage {
     try {
       const input = purchaseOrderInput(this.number(), supplier.id, this.draft());
       this.busy.set(true);
-      this.api.create(input).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+      this.api.create(input).pipe(takeUntilDestroyed(this.destroy))
         .subscribe({
           next: (order) => {
             this.creating.set(false);
             this.busy.set(false);
             this.success.set('Commande fournisseur créée.');
-            this.open(order.id);
             this.load(1);
+            this.open(order.id);
           },
-          error: (error: unknown) => this.error.set(errorMessage(error) + ' Vérifiez la référence ' + this.number() + ' avant toute nouvelle création.'),
+          error: (error: unknown) => {
+            this.busy.set(false);
+            this.error.set(
+              errorMessage(error) + ' Vérifiez la référence ' + this.number() + ' avant toute nouvelle création.',
+            );
+          },
         });
     } catch {
+      this.busy.set(false);
       this.error.set('Vérifiez le fournisseur, les produits, les quantités (3 décimales) et les coûts (2 décimales).');
     }
   }
@@ -188,7 +194,12 @@ export class PurchaseOrdersPage {
       .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
       .subscribe({
         next: ({ order, progress }) => {
-          if (progress.orderId !== order.id || progress.status !== order.status) {
+          if (
+            progress.orderId !== order.id ||
+            progress.status !== order.status ||
+            progress.lines.length !== order.lines.length ||
+            !order.lines.every((line) => progress.lines.some((item) => item.productId === line.productId))
+          ) {
             this.error.set('La commande a changé. Actualisez son détail.');
             return;
           }
@@ -219,7 +230,7 @@ export class PurchaseOrdersPage {
     if (this.busy() || !order || !action || order.status !== 'DRAFT' || !this.session.can('inventory.manage')) return;
     this.busy.set(true);
     this.error.set('');
-    this.api.action(order.id, action).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+    this.api.action(order.id, action).pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (updated) => {
           this.pending.set(null);
@@ -230,6 +241,7 @@ export class PurchaseOrdersPage {
           this.open(updated.id);
         },
         error: (error: unknown) => {
+          this.busy.set(false);
           this.pending.set(null);
           this.error.set(errorMessage(error));
         },
