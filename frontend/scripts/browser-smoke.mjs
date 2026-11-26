@@ -107,6 +107,7 @@ try {
     ['produits', '/produits', 'Produits'],
     ['magasins', '/magasins', 'Magasins'],
     ['fournisseurs', '/approvisionnements/fournisseurs', 'Fournisseurs'],
+    ['commandes-fournisseurs', '/approvisionnements/commandes', 'Commandes fournisseurs'],
     ['commandes', '/ventes/commandes', 'Commandes'],
     ['stocks', '/stocks', 'Stocks'],
     ['transferts', '/stocks/transferts', 'Transferts de stock'],
@@ -178,6 +179,20 @@ try {
   await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
   await supplierRow.getByRole('button', { name: 'Désactiver', exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'fournisseurs-crud.png'), fullPage: true });
+  await page.goto('http://localhost:4200/approvisionnements/commandes');
+  await page.getByRole('button', { name: 'Nouvelle commande' }).click();
+  const supplierPicker = page.getByLabel('Sélectionner le fournisseur');
+  await supplierPicker.locator('option').filter({ hasText: 'Fournisseur navigateur CI' }).waitFor({ state: 'attached' });
+  await supplierPicker.selectOption({ label: 'Fournisseur navigateur CI' });
+  await page.getByRole('button', { name: /Panneau proforma CI · PV-PROFORMA-CI/ }).click();
+  await page.getByLabel('Quantité', { exact: true }).fill('2,125');
+  await page.getByLabel('Coût unitaire', { exact: true }).fill('1000,25');
+  await page.getByRole('button', { name: 'Créer le brouillon' }).click();
+  await page.getByRole('button', { name: 'Confirmer la commande' }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer la commande' }).waitFor({ state: 'hidden' });
+  await page.getByText('Commande confirmée.', { exact: true }).waitFor();
+  await page.screenshot({ path: join(artifacts, 'commandes-fournisseurs-crud.png'), fullPage: true });
   await page.goto('http://localhost:4200/stocks');
   const storeSelector = page.locator('.inventory-toolbar select');
   const storeOption = storeSelector.locator('option').filter({ hasText: 'Magasin CI modifié' });

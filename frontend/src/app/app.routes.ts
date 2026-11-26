@@ -52,6 +52,12 @@ export const routes: Routes = [
           import('./features/procurement/presentation/suppliers.page').then((m) => m.SuppliersPage),
       },
       {
+        path: 'approvisionnements/commandes',
+        canActivate: [suppliersGuard],
+        loadComponent: () =>
+          import('./features/procurement/presentation/purchase-orders.page').then((m) => m.PurchaseOrdersPage),
+      },
+      {
         path: 'magasins',
         canActivate: [storesGuard],
         loadComponent: () => import('./features/stores/presentation/stores.page').then((m) => m.StoresPage),

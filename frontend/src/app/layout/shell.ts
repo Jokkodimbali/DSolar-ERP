@@ -91,6 +91,13 @@ import { SessionService } from '../features/auth/application/session.service';
             aria-label="Fournisseurs"
             ><app-ui-icon name="box" /><span class="nav-text">Fournisseurs</span></a
           >
+          <a
+            routerLink="/approvisionnements/commandes"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Commandes fournisseurs"
+            ><app-ui-icon name="box" /><span class="nav-text">Commandes fournisseurs</span></a
+          >
         }
         @if (session.can('stores.read')) {
           <a

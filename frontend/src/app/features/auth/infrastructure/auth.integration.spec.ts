@@ -32,6 +32,12 @@ import {
 import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
+import {
+  parsePurchaseOrder,
+  parsePurchaseOrderPage,
+  parsePurchaseProgress,
+  purchaseOrderInput,
+} from '../../procurement/domain/purchase-order.contract';
 
 // Ce test Vitest s’exécute exclusivement dans Node.js.
 declare const process: { readonly env: { readonly DSOLAR_AUTH_INTEGRATION?: string } };
@@ -400,6 +406,42 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(productResponse.status).toBe(201);
       const catalogueProduct = parseProduct(productResponse.data);
+      const purchaseInput = purchaseOrderInput('CF-CONTRAT-CI', supplier.id, [
+        { productId: catalogueProduct.id, quantity: '2.125', unitCost: '1250.25' },
+      ]);
+      const purchaseResponse = await request('/purchase-orders', 'POST', purchaseInput, token);
+      expect(purchaseResponse.status).toBe(201);
+      const purchase = parsePurchaseOrder(purchaseResponse.data);
+      expect(purchase.status).toBe('DRAFT');
+      const purchasePath = '/purchase-orders/' + purchase.id;
+      const purchaseList = await request(
+        '/purchase-orders/search?search=CF-CONTRAT-CI&status=DRAFT&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
+      expect(purchaseList.status).toBe(200);
+      expect(parsePurchaseOrderPage(purchaseList.data).items).toContainEqual(purchase);
+      expect(parsePurchaseOrder((await request(purchasePath, 'GET', undefined, token)).data)).toEqual(purchase);
+      const progress = await request(purchasePath + '/progress', 'GET', undefined, token);
+      expect(progress.status).toBe(200);
+      expect(parsePurchaseProgress(progress.data).lines[0]?.remaining).toBe('2.125');
+      expect((await request('/purchase-orders', 'POST', purchaseInput, token)).status).toBe(409);
+      const confirmed = await request(purchasePath + '/confirm', 'POST', {}, token);
+      expect(confirmed.status).toBe(201);
+      expect(parsePurchaseOrder(confirmed.data).status).toBe('CONFIRMED');
+      expect((await request(purchasePath + '/cancel', 'POST', {}, token)).status).toBe(409);
+      const cancelResponse = await request(
+        '/purchase-orders',
+        'POST',
+        { ...purchaseInput, number: 'CF-ANNULATION-CI' },
+        token,
+      );
+      expect(cancelResponse.status).toBe(201);
+      const cancelOrder = parsePurchaseOrder(cancelResponse.data);
+      const cancelled = await request('/purchase-orders/' + cancelOrder.id + '/cancel', 'POST', {}, token);
+      expect(cancelled.status).toBe(201);
+      expect(parsePurchaseOrder(cancelled.data).status).toBe('CANCELLED');
       const listedProducts = await request(
         '/products/search?search=PV-PROFORMA-CI&page=1&limit=10&active=true',
         'GET',
