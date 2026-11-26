@@ -1404,8 +1404,15 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const beforeAllocation = await request(paymentPath + '/allocations', 'GET', undefined, token);
       expect(beforeAllocation.status).toBe(200);
       expect(parseAllocations(beforeAllocation.data, deliveryOrderId).invoices[0]?.remaining).toBe('2360.00');
-      expect((await request(allocationPath, 'POST', { invoiceId: invoice.id, amount: '1359.76' }, token)).status).toBe(409);
-      const allocated = await request(allocationPath, 'POST', { invoiceId: invoice.id, amount: '1359.75' }, token);
+      expect(
+        (await request(allocationPath, 'POST', { invoiceId: invoice.id, amount: '1359.76' }, token)).status,
+      ).toBe(409);
+      const allocated = await request(
+        allocationPath,
+        'POST',
+        { invoiceId: invoice.id, amount: '1359.75' },
+        token,
+      );
       expect(allocated.status).toBe(201);
       const allocatedSnapshot = parseAllocations(
         (await request(paymentPath + '/allocations', 'GET', undefined, token)).data,
@@ -1414,12 +1421,19 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(allocatedSnapshot.invoices[0]?.remaining).toBe('1000.25');
       expect(allocatedSnapshot.payments.find((item) => item.id === secondPaymentId)?.available).toBe('0.00');
       const reason = { reason: 'Contrepassation de contrôle CI' };
-      expect((await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status).toBe(409);
-      expect((await request(allocationPath + '/' + parseId(allocated.data) + '/cancel', 'POST', reason, token)).status).toBe(201);
-      expect(parseAllocations(
-        (await request(paymentPath + '/allocations', 'GET', undefined, token)).data,
-        deliveryOrderId,
-      ).invoices[0]?.remaining).toBe('2360.00');
+      expect(
+        (await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status,
+      ).toBe(409);
+      expect(
+        (await request(allocationPath + '/' + parseId(allocated.data) + '/cancel', 'POST', reason, token))
+          .status,
+      ).toBe(201);
+      expect(
+        parseAllocations(
+          (await request(paymentPath + '/allocations', 'GET', undefined, token)).data,
+          deliveryOrderId,
+        ).invoices[0]?.remaining,
+      ).toBe('2360.00');
       expect(
         (await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status,
       ).toBe(409);

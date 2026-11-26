@@ -37,8 +37,10 @@ export class PaymentAllocationsPage {
   readonly success = signal('');
   readonly money = formatMoney;
   eligibleInvoices(snapshot: AllocationSnapshot, payment: AllocationSnapshot['payments'][number]) {
-    return snapshot.invoices.filter((invoice) =>
-      paymentCents(invoice.remaining) > 0n && !payment.allocations.some((allocation) => allocation.invoiceId === invoice.id),
+    return snapshot.invoices.filter(
+      (invoice) =>
+        paymentCents(invoice.remaining) > 0n &&
+        !payment.allocations.some((allocation) => allocation.invoiceId === invoice.id),
     );
   }
   readonly positive = (value: string) => paymentCents(value) > 0n;
@@ -56,7 +58,12 @@ export class PaymentAllocationsPage {
     if (!this.orderId() || this.loading() || this.busy() || this.pending()) return;
     this.data.set(null);
     this.loading.set(true);
-    this.api.snapshot(this.orderId()).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+    this.api
+      .snapshot(this.orderId())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (snapshot) => this.data.set(snapshot),
         error: (error: unknown) => this.error.set(errorMessage(error)),
@@ -65,11 +72,16 @@ export class PaymentAllocationsPage {
 
   askAllocate(paymentId: string, invoiceId: string, amount: string): void {
     const snapshot = this.data();
-    if (!snapshot || this.loading() || this.busy() || this.pending() || !this.session.can('sales.manage')) return;
+    if (!snapshot || this.loading() || this.busy() || this.pending() || !this.session.can('sales.manage'))
+      return;
     this.error.set('');
     this.success.set('');
     try {
-      this.pending.set({ kind: 'allocate', paymentId, ...allocationInput(snapshot, paymentId, invoiceId, amount) });
+      this.pending.set({
+        kind: 'allocate',
+        paymentId,
+        ...allocationInput(snapshot, paymentId, invoiceId, amount),
+      });
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : 'Affectation invalide.');
     }
@@ -77,7 +89,15 @@ export class PaymentAllocationsPage {
 
   askCancel(paymentId: string, allocationId: string, reason: string): void {
     const payment = this.data()?.payments.find((item) => item.id === paymentId);
-    if (!payment?.active || !payment.allocations.some((item) => item.id === allocationId) || this.loading() || this.busy() || this.pending() || !this.session.can('sales.manage')) return;
+    if (
+      !payment?.active ||
+      !payment.allocations.some((item) => item.id === allocationId) ||
+      this.loading() ||
+      this.busy() ||
+      this.pending() ||
+      !this.session.can('sales.manage')
+    )
+      return;
     const normalized = reason.trim();
     this.error.set('');
     this.success.set('');
@@ -92,9 +112,10 @@ export class PaymentAllocationsPage {
     const action = this.pending();
     if (!action || this.busy() || this.loading() || !this.session.can('sales.manage')) return;
     const orderId = this.orderId();
-    const request = action.kind === 'allocate'
-      ? this.api.allocate(orderId, action.paymentId, { invoiceId: action.invoiceId, amount: action.amount })
-      : this.api.cancel(orderId, action.paymentId, action.allocationId, action.reason);
+    const request =
+      action.kind === 'allocate'
+        ? this.api.allocate(orderId, action.paymentId, { invoiceId: action.invoiceId, amount: action.amount })
+        : this.api.cancel(orderId, action.paymentId, action.allocationId, action.reason);
     this.busy.set(true);
     request.pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: (snapshot) => {

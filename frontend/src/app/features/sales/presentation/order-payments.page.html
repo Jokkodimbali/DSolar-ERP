@@ -5,7 +5,9 @@
 >
   <a class="secondary" [routerLink]="['/ventes/commandes', orderId()]">Retour à la commande</a>
   @if (orderId() && !pending() && !busy() && !confirmation() && !reversal()) {
-  <a class="secondary" [routerLink]="['/ventes/reglements/commande', orderId(), 'affectations']">Affectations comptables</a>
+  <a class="secondary" [routerLink]="['/ventes/reglements/commande', orderId(), 'affectations']"
+    >Affectations comptables</a
+  >
   }
   <button
     type="button"
