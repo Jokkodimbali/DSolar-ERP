@@ -184,6 +184,13 @@ import { SessionService } from '../features/auth/application/session.service';
             ><app-ui-icon name="cart" /><span class="nav-text">Banque</span></a
           >
           <a
+            routerLink="/audit"
+            routerLinkActive="active"
+            (click)="menuOpen.set(false)"
+            aria-label="Journal d’audit"
+            ><app-ui-icon name="clock" /><span class="nav-text">Journal d’audit</span></a
+          >
+          <a
             routerLink="/parametres"
             routerLinkActive="active"
             (click)="menuOpen.set(false)"

@@ -1,0 +1,143 @@
+<app-page-header
+  eyebrow="ADMINISTRATION"
+  heading="Journal d’audit"
+  description="Consultez la traçabilité des opérations internes. Le journal est accessible en lecture seule."
+>
+  <button type="button" class="secondary" [disabled]="loading()" (click)="search()">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<section class="panel">
+  <h2>Rechercher des opérations</h2>
+  <form (submit)="$event.preventDefault(); search()">
+    <fieldset [disabled]="loading()">
+      <div class="ui-toolbar">
+        <label class="ui-field">
+          Action exacte
+          <input #action maxlength="120" [value]="draft().action" (input)="update('action', action.value)" />
+        </label>
+        <label class="ui-field">
+          Type d’entité
+          <input
+            #entity
+            maxlength="120"
+            [value]="draft().entityType"
+            (input)="update('entityType', entity.value)"
+          />
+        </label>
+        <label class="ui-field">
+          Identifiant de l’entité
+          <input
+            #target
+            maxlength="120"
+            [value]="draft().entityId"
+            (input)="update('entityId', target.value)"
+          />
+        </label>
+        <label class="ui-field">
+          Identifiant utilisateur
+          <input #actor maxlength="36" [value]="draft().actorId" (input)="update('actorId', actor.value)" />
+        </label>
+        <label class="ui-field">
+          Identifiant magasin
+          <input #store maxlength="36" [value]="draft().storeId" (input)="update('storeId', store.value)" />
+        </label>
+        <label class="ui-field">
+          Du (UTC)
+          <input #from type="date" [value]="draft().from" (input)="update('from', from.value)" />
+        </label>
+        <label class="ui-field">
+          Au (UTC)
+          <input #to type="date" [value]="draft().to" (input)="update('to', to.value)" />
+        </label>
+      </div>
+      <div class="ui-actions">
+        <button type="submit" class="primary">Rechercher</button>
+        <button type="button" class="secondary" (click)="reset()">Réinitialiser</button>
+      </div>
+    </fieldset>
+  </form>
+</section>
+@if (loading()) {
+<p role="status">Chargement du journal…</p>
+} @if (summary(); as data) {
+<section class="panel">
+  <h2>Synthèse du journal</h2>
+  <dl class="metrics">
+    <div>
+      <dt>Opérations correspondantes</dt>
+      <dd>{{ data.total }}</dd>
+    </div>
+    <div>
+      <dt>Types d’action</dt>
+      <dd>{{ data.byAction.length }}</dd>
+    </div>
+    <div>
+      <dt>Types d’entité</dt>
+      <dd>{{ data.byEntityType.length }}</dd>
+    </div>
+  </dl>
+  <div class="ui-table" role="region" aria-label="Répartition des actions" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Action</th>
+          <th scope="col">Nombre</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of data.byAction; track item.label) {
+        <tr>
+          <td>{{ item.label }}</td>
+          <td>{{ item.count }}</td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="2">Aucune action.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+} @if (page(); as data) {
+<section class="panel">
+  <h2>Historique des opérations</h2>
+  <p class="muted">Page {{ pageNumber() }} · Horodatages UTC · Du plus récent au plus ancien</p>
+  <div class="ui-table" role="region" aria-label="Historique d’audit" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Action</th>
+          <th scope="col">Entité</th>
+          <th scope="col">Utilisateur</th>
+          <th scope="col">Magasin</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of data.items; track item.id) {
+        <tr>
+          <td>{{ item.createdAt | date:'dd/MM/yyyy HH:mm:ss':'UTC' }}</td>
+          <td>{{ item.action }}</td>
+          <td>{{ item.entityType }} — {{ item.entityId }}</td>
+          <td>{{ item.actorId ?? 'Non renseigné' }}</td>
+          <td>{{ item.storeId ?? 'Non renseigné' }}</td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="5">Aucune opération correspondant aux filtres.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="ui-actions">
+    <button type="button" class="secondary" [disabled]="loading() || pageNumber() <= 1" (click)="previous()">
+      Précédent
+    </button>
+    <button type="button" class="secondary" [disabled]="loading() || !data.nextCursor" (click)="next()">
+      Suivant
+    </button>
+  </div>
+</section>
+}
