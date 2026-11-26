@@ -2,7 +2,10 @@ import { isRecord } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
 
 export function serialRegistration(value: string): string[] {
-  const serials = value.split(/\r?\n/).map((serial) => serial.trim()).filter(Boolean);
+  const serials = value
+    .split(/\r?\n/)
+    .map((serial) => serial.trim())
+    .filter(Boolean);
   if (
     !serials.length ||
     serials.length > 100 ||

@@ -47,8 +47,14 @@ describe('Création des retours fournisseurs', () => {
     expect(input.lines).toEqual([{ receiptLineId: id, quantity: '1', serialIds: [id] }]);
     expect(parseReturnCreation(JSON.parse(JSON.stringify(input)))).toEqual(input);
     expect(() => returnCreation(options, {}, 'Défaut', id, { [id]: [serial, serial] })).toThrow();
-    expect(() => parseReturnCreation({ ...input, lines: [{ ...input.lines[0], quantity: '0.5' }] })).toThrow();
-    const page = { receiptLineId: id, items: [serial], pagination: { page: 1, limit: 10, total: 1, pages: 1 } };
+    expect(() =>
+      parseReturnCreation({ ...input, lines: [{ ...input.lines[0], quantity: '0.5' }] }),
+    ).toThrow();
+    const page = {
+      receiptLineId: id,
+      items: [serial],
+      pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+    };
     expect(parseAvailableSerials(page, id).items).toEqual([serial]);
     expect(() => parseAvailableSerials({ ...page, receiptLineId: 'invalide' }, id)).toThrow();
   });

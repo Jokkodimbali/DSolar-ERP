@@ -148,7 +148,12 @@ export function returnCreation(
         throw new Error('Nombre de séries supérieur à la quantité disponible.');
       return { receiptLineId, quantity: String(selected.length), serialIds: selected.map((item) => item.id) };
     });
-  return parseReturnCreation({ receiptId: options.receiptId, operationKey, reason, lines: [...lines, ...serialized] });
+  return parseReturnCreation({
+    receiptId: options.receiptId,
+    operationKey,
+    reason,
+    lines: [...lines, ...serialized],
+  });
 }
 
 export function matchesReturnCreation(item: SupplierReturn, input: ReturnCreation): boolean {

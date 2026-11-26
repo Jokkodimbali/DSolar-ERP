@@ -300,7 +300,11 @@ export class SupplierReturnsPage {
   }
 
   pickSerials(id: string): void {
-    if (this.busy() || this.serialLoading() || !this.options()?.lines.some((line) => line.receiptLineId === id && line.serialized))
+    if (
+      this.busy() ||
+      this.serialLoading() ||
+      !this.options()?.lines.some((line) => line.receiptLineId === id && line.serialized)
+    )
       return;
     this.serialLine.set(id);
     this.serialPage.set(null);
@@ -332,7 +336,12 @@ export class SupplierReturnsPage {
   toggleSerial(serial: AvailableSerial): void {
     const id = this.serialLine();
     const line = this.options()?.lines.find((item) => item.receiptLineId === id && item.serialized);
-    if (!line || this.busy() || this.serialLoading() || !this.serialPage()?.items.some((item) => item.id === serial.id))
+    if (
+      !line ||
+      this.busy() ||
+      this.serialLoading() ||
+      !this.serialPage()?.items.some((item) => item.id === serial.id)
+    )
       return;
     const selected = this.selectedSerials()[id] ?? [];
     if (selected.some((item) => item.id === serial.id)) {
