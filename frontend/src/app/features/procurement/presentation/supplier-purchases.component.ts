@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  input,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { errorMessage } from '../../../core/api/http-error';
@@ -24,14 +32,24 @@ export class SupplierPurchasesComponent implements OnInit {
   readonly error = signal('');
   readonly money = formatMoney;
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+  }
 
   load(): void {
     if (this.loading() || !this.session.can('users.manage')) return;
     this.loading.set(true);
     this.data.set(null);
     this.error.set('');
-    this.api.purchases(this.supplierId()).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
-      .subscribe({ next: (data) => this.data.set(data), error: (error: unknown) => this.error.set(errorMessage(error)) });
+    this.api
+      .purchases(this.supplierId())
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (data) => this.data.set(data),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 }

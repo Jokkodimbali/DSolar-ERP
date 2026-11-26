@@ -40,12 +40,9 @@
     </div>
   </dl>
 </section>
-@if (session.can('users.manage')) {
-  @for (id of [supplier.id]; track id) {
-    <app-supplier-purchases [supplierId]="id" />
-  }
-}
-} @if (editing(); as target) {
+@if (session.can('users.manage')) { @for (id of [supplier.id]; track id) {
+<app-supplier-purchases [supplierId]="id" />
+} } } @if (editing(); as target) {
 <section class="panel">
   <h2>{{ target === 'new' ? 'Nouveau fournisseur' : 'Modifier le fournisseur' }}</h2>
   @if (target === 'new' && pendingCreation()) {

@@ -214,7 +214,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     const purchases = await request(supplierPath + '/purchases-summary', 'GET', undefined, admin.jetonAcces);
     expect(purchases.status).toBe(200);
     expect(parseSupplierPurchases(purchases.data, supplier.id).netReceivedValue).toBe('0.00');
-    expect((await request(supplierPath + '/purchases-summary', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect(
+      (await request(supplierPath + '/purchases-summary', 'GET', undefined, keeper.jetonAcces)).status,
+    ).toBe(403);
     expect((await request(supplierPath + '/purchases-summary')).status).toBe(401);
     const command = { name: 'Fournisseur idempotent CI', operationKey: crypto.randomUUID() };
     const duplicates = await Promise.all([

@@ -1,21 +1,52 @@
 <section class="panel" aria-label="Synthèse des achats fournisseur">
   <div class="page-heading">
     <h2>Synthèse des achats</h2>
-    <button type="button" class="secondary" [disabled]="loading()" (click)="load()">Actualiser les achats</button>
+    <button type="button" class="secondary" [disabled]="loading()" (click)="load()">
+      Actualiser les achats
+    </button>
   </div>
   <app-feedback [message]="error()" kind="error" />
-  @if (loading()) { <p role="status">Chargement de la synthèse…</p> }
+  @if (loading()) {
+    <p role="status">Chargement de la synthèse…</p>
+  }
   @if (data(); as summary) {
     <dl class="metrics">
-      <div><dt>Réceptions confirmées</dt><dd>{{ summary.confirmedReceipts }}</dd></div>
-      <div><dt>Valeur réceptionnée</dt><dd>{{ money(summary.receivedValue) }}</dd></div>
-      <div><dt>Retours confirmés</dt><dd>{{ summary.confirmedReturns }}</dd></div>
-      <div><dt>Valeur retournée</dt><dd>{{ money(summary.returnedValue) }}</dd></div>
-      <div><dt>Valeur nette réceptionnée</dt><dd>{{ money(summary.netReceivedValue) }}</dd></div>
-      <div><dt>Avoirs enregistrés</dt><dd>{{ summary.recordedCredits }} · {{ money(summary.creditValue) }}</dd></div>
-      <div><dt>Retours en attente d’avoir</dt><dd>{{ summary.returnsAwaitingCredit }}</dd></div>
-      <div><dt>Solde à payer</dt><dd>Non disponible</dd></div>
+      <div>
+        <dt>Réceptions confirmées</dt>
+        <dd>{{ summary.confirmedReceipts }}</dd>
+      </div>
+      <div>
+        <dt>Valeur réceptionnée</dt>
+        <dd>{{ money(summary.receivedValue) }}</dd>
+      </div>
+      <div>
+        <dt>Retours confirmés</dt>
+        <dd>{{ summary.confirmedReturns }}</dd>
+      </div>
+      <div>
+        <dt>Valeur retournée</dt>
+        <dd>{{ money(summary.returnedValue) }}</dd>
+      </div>
+      <div>
+        <dt>Valeur nette réceptionnée</dt>
+        <dd>{{ money(summary.netReceivedValue) }}</dd>
+      </div>
+      <div>
+        <dt>Avoirs enregistrés</dt>
+        <dd>{{ summary.recordedCredits }} · {{ money(summary.creditValue) }}</dd>
+      </div>
+      <div>
+        <dt>Retours en attente d’avoir</dt>
+        <dd>{{ summary.returnsAwaitingCredit }}</dd>
+      </div>
+      <div>
+        <dt>Solde à payer</dt>
+        <dd>Non disponible</dd>
+      </div>
     </dl>
-    <p class="muted">Les valeurs correspondent aux réceptions et retours confirmés. Elles ne constituent pas une dette fournisseur. Un avoir ne représente pas un règlement.</p>
+    <p class="muted">
+      Les valeurs correspondent aux réceptions et retours confirmés. Elles ne constituent pas une dette
+      fournisseur. Un avoir ne représente pas un règlement.
+    </p>
   }
 </section>

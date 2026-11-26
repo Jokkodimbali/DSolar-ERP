@@ -24,7 +24,8 @@ export class SuppliersApi {
   }
 
   purchases(id: string) {
-    return this.http.get<unknown>(this.path(id) + '/purchases-summary')
+    return this.http
+      .get<unknown>(this.path(id) + '/purchases-summary')
       .pipe(map((value) => parseSupplierPurchases(value, id)));
   }
 
