@@ -59,10 +59,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
     if (invoice.status !== 'ISSUED') {
       throw new ConflictException('Seule une facture émise peut faire l’objet d’un avoir.');
     }
-    const credited = invoice.creditNotes.reduce(
-      (sum, note) => sum.plus(note.amount),
-      new Prisma.Decimal(0),
-    );
+    const credited = invoice.creditNotes.reduce((sum, note) => sum.plus(note.amount), new Prisma.Decimal(0));
     const allocated = invoice.allocations.reduce(
       (sum, allocation) => sum.plus(allocation.amount),
       new Prisma.Decimal(0),
@@ -71,16 +68,22 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
       .minus(credited)
       .minus(Prisma.Decimal.max(allocated, invoice.order.amountPaid));
 
-    return { invoice, stores, available };
+    return { invoice, order: invoice.order, stores, available };
   }
 
-  private calculate(invoice: Awaited<ReturnType<PrismaCreditNotesRepository['context']>>['invoice'], lines: CreditAllocation[], amount?: string) {
+  private calculate(
+    invoice: Awaited<ReturnType<PrismaCreditNotesRepository['context']>>['invoice'],
+    lines: CreditAllocation[],
+    amount?: string,
+  ) {
     if (invoice.creditNotes.some((note) => !note.lines.length))
       throw new ConflictException('Avoir historique sans détail : régularisation préalable requise.');
     try {
       return allocateCredit(
         invoice.lines.map((line) => {
-          const prior = invoice.creditNotes.flatMap((note) => note.lines).filter((item) => item.invoiceLineId === line.id);
+          const prior = invoice.creditNotes
+            .flatMap((note) => note.lines)
+            .filter((item) => item.invoiceLineId === line.id);
           return {
             id: line.id,
             total: line.lineTotal.toFixed(2),
@@ -98,14 +101,17 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
   }
 
   preview(invoiceId: string, actorId: string, lines: CreditAllocation[]) {
-    return this.prisma.$transaction(async (tx) => {
-      const { invoice, available } = await this.context(tx, invoiceId, actorId);
-      const detail = this.calculate(invoice, lines);
-      const amount = new Prisma.Decimal(detail.netAmount).plus(detail.taxAmount);
-      if (amount.greaterThan(available))
-        throw new ConflictException('Avoir supérieur au solde non encaissé de la facture.');
-      return { invoiceId, amount: amount.toFixed(2), available: available.toFixed(2), ...detail };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const { invoice, available } = await this.context(tx, invoiceId, actorId);
+        const detail = this.calculate(invoice, lines);
+        const amount = new Prisma.Decimal(detail.netAmount).plus(detail.taxAmount);
+        if (amount.greaterThan(available))
+          throw new ConflictException('Avoir supérieur au solde non encaissé de la facture.');
+        return { invoiceId, amount: amount.toFixed(2), available: available.toFixed(2), ...detail };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async issue(
@@ -130,7 +136,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
       async (tx) => {
         await tx.$queryRaw`SELECT o.id FROM "SalesOrder" o JOIN "Invoice" i ON i."orderId" = o.id WHERE i.id = ${invoiceId}::uuid FOR UPDATE OF o`;
         await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId}::uuid FOR UPDATE`;
-        const { invoice, stores, available } = await this.context(tx, invoiceId, actorId);
+        const { invoice, order, stores, available } = await this.context(tx, invoiceId, actorId);
         const number = operationKey ? 'AV-' + operationKey.toUpperCase() : undefined;
         if (number) {
           const existing = await tx.creditNote.findUnique({ where: { number }, include: { lines: true } });
@@ -140,10 +146,16 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
               !existing.amount.eq(amount) ||
               existing.reason !== normalizedReason ||
               existing.lines.length !== (lines?.length ?? 0) ||
-              (lines && (new Set(lines.map((line) => line.invoiceLineId)).size !== lines.length ||
-                !lines.every((line) => existing.lines.some((saved) =>
-                  saved.invoiceLineId === line.invoiceLineId && saved.netAmount.eq(line.netAmount)))))
-            ) throw new ConflictException('Clé d’avoir déjà utilisée avec des données différentes.');
+              (lines &&
+                (new Set(lines.map((line) => line.invoiceLineId)).size !== lines.length ||
+                  !lines.every((line) =>
+                    existing.lines.some(
+                      (saved) =>
+                        saved.invoiceLineId === line.invoiceLineId && saved.netAmount.eq(line.netAmount),
+                    ),
+                  )))
+            )
+              throw new ConflictException('Clé d’avoir déjà utilisée avec des données différentes.');
             return existing;
           }
         }
@@ -176,8 +188,8 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
         });
         // Publish a new order row version to serialize concurrent payments and credits.
         await tx.salesOrder.update({
-          where: { id: invoice.order.id },
-          data: { amountPaid: invoice.order.amountPaid },
+          where: { id: order.id },
+          data: { amountPaid: order.amountPaid },
         });
         await tx.auditLog.create({
           data: {

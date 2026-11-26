@@ -39,10 +39,20 @@ describe('PrismaCreditNotesRepository', () => {
 
   it('rejoue un avoir identique sans nouvelle écriture', async () => {
     const operationKey = '00000000-0000-4000-8000-000000000003';
-    const saved = { id: 'credit-1', invoiceId, amount: decimal('50'), reason: 'Correction de prix', lines: [] };
+    const saved = {
+      id: 'credit-1',
+      invoiceId,
+      amount: decimal('50'),
+      reason: 'Correction de prix',
+      lines: [],
+    };
     tx.creditNote.findUnique.mockResolvedValue(saved);
-    await expect(repository.issue(invoiceId, actorId, '50.00', 'Correction de prix', undefined, operationKey)).resolves.toEqual(saved);
-    await expect(repository.issue(invoiceId, actorId, '49.00', 'Correction de prix', undefined, operationKey)).rejects.toThrow(ConflictException);
+    await expect(
+      repository.issue(invoiceId, actorId, '50.00', 'Correction de prix', undefined, operationKey),
+    ).resolves.toEqual(saved);
+    await expect(
+      repository.issue(invoiceId, actorId, '49.00', 'Correction de prix', undefined, operationKey),
+    ).rejects.toThrow(ConflictException);
     expect(tx.creditNote.create).not.toHaveBeenCalled();
     expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
@@ -54,8 +64,13 @@ describe('PrismaCreditNotesRepository', () => {
       allocations: [],
       lines: [{ id: 'line-1', lineTotal: decimal('118'), taxAmount: decimal('18') }],
     });
-    await expect(repository.preview(invoiceId, actorId, [{ invoiceLineId: 'line-1', netAmount: '50' }])).resolves.toMatchObject({
-      invoiceId, amount: '59.00', netAmount: '50.00', taxAmount: '9.00',
+    await expect(
+      repository.preview(invoiceId, actorId, [{ invoiceLineId: 'line-1', netAmount: '50' }]),
+    ).resolves.toMatchObject({
+      invoiceId,
+      amount: '59.00',
+      netAmount: '50.00',
+      taxAmount: '9.00',
     });
     expect(tx.creditNote.create).not.toHaveBeenCalled();
   });

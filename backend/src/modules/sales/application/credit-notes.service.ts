@@ -14,7 +14,14 @@ export class CreditNotesService {
     return this.creditNotes.preview(invoiceId, actorId, lines);
   }
 
-  issue(invoiceId: string, actorId: string, amount: string, reason: string, lines?: CreditAllocation[], operationKey?: string) {
+  issue(
+    invoiceId: string,
+    actorId: string,
+    amount: string,
+    reason: string,
+    lines?: CreditAllocation[],
+    operationKey?: string,
+  ) {
     if (operationKey) return this.creditNotes.issue(invoiceId, actorId, amount, reason, lines, operationKey);
     return lines
       ? this.creditNotes.issue(invoiceId, actorId, amount, reason, lines)

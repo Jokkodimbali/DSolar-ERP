@@ -25,9 +25,18 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
     tx.creditNote.findFirst.mockResolvedValue(null);
     await expect(repo.find('CREDIT_NOTE', 'credit', 'actor')).resolves.toBeNull();
     expect(tx.creditNote.findFirst.mock.calls[0][0].where).toMatchObject({
-      id: 'credit', invoice: { status: 'ISSUED', order: { lines: { some: {}, every: {
-        store: { status: 'ACTIVE', userAccess: { some: { userId: 'actor' } } },
-      } } } },
+      id: 'credit',
+      invoice: {
+        status: 'ISSUED',
+        order: {
+          lines: {
+            some: {},
+            every: {
+              store: { status: 'ACTIVE', userAccess: { some: { userId: 'actor' } } },
+            },
+          },
+        },
+      },
     });
   });
   it('filtre les proformas sur les identifiants des magasins accessibles', async () => {
