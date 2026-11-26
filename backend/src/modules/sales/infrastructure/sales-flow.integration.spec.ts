@@ -141,10 +141,18 @@ integration('Parcours commercial réel PostgreSQL', () => {
       await expect(documents.download('INVOICE', invoice.id, outsider.id)).rejects.toBeInstanceOf(
         NotFoundException,
       );
-      const note = await deliveries.create(order.id, actor.id, {
+      const deliveryCommand = {
+        operationKey: randomUUID(),
         lines: [{ storeId: store.id, productId: product.id, quantity: '2.000' }],
-      });
+      };
+      const note = await deliveries.create(order.id, actor.id, deliveryCommand);
+      expect((await deliveries.create(order.id, actor.id, deliveryCommand)).id).toBe(note.id);
+      const progress = await deliveries.progress(order.id, actor.id);
+      expect(progress.lines[0]?.remaining).toBe('2.000');
+      await expect(deliveries.progress(order.id, outsider.id)).rejects.toBeInstanceOf(NotFoundException);
       await deliveries.confirm(order.id, note.id, actor.id);
+      expect((await deliveries.create(order.id, actor.id, deliveryCommand)).id).toBe(note.id);
+      expect((await deliveries.progress(order.id, actor.id)).lines[0]?.remaining).toBe('0.000');
       expect((await balance()).quantity.toFixed(3)).toBe('8.000');
       expect((await balance()).reserved.toFixed(3)).toBe('0.000');
       expect((await prisma.salesOrder.findUniqueOrThrow({ where: { id: order.id } })).status).toBe(

@@ -8,6 +8,7 @@ import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/d
 import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
 import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-view.contract';
 import { parseLinkedOrder } from '../../sales/domain/proforma-conversion.contract';
+import { parseDelivery, parseDeliveryPage, parseDeliveryProgress } from '../../sales/domain/delivery.contract';
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import {
   parseId,
@@ -1198,6 +1199,82 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id),
       ).toEqual(stockBefore);
       expect((await request(excessiveOrderPath + '/cancel', 'POST', {}, token)).status).toBe(201);
+
+      const deliveryQuote = await request('/proformas', 'POST', input, token);
+      expect(deliveryQuote.status).toBe(201);
+      const quoteId = parseId(deliveryQuote.data);
+      expect((await request('/proformas/' + quoteId + '/issue', 'POST', {}, token)).status).toBe(201);
+      expect((await request('/proformas/' + quoteId + '/accept', 'POST', {}, token)).status).toBe(201);
+      const deliveryOrder = await request('/sales-orders/from-proforma/' + quoteId, 'POST', {}, token);
+      expect(deliveryOrder.status).toBe(201);
+      const deliveryOrderId = parseId(deliveryOrder.data);
+      const deliveryPath = '/sales-orders/' + deliveryOrderId;
+      const notesPath = deliveryPath + '/deliveries';
+      expect((await request(deliveryPath + '/confirm', 'POST', {}, token)).status).toBe(201);
+      expect((await request(notesPath + '/progress', 'GET')).status).toBe(401);
+      const initialProgress = await request(notesPath + '/progress', 'GET', undefined, token);
+      expect(initialProgress.status).toBe(200);
+      expect(parseDeliveryProgress(initialProgress.data, deliveryOrderId).lines[0]?.remaining).toBe('2.000');
+      const command = {
+        operationKey: crypto.randomUUID(),
+        lines: [{ storeId: store.id, productId: product.id, quantity: '0.125' }],
+      };
+      const firstNote = await request(notesPath, 'POST', command, token);
+      expect(firstNote.status).toBe(201);
+      const note = parseDelivery(firstNote.data, deliveryOrderId);
+      const replay = await request(notesPath, 'POST', command, token);
+      expect(replay.status).toBe(201);
+      expect(parseDelivery(replay.data, deliveryOrderId).id).toBe(note.id);
+      expect(
+        (await request(notesPath, 'POST', { ...command, lines: [{ storeId: store.id, productId: product.id, quantity: '0.126' }] }, token)).status,
+      ).toBe(409);
+      const beforeDelivery = parseBalance(
+        (await request(stockPath, 'GET', undefined, token)).data,
+        store.id,
+        product.id,
+      );
+      expect(milli(beforeDelivery.quantity)).toBe(milli(stockBefore.quantity));
+      expect(milli(beforeDelivery.reserved)).toBe(milli(stockBefore.reserved) + 2000n);
+      expect((await request(notesPath + '/' + note.id + '/confirm', 'POST', {}, token)).status).toBe(201);
+      expect((await request(notesPath + '/' + note.id + '/confirm', 'POST', {}, token)).status).toBe(409);
+      const partialProgress = parseDeliveryProgress(
+        (await request(notesPath + '/progress', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      expect(partialProgress.status).toBe('PARTIALLY_DELIVERED');
+      expect(partialProgress.lines[0]?.remaining).toBe('1.875');
+      const partialStock = parseBalance(
+        (await request(stockPath, 'GET', undefined, token)).data,
+        store.id,
+        product.id,
+      );
+      expect(milli(partialStock.quantity)).toBe(milli(beforeDelivery.quantity) - 125n);
+      expect(milli(partialStock.reserved)).toBe(milli(beforeDelivery.reserved) - 125n);
+      expect(
+        (await request(notesPath, 'POST', { lines: [{ storeId: store.id, productId: product.id, quantity: '1.876' }] }, token)).status,
+      ).toBe(409);
+      const finalNote = await request(notesPath, 'POST', {
+        operationKey: crypto.randomUUID(),
+        lines: [{ storeId: store.id, productId: product.id, quantity: '1.875' }],
+      }, token);
+      expect(finalNote.status).toBe(201);
+      expect((await request(notesPath + '/' + parseId(finalNote.data) + '/confirm', 'POST', {}, token)).status).toBe(201);
+      const completed = parseDeliveryProgress(
+        (await request(notesPath + '/progress', 'GET', undefined, token)).data,
+        deliveryOrderId,
+      );
+      expect(completed.status).toBe('DELIVERED');
+      expect(completed.lines[0]?.remaining).toBe('0.000');
+      const afterDelivery = parseBalance(
+        (await request(stockPath, 'GET', undefined, token)).data,
+        store.id,
+        product.id,
+      );
+      expect(milli(afterDelivery.quantity)).toBe(milli(stockBefore.quantity) - 2000n);
+      expect(afterDelivery.reserved).toBe(stockBefore.reserved);
+      const notes = await request('/deliveries/search?orderId=' + deliveryOrderId + '&page=1&limit=10', 'GET', undefined, token);
+      expect(notes.status).toBe(200);
+      expect(parseDeliveryPage(notes.data, deliveryOrderId).total).toBe(2);
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);
