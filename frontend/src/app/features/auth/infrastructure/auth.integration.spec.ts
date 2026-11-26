@@ -60,7 +60,15 @@ import {
   parseSummary,
   verifyCashCommand,
 } from '../../treasury/domain/treasury.contract';
-import { parseAssetAccounts, parseBankAccounts, parseBankAccount, parseBankReport, parseStatementPage, parseSuggestions, verifyImported } from '../../accounting/bank/domain/bank.contract';
+import {
+  parseAssetAccounts,
+  parseBankAccounts,
+  parseBankAccount,
+  parseBankReport,
+  parseStatementPage,
+  parseSuggestions,
+  verifyImported,
+} from '../../accounting/bank/domain/bank.contract';
 import { parseSupplierPurchases } from '../../procurement/domain/supplier-purchases.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
@@ -1719,57 +1727,138 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         ).status,
       ).toBe(409);
       expect((await request(sourcePath + '/movements')).status).toBe(401);
-      const bankAsset = await request('/accounting/accounts', 'POST', { code: '52-CI-BANK', name: 'Banque contrat CI' }, token);
+      const bankAsset = await request(
+        '/accounting/accounts',
+        'POST',
+        { code: '52-CI-BANK', name: 'Banque contrat CI' },
+        token,
+      );
       expect(bankAsset.status).toBe(201);
       const bankAssetId = parseId(bankAsset.data);
-      expect((await request('/accounting/accounts/' + bankAssetId + '/classify', 'POST', { category: 'ASSET' }, token)).status).toBe(201);
-      const bankRevenue = await request('/accounting/accounts', 'POST', { code: '70-CI-BANK', name: 'Produits contrat CI' }, token);
+      expect(
+        (
+          await request(
+            '/accounting/accounts/' + bankAssetId + '/classify',
+            'POST',
+            { category: 'ASSET' },
+            token,
+          )
+        ).status,
+      ).toBe(201);
+      const bankRevenue = await request(
+        '/accounting/accounts',
+        'POST',
+        { code: '70-CI-BANK', name: 'Produits contrat CI' },
+        token,
+      );
       expect(bankRevenue.status).toBe(201);
       const bankRevenueId = parseId(bankRevenue.data);
-      const bankJournal = await request('/accounting/journals', 'POST', { code: 'BQ-CI', name: 'Journal contrat CI' }, token);
+      const bankJournal = await request(
+        '/accounting/journals',
+        'POST',
+        { code: 'BQ-CI', name: 'Journal contrat CI' },
+        token,
+      );
       expect(bankJournal.status).toBe(201);
-      const bankPeriod = await request('/accounting/periods', 'POST', { name: 'Période banque CI', start: '2096-01-01', end: '2096-12-31' }, token);
+      const bankPeriod = await request(
+        '/accounting/periods',
+        'POST',
+        { name: 'Période banque CI', start: '2096-01-01', end: '2096-12-31' },
+        token,
+      );
       expect(bankPeriod.status).toBe(201);
       const accountingSetup = await request('/accounting/setup', 'GET', undefined, token);
       expect(accountingSetup.status).toBe(200);
       expect(parseAssetAccounts(accountingSetup.data).some((item) => item.id === bankAssetId)).toBe(true);
-      const bankCreated = await request('/accounting/bank/accounts', 'POST', { accountId: bankAssetId, name: 'Banque contrat CI' }, token);
+      const bankCreated = await request(
+        '/accounting/bank/accounts',
+        'POST',
+        { accountId: bankAssetId, name: 'Banque contrat CI' },
+        token,
+      );
       expect(bankCreated.status).toBe(201);
       const bank = parseBankAccount(bankCreated.data);
       const bankAccounts = await request('/accounting/bank/accounts', 'GET', undefined, token);
       expect(parseBankAccounts(bankAccounts.data).some((item) => item.id === bank.id)).toBe(true);
-      const bankEntry = await request('/accounting/entries', 'POST', {
-        journalId: parseId(bankJournal.data), periodId: parseId(bankPeriod.data), operationKey: crypto.randomUUID(),
-        date: '2096-01-04', description: 'Encaissement bancaire contrat CI',
-        lines: [{ accountId: bankAssetId, debit: '100.25', credit: '0' }, { accountId: bankRevenueId, debit: '0', credit: '100.25' }],
-      }, token);
+      const bankEntry = await request(
+        '/accounting/entries',
+        'POST',
+        {
+          journalId: parseId(bankJournal.data),
+          periodId: parseId(bankPeriod.data),
+          operationKey: crypto.randomUUID(),
+          date: '2096-01-04',
+          description: 'Encaissement bancaire contrat CI',
+          lines: [
+            { accountId: bankAssetId, debit: '100.25', credit: '0' },
+            { accountId: bankRevenueId, debit: '0', credit: '100.25' },
+          ],
+        },
+        token,
+      );
       expect(bankEntry.status).toBe(201);
-      const bankInput = { bankAccountId: bank.id, reference: 'REL-CONTRAT-CI', start: '2096-01-01', end: '2096-01-31', opening: '0', closing: '100.25',
-        lines: [{ reference: 'CI-1', date: '2096-01-05', description: 'Encaissement', amount: '100.25' }] };
+      const bankInput = {
+        bankAccountId: bank.id,
+        reference: 'REL-CONTRAT-CI',
+        start: '2096-01-01',
+        end: '2096-01-31',
+        opening: '0',
+        closing: '100.25',
+        lines: [{ reference: 'CI-1', date: '2096-01-05', description: 'Encaissement', amount: '100.25' }],
+      };
       const bankImported = await request('/accounting/bank/statements', 'POST', bankInput, token);
       expect(bankImported.status).toBe(201);
       const bankStatement = verifyImported(bankImported.data, bankInput);
       const bankReplayed = await request('/accounting/bank/statements', 'POST', bankInput, token);
       expect(bankReplayed.status).toBe(201);
       expect(verifyImported(bankReplayed.data, bankInput).id).toBe(bankStatement.id);
-      expect((await request('/accounting/bank/statements', 'POST', { ...bankInput, lines: [{ ...bankInput.lines[0], description: 'Autre' }] }, token)).status).toBe(409);
-      const bankPage = await request('/accounting/bank/accounts/' + bank.id + '/statements/search?page=1&limit=1&search=REL-CONTRAT', 'GET', undefined, token);
+      expect(
+        (
+          await request(
+            '/accounting/bank/statements',
+            'POST',
+            { ...bankInput, lines: [{ ...bankInput.lines[0], description: 'Autre' }] },
+            token,
+          )
+        ).status,
+      ).toBe(409);
+      const bankPage = await request(
+        '/accounting/bank/accounts/' + bank.id + '/statements/search?page=1&limit=1&search=REL-CONTRAT',
+        'GET',
+        undefined,
+        token,
+      );
       expect(bankPage.status).toBe(200);
       expect(parseStatementPage(bankPage.data, bank.id).total).toBe(1);
       const bankPath = '/accounting/bank/statements/' + bankStatement.id;
-      const report = parseBankReport((await request(bankPath, 'GET', undefined, token)).data, bankStatement, bankAssetId);
+      const report = parseBankReport(
+        (await request(bankPath, 'GET', undefined, token)).data,
+        bankStatement,
+        bankAssetId,
+      );
       expect(report.balanced).toBe(false);
       expect((await request(bankPath + '/close', 'POST', {}, token)).status).toBe(409);
-      const bankSuggestions = parseSuggestions((await request(bankPath + '/suggestions', 'GET', undefined, token)).data, report);
+      const bankSuggestions = parseSuggestions(
+        (await request(bankPath + '/suggestions', 'GET', undefined, token)).data,
+        report,
+      );
       const suggestion = bankSuggestions[0];
       const candidate = suggestion?.candidates[0];
       if (!suggestion || !candidate) throw new Error('Suggestion bancaire manquante.');
       expect(suggestion.status).toBe('Unique');
       const bankLinePath = '/accounting/bank/lines/' + suggestion.id;
-      expect((await request(bankLinePath + '/match', 'POST', { ledgerLineId: candidate.id }, token)).status).toBe(201);
-      expect(parseBankReport((await request(bankPath, 'GET', undefined, token)).data, bankStatement, bankAssetId).balanced).toBe(true);
+      expect(
+        (await request(bankLinePath + '/match', 'POST', { ledgerLineId: candidate.id }, token)).status,
+      ).toBe(201);
+      expect(
+        parseBankReport((await request(bankPath, 'GET', undefined, token)).data, bankStatement, bankAssetId)
+          .balanced,
+      ).toBe(true);
       expect((await request(bankLinePath + '/unmatch', 'POST', {}, token)).status).toBe(201);
-      expect(parseBankReport((await request(bankPath, 'GET', undefined, token)).data, bankStatement, bankAssetId).balanced).toBe(false);
+      expect(
+        parseBankReport((await request(bankPath, 'GET', undefined, token)).data, bankStatement, bankAssetId)
+          .balanced,
+      ).toBe(false);
       // Laisser un relevé équilibrable mais non clôturé pour le parcours navigateur.
       expect((await request(bankPath)).status).toBe(401);
       const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);

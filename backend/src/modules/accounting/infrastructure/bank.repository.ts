@@ -81,14 +81,16 @@ export class BankRepository implements BankPort {
           existing.closing.eq(input.closing) &&
           existing.lines.length === input.lines.length &&
           input.lines.every((line) =>
-            existing.lines.some((saved) =>
-              saved.reference === line.reference &&
-              saved.date.getTime() === calendarDate(line.date).getTime() &&
-              saved.description === line.description &&
-              saved.amount.eq(line.amount),
+            existing.lines.some(
+              (saved) =>
+                saved.reference === line.reference &&
+                saved.date.getTime() === calendarDate(line.date).getTime() &&
+                saved.description === line.description &&
+                saved.amount.eq(line.amount),
             ),
           );
-        if (!matches) throw new ConflictException('Référence de relevé déjà utilisée avec des données différentes.');
+        if (!matches)
+          throw new ConflictException('Référence de relevé déjà utilisée avec des données différentes.');
         return existing;
       }
       if (
@@ -136,7 +138,12 @@ export class BankRepository implements BankPort {
         ...(search ? { reference: { contains: search, mode: 'insensitive' } } : {}),
       };
       const [items, total] = await Promise.all([
-        tx.ledgerBankStatement.findMany({ where, orderBy: [{ startsAt: 'desc' }, { id: 'desc' }], skip, take: limit }),
+        tx.ledgerBankStatement.findMany({
+          where,
+          orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
         tx.ledgerBankStatement.count({ where }),
       ]);
       return pageResult(items, total, page, limit);

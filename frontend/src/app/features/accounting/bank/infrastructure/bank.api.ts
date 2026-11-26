@@ -3,35 +3,64 @@ import { Injectable, inject } from '@angular/core';
 import { map, switchMap } from 'rxjs';
 import { apiPath } from '../../../../core/api/api-contract';
 import { storeId } from '../../../stores/domain/store.contract';
-import { parseAssetAccounts, parseBankAccount, parseBankAccounts, parseBankReport, parseStatementPage, parseSuggestions, verifyImported, type BankAccount, type BankReport, type Statement, type StatementInput } from '../domain/bank.contract';
+import {
+  parseAssetAccounts,
+  parseBankAccount,
+  parseBankAccounts,
+  parseBankReport,
+  parseStatementPage,
+  parseSuggestions,
+  verifyImported,
+  type BankAccount,
+  type BankReport,
+  type Statement,
+  type StatementInput,
+} from '../domain/bank.contract';
 
 @Injectable({ providedIn: 'root' })
 export class BankApi {
   private readonly http = inject(HttpClient);
   private readonly base = apiPath('/accounting/bank');
-  private statement(id: string) { return this.base + '/statements/' + storeId(id); }
-  assets() { return this.http.get<unknown>(apiPath('/accounting/setup')).pipe(map(parseAssetAccounts)); }
-  accounts() { return this.http.get<unknown>(this.base + '/accounts').pipe(map(parseBankAccounts)); }
+  private statement(id: string) {
+    return this.base + '/statements/' + storeId(id);
+  }
+  assets() {
+    return this.http.get<unknown>(apiPath('/accounting/setup')).pipe(map(parseAssetAccounts));
+  }
+  accounts() {
+    return this.http.get<unknown>(this.base + '/accounts').pipe(map(parseBankAccounts));
+  }
   create(accountId: string, name: string) {
-    return this.http.post<unknown>(this.base + '/accounts', { accountId: storeId(accountId), name }).pipe(map((value) => {
-      const bank = parseBankAccount(value);
-      if (bank.accountId !== accountId || bank.name !== name) throw new Error('Compte bancaire incohérent.');
-      return bank;
-    }));
+    return this.http.post<unknown>(this.base + '/accounts', { accountId: storeId(accountId), name }).pipe(
+      map((value) => {
+        const bank = parseBankAccount(value);
+        if (bank.accountId !== accountId || bank.name !== name)
+          throw new Error('Compte bancaire incohérent.');
+        return bank;
+      }),
+    );
   }
   statements(bank: BankAccount, page: number, search: string) {
-    return this.http.get<unknown>(this.base + '/accounts/' + storeId(bank.id) + '/statements/search', {
-      params: { page, limit: 10, search },
-    }).pipe(map((value) => parseStatementPage(value, bank.id)));
+    return this.http
+      .get<unknown>(this.base + '/accounts/' + storeId(bank.id) + '/statements/search', {
+        params: { page, limit: 10, search },
+      })
+      .pipe(map((value) => parseStatementPage(value, bank.id)));
   }
   import(input: StatementInput) {
-    return this.http.post<unknown>(this.base + '/statements', input).pipe(map((value) => verifyImported(value, input)));
+    return this.http
+      .post<unknown>(this.base + '/statements', input)
+      .pipe(map((value) => verifyImported(value, input)));
   }
   detail(bank: BankAccount, statement: Statement) {
-    return this.http.get<unknown>(this.statement(statement.id)).pipe(map((value) => parseBankReport(value, statement, bank.accountId)));
+    return this.http
+      .get<unknown>(this.statement(statement.id))
+      .pipe(map((value) => parseBankReport(value, statement, bank.accountId)));
   }
   suggestions(report: BankReport) {
-    return this.http.get<unknown>(this.statement(report.statement.id) + '/suggestions').pipe(map((value) => parseSuggestions(value, report)));
+    return this.http
+      .get<unknown>(this.statement(report.statement.id) + '/suggestions')
+      .pipe(map((value) => parseSuggestions(value, report)));
   }
   match(bank: BankAccount, report: BankReport, lineId: string, ledgerLineId: string | null) {
     const path = this.base + '/lines/' + storeId(lineId) + (ledgerLineId ? '/match' : '/unmatch');

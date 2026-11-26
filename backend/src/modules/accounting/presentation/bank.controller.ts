@@ -100,7 +100,11 @@ export class BankController {
     return this.service.statements(id, actor);
   }
   @Get('accounts/:id/statements/search')
-  searchStatements(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+  searchStatements(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actor: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.service.searchStatements(id, actor, query);
   }
   @Get('statements/:id')

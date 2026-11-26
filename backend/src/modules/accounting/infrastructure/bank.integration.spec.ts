@@ -64,10 +64,15 @@ integration('Rapprochement bancaire PostgreSQL', () => {
       );
       const statement = await repo.importStatement(input, admin.id);
       await expect(repo.importStatement(input, admin.id)).resolves.toMatchObject({ id: statement.id });
-      await expect(repo.importStatement({
-        ...input,
-        lines: [{ ...input.lines[0], description: 'Autre libellé' }],
-      }, admin.id)).rejects.toBeInstanceOf(ConflictException);
+      await expect(
+        repo.importStatement(
+          {
+            ...input,
+            lines: [{ ...input.lines[0], description: 'Autre libellé' }],
+          },
+          admin.id,
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
       await expect(repo.importStatement({ ...input, reference: 'DUP' }, admin.id)).rejects.toBeInstanceOf(
         ConflictException,
       );

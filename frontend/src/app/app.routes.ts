@@ -39,7 +39,8 @@ export const routes: Routes = [
       {
         path: 'banque',
         canActivate: [usersGuard],
-        loadComponent: () => import('./features/accounting/bank/presentation/bank.page').then((m) => m.BankPage),
+        loadComponent: () =>
+          import('./features/accounting/bank/presentation/bank.page').then((m) => m.BankPage),
       },
       {
         path: 'tresorerie',
