@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
+import { parseSupplierPurchases } from '../domain/supplier-purchases.contract';
 import { apiPath } from '../../../core/api/api-contract';
 import {
   parseSupplier,
@@ -20,6 +21,11 @@ export class SuppliersApi {
         params: { page, limit: 10, search, ...(status === 'ALL' ? {} : { active: status === 'ACTIVE' }) },
       })
       .pipe(map(parseSupplierPage));
+  }
+
+  purchases(id: string) {
+    return this.http.get<unknown>(this.path(id) + '/purchases-summary')
+      .pipe(map((value) => parseSupplierPurchases(value, id)));
   }
 
   get(id: string) {

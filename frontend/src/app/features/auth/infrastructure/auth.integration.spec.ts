@@ -44,6 +44,7 @@ import {
 } from '../../products/domain/product.contract';
 import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
+import { parseSupplierPurchases } from '../../procurement/domain/supplier-purchases.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
 import { parseReturnOptions } from '../../procurement/domain/return-creation.contract';
@@ -210,6 +211,11 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect(supplierResponse.status).toBe(201);
     const supplier = parseSupplier(supplierResponse.data);
     const supplierPath = '/suppliers/' + supplier.id;
+    const purchases = await request(supplierPath + '/purchases-summary', 'GET', undefined, admin.jetonAcces);
+    expect(purchases.status).toBe(200);
+    expect(parseSupplierPurchases(purchases.data, supplier.id).netReceivedValue).toBe('0.00');
+    expect((await request(supplierPath + '/purchases-summary', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect((await request(supplierPath + '/purchases-summary')).status).toBe(401);
     const command = { name: 'Fournisseur idempotent CI', operationKey: crypto.randomUUID() };
     const duplicates = await Promise.all([
       request('/suppliers', 'POST', command, keeper.jetonAcces),

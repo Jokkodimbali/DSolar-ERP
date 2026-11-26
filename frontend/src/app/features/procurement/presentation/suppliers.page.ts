@@ -11,6 +11,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import { SessionService } from '../../auth/application/session.service';
 import { type Supplier, type SupplierFilter, type parseSupplierPage } from '../domain/supplier.contract';
+import { SupplierPurchasesComponent } from './supplier-purchases.component';
 import { SuppliersApi } from '../infrastructure/suppliers.api';
 import {
   parsePendingSupplierCreation,
@@ -29,6 +30,7 @@ import { HttpErrorResponse } from '@angular/common/http';
     PageHeaderComponent,
     PaginationComponent,
     StatusBadgeComponent,
+    SupplierPurchasesComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suppliers.page.html',

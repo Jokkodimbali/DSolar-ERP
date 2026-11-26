@@ -167,6 +167,9 @@ try {
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
   await supplierRow.getByRole('button', { name: 'Détails', exact: true }).click();
   await page.getByRole('heading', { name: 'Fiche fournisseur — Fournisseur navigateur CI' }).waitFor();
+  const purchaseSummary = page.getByRole('region', { name: 'Synthèse des achats fournisseur' });
+  await purchaseSummary.getByText('Non disponible', { exact: true }).waitFor();
+  await purchaseSummary.getByText('Valeur nette réceptionnée', { exact: true }).waitFor();
   assert.equal(await page.locator('main.page dl').getByText('Non renseignée', { exact: true }).count(), 2);
   await page.getByRole('button', { name: 'Fermer', exact: true }).click();
   await supplierRow.getByRole('button', { name: 'Désactiver', exact: true }).click();
