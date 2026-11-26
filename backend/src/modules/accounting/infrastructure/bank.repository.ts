@@ -68,6 +68,28 @@ export class BankRepository implements BankPort {
       const endsAt = calendarDate(input.end);
       const bank = await tx.ledgerBankAccount.findUnique({ where: { id: input.bankAccountId } });
       if (!bank) throw new NotFoundException('Compte bancaire introuvable.');
+      const existing = await tx.ledgerBankStatement.findUnique({
+        where: { bankAccountId_reference: { bankAccountId: bank.id, reference: input.reference } },
+        include: { lines: true },
+      });
+      if (existing) {
+        const matches =
+          existing.startsAt.getTime() === startsAt.getTime() &&
+          existing.endsAt.getTime() === endsAt.getTime() &&
+          existing.opening.eq(input.opening) &&
+          existing.closing.eq(input.closing) &&
+          existing.lines.length === input.lines.length &&
+          input.lines.every((line) =>
+            existing.lines.some((saved) =>
+              saved.reference === line.reference &&
+              saved.date.getTime() === calendarDate(line.date).getTime() &&
+              saved.description === line.description &&
+              saved.amount.eq(line.amount),
+            ),
+          );
+        if (!matches) throw new ConflictException('Référence de relevé déjà utilisée avec des données différentes.');
+        return existing;
+      }
       if (
         await tx.ledgerBankStatement.findFirst({
           where: { bankAccountId: bank.id, startsAt: { lte: endsAt }, endsAt: { gte: startsAt } },
