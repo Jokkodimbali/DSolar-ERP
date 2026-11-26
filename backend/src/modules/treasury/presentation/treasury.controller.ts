@@ -76,19 +76,31 @@ export class TreasuryController {
 
   @Get('registers/:id/sessions')
   @RequirePermissions('sales.read')
-  sessions(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+  sessions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actor: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.service.sessions(id, actor, query);
   }
 
   @Get('sessions/:id/movements')
   @RequirePermissions('sales.read')
-  movements(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+  movements(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actor: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.service.movements(id, actor, query);
   }
 
   @Get('sessions/:id/reconciliation-candidates')
   @RequirePermissions('sales.read')
-  candidates(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actor: string, @Query() query: PageQueryDto) {
+  candidates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() actor: string,
+    @Query() query: PageQueryDto,
+  ) {
     return this.service.candidates(id, actor, query);
   }
 

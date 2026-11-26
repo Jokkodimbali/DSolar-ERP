@@ -66,7 +66,12 @@ export class TreasuryRepository implements TreasuryPort {
         throw new NotFoundException('Caisse introuvable.');
       const where = { registerId: register };
       const [items, total] = await Promise.all([
-        tx.cashSession.findMany({ where, orderBy: [{ openedAt: 'desc' }, { id: 'desc' }], skip, take: limit }),
+        tx.cashSession.findMany({
+          where,
+          orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: limit,
+        }),
         tx.cashSession.count({ where }),
       ]);
       return pageResult(items, total, page, limit);

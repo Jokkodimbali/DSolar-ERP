@@ -52,7 +52,14 @@ import {
   verifyCreatedExpense,
   verifyExpenseAction,
 } from '../../expenses/domain/expense.contract';
-import { cents as cashCents, parseCandidates, parseMovementPage, parseSessionPage, parseSummary, verifyCashCommand } from '../../treasury/domain/treasury.contract';
+import {
+  cents as cashCents,
+  parseCandidates,
+  parseMovementPage,
+  parseSessionPage,
+  parseSummary,
+  verifyCashCommand,
+} from '../../treasury/domain/treasury.contract';
 import { parseSupplierPurchases } from '../../procurement/domain/supplier-purchases.contract';
 import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 import { parseGoodsReceipt, parseReceiptPage } from '../../procurement/domain/goods-receipt.contract';
@@ -1603,17 +1610,39 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const initialCash = await request(sourcePath + '/summary', 'GET', undefined, token);
       expect(initialCash.status).toBe(200);
       expect(cashCents(parseSummary(initialCash.data, expenseSessionId).expected)).toBe(10000n);
-      const expenseMovements = await request(sourcePath + '/movements?page=1&limit=1', 'GET', undefined, token);
+      const expenseMovements = await request(
+        sourcePath + '/movements?page=1&limit=1',
+        'GET',
+        undefined,
+        token,
+      );
       expect(expenseMovements.status).toBe(200);
       const cashPage = parseMovementPage(expenseMovements.data, expenseSessionId);
       expect(cashPage.total).toBe(2);
       expect(cashPage.items[0]?.reversible).toBe(false);
-      const registerSessions = await request('/treasury/registers/' + parseId(expenseRegisterResponse.data) + '/sessions?page=1&limit=1', 'GET', undefined, token);
+      const registerSessions = await request(
+        '/treasury/registers/' + parseId(expenseRegisterResponse.data) + '/sessions?page=1&limit=1',
+        'GET',
+        undefined,
+        token,
+      );
       expect(registerSessions.status).toBe(200);
-      expect(parseSessionPage(registerSessions.data, parseId(expenseRegisterResponse.data)).items[0]?.id).toBe(expenseSessionId);
-      const targetRegister = await request('/treasury/registers', 'POST', { storeId: store.id, name: 'Caisse transfert CI' }, token);
+      expect(
+        parseSessionPage(registerSessions.data, parseId(expenseRegisterResponse.data)).items[0]?.id,
+      ).toBe(expenseSessionId);
+      const targetRegister = await request(
+        '/treasury/registers',
+        'POST',
+        { storeId: store.id, name: 'Caisse transfert CI' },
+        token,
+      );
       expect(targetRegister.status).toBe(201);
-      const targetOpen = await request('/treasury/registers/' + parseId(targetRegister.data) + '/open', 'POST', { amount: '0' }, token);
+      const targetOpen = await request(
+        '/treasury/registers/' + parseId(targetRegister.data) + '/open',
+        'POST',
+        { amount: '0' },
+        token,
+      );
       expect(targetOpen.status).toBe(201);
       const targetId = parseId(targetOpen.data);
       const transferInput = { destinationId: targetId, amount: '40.25', operationKey: crypto.randomUUID() };
@@ -1624,26 +1653,70 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const transferReplay = await request(sourcePath + '/transfer', 'POST', transferInput, token);
       expect(transferReplay.status).toBe(201);
       expect(verifyCashCommand(transferReplay.data, transferCommand).id).toBe(debit.id);
-      expect(cashCents(parseSummary((await request(sourcePath + '/summary', 'GET', undefined, token)).data, expenseSessionId).expected)).toBe(5975n);
+      expect(
+        cashCents(
+          parseSummary(
+            (await request(sourcePath + '/summary', 'GET', undefined, token)).data,
+            expenseSessionId,
+          ).expected,
+        ),
+      ).toBe(5975n);
       const targetPath = '/treasury/sessions/' + targetId;
-      expect(cashCents(parseSummary((await request(targetPath + '/summary', 'GET', undefined, token)).data, targetId).expected)).toBe(4025n);
-      const manualInput = { amount: '10.50', reason: 'Entrée manuelle CI', operationKey: crypto.randomUUID() };
+      expect(
+        cashCents(
+          parseSummary((await request(targetPath + '/summary', 'GET', undefined, token)).data, targetId)
+            .expected,
+        ),
+      ).toBe(4025n);
+      const manualInput = {
+        amount: '10.50',
+        reason: 'Entrée manuelle CI',
+        operationKey: crypto.randomUUID(),
+      };
       const manual = await request(targetPath + '/movements', 'POST', manualInput, token);
       expect(manual.status).toBe(201);
       const movement = verifyCashCommand(manual.data, { ...manualInput, kind: 'move', sessionId: targetId });
       const reversalInput = { reason: 'Correction manuelle CI', operationKey: crypto.randomUUID() };
-      const reversal = await request('/treasury/movements/' + movement.id + '/reverse', 'POST', reversalInput, token);
+      const reversal = await request(
+        '/treasury/movements/' + movement.id + '/reverse',
+        'POST',
+        reversalInput,
+        token,
+      );
       expect(reversal.status).toBe(201);
-      verifyCashCommand(reversal.data, { ...reversalInput, kind: 'reverse', sessionId: targetId, movementId: movement.id, amount: '-10.50' });
-      const candidates = await request(sourcePath + '/reconciliation-candidates?page=1&limit=10', 'GET', undefined, token);
+      verifyCashCommand(reversal.data, {
+        ...reversalInput,
+        kind: 'reverse',
+        sessionId: targetId,
+        movementId: movement.id,
+        amount: '-10.50',
+      });
+      const candidates = await request(
+        sourcePath + '/reconciliation-candidates?page=1&limit=10',
+        'GET',
+        undefined,
+        token,
+      );
       expect(candidates.status).toBe(200);
       expect(parseCandidates(candidates.data).items.some((item) => item.id === firstPaymentId)).toBe(false);
-      const closed = await request(targetPath + '/close', 'POST', { amount: '40.00' }, token);
-      expect(closed.status).toBe(201);
-      const closedSummary = parseSummary((await request(targetPath + '/summary', 'GET', undefined, token)).data, targetId);
+      const closedCashSession = await request(targetPath + '/close', 'POST', { amount: '40.00' }, token);
+      expect(closedCashSession.status).toBe(201);
+      const closedSummary = parseSummary(
+        (await request(targetPath + '/summary', 'GET', undefined, token)).data,
+        targetId,
+      );
       expect(closedSummary.closedAt).not.toBeNull();
       expect(cashCents(closedSummary.difference ?? '0')).toBe(-25n);
-      expect((await request(targetPath + '/movements', 'POST', { ...manualInput, operationKey: crypto.randomUUID() }, token)).status).toBe(409);
+      expect(
+        (
+          await request(
+            targetPath + '/movements',
+            'POST',
+            { ...manualInput, operationKey: crypto.randomUUID() },
+            token,
+          )
+        ).status,
+      ).toBe(409);
       expect((await request(sourcePath + '/movements')).status).toBe(401);
       const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);
       expect(orders.status).toBe(200);

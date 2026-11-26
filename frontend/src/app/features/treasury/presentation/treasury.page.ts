@@ -12,14 +12,38 @@ import { SessionService } from '../../auth/application/session.service';
 import { formatMoney } from '../../dashboard/domain/dashboard.contract';
 import type { parseStores } from '../../stores/domain/store.contract';
 import { StoresApi } from '../../stores/infrastructure/stores.api';
-import { cashInput, cashStorageKey, cents, parseCashCommand, type CashCandidate, type CashCommand, type CashMovement, type CashRegister, type CashSession, type CashSummary, type parseCandidates, type parseMovementPage, type parseSessionPage } from '../domain/treasury.contract';
+import {
+  cashInput,
+  cashStorageKey,
+  cents,
+  parseCashCommand,
+  type CashCandidate,
+  type CashCommand,
+  type CashMovement,
+  type CashRegister,
+  type CashSession,
+  type CashSummary,
+  type parseCandidates,
+  type parseMovementPage,
+  type parseSessionPage,
+} from '../domain/treasury.contract';
 import { TreasuryApi } from '../infrastructure/treasury.api';
 
-type Action = CashCommand | { kind: 'close'; session: CashSession; amount: string } | { kind: 'open'; register: CashRegister; amount: string };
+type Action =
+  | CashCommand
+  | { kind: 'close'; session: CashSession; amount: string }
+  | { kind: 'open'; register: CashRegister; amount: string };
 
 @Component({
   selector: 'app-treasury-page',
-  imports: [DatePipe, RouterLink, ConfirmComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    ConfirmComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+  ],
   templateUrl: './treasury.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -49,7 +73,9 @@ export class TreasuryPage {
   readonly pending = signal<CashCommand | null>(null);
   readonly confirmation = signal<Action | null>(null);
   readonly money = formatMoney;
-  readonly destinations = computed(() => this.registers().filter((item) => item.open && item.open.id !== this.session()?.id));
+  readonly destinations = computed(() =>
+    this.registers().filter((item) => item.open && item.open.id !== this.session()?.id),
+  );
   private storage: string | null = null;
 
   constructor() {
@@ -79,7 +105,10 @@ export class TreasuryPage {
     this.sessions.set(null);
     this.clearSession();
     forkJoin({ registers: this.api.registers(), stores: this.storesApi.list() })
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: ({ registers, stores }) => {
           this.registers.set(registers);
@@ -105,8 +134,16 @@ export class TreasuryPage {
     this.register.set(register);
     this.sessions.set(null);
     this.loading.set(true);
-    this.api.sessions(register.id, page).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
-      .subscribe({ next: (data) => this.sessions.set(data), error: (error: unknown) => this.error.set(errorMessage(error)) });
+    this.api
+      .sessions(register.id, page)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (data) => this.sessions.set(data),
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   inspect(session: CashSession): void {
@@ -126,19 +163,26 @@ export class TreasuryPage {
     forkJoin({
       summary: this.api.summary(session.id),
       movements: this.api.movements(session.id, movementPage, this.movementSearch()),
-      candidates: session.closedAt ? of(null) : this.api.candidates(session.id, candidatePage, this.candidateSearch()),
-    }).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false))).subscribe({
-      next: (data) => {
-        if (data.summary.closedAt !== session.closedAt) {
-          this.error.set('La session a changé. Actualisez les caisses.');
-          return;
-        }
-        this.summary.set(data.summary);
-        this.movements.set(data.movements);
-        this.candidates.set(data.candidates);
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+      candidates: session.closedAt
+        ? of(null)
+        : this.api.candidates(session.id, candidatePage, this.candidateSearch()),
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (data) => {
+          if (data.summary.closedAt !== session.closedAt) {
+            this.error.set('La session a changé. Actualisez les caisses.');
+            return;
+          }
+          this.summary.set(data.summary);
+          this.movements.set(data.movements);
+          this.candidates.set(data.candidates);
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   create(store: string, name: string): void {
@@ -151,18 +195,33 @@ export class TreasuryPage {
     this.busy.set(true);
     this.error.set('');
     this.success.set('');
-    this.api.create(store, value).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: () => this.complete('Caisse créée.'),
-      error: (error: unknown) => this.failed(error),
-    });
+    this.api
+      .create(store, value)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: () => this.complete('Caisse créée.'),
+        error: (error: unknown) => this.failed(error),
+      });
   }
 
   private canAct(): boolean {
-    return this.allowed() && !this.loading() && !this.busy() && !this.confirmation() && !this.pending() && !this.blocked();
+    return (
+      this.allowed() &&
+      !this.loading() &&
+      !this.busy() &&
+      !this.confirmation() &&
+      !this.pending() &&
+      !this.blocked()
+    );
   }
 
   askOpen(register: CashRegister, amount: string): void {
-    if (!this.canAct() || register.open || !this.activeStores().some((store) => store.id === register.storeId)) return;
+    if (
+      !this.canAct() ||
+      register.open ||
+      !this.activeStores().some((store) => store.id === register.storeId)
+    )
+      return;
     this.prepare(() => ({ kind: 'open', register, amount: cashInput(amount, false, true) }));
   }
 
@@ -200,7 +259,12 @@ export class TreasuryPage {
     const summary = this.summary();
     if (!session || session.closedAt || !summary || !this.canAct()) return;
     this.prepare(() => {
-      const command = parseCashCommand({ ...values, kind, sessionId: session.id, operationKey: crypto.randomUUID() });
+      const command = parseCashCommand({
+        ...values,
+        kind,
+        sessionId: session.id,
+        operationKey: crypto.randomUUID(),
+      });
       const delta = cents(command.amount) * (command.kind === 'transfer' ? -1n : 1n);
       if (cents(summary.expected) + delta < 0n) throw new Error('Solde de caisse insuffisant.');
       return command;
@@ -210,16 +274,23 @@ export class TreasuryPage {
   private prepare(factory: () => Action): void {
     this.error.set('');
     this.success.set('');
-    try { this.confirmation.set(factory()); }
-    catch (error: unknown) { this.error.set(error instanceof Error ? error.message : 'Opération invalide.'); }
+    try {
+      this.confirmation.set(factory());
+    } catch (error: unknown) {
+      this.error.set(error instanceof Error ? error.message : 'Opération invalide.');
+    }
   }
 
   apply(): void {
     const action = this.confirmation();
-    if (!action || this.busy() || this.loading() || !this.allowed() || this.blocked() || this.pending()) return;
+    if (!action || this.busy() || this.loading() || !this.allowed() || this.blocked() || this.pending())
+      return;
     if (action.kind === 'open' || action.kind === 'close') {
       this.busy.set(true);
-      const request = action.kind === 'open' ? this.api.open(action.register.id, action.amount) : this.api.close(action.session, action.amount);
+      const request =
+        action.kind === 'open'
+          ? this.api.open(action.register.id, action.amount)
+          : this.api.close(action.session, action.amount);
       request.pipe(takeUntilDestroyed(this.destroy)).subscribe({
         next: () => this.complete(action.kind === 'open' ? 'Session ouverte.' : 'Session clôturée.'),
         error: (error: unknown) => this.failed(error),
@@ -232,7 +303,9 @@ export class TreasuryPage {
       this.pending.set(action);
       this.confirmation.set(null);
       this.resume();
-    } catch { this.error.set('Impossible de conserver la demande. Aucun mouvement envoyé.'); }
+    } catch {
+      this.error.set('Impossible de conserver la demande. Aucun mouvement envoyé.');
+    }
   }
 
   resume(): void {
@@ -240,21 +313,26 @@ export class TreasuryPage {
     if (!command || !this.allowed() || this.blocked() || this.busy() || this.loading()) return;
     this.error.set('');
     this.busy.set(true);
-    this.api.execute(command).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: () => {
-        this.busy.set(false);
-        try {
-          if (this.storage) sessionStorage.removeItem(this.storage);
-          this.pending.set(null);
-          this.complete('Mouvement enregistré et vérifié.');
-        } catch { this.error.set('Mouvement enregistré, mais demande locale non effacée.'); }
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        this.error.set(errorMessage(error) + ' Reprenez la même demande pour vérifier son résultat.');
-        this.load();
-      },
-    });
+    this.api
+      .execute(command)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          try {
+            if (this.storage) sessionStorage.removeItem(this.storage);
+            this.pending.set(null);
+            this.complete('Mouvement enregistré et vérifié.');
+          } catch {
+            this.error.set('Mouvement enregistré, mais demande locale non effacée.');
+          }
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.error.set(errorMessage(error) + ' Reprenez la même demande pour vérifier son résultat.');
+          this.load();
+        },
+      });
   }
 
   private complete(message: string): void {
