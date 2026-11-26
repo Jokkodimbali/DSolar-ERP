@@ -43,7 +43,7 @@
   </div>
 </section>
 @for (payment of snapshot.payments; track payment.id) {
-<section class="panel">
+<section class="panel" [attr.data-testid]="'allocation-payment-' + payment.installment">
   <h2>Règlement {{ payment.installment }}</h2>
   <p>
     {{ money(payment.amount) }} · {{ payment.active ? 'Actif' : 'Contrepassé' }} · Disponible : {{
@@ -71,7 +71,7 @@
     (submit)="$event.preventDefault(); askAllocate(payment.id, invoiceSelect.value, amount.value)"
   >
     <label class="ui-field"
-      >Facture<select #invoiceSelect required>
+      >Facture<select #invoiceSelect aria-label="Facture" required>
         <option value="">Sélectionner</option>
         @for (invoice of eligibleInvoices(snapshot, payment); track invoice.id) {
         <option [value]="invoice.id">{{ invoice.number }} — {{ money(invoice.remaining) }}</option>

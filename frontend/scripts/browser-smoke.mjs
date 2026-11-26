@@ -509,13 +509,25 @@ try {
   await page.getByRole('region', { name: 'Contrepasser le règlement ?' }).getByRole('button', { name: 'Confirmer', exact: true }).click();
   await latestPayment.getByText('Contrepassé', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'reglements-lifecycle.png'), fullPage: true });
+  const allocationResponse = page.waitForResponse((response) =>
+    /\/sales-orders\/[^/]+\/payments\/allocations$/.test(response.url()) &&
+    response.request().method() === 'GET',
+  );
   await page.getByRole('link', { name: 'Affectations comptables', exact: true }).click();
-  const firstInstallment = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Règlement 1', exact: true }) });
-  const invoiceOption = firstInstallment.getByLabel('Facture', { exact: true }).locator('option').filter({ hasText: /^FAC-/ });
-  await invoiceOption.waitFor({ state: 'attached' });
-  const allocationInvoiceId = await invoiceOption.getAttribute('value');
-  assert(allocationInvoiceId);
-  await firstInstallment.getByLabel('Facture', { exact: true }).selectOption(allocationInvoiceId);
+  const allocationHttp = await allocationResponse;
+  assert.equal(allocationHttp.status(), 200);
+  const allocationBody = await allocationHttp.json();
+  const allocationData = allocationBody.data ?? allocationBody;
+  const firstPayment = allocationData.payments.find((payment) => payment.installmentNumber === 1);
+  assert(firstPayment, 'Premier règlement absent');
+  assert.equal(firstPayment.reversals.length, 0);
+  assert.equal(firstPayment.allocations.length, 0);
+  assert.equal(allocationData.invoices.length, 1);
+  const allocationInvoiceId = allocationData.invoices[0].id;
+  const firstInstallment = page.getByTestId('allocation-payment-1');
+  const invoiceSelect = firstInstallment.getByRole('combobox', { name: 'Facture', exact: true });
+  await invoiceSelect.locator('option').filter({ hasText: allocationData.invoices[0].number }).waitFor({ state: 'attached' });
+  await invoiceSelect.selectOption(allocationInvoiceId);
   await firstInstallment.getByLabel('Montant à affecter', { exact: true }).fill('1000,25');
   await firstInstallment.getByRole('button', { name: 'Vérifier l’affectation', exact: true }).click();
   await page.getByRole('region', { name: 'Confirmer l’affectation ?' }).getByRole('button', { name: 'Confirmer', exact: true }).click();
