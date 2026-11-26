@@ -2,11 +2,34 @@ import { describe, expect, it } from 'vitest';
 import { parsePaymentSummary, paymentInput, verifyRecordedPayment } from './payment.contract';
 const id = 'c31ac59c-8148-4664-8745-496a9618f202';
 const row = {
-  orderId: id, currency: 'XOF', basis: 'SALES_ORDER_NET_OF_INVOICE_CREDITS',
-  orderStatus: 'CONFIRMED', paymentStatus: 'PARTIALLY_PAID', netPaymentStatus: 'PARTIALLY_PAID',
-  total: '2360.00', credited: '100.00', netTotal: '2260.00', paid: '1000.00', remaining: '1260.00',
-  activeInstallments: 1, maxInstallments: 2, consistent: true, canRecord: true, nextPaymentMustSettle: true,
-  payments: [{ id, installmentNumber: 1, amount: '1000.00', method: 'CASH', receivedAt: '2026-11-26T12:00:00Z', status: 'ACTIVE', reversedAmount: '0.00', reversedAt: null }],
+  orderId: id,
+  currency: 'XOF',
+  basis: 'SALES_ORDER_NET_OF_INVOICE_CREDITS',
+  orderStatus: 'CONFIRMED',
+  paymentStatus: 'PARTIALLY_PAID',
+  netPaymentStatus: 'PARTIALLY_PAID',
+  total: '2360.00',
+  credited: '100.00',
+  netTotal: '2260.00',
+  paid: '1000.00',
+  remaining: '1260.00',
+  activeInstallments: 1,
+  maxInstallments: 2,
+  consistent: true,
+  canRecord: true,
+  nextPaymentMustSettle: true,
+  payments: [
+    {
+      id,
+      installmentNumber: 1,
+      amount: '1000.00',
+      method: 'CASH',
+      receivedAt: '2026-11-26T12:00:00Z',
+      status: 'ACTIVE',
+      reversedAmount: '0.00',
+      reversedAt: null,
+    },
+  ],
 };
 describe('Règlements de commande', () => {
   it('contrôle le solde net et la deuxième tranche exacte', () => {

@@ -1361,7 +1361,9 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const firstPaymentId = verifyRecordedPayment(firstPayment.data, deliveryOrderId, firstPaymentInput);
       const firstReplay = await request(paymentPath, 'POST', firstPaymentInput, token);
       expect(firstReplay.status).toBe(201);
-      expect(verifyRecordedPayment(firstReplay.data, deliveryOrderId, firstPaymentInput)).toBe(firstPaymentId);
+      expect(verifyRecordedPayment(firstReplay.data, deliveryOrderId, firstPaymentInput)).toBe(
+        firstPaymentId,
+      );
       const partialPaymentSummary = parsePaymentSummary(
         (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
         deliveryOrderId,
@@ -1388,12 +1390,25 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(paid.activeInstallments).toBe(2);
       expect(paid.canRecord).toBe(false);
       expect(
-        (await request(paymentPath, 'POST', { ...firstPaymentInput, idempotencyKey: crypto.randomUUID() }, token)).status,
+        (
+          await request(
+            paymentPath,
+            'POST',
+            { ...firstPaymentInput, idempotencyKey: crypto.randomUUID() },
+            token,
+          )
+        ).status,
       ).toBe(409);
       const reason = { reason: 'Contrepassation de contrôle CI' };
-      expect((await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status).toBe(409);
-      expect((await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status).toBe(201);
-      expect((await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status).toBe(409);
+      expect(
+        (await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status,
+      ).toBe(409);
+      expect(
+        (await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status,
+      ).toBe(201);
+      expect(
+        (await request(paymentPath + '/' + secondPaymentId + '/reverse', 'POST', reason, token)).status,
+      ).toBe(409);
       const reversed = parsePaymentSummary(
         (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
         deliveryOrderId,
@@ -1401,11 +1416,15 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(reversed.remaining).toBe('1359.75');
       expect(reversed.activeInstallments).toBe(1);
       expect(reversed.payments.find((item) => item.id === secondPaymentId)?.status).toBe('REVERSED');
-      expect((await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status).toBe(201);
-      expect(parsePaymentSummary(
-        (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
-        deliveryOrderId,
-      ).remaining).toBe('2360.00');
+      expect(
+        (await request(paymentPath + '/' + firstPaymentId + '/reverse', 'POST', reason, token)).status,
+      ).toBe(201);
+      expect(
+        parsePaymentSummary(
+          (await request(paymentPath + '/summary', 'GET', undefined, token)).data,
+          deliveryOrderId,
+        ).remaining,
+      ).toBe('2360.00');
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);
