@@ -134,6 +134,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/sales/presentation/orders.page').then((m) => m.OrdersPage),
       },
       {
+        path: 'ventes/proformas/:id/modifier',
+        canActivate: [saleCreationGuard],
+        loadComponent: () => import('./features/sales/presentation/new-sale.page').then((m) => m.NewSalePage),
+      },
+      {
         path: 'ventes/nouvelle',
         canActivate: [saleCreationGuard],
         loadComponent: () => import('./features/sales/presentation/new-sale.page').then((m) => m.NewSalePage),

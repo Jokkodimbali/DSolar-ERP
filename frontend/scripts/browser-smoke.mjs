@@ -365,7 +365,17 @@ try {
   await page.locator('input[formControlName="quantity"]').fill('2');
   await page.locator('input[formControlName="unitPrice"]').fill('1000');
   await page.locator('input[formControlName="taxRate"]').fill('18');
+  await page.route('**/api/v1/proformas', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    assert.equal(response.status(), 201);
+    await route.abort();
+  });
   await page.getByRole('button', { name: 'Créer le devis brouillon' }).click();
+  await page.locator('app-feedback').filter({ hasText: 'reprenez la même demande' }).waitFor();
+  await page.unroute('**/api/v1/proformas');
+  await page.reload();
+  await page.getByRole('button', { name: 'Reprendre le devis', exact: true }).click();
   await page.getByText('2\u202f360,00 FCFA', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'proforma.png'), fullPage: true });
   const browserProforma = (await page.locator('app-feedback').filter({ hasText: /^Proforma PF-/ }).innerText()).match(/PF-[A-Z0-9-]+/)?.[0];
@@ -374,6 +384,14 @@ try {
   await page.getByRole('searchbox', { name: 'Rechercher', exact: true }).fill(browserProforma);
   await page.getByRole('button', { name: 'Filtrer', exact: true }).click();
   const proformaRow = page.getByRole('region', { name: 'Liste des devis proforma' }).getByRole('row').filter({ hasText: browserProforma });
+  await proformaRow.getByRole('button', { name: 'Détails', exact: true }).click();
+  await page.getByRole('link', { name: 'Modifier le brouillon', exact: true }).click();
+  await page.locator('input[formControlName="quantity"]').fill('3');
+  await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
+  await page.getByText('3\u202f540,00 FCFA', { exact: true }).waitFor();
+  await page.getByRole('link', { name: 'Consulter les devis' }).click();
+  await page.getByRole('searchbox', { name: 'Rechercher', exact: true }).fill(browserProforma);
+  await page.getByRole('button', { name: 'Filtrer', exact: true }).click();
   await proformaRow.getByRole('button', { name: 'Détails', exact: true }).click();
   await page.getByRole('button', { name: 'Émettre le devis', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmer', exact: true }).click();

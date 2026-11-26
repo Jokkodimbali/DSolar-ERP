@@ -653,7 +653,16 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         title: created.number,
         subtitle: '',
       });
+      const changed = await request(
+        '/proformas/' + created.id,
+        'PUT',
+        { ...uniqueInput, lines: uniqueInput.lines.map((line) => ({ ...line, quantity: 3 })) },
+        token,
+      );
+      expect(changed.status).toBe(200);
+      expect(parseProforma(changed.data).total).toBe('3540');
       expect((await request('/proformas/' + created.id + '/cancel', 'POST', {}, token)).status).toBe(201);
+      expect((await request('/proformas/' + created.id, 'PUT', uniqueInput, token)).status).toBe(409);
 
       const adjustmentInput = {
         storeId: store.id,

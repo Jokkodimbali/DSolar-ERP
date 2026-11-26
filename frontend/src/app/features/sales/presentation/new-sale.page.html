@@ -1,7 +1,7 @@
 <app-page-header
   eyebrow="VENTES"
-  heading="Nouvelle vente"
-  description="Commencez par créer un devis proforma brouillon."
+  [heading]="editId ? 'Modifier le devis' : 'Nouvelle vente'"
+  [description]="editId ? 'Modifiez les informations du brouillon.' : 'Commencez par créer un devis proforma brouillon.'"
 >
   <a routerLink="/ventes/proformas" class="secondary">Retour aux devis</a>
 </app-page-header>
@@ -9,15 +9,15 @@
 <app-feedback [message]="loading() ? 'Chargement des références…' : ''" />
 @if (created(); as result) {
 <section class="panel">
-  <app-feedback [message]="'Proforma ' + result.number + ' créée.'" kind="success" />
+  <app-feedback [message]="'Proforma ' + result.number + (editId ? ' modifiée.' : ' créée.')" kind="success" />
   <dl class="metrics">
     <div>
       <dt>Statut</dt>
-      <dd>Brouillon</dd>
+      <dd>{{ labels[result.status] }}</dd>
     </div>
     <div>
       <dt>Total TTC calculé par le serveur</dt>
-      <dd>{{ result.total }}</dd>
+      <dd>{{ money(result.total) }}</dd>
     </div>
   </dl>
   <a routerLink="/ventes/proformas" class="secondary">Consulter les devis</a>
@@ -26,12 +26,19 @@
     commande.
   </p>
 </section>
+} @else if (pending(); as command) {
+<section class="panel">
+  <h2>Création en attente</h2>
+  <p>Référence : {{ command.number }}</p>
+  <p class="muted">La demande initiale sera recherchée avant tout nouvel enregistrement.</p>
+  <button type="button" class="primary" [disabled]="busy()" (click)="resume()">Reprendre le devis</button>
+</section>
 } @else {
 <section class="panel">
   <div class="page-heading">
     <div>
       <h2>Informations commerciales</h2>
-      <p class="muted small">Référence : {{ reference }}</p>
+      <p class="muted small">Référence : {{ reference() }}</p>
     </div>
     <button class="secondary" type="button" [disabled]="busy() || loading()" (click)="load()">
       Actualiser les références
@@ -42,6 +49,10 @@
     message="Un client existant, un produit actif et un magasin actif affecté à votre compte sont nécessaires."
   />
   <a routerLink="/magasins" class="secondary">Gérer mes affectations</a>
+  }
+  @if (!editId || original()) {
+  @if (original()?.expiresAt; as expiry) {
+  <p class="muted small">Date de validité conservée : {{ expiry }}</p>
   }
   <form [formGroup]="form" (ngSubmit)="save()" class="sale-form">
     <label class="ui-field">
@@ -112,11 +123,12 @@
       <button
         class="primary"
         type="submit"
-        [disabled]="busy() || loading() || !customers().length || !products().length || !stores().length"
+        [disabled]="busy() || loading() || form.disabled || !customers().length || !products().length || !stores().length"
       >
-        {{ busy() ? 'Enregistrement…' : 'Créer le devis brouillon' }}
+        {{ busy() ? 'Enregistrement…' : editId ? 'Enregistrer les modifications' : 'Créer le devis brouillon' }}
       </button>
     </div>
   </form>
+  }
 </section>
 }

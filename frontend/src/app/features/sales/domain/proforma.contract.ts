@@ -18,6 +18,7 @@ export interface LineDraft {
 export interface ProformaInput {
   readonly customerId: string;
   readonly number?: string;
+  readonly expiresAt?: string;
   readonly lines: readonly {
     productId: string;
     storeId: string;
