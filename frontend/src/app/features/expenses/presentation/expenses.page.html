@@ -1,21 +1,57 @@
-<app-page-header eyebrow="FINANCES" heading="Dépenses" description="Gérez les dépenses internes par magasin, de leur saisie à leur règlement ou remboursement.">
-  <button type="button" class="secondary" [disabled]="loading() || busy() || !!confirmation()" (click)="load()">Actualiser</button>
+<app-page-header
+  eyebrow="FINANCES"
+  heading="Dépenses"
+  description="Gérez les dépenses internes par magasin, de leur saisie à leur règlement ou remboursement."
+>
+  <button
+    type="button"
+    class="secondary"
+    [disabled]="loading() || busy() || !!confirmation()"
+    (click)="load()"
+  >
+    Actualiser
+  </button>
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
 <app-feedback [message]="success()" kind="success" />
-@if (loading()) { <p role="status">Chargement des dépenses…</p> }
-@if (pending(); as input) {
-<section class="panel"><h2>Dépense en attente</h2><p>{{ input.description }} — {{ money(input.amount) }}</p>
-<button type="button" class="primary" [disabled]="busy() || loading() || blocked()" (click)="resume()">Reprendre la dépense</button></section>
-}
-@if (ready()) {
+@if (loading()) {
+<p role="status">Chargement des dépenses…</p>
+} @if (pending(); as input) {
+<section class="panel">
+  <h2>Dépense en attente</h2>
+  <p>{{ input.description }} — {{ money(input.amount) }}</p>
+  <button type="button" class="primary" [disabled]="busy() || loading() || blocked()" (click)="resume()">
+    Reprendre la dépense
+  </button>
+</section>
+} @if (ready()) {
 <section class="panel">
   <h2>Synthèse par catégorie et statut</h2>
   <div class="ui-table" role="region" aria-label="Synthèse des dépenses" tabindex="0">
-    <table><thead><tr><th scope="col">Catégorie</th><th scope="col">Statut</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
-    <tbody>@for (row of summary(); track row.status + row.categoryId) {
-      <tr><td>{{ categoryName(row.categoryId) }}</td><td>{{ labels[row.status] }}</td><td>{{ row.count }}</td><td>{{ money(row.amount) }}</td></tr>
-    } @empty { <tr><td colspan="4">Aucune dépense.</td></tr> }</tbody></table>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Catégorie</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Nombre</th>
+          <th scope="col">Montant</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of summary(); track row.status + row.categoryId) {
+        <tr>
+          <td>{{ categoryName(row.categoryId) }}</td>
+          <td>{{ labels[row.status] }}</td>
+          <td>{{ row.count }}</td>
+          <td>{{ money(row.amount) }}</td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4">Aucune dépense.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
   </div>
 </section>
 @if (allowed() && !pending() && !blocked()) {
@@ -23,58 +59,202 @@
   <h2>Catégories</h2>
   <form class="ui-toolbar" (submit)="$event.preventDefault(); createCategory(categoryNameInput.value)">
     <label class="ui-field">Nouvelle catégorie<input #categoryNameInput maxlength="100" required /></label>
-    <button class="secondary" type="submit" [disabled]="busy() || !!confirmation()">Créer la catégorie</button>
+    <button class="secondary" type="submit" [disabled]="busy() || !!confirmation()">
+      Créer la catégorie
+    </button>
   </form>
   <h2>Enregistrer une dépense</h2>
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); save(store.value, category.value, description.value, amount.value)">
-    <label class="ui-field">Magasin<select #store required><option value="">Sélectionner</option>@for (item of activeStores(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
-    <label class="ui-field">Catégorie<select #category required><option value="">Sélectionner</option>@for (item of categories(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); save(store.value, category.value, description.value, amount.value)"
+  >
+    <label class="ui-field"
+      >Magasin<select #store required>
+        <option value="">Sélectionner</option>
+        @for (item of activeStores(); track item.id) {
+        <option [value]="item.id">{{ item.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Catégorie<select #category required>
+        <option value="">Sélectionner</option>
+        @for (item of categories(); track item.id) {
+        <option [value]="item.id">{{ item.name }}</option>
+        }
+      </select></label
+    >
     <label class="ui-field">Description<input #description maxlength="500" required /></label>
-    <label class="ui-field">Montant (FCFA)<input #amount inputmode="decimal" maxlength="19" required /></label>
-    <button class="primary" type="submit" [disabled]="busy() || !!confirmation()">Enregistrer la dépense</button>
+    <label class="ui-field"
+      >Montant (FCFA)<input #amount inputmode="decimal" maxlength="19" required
+    /></label>
+    <button class="primary" type="submit" [disabled]="busy() || !!confirmation()">
+      Enregistrer la dépense
+    </button>
   </form>
 </section>
-}
-@if (selected(); as expense) {
+} @if (selected(); as expense) {
 <section class="panel">
-  <div class="page-heading"><h2>{{ expense.description }}</h2><button type="button" class="secondary" [disabled]="busy() || !!confirmation()" (click)="selected.set(null)">Fermer</button></div>
-  <dl class="metrics"><div><dt>Montant</dt><dd>{{ money(expense.amount) }}</dd></div><div><dt>Statut</dt><dd>{{ labels[expense.status] }}</dd></div>
-    <div><dt>Mode de règlement</dt><dd>{{ expense.method ? methods[expense.method] : '—' }}</dd></div><div><dt>Référence</dt><dd>{{ expense.reference || '—' }}</dd></div>
-    <div><dt>Motif de fin</dt><dd>{{ expense.endReason || '—' }}</dd></div></dl>
-  @if (allowed() && !pending()) {
-    @if (expense.status === 'DRAFT') { <button class="primary" type="button" [disabled]="busy() || !!confirmation()" (click)="ask('approve')">Approuver</button> }
-    @if (expense.status === 'APPROVED') {
-      <form class="ui-toolbar" (submit)="$event.preventDefault(); ask('pay', paymentMode.value, cash.value, reference.value)">
-        <label class="ui-field">Mode de règlement<select #paymentMode [value]="mode()" (change)="mode.set(paymentMode.value)">@for (key of methodKeys; track key) { <option [value]="key">{{ methods[key] }}</option> }</select></label>
-        <label class="ui-field" [hidden]="mode() !== 'CASH'">Caisse ouverte<select #cash [required]="mode() === 'CASH'"><option value="">Sélectionner</option>@for (item of cashSessions(expense); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
-        <label class="ui-field" [hidden]="mode() === 'CASH'">Référence externe<input #reference maxlength="200" [required]="mode() !== 'CASH'" /></label>
-        <button class="primary" type="submit" [disabled]="busy() || !!confirmation()">Enregistrer le règlement</button>
-      </form>
-    }
-    @if (actions(expense.status).includes('cancel') || actions(expense.status).includes('refund')) {
-      <div class="ui-toolbar"><label class="ui-field">Motif<textarea #reason maxlength="500"></textarea></label>
-      <button class="secondary" type="button" [disabled]="busy() || !!confirmation()" (click)="ask(expense.status === 'PAID' ? 'refund' : 'cancel', '', '', '', reason.value)">{{ expense.status === 'PAID' ? 'Enregistrer le remboursement' : 'Annuler la dépense' }}</button></div>
-    }
-  }
+  <div class="page-heading">
+    <h2>{{ expense.description }}</h2>
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || !!confirmation()"
+      (click)="selected.set(null)"
+    >
+      Fermer
+    </button>
+  </div>
+  <dl class="metrics">
+    <div>
+      <dt>Montant</dt>
+      <dd>{{ money(expense.amount) }}</dd>
+    </div>
+    <div>
+      <dt>Statut</dt>
+      <dd>{{ labels[expense.status] }}</dd>
+    </div>
+    <div>
+      <dt>Mode de règlement</dt>
+      <dd>{{ expense.method ? methods[expense.method] : '—' }}</dd>
+    </div>
+    <div>
+      <dt>Référence</dt>
+      <dd>{{ expense.reference || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Motif de fin</dt>
+      <dd>{{ expense.endReason || '—' }}</dd>
+    </div>
+  </dl>
+  @if (allowed() && !pending()) { @if (expense.status === 'DRAFT') {
+  <button class="primary" type="button" [disabled]="busy() || !!confirmation()" (click)="ask('approve')">
+    Approuver
+  </button>
+  } @if (expense.status === 'APPROVED') {
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); ask('pay', paymentMode.value, cash.value, reference.value)"
+  >
+    <label class="ui-field"
+      >Mode de règlement<select #paymentMode [value]="mode()" (change)="mode.set(paymentMode.value)">
+        @for (key of methodKeys; track key) {
+        <option [value]="key">{{ methods[key] }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field" [hidden]="mode() !== 'CASH'"
+      >Caisse ouverte<select #cash [required]="mode() === 'CASH'">
+        <option value="">Sélectionner</option>
+        @for (item of cashSessions(expense); track item.id) {
+        <option [value]="item.id">{{ item.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field" [hidden]="mode() === 'CASH'"
+      >Référence externe<input #reference maxlength="200" [required]="mode() !== 'CASH'"
+    /></label>
+    <button class="primary" type="submit" [disabled]="busy() || !!confirmation()">
+      Enregistrer le règlement
+    </button>
+  </form>
+  } @if (actions(expense.status).includes('cancel') || actions(expense.status).includes('refund')) {
+  <div class="ui-toolbar">
+    <label class="ui-field">Motif<textarea #reason maxlength="500"></textarea></label>
+    <button
+      class="secondary"
+      type="button"
+      [disabled]="busy() || !!confirmation()"
+      (click)="ask(expense.status === 'PAID' ? 'refund' : 'cancel', '', '', '', reason.value)"
+    >
+      {{ expense.status === 'PAID' ? 'Enregistrer le remboursement' : 'Annuler la dépense' }}
+    </button>
+  </div>
+  } }
 </section>
 }
 <section class="panel">
-  <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(storeFilter.value, state.value, term.value)">
-    <label class="ui-field">Magasin<select #storeFilter [value]="filterStore()"><option value="">Tous</option>@for (item of stores(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
-    <label class="ui-field">Statut<select #state [value]="filterStatus()"><option value="">Tous</option>@for (key of statuses; track key) { <option [value]="key">{{ labels[key] }}</option> }</select></label>
+  <form
+    class="ui-toolbar"
+    (submit)="$event.preventDefault(); filter(storeFilter.value, state.value, term.value)"
+  >
+    <label class="ui-field"
+      >Magasin<select #storeFilter [value]="filterStore()">
+        <option value="">Tous</option>
+        @for (item of stores(); track item.id) {
+        <option [value]="item.id">{{ item.name }}</option>
+        }
+      </select></label
+    >
+    <label class="ui-field"
+      >Statut<select #state [value]="filterStatus()">
+        <option value="">Tous</option>
+        @for (key of statuses; track key) {
+        <option [value]="key">{{ labels[key] }}</option>
+        }
+      </select></label
+    >
     <label class="ui-field">Rechercher<input #term type="search" [value]="query()" maxlength="120" /></label>
     <button class="primary" type="submit" [disabled]="busy() || !!confirmation()">Filtrer</button>
   </form>
-  <p class="muted small">{{ result()?.total ?? 0 }} dépense(s). La synthèse couvre tous les statuts du magasin sélectionné.</p>
+  <p class="muted small">
+    {{ result()?.total ?? 0 }} dépense(s). La synthèse couvre tous les statuts du magasin sélectionné.
+  </p>
   <div class="ui-table" role="region" aria-label="Liste des dépenses" tabindex="0">
-    <table><thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Magasin</th><th scope="col">Catégorie</th><th scope="col">Montant</th><th scope="col">Statut</th><th scope="col">Actions</th></tr></thead>
-    <tbody>@for (expense of result()?.items ?? []; track expense.id) {
-      <tr><td>{{ expense.createdAt | date:'dd/MM/yyyy' }}</td><td>{{ expense.description }}</td><td>{{ storeName(expense.storeId) }}</td><td>{{ categoryName(expense.categoryId) }}</td><td>{{ money(expense.amount) }}</td><td>{{ labels[expense.status] }}</td><td><button class="secondary" type="button" [disabled]="busy() || !!confirmation()" (click)="open(expense)">Détails</button></td></tr>
-    } @empty { <tr><td colspan="7">Aucune dépense correspondante.</td></tr> }</tbody></table>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Description</th>
+          <th scope="col">Magasin</th>
+          <th scope="col">Catégorie</th>
+          <th scope="col">Montant</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (expense of result()?.items ?? []; track expense.id) {
+        <tr>
+          <td>{{ expense.createdAt | date:'dd/MM/yyyy' }}</td>
+          <td>{{ expense.description }}</td>
+          <td>{{ storeName(expense.storeId) }}</td>
+          <td>{{ categoryName(expense.categoryId) }}</td>
+          <td>{{ money(expense.amount) }}</td>
+          <td>{{ labels[expense.status] }}</td>
+          <td>
+            <button
+              class="secondary"
+              type="button"
+              [disabled]="busy() || !!confirmation()"
+              (click)="open(expense)"
+            >
+              Détails
+            </button>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="7">Aucune dépense correspondante.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
   </div>
-  <app-pagination [page]="result()?.page ?? 1" [pages]="result()?.pages || 1" [disabled]="busy() || !!confirmation()" (change)="load($event)" />
+  <app-pagination
+    [page]="result()?.page ?? 1"
+    [pages]="result()?.pages || 1"
+    [disabled]="busy() || !!confirmation()"
+    (change)="load($event)"
+  />
 </section>
-}
-@if (confirmation(); as action) {
-<app-confirm heading="Confirmer l’opération sur la dépense ?" [description]="action.expense.description + ' — ' + money(action.expense.amount) + '. Aucun paiement externe n’est déclenché.'" [busy]="busy()" (confirmed)="apply()" (cancelled)="confirmation.set(null)" />
+} @if (confirmation(); as action) {
+<app-confirm
+  heading="Confirmer l’opération sur la dépense ?"
+  [description]="action.expense.description + ' — ' + money(action.expense.amount) + '. Aucun paiement externe n’est déclenché.'"
+  [busy]="busy()"
+  (confirmed)="apply()"
+  (cancelled)="confirmation.set(null)"
+/>
 }

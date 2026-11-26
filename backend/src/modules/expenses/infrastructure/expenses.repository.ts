@@ -69,14 +69,16 @@ export class ExpensesRepository implements ExpensesPort {
     const where: Prisma.ExpenseWhereInput = {
       storeId: query.storeId,
       status: query.status,
-      ...(contains ? {
-        OR: [
-          { description: contains },
-          { reference: contains },
-          { category: { name: contains } },
-          { store: { name: contains } },
-        ],
-      } : {}),
+      ...(contains
+        ? {
+            OR: [
+              { description: contains },
+              { reference: contains },
+              { category: { name: contains } },
+              { store: { name: contains } },
+            ],
+          }
+        : {}),
     };
     return this.transaction(actor, async (tx) => {
       const [items, total] = await Promise.all([
