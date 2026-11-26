@@ -114,7 +114,8 @@ export const routes: Routes = [
       {
         path: 'ventes/clients',
         canActivate: [ordersReadGuard],
-        loadComponent: () => import('./features/sales/presentation/customers.page').then((m) => m.CustomersPage),
+        loadComponent: () =>
+          import('./features/sales/presentation/customers.page').then((m) => m.CustomersPage),
       },
       {
         path: 'ventes/commandes',

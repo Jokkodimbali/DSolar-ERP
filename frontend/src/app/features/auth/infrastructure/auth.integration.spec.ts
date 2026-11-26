@@ -411,19 +411,33 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(customerReplay.status).toBe(201);
       expect(parseCustomer(customerReplay.data).id).toBe(customerRecord.id);
       const conflictingCustomer = await request(
-        '/customers', 'POST', { ...customerCommand, name: 'Autre client CI' }, token,
+        '/customers',
+        'POST',
+        { ...customerCommand, name: 'Autre client CI' },
+        token,
       );
       expect(conflictingCustomer.status).toBe(409);
       const updatedCustomer = await request(
-        '/customers/' + customerRecord.id, 'PATCH', { phone: '770000000', email: 'test@example.test' }, token,
+        '/customers/' + customerRecord.id,
+        'PATCH',
+        { phone: '770000000', email: 'test@example.test' },
+        token,
       );
       expect(updatedCustomer.status).toBe(200);
       expect(parseCustomer(updatedCustomer.data).phone).toBe('770000000');
-      const clearedCustomer = await request('/customers/' + customerRecord.id, 'PATCH', { email: null }, token);
+      const clearedCustomer = await request(
+        '/customers/' + customerRecord.id,
+        'PATCH',
+        { email: null },
+        token,
+      );
       expect(clearedCustomer.status).toBe(200);
       expect(parseCustomer(clearedCustomer.data).email).toBeNull();
       const customerList = await request(
-        '/customers/search?search=Client%20proforma%20CI&page=1&limit=10', 'GET', undefined, token,
+        '/customers/search?search=Client%20proforma%20CI&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
       );
       expect(customerList.status).toBe(200);
       expect(parseCustomerPage(customerList.data).items.map((item) => item.id)).toContain(customerRecord.id);

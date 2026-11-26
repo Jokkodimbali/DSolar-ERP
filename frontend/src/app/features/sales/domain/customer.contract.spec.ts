@@ -5,7 +5,13 @@ const id = 'c31ac59c-8148-4664-8745-496a9618f202';
 const input = { name: ' Client ', taxId: null, phone: ' ', email: ' TEST@EXAMPLE.COM ', address: null };
 describe('Contrat des clients', () => {
   it('normalise les coordonnées et préserve la clé de création', () => {
-    expect(customerInput(input)).toEqual({ name: 'Client', taxId: null, phone: null, email: 'test@example.com', address: null });
+    expect(customerInput(input)).toEqual({
+      name: 'Client',
+      taxId: null,
+      phone: null,
+      email: 'test@example.com',
+      address: null,
+    });
     expect(parsePendingCustomer({ operationKey: id, input }).operationKey).toBe(id);
     expect(() => customerInput({ ...input, name: ' ' })).toThrow();
   });

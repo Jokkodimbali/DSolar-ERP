@@ -22,7 +22,14 @@ import { CustomersApi } from '../infrastructure/customers.api';
 
 @Component({
   selector: 'app-customers-page',
-  imports: [DatePipe, ReactiveFormsModule, EmptyStateComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    EmptyStateComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './customers.page.html',
   styles: ['.customer-form { display: grid; gap: 14px; max-width: 560px; }'],
@@ -43,10 +50,16 @@ export class CustomersPage {
   readonly pending = signal<PendingCustomer | null>(null);
   private storageKey: string | null = null;
   readonly form = new FormGroup({
-    name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(180)] }),
+    name: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(180)],
+    }),
     taxId: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
     phone: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
-    email: new FormControl('', { nonNullable: true, validators: [Validators.email, Validators.maxLength(254)] }),
+    email: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.email, Validators.maxLength(254)],
+    }),
     address: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] }),
   });
 
@@ -68,7 +81,10 @@ export class CustomersPage {
     this.loading.set(true);
     this.api
       .search(page, this.appliedSearch())
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (result) => this.result.set(result),
         error: (error: unknown) => {
@@ -92,13 +108,17 @@ export class CustomersPage {
   }
 
   view(id: string, edit = false): void {
-    if (this.busy() || this.loading() || this.editing() || (edit && !this.session.can('sales.manage'))) return;
+    if (this.busy() || this.loading() || this.editing() || (edit && !this.session.can('sales.manage')))
+      return;
     this.error.set('');
     this.detail.set(null);
     this.busy.set(true);
     this.api
       .get(id)
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
       .subscribe({
         next: (customer) => {
           if (customer.id !== id) {
@@ -150,25 +170,30 @@ export class CustomersPage {
         this.submit(pending);
       } else {
         this.busy.set(true);
-        this.api.update(target.id, input).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-          next: (updated) => {
-            this.busy.set(false);
-            this.editing.set(null);
-            if (updated.id !== target.id) {
-              this.error.set('Modification non vérifiée. Consultez de nouveau le client.');
-            } else {
-              this.detail.set(updated);
-              this.success.set('Informations du client mises à jour.');
-            }
-            this.load(1);
-          },
-          error: (error: unknown) => {
-            this.busy.set(false);
-            this.editing.set(null);
-            this.error.set(errorMessage(error) + ' Consultez de nouveau le client avant de modifier ses données.');
-            this.load(1);
-          },
-        });
+        this.api
+          .update(target.id, input)
+          .pipe(takeUntilDestroyed(this.destroy))
+          .subscribe({
+            next: (updated) => {
+              this.busy.set(false);
+              this.editing.set(null);
+              if (updated.id !== target.id) {
+                this.error.set('Modification non vérifiée. Consultez de nouveau le client.');
+              } else {
+                this.detail.set(updated);
+                this.success.set('Informations du client mises à jour.');
+              }
+              this.load(1);
+            },
+            error: (error: unknown) => {
+              this.busy.set(false);
+              this.editing.set(null);
+              this.error.set(
+                errorMessage(error) + ' Consultez de nouveau le client avant de modifier ses données.',
+              );
+              this.load(1);
+            },
+          });
       }
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : 'Coordonnées invalides.');
@@ -182,31 +207,36 @@ export class CustomersPage {
 
   private submit(pending: PendingCustomer): void {
     this.busy.set(true);
-    this.api.create(pending.input, pending.operationKey).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (customer) => {
-        this.busy.set(false);
-        try {
-          this.clearPending();
-        } catch {
-          this.error.set('Client enregistré, mais la clé locale ne peut pas être effacée.');
-          return;
-        }
-        this.editing.set(null);
-        this.detail.set(customer);
-        this.success.set('Client créé avec succès.');
-        this.load(1);
-      },
-      error: (error: unknown) => {
-        this.busy.set(false);
-        if (error instanceof HttpErrorResponse && error.status === 400) {
+    this.api
+      .create(pending.input, pending.operationKey)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (customer) => {
+          this.busy.set(false);
           try {
             this.clearPending();
           } catch {
-            // La clé reste disponible pour une nouvelle tentative.
+            this.error.set('Client enregistré, mais la clé locale ne peut pas être effacée.');
+            return;
           }
-        }
-        this.error.set(errorMessage(error) + ' Réessayez avec la même demande si sa création est incertaine.');
-      },
-    });
+          this.editing.set(null);
+          this.detail.set(customer);
+          this.success.set('Client créé avec succès.');
+          this.load(1);
+        },
+        error: (error: unknown) => {
+          this.busy.set(false);
+          if (error instanceof HttpErrorResponse && error.status === 400) {
+            try {
+              this.clearPending();
+            } catch {
+              // La clé reste disponible pour une nouvelle tentative.
+            }
+          }
+          this.error.set(
+            errorMessage(error) + ' Réessayez avec la même demande si sa création est incertaine.',
+          );
+        },
+      });
   }
 }

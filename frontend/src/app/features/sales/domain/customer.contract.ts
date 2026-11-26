@@ -17,7 +17,12 @@ function optional(value: unknown, max: number): string | null {
   return invalid();
 }
 export function customerInput(value: unknown): CustomerInput {
-  if (!isRecord(value) || typeof value['name'] !== 'string' || !value['name'].trim() || value['name'].length > 180)
+  if (
+    !isRecord(value) ||
+    typeof value['name'] !== 'string' ||
+    !value['name'].trim() ||
+    value['name'].length > 180
+  )
     return invalid();
   return {
     name: value['name'].trim(),
@@ -28,7 +33,11 @@ export function customerInput(value: unknown): CustomerInput {
   };
 }
 export function parseCustomer(value: unknown) {
-  if (!isRecord(value) || typeof value['createdAt'] !== 'string' || !Number.isFinite(Date.parse(value['createdAt'])))
+  if (
+    !isRecord(value) ||
+    typeof value['createdAt'] !== 'string' ||
+    !Number.isFinite(Date.parse(value['createdAt']))
+  )
     return invalid();
   return { ...customerInput(value), id: storeId(value['id']), createdAt: value['createdAt'] };
 }

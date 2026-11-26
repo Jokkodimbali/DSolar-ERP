@@ -20,7 +20,9 @@ export class CustomersApi {
   }
 
   create(input: CustomerInput, operationKey: string) {
-    return this.http.post<unknown>(apiPath('/customers'), { ...input, operationKey }).pipe(map(parseCustomer));
+    return this.http
+      .post<unknown>(apiPath('/customers'), { ...input, operationKey })
+      .pipe(map(parseCustomer));
   }
 
   update(id: string, input: CustomerInput) {
