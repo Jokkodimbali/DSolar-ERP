@@ -17,8 +17,9 @@ export class AuditApi {
 
   private params(filters: AuditFilters) {
     let params = new HttpParams();
-    for (const [key, value] of Object.entries(normalizeFilters(filters))) {
-      if (value) params = params.set(key, value);
+    const normalized = normalizeFilters(filters);
+    for (const key of ['actorId', 'storeId', 'entityId', 'entityType', 'action', 'from', 'to'] as const) {
+      if (normalized[key]) params = params.set(key, normalized[key]);
     }
     return params;
   }

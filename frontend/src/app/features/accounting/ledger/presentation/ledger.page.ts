@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, finalize, forkJoin, switchMap } from 'rxjs';
@@ -26,7 +27,7 @@ interface Overview {
 
 @Component({
   selector: 'app-ledger-page',
-  imports: [DatePipe, FeedbackComponent, PageHeaderComponent],
+  imports: [DatePipe, RouterLink, FeedbackComponent, PageHeaderComponent],
   templateUrl: './ledger.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -47,9 +47,28 @@ export function parseSetup(value: unknown) {
   );
   return {
     periods,
-    accounts: unique(array(row['accounts']).map(account)),
+    accounts: unique(
+      array(row['accounts']).map((raw) => {
+        const item = record(raw);
+        const classification = item['classification'];
+        return {
+          ...account(item),
+          category: classification === null ? null : text(record(classification)['category']),
+        };
+      }),
+    ),
     journals: unique(array(row['journals']).map(account)),
     rules: array(row['rules']).length,
+    postingRules: array(row['rules']).map((raw) => {
+      const rule = record(raw);
+      return {
+        key: text(rule['key']),
+        journalId: storeId(rule['journalId']),
+        debitAccountId: storeId(rule['debitAccountId']),
+        creditAccountId: storeId(rule['creditAccountId']),
+        taxAccountId: rule['taxAccountId'] === null ? null : storeId(rule['taxAccountId']),
+      };
+    }),
   };
 }
 

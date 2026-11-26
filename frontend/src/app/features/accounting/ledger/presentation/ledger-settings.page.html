@@ -1,0 +1,160 @@
+<app-page-header
+  eyebrow="FINANCES"
+  heading="Paramétrage comptable"
+  description="Configurez les référentiels et les règles automatiques. Aucune saisie manuelle d’écriture."
+>
+  <a class="secondary" routerLink="/comptabilite">Retour à la comptabilité</a>
+  <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="load()">
+    Actualiser
+  </button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (busy()) {
+<p role="status">Traitement en cours…</p>
+} @if (setup(); as data) {
+<section class="panel">
+  <h2>Plan comptable</h2>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); code('accounts', accountCode.value, accountName.value)">
+    <label class="ui-field">Code<input #accountCode maxlength="30" required /></label>
+    <label class="ui-field">Libellé<input #accountName maxlength="160" required /></label>
+    <button type="submit" class="primary" [disabled]="busy() || !!pending()">Créer un compte</button>
+  </form>
+  <div class="ui-table" role="region" aria-label="Plan comptable" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Code</th>
+          <th scope="col">Libellé</th>
+          <th scope="col">Classification</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (account of data.accounts; track account.id) {
+        <tr>
+          <td>{{ account.code }}</td>
+          <td>{{ account.name }}</td>
+          <td>
+            <select #category [value]="account.category ?? ''" [disabled]="busy() || !!pending()" aria-label="Classe comptable">
+              <option value="">Non classé</option>
+              @for (item of classes; track item.key) {
+              <option [value]="item.key">{{ item.label }}</option>
+              }
+            </select>
+            <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="classify(account.id, category.value)">
+              Classer
+            </button>
+          </td>
+        </tr>
+        } @empty {
+        <tr><td colspan="3">Aucun compte.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="panel">
+  <h2>Journaux comptables</h2>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); code('journals', journalCode.value, journalName.value)">
+    <label class="ui-field">Code<input #journalCode maxlength="30" required /></label>
+    <label class="ui-field">Libellé<input #journalName maxlength="160" required /></label>
+    <button type="submit" class="primary" [disabled]="busy() || !!pending()">Créer un journal</button>
+  </form>
+  @for (journal of data.journals; track journal.id) {
+  <p>{{ journal.code }} — {{ journal.name }}</p>
+  } @empty {
+  <p>Aucun journal.</p>
+  }
+</section>
+<section class="panel">
+  <h2>Périodes comptables</h2>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); period(periodName.value, start.value, end.value)">
+    <label class="ui-field">Libellé<input #periodName maxlength="100" required /></label>
+    <label class="ui-field">Début<input #start type="date" required /></label>
+    <label class="ui-field">Fin<input #end type="date" required /></label>
+    <button type="submit" class="primary" [disabled]="busy() || !!pending()">Créer une période</button>
+  </form>
+  <p class="muted">Les nouvelles périodes activent automatiquement le traitement des pièces métier.</p>
+  @for (item of data.periods; track item.id) {
+  <div class="ui-toolbar">
+    <strong>{{ item.name }}</strong>
+    <span>{{ item.start }} — {{ item.end }}</span>
+    <span>{{ item.closedAt ? 'Clôturée' : 'Ouverte' }}</span>
+    @if (!item.closedAt) {
+    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="periodOperation('automation', item.id)">
+      Activer / rétablir l’automatisation
+    </button>
+    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="periodOperation('post-pending', item.id)">
+      Relancer les pièces existantes
+    </button>
+    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="periodOperation('close', item.id)">
+      Clôturer
+    </button>
+    }
+  </div>
+  } @empty {
+  <p>Aucune période.</p>
+  }
+</section>
+<section class="panel">
+  <h2>Règles d’imputation automatique</h2>
+  <p class="muted">
+    INVOICE, GOODS_RECEIPT, CASH_IN, CASH_OUT, PAYMENT:MODE, EXPENSE:MODE:ID_CATEGORIE ou
+    CASH_TRANSFER:ID_CAISSE_SOURCE:ID_CAISSE_DESTINATION. Modes : CASH, BANK_TRANSFER, CHEQUE, MOBILE_MONEY, OTHER.
+  </p>
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); rule(key.value, journal.value, debit.value, credit.value, tax.value)">
+    <label class="ui-field">Clé<input #key maxlength="120" required /></label>
+    <label class="ui-field">
+      Journal
+      <select #journal required>
+        <option value="">Sélectionner</option>
+        @for (item of data.journals; track item.id) {
+        <option [value]="item.id">{{ item.code }} — {{ item.name }}</option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      Débit
+      <select #debit required>
+        <option value="">Sélectionner</option>
+        @for (item of data.accounts; track item.id) {
+        <option [value]="item.id">{{ item.code }} — {{ item.name }}</option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      Crédit
+      <select #credit required>
+        <option value="">Sélectionner</option>
+        @for (item of data.accounts; track item.id) {
+        <option [value]="item.id">{{ item.code }} — {{ item.name }}</option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      Taxe (factures uniquement)
+      <select #tax>
+        <option value="">Sans compte de taxe</option>
+        @for (item of data.accounts; track item.id) {
+        <option [value]="item.id">{{ item.code }} — {{ item.name }}</option>
+        }
+      </select>
+    </label>
+    <button type="submit" class="primary" [disabled]="busy() || !!pending()">Enregistrer la règle</button>
+  </form>
+  <p class="muted">Une clé existante est mise à jour après confirmation.</p>
+  @for (item of data.postingRules; track item.key) {
+  <p>{{ item.key }} — Débit {{ label(item.debitAccountId) }} / Crédit {{ label(item.creditAccountId) }} / Taxe {{ label(item.taxAccountId) }}</p>
+  } @empty {
+  <p>Aucune règle configurée.</p>
+  }
+</section>
+} @if (pending(); as action) {
+<app-confirm
+  heading="Confirmer l’opération comptable"
+  [description]="action.kind === 'close' ? 'La clôture est définitive. Le serveur vérifiera les pièces et écritures en attente.' : 'Le paramétrage affecte le traitement automatique des opérations métier.'"
+  [busy]="busy()"
+  (confirmed)="confirm()"
+  (cancelled)="pending.set(null)"
+/>
+}

@@ -43,6 +43,14 @@ export const routes: Routes = [
           import('./features/accounting/ledger/presentation/ledger.page').then((m) => m.LedgerPage),
       },
       {
+        path: 'comptabilite/parametres',
+        canActivate: [usersGuard],
+        loadComponent: () =>
+          import('./features/accounting/ledger/presentation/ledger-settings.page').then(
+            (m) => m.LedgerSettingsPage,
+          ),
+      },
+      {
         path: 'banque',
         canActivate: [usersGuard],
         loadComponent: () =>
