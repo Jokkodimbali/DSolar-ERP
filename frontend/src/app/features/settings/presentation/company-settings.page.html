@@ -3,8 +3,8 @@
   heading="Paramètres de l’entreprise"
   description="Gérez les informations officielles, les documents commerciaux et les préférences internes."
 >
-  <button type="button" class="secondary" [disabled]="busy() || !!pending() || (!!saved() && dirty())" (click)="load()">
-    Actualiser
+  <button type="button" class="secondary" [disabled]="busy() || !!pending() || (!!saved() && dirty() && !reloadRequired())" (click)="load()">
+    {{ reloadRequired() ? 'Recharger la version serveur' : 'Actualiser' }}
   </button>
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
@@ -27,7 +27,7 @@
             [value]="draft()[field.key]"
             [maxLength]="field.max"
             [required]="field.key === 'legalName'"
-            (input)="field(field.key, value.value)"
+            (input)="updateField(field.key, value.value)"
           />
         </label>
         }
@@ -58,7 +58,7 @@
       </label>
     </section>
     <div class="ui-actions">
-      <button type="submit" class="primary" [disabled]="!dirty()">Enregistrer les paramètres</button>
+      <button type="submit" class="primary" [disabled]="!dirty() || reloadRequired()">Enregistrer les paramètres</button>
       <button type="button" class="secondary" [disabled]="!dirty()" (click)="reset()">Annuler les modifications</button>
       <span class="muted">Révision {{ current.revision }}</span>
     </div>

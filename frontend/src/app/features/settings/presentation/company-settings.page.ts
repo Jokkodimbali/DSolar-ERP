@@ -29,6 +29,7 @@ export class CompanySettingsPage {
   readonly draft = signal(blankCompany());
   readonly pending = signal<CompanySettings | null>(null);
   readonly busy = signal(false);
+  readonly reloadRequired = signal(false);
   readonly error = signal('');
   readonly success = signal('');
   readonly dirty = computed(() => JSON.stringify(this.saved()?.input) !== JSON.stringify(this.draft()));
@@ -47,6 +48,7 @@ export class CompanySettingsPage {
     if (this.busy() || this.pending() || !this.session.can('users.manage')) return;
     this.busy.set(true);
     this.error.set('');
+    this.reloadRequired.set(false);
     this.saved.set(null);
     this.draft.set(blankCompany());
     this.api
@@ -64,7 +66,7 @@ export class CompanySettingsPage {
       });
   }
 
-  field(key: CompanyField, value: string): void {
+  updateField(key: CompanyField, value: string): void {
     this.draft.update((draft) => ({ ...draft, [key]: value }));
   }
 
@@ -112,7 +114,7 @@ export class CompanySettingsPage {
 
   prepare(): void {
     const saved = this.saved();
-    if (!saved || !this.ready() || !this.dirty()) return;
+    if (!saved || !this.ready() || !this.dirty() || this.reloadRequired()) return;
     this.error.set('');
     this.success.set('');
     try {
@@ -141,6 +143,7 @@ export class CompanySettingsPage {
         },
         error: (error: unknown) => {
           this.pending.set(null);
+          this.reloadRequired.set(true);
           this.error.set(errorMessage(error) + ' Rechargez la dernière version avant une nouvelle tentative.');
         },
       });

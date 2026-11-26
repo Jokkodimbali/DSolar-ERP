@@ -54,7 +54,7 @@ export function blankCompany(): CompanyInput {
     timeZone: 'Africa/Dakar',
     logoUrl: '',
     notificationsEnabled: true,
-    lowStockThreshold: 0,
+    lowStockThreshold: 5,
   };
 }
 
@@ -109,7 +109,8 @@ export function parseCompany(value: unknown): CompanySettings {
 }
 
 export function parseLogo(value: unknown): string {
-  if (!isRecord(value) || value['kind'] !== 'COMPANY_LOGO') return invalid();
+  if (!isRecord(value) || (value['mimeType'] !== 'image/png' && value['mimeType'] !== 'image/jpeg'))
+    return invalid();
   const path = logoPath(value['url']);
   if (!path || path !== '/api/v1/media/images/' + storeId(value['id'])) return invalid();
   return path;

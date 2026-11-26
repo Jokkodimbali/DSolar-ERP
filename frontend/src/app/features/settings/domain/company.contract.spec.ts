@@ -16,10 +16,10 @@ describe('Paramètres entreprise', () => {
     expect(() => companyInput({ ...input, website: 'http://example.org' })).toThrow();
   });
 
-  it('vérifie le type et la référence du logo', () => {
+  it('vérifie le MIME et la référence du logo', () => {
     const id = 'c31ac59c-8148-4664-8745-496a9618f202';
     const url = '/api/v1/media/images/' + id;
-    expect(parseLogo({ id, url, kind: 'COMPANY_LOGO' })).toBe(url);
-    expect(() => parseLogo({ id, url, kind: 'PRODUCT_PHOTO' })).toThrow();
+    expect(parseLogo({ id, url, mimeType: 'image/png' })).toBe(url);
+    expect(() => parseLogo({ id, url, mimeType: 'image/svg+xml' })).toThrow();
   });
 });
