@@ -2,14 +2,24 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { apiPath } from '../../../core/api/api-contract';
-import { parseSupplier, parseSuppliers, supplierId, type SupplierInput } from '../domain/supplier.contract';
+import {
+  parseSupplier,
+  parseSupplierPage,
+  supplierId,
+  type SupplierFilter,
+  type SupplierInput,
+} from '../domain/supplier.contract';
 
 @Injectable({ providedIn: 'root' })
 export class SuppliersApi {
   private readonly http = inject(HttpClient);
 
-  list() {
-    return this.http.get<unknown>(apiPath('/suppliers')).pipe(map(parseSuppliers));
+  search(page: number, search: string, status: SupplierFilter) {
+    return this.http
+      .get<unknown>(apiPath('/suppliers/search'), {
+        params: { page, limit: 10, search, ...(status === 'ALL' ? {} : { active: status === 'ACTIVE' }) },
+      })
+      .pipe(map(parseSupplierPage));
   }
 
   get(id: string) {

@@ -71,12 +71,13 @@
 />
 }
 <section class="panel">
-  <div class="ui-toolbar">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); applyFilters()">
     <label class="ui-field"
       >Rechercher
       <input
         #query
         type="search"
+        maxlength="120"
         placeholder="Nom, NINEA ou coordonnées"
         [value]="search()"
         (input)="setSearch(query.value)"
@@ -89,14 +90,15 @@
         <option value="INACTIVE">Inactifs</option>
       </select>
     </label>
+    <button class="primary" type="submit" [disabled]="loading() || busy()">Filtrer</button>
     <button class="secondary" type="button" [disabled]="loading() || busy()" (click)="load()">
       Actualiser
     </button>
-  </div>
+  </form>
   @if (loading()) {
   <p role="status">Chargement des fournisseurs…</p>
   } @else {
-  <p class="muted small">{{ filtered().length }} fournisseur(s)</p>
+  <p class="muted small">{{ result()?.total ?? 0 }} fournisseur(s)</p>
   <div class="ui-table" role="region" aria-label="Liste des fournisseurs" tabindex="0">
     <table>
       <thead>
@@ -110,7 +112,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (supplier of visible(); track supplier.id) {
+        @for (supplier of result()?.items ?? []; track supplier.id) {
         <tr>
           <td>{{ supplier.name }}</td>
           <td>{{ supplier.taxId || '—' }}</td>
@@ -137,12 +139,17 @@
       </tbody>
     </table>
   </div>
-  @if (!filtered().length && !error()) {
+  @if (!result()?.total && !error()) {
   <app-empty-state
     heading="Aucun fournisseur correspondant"
     description="Modifiez les filtres ou créez un fournisseur si vous y êtes autorisé."
   />
   }
-  <app-pagination [page]="page()" [pages]="pageCount()" [disabled]="busy()" (change)="movePage($event)" />
+  <app-pagination
+    [page]="result()?.page ?? 1"
+    [pages]="result()?.pages || 1"
+    [disabled]="busy()"
+    (change)="movePage($event)"
+  />
   }
 </section>

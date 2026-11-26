@@ -45,17 +45,24 @@ export function parseSuppliers(value: unknown): Supplier[] {
   return value.map(parseSupplier);
 }
 
-export function filterSuppliers(
-  suppliers: readonly Supplier[],
-  search: string,
-  status: SupplierFilter,
-): Supplier[] {
-  const query = search.trim().toLocaleLowerCase('fr');
-  return suppliers.filter(
-    (supplier) =>
-      (status === 'ALL' || supplier.active === (status === 'ACTIVE')) &&
-      [supplier.name, supplier.taxId, supplier.phone, supplier.email, supplier.address].some((value) =>
-        (value ?? '').toLocaleLowerCase('fr').includes(query),
-      ),
-  );
+export function parseSupplierPage(value: unknown) {
+  if (!isRecord(value) || !isRecord(value['pagination'])) throw new Error('Pagination fournisseurs invalide.');
+  const { page, limit, total, pages } = value['pagination'];
+  if (
+    typeof page !== 'number' ||
+    typeof limit !== 'number' ||
+    typeof total !== 'number' ||
+    typeof pages !== 'number' ||
+    ![page, limit, total, pages].every(Number.isSafeInteger) ||
+    page < 1 ||
+    limit < 1 ||
+    limit > 100 ||
+    total < 0 ||
+    pages !== Math.ceil(total / limit)
+  )
+    throw new Error('Pagination fournisseurs invalide.');
+  const items = parseSuppliers(value['items']);
+  if (items.length !== Math.min(limit, Math.max(0, total - (page - 1) * limit)))
+    throw new Error('Nombre de fournisseurs incohérent.');
+  return { page, limit, total, pages, items };
 }

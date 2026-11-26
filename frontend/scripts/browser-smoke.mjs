@@ -106,6 +106,7 @@ try {
     ['utilisateurs', '/utilisateurs', 'Utilisateurs'],
     ['produits', '/produits', 'Produits'],
     ['magasins', '/magasins', 'Magasins'],
+    ['fournisseurs', '/approvisionnements/fournisseurs', 'Fournisseurs'],
     ['commandes', '/ventes/commandes', 'Commandes'],
     ['stocks', '/stocks', 'Stocks'],
     ['transferts', '/stocks/transferts', 'Transferts de stock'],
@@ -139,6 +140,32 @@ try {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
   }
+  await page.goto('http://localhost:4200/approvisionnements/fournisseurs');
+  await page.getByRole('button', { name: 'Nouveau fournisseur' }).click();
+  await page.locator('input[formControlName="name"]').fill('Fournisseur navigateur CI');
+  await page.locator('input[formControlName="email"]').fill('browser@example.test');
+  await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  const supplierRow = page.getByRole('region', { name: 'Liste des fournisseurs' }).getByRole('row').filter({ hasText: 'Fournisseur navigateur CI' });
+  await supplierRow.waitFor();
+  await supplierRow.getByRole('button', { name: 'Modifier', exact: true }).click();
+  await page.locator('input[formControlName="email"]').fill('');
+  await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await supplierRow.getByRole('button', { name: 'Détails', exact: true }).click();
+  await page.getByRole('heading', { name: 'Fiche fournisseur — Fournisseur navigateur CI' }).waitFor();
+  assert.equal(await page.locator('main.page dl').getByText('Non renseignée', { exact: true }).count(), 2);
+  await page.getByRole('button', { name: 'Fermer', exact: true }).click();
+  await supplierRow.getByRole('button', { name: 'Désactiver', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await supplierRow.getByRole('button', { name: 'Activer', exact: true }).waitFor();
+  await page.reload();
+  await supplierRow.getByRole('button', { name: 'Activer', exact: true }).waitFor();
+  await page.locator('main.page input[type="search"]').fill('Fournisseur navigateur CI');
+  await page.getByRole('button', { name: 'Filtrer', exact: true }).click();
+  await page.getByText('1 fournisseur(s)', { exact: true }).waitFor();
+  await supplierRow.getByRole('button', { name: 'Activer', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
+  await supplierRow.getByRole('button', { name: 'Désactiver', exact: true }).waitFor();
+  await page.screenshot({ path: join(artifacts, 'fournisseurs-crud.png'), fullPage: true });
   await page.goto('http://localhost:4200/stocks');
   const storeSelector = page.locator('.inventory-toolbar select');
   const storeOption = storeSelector.locator('option').filter({ hasText: 'Magasin CI modifié' });

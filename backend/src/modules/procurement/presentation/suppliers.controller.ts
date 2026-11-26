@@ -12,19 +12,22 @@ export class SupplierDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ required: false, type: String, maxLength: 100 })
-  taxId?: string;
+  @SwaggerField({ required: false, nullable: true, type: String, maxLength: 100 })
+  taxId?: string | null;
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  @SwaggerField({ required: false, type: String, maxLength: 50 })
-  phone?: string;
-  @IsOptional() @IsEmail() @SwaggerField({ required: false, type: String, format: 'email' }) email?: string;
+  @SwaggerField({ required: false, nullable: true, type: String, maxLength: 50 })
+  phone?: string | null;
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(254)
+  @SwaggerField({ required: false, nullable: true, type: String, format: 'email', maxLength: 254 }) email?: string | null;
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ required: false, type: String, maxLength: 500 })
-  address?: string;
+  @SwaggerField({ required: false, nullable: true, type: String, maxLength: 500 })
+  address?: string | null;
 }
 export class UpdateSupplierDto {
   @IsOptional()
@@ -36,19 +39,22 @@ export class UpdateSupplierDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  @SwaggerField({ required: false, type: String, maxLength: 100 })
-  taxId?: string;
+  @SwaggerField({ required: false, nullable: true, type: String, maxLength: 100 })
+  taxId?: string | null;
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  @SwaggerField({ required: false, type: String, maxLength: 50 })
-  phone?: string;
-  @IsOptional() @IsEmail() @SwaggerField({ required: false, type: String, format: 'email' }) email?: string;
+  @SwaggerField({ required: false, nullable: true, type: String, maxLength: 50 })
+  phone?: string | null;
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(254)
+  @SwaggerField({ required: false, nullable: true, type: String, format: 'email', maxLength: 254 }) email?: string | null;
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  @SwaggerField({ required: false, type: String, maxLength: 500 })
-  address?: string;
+  @SwaggerField({ required: false, nullable: true, type: String, maxLength: 500 })
+  address?: string | null;
 }
 @ApiTags('Fournisseurs')
 @ApiBearerAuth()

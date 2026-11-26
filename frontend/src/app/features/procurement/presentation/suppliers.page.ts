@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, type Observable } from 'rxjs';
@@ -10,7 +10,7 @@ import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { PaginationComponent } from '../../../shared/ui/pagination.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import { SessionService } from '../../auth/application/session.service';
-import { filterSuppliers, type Supplier, type SupplierFilter } from '../domain/supplier.contract';
+import { type Supplier, type SupplierFilter, type parseSupplierPage } from '../domain/supplier.contract';
 import { SuppliersApi } from '../infrastructure/suppliers.api';
 
 @Component({
@@ -32,17 +32,15 @@ export class SuppliersPage {
   private readonly api = inject(SuppliersApi);
   private readonly destroy = inject(DestroyRef);
   readonly session = inject(SessionService);
-  readonly suppliers = signal<Supplier[]>([]);
+  readonly result = signal<ReturnType<typeof parseSupplierPage> | null>(null);
   readonly loading = signal(false);
   readonly busy = signal(false);
   readonly error = signal('');
   readonly success = signal('');
   readonly search = signal('');
   readonly status = signal<SupplierFilter>('ALL');
-  readonly page = signal(1);
-  readonly filtered = computed(() => filterSuppliers(this.suppliers(), this.search(), this.status()));
-  readonly pageCount = computed(() => Math.max(1, Math.ceil(this.filtered().length / 10)));
-  readonly visible = computed(() => this.filtered().slice((this.page() - 1) * 10, this.page() * 10));
+  readonly appliedSearch = signal('');
+  readonly appliedStatus = signal<SupplierFilter>('ALL');
   readonly editing = signal<Supplier | 'new' | null>(null);
   readonly detail = signal<Supplier | null>(null);
   readonly pendingStatus = signal<Supplier | null>(null);
@@ -64,24 +62,20 @@ export class SuppliersPage {
     this.load();
   }
 
-  load(): void {
-    if (this.loading() || this.busy() || !this.session.can('inventory.read')) return;
+  load(page = this.result()?.page ?? 1): void {
+    if (this.loading() || this.busy() || !this.session.can('inventory.read') || page < 1) return;
     this.loading.set(true);
     this.error.set('');
     this.api
-      .list()
+      .search(page, this.appliedSearch(), this.appliedStatus())
       .pipe(
         takeUntilDestroyed(this.destroy),
         finalize(() => this.loading.set(false)),
       )
       .subscribe({
-        next: (suppliers) => {
-          this.suppliers.set(suppliers);
-          this.movePage(this.page());
-        },
+        next: (result) => this.result.set(result),
         error: (error: unknown) => {
-          this.suppliers.set([]);
-          this.page.set(1);
+          this.result.set(null);
           this.error.set(errorMessage(error));
         },
       });
@@ -89,18 +83,23 @@ export class SuppliersPage {
 
   setSearch(search: string): void {
     this.search.set(search);
-    this.page.set(1);
   }
 
   setStatus(status: string): void {
     if (status === 'ALL' || status === 'ACTIVE' || status === 'INACTIVE') {
       this.status.set(status);
-      this.page.set(1);
     }
   }
 
+  applyFilters(): void {
+    if (this.loading() || this.busy()) return;
+    this.appliedSearch.set(this.search().trim());
+    this.appliedStatus.set(this.status());
+    this.load(1);
+  }
+
   movePage(page: number): void {
-    if (Number.isInteger(page)) this.page.set(Math.min(this.pageCount(), Math.max(1, page)));
+    if (Number.isInteger(page) && page >= 1 && page <= (this.result()?.pages ?? 0)) this.load(page);
   }
 
   view(supplier: Supplier): void {
@@ -190,7 +189,7 @@ export class SuppliersPage {
         this.busy.set(false);
         this.close();
         this.success.set(message);
-        this.load();
+        this.load(1);
       },
       error: (error: unknown) => {
         this.busy.set(false);

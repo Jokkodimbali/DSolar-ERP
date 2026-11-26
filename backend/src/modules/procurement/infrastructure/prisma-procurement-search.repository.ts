@@ -21,7 +21,15 @@ export class PrismaProcurementSearchRepository implements ProcurementSearchPort 
           const where: Prisma.SupplierWhereInput = {
             active: query.active,
             ...(contains
-              ? { OR: [{ name: contains }, { email: contains }, { phone: contains }, { taxId: contains }] }
+              ? {
+                  OR: [
+                    { name: contains },
+                    { email: contains },
+                    { phone: contains },
+                    { taxId: contains },
+                    { address: contains },
+                  ],
+                }
               : {}),
           };
           const [items, total] = await Promise.all([

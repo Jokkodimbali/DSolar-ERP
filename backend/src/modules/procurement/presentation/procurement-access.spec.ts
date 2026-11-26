@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { AccessGuard, REQUIRED_PERMISSIONS } from '../../identity/presentation/access.guard';
 import { SuppliersController } from './suppliers.controller';
+import { ProcurementSearchController } from './procurement-search.controller';
 import { PurchaseOrdersController } from './purchase-orders.controller';
 import { GoodsReceiptsController } from './goods-receipts.controller';
 
@@ -11,7 +12,12 @@ describe('Procurement endpoint authorization', () => {
     read: string[];
     manage: string[];
   }> = [
-    { controller: SuppliersController, read: ['list', 'get'], manage: ['create', 'update', 'deactivate'] },
+    {
+      controller: SuppliersController,
+      read: ['list', 'get'],
+      manage: ['create', 'update', 'activate', 'deactivate'],
+    },
+    { controller: ProcurementSearchController, read: ['suppliers', 'orders', 'receipts'], manage: [] },
     { controller: PurchaseOrdersController, read: ['list', 'get'], manage: ['create', 'confirm', 'cancel'] },
     { controller: GoodsReceiptsController, read: ['list', 'get'], manage: ['create', 'confirm', 'cancel'] },
   ];

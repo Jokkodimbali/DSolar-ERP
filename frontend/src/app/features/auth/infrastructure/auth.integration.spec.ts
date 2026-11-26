@@ -31,6 +31,7 @@ import {
 } from '../../products/domain/product.contract';
 import { parseUsers, accessInput } from '../../users/domain/users.contract';
 import { parseAssignment, parseStore, parseStores } from '../../stores/domain/store.contract';
+import { parseSupplier, parseSupplierPage } from '../../procurement/domain/supplier.contract';
 
 // Ce test Vitest s’exécute exclusivement dans Node.js.
 declare const process: { readonly env: { readonly DSOLAR_AUTH_INTEGRATION?: string } };
@@ -174,6 +175,46 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect(hasPermissions(keeper.utilisateur, ['users.manage'])).toBe(false);
     expect((await request('/auth/me', 'GET', undefined, keeper.jetonAcces)).status).toBe(200);
     expect((await request('/users', 'GET', undefined, keeper.jetonAcces)).status).toBe(403);
+    expect((await request('/suppliers/search')).status).toBe(401);
+    const supplierResponse = await request(
+      '/suppliers',
+      'POST',
+      { name: 'Fournisseur contrat CI', email: 'supplier@example.test', address: 'Dakar CI' },
+      keeper.jetonAcces,
+    );
+    expect(supplierResponse.status).toBe(201);
+    const supplier = parseSupplier(supplierResponse.data);
+    const supplierPath = '/suppliers/' + supplier.id;
+    expect(parseSupplier((await request(supplierPath, 'GET', undefined, admin.jetonAcces)).data)).toEqual(
+      supplier,
+    );
+    const searched = await request(
+      '/suppliers/search?search=Dakar%20CI&active=true&page=1&limit=1',
+      'GET',
+      undefined,
+      keeper.jetonAcces,
+    );
+    expect(searched.status).toBe(200);
+    expect(parseSupplierPage(searched.data).items).toContainEqual(supplier);
+    expect((await request('/suppliers/search?limit=101', 'GET', undefined, keeper.jetonAcces)).status).toBe(
+      400,
+    );
+    expect((await request(supplierPath, 'PATCH', { name: null }, keeper.jetonAcces)).status).toBe(400);
+    const cleared = await request(supplierPath, 'PATCH', { email: null }, keeper.jetonAcces);
+    expect(cleared.status).toBe(200);
+    expect(parseSupplier(cleared.data).email).toBeNull();
+    expect(
+      parseSupplier((await request(supplierPath, 'GET', undefined, admin.jetonAcces)).data).email,
+    ).toBeNull();
+    for (const action of ['deactivate', 'activate'] as const) {
+      const changed = await request(supplierPath + '/' + action, 'POST', {}, keeper.jetonAcces);
+      expect(changed.status).toBe(201);
+      expect(parseSupplier(changed.data).active).toBe(action === 'activate');
+      const repeated = await request(supplierPath + '/' + action, 'POST', {}, keeper.jetonAcces);
+      expect(repeated.status).toBe(201);
+      expect(parseSupplier(repeated.data)).toEqual(parseSupplier(changed.data));
+    }
+    expect((await request(supplierPath + '/deactivate', 'POST', {})).status).toBe(401);
     expect(
       (
         await request(
