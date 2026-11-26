@@ -3,7 +3,7 @@
   heading="Nouvelle vente"
   description="Commencez par créer un devis proforma brouillon."
 >
-  <a routerLink="/ventes/commandes" class="secondary">Retour aux commandes</a>
+  <a routerLink="/ventes/proformas" class="secondary">Retour aux devis</a>
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
 <app-feedback [message]="loading() ? 'Chargement des références…' : ''" />
@@ -20,6 +20,7 @@
       <dd>{{ result.total }}</dd>
     </div>
   </dl>
+  <a routerLink="/ventes/proformas" class="secondary">Consulter les devis</a>
   <p class="muted">
     Aucune facture ni paiement n’a été enregistré. Le devis doit être émis et accepté avant conversion en
     commande.

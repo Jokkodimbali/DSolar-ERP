@@ -6,6 +6,7 @@ import { parseSearch, sources } from '../../search/domain/search.contract';
 import { notificationEvent, parseMark, parseFeed } from '../../notifications/domain/notification.contract';
 import { parseCreatedProforma, parseOptions, proformaInput } from '../../sales/domain/proforma.contract';
 import { parseCustomer, parseCustomerPage } from '../../sales/domain/customer.contract';
+import { parseProforma, parseProformaPage } from '../../sales/domain/proforma-view.contract';
 import { parsePeriod } from '../../dashboard/domain/dashboard-period.contract';
 import {
   parseId,
@@ -636,6 +637,7 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const detail = await request('/proformas/' + created.id, 'GET', undefined, token);
       expect(detail.status).toBe(200);
       expect(parseCreatedProforma(detail.data)).toEqual(created);
+      expect(parseProforma(detail.data).total).toBe('2360');
       const source = sources.find((entry) => entry.label === 'Proformas');
       if (!source) throw new Error('Source proformas manquante.');
       const found = await request(
@@ -645,6 +647,7 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
         token,
       );
       expect(found.status).toBe(200);
+      expect(parseProformaPage(found.data).items[0]?.id).toBe(created.id);
       expect(parseSearch(found.data, source).items).toContainEqual({
         id: created.id,
         title: created.number,
@@ -1113,8 +1116,14 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       const second = await request('/proformas', 'POST', input, token);
       expect(second.status).toBe(201);
       const draft = parseCreatedProforma(second.data);
-      expect((await request('/proformas/' + draft.id + '/issue', 'POST', {}, token)).status).toBe(201);
-      expect((await request('/proformas/' + draft.id + '/accept', 'POST', {}, token)).status).toBe(201);
+      const issued = await request('/proformas/' + draft.id + '/issue', 'POST', {}, token);
+      expect(issued.status).toBe(201);
+      expect(parseProforma(issued.data).status).toBe('ISSUED');
+      expect((await request('/proformas/' + draft.id + '/issue', 'POST', {}, token)).status).toBe(409);
+      const accepted = await request('/proformas/' + draft.id + '/accept', 'POST', {}, token);
+      expect(accepted.status).toBe(201);
+      expect(parseProforma(accepted.data).status).toBe('ACCEPTED');
+      expect((await request('/proformas/' + draft.id + '/cancel', 'POST', {}, token)).status).toBe(409);
       const converted = await request('/sales-orders/from-proforma/' + draft.id, 'POST', {}, token);
       expect(converted.status).toBe(201);
       const orders = await request('/sales-orders/search?page=1&limit=5', 'GET', undefined, token);

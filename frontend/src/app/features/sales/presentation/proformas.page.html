@@ -1,0 +1,95 @@
+<app-page-header eyebrow="VENTES" heading="Devis proforma" description="Suivez les devis, leur validité et leurs étapes commerciales.">
+  @if (session.can('sales.manage', 'sales.read', 'products.read', 'stores.read')) {
+  <a routerLink="/ventes/nouvelle" class="primary">+ Nouveau devis</a>
+  }
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (detail(); as item) {
+<section class="panel">
+  <div class="page-heading">
+    <h2>{{ item.number }}</h2>
+    <button class="secondary" type="button" [disabled]="busy() || !!pending()" (click)="close()">Fermer</button>
+  </div>
+  <dl class="metrics">
+    <div><dt>Client</dt><dd>{{ customerNames()[item.customerId] || item.customerId }}</dd></div>
+    <div><dt>Statut</dt><dd>{{ labels[item.status] }}</dd></div>
+    <div><dt>Validité</dt><dd>{{ (item.expiresAt | date:'dd/MM/yyyy HH:mm') || 'Sans échéance' }}</dd></div>
+    <div><dt>Total TTC</dt><dd>{{ money(item.total) }}</dd></div>
+  </dl>
+  <div class="ui-table" role="region" aria-label="Lignes du devis" tabindex="0">
+    <table>
+      <thead><tr><th scope="col">Produit</th><th scope="col">Magasin</th><th scope="col">Quantité</th><th scope="col">Prix HT</th><th scope="col">Remise</th><th scope="col">Taxe</th><th scope="col">Total TTC</th></tr></thead>
+      <tbody>
+        @for (line of item.lines; track line.id) {
+        <tr>
+          <td>{{ productNames()[line.productId] || line.productId }}</td>
+          <td>{{ storeNames()[line.storeId] || line.storeId }}</td>
+          <td>{{ line.quantity }}</td>
+          <td>{{ money(line.unitPrice) }}</td>
+          <td>{{ money(line.discount) }}</td>
+          <td>{{ line.taxRate }} %</td>
+          <td>{{ money(line.lineTotal) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (session.can('sales.manage')) {
+  <div class="ui-actions">
+    @for (action of actions(item); track action) {
+    <button type="button" [class]="action === 'cancel' ? 'secondary' : 'primary'" [disabled]="busy() || loading() || !!pending()" (click)="ask(action)">
+      {{ actionLabels[action] }}
+    </button>
+    }
+  </div>
+  }
+</section>
+} @if (pending(); as action) {
+<app-confirm
+  [heading]="actionLabels[action] + ' ?'"
+  description="Le serveur vérifiera à nouveau le statut, les droits d’accès et les règles commerciales avant d’enregistrer cette opération."
+  [busy]="busy()"
+  (confirmed)="apply()"
+  (cancelled)="pending.set(null)"
+/>
+}
+<section class="panel">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(queryInput.value, statusInput.value)">
+    <label class="ui-field">Rechercher <input #queryInput type="search" maxlength="120" placeholder="Référence ou client" [value]="query()" /></label>
+    <label class="ui-field">Statut
+      <select #statusInput [value]="status()">
+        <option value="">Tous</option>
+        @for (status of statuses; track status) {
+        <option [value]="status">{{ labels[status] }}</option>
+        }
+      </select>
+    </label>
+    <button type="submit" class="primary" [disabled]="loading() || busy() || !!pending()">Filtrer</button>
+    <button type="button" class="secondary" [disabled]="loading() || busy() || !!pending()" (click)="load()">Actualiser</button>
+  </form>
+  @if (loading()) {
+  <p role="status">Chargement des devis…</p>
+  } @else if (result(); as data) {
+  <p class="muted small">{{ data.total }} devis</p>
+  <div class="ui-table" role="region" aria-label="Liste des devis proforma" tabindex="0">
+    <table>
+      <thead><tr><th scope="col">Référence</th><th scope="col">Client</th><th scope="col">Date</th><th scope="col">Statut</th><th scope="col">Total TTC</th><th scope="col">Actions</th></tr></thead>
+      <tbody>
+        @for (item of data.items; track item.id) {
+        <tr>
+          <td>{{ item.number }}</td><td>{{ customerNames()[item.customerId] || item.customerId }}</td><td>{{ item.createdAt | date:'dd/MM/yyyy' }}</td>
+          <td><span class="ui-status" [class.ui-status-active]="item.status === 'ACCEPTED'">{{ labels[item.status] }}</span></td>
+          <td>{{ money(item.total) }}</td>
+          <td><button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="open(item.id)">Détails</button></td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (!data.total) {
+  <app-empty-state heading="Aucun devis correspondant" description="Modifiez les filtres pour retrouver vos devis." />
+  }
+  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy() || !!pending()" (change)="load($event)" />
+  }
+</section>
