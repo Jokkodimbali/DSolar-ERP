@@ -1,12 +1,11 @@
-import { CreateDeliveryDto } from '../presentation/create-delivery.dto';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DELIVERIES_REPOSITORY, DeliveriesRepository } from './deliveries.port';
+import { DELIVERIES_REPOSITORY, DeliveryInput, DeliveriesRepository } from './deliveries.port';
 
 @Injectable()
 export class DeliveriesService {
   constructor(@Inject(DELIVERIES_REPOSITORY) private readonly deliveries: DeliveriesRepository) {}
 
-  create(orderId: string, actorId: string, input: CreateDeliveryDto) {
+  create(orderId: string, actorId: string, input: DeliveryInput) {
     return this.deliveries.create(orderId, actorId, input);
   }
 
@@ -16,6 +15,10 @@ export class DeliveriesService {
 
   cancel(orderId: string, deliveryId: string, actorId: string) {
     return this.deliveries.cancel(orderId, deliveryId, actorId);
+  }
+
+  progress(orderId: string, actorId: string) {
+    return this.deliveries.progress(orderId, actorId);
   }
 
   list(orderId: string, actorId: string) {

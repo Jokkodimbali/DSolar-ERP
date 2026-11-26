@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { CreateDeliveryDto } from '../presentation/create-delivery.dto';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { DeliveriesRepository } from '../application/deliveries.port';
+import { DeliveryInput, DeliveriesRepository } from '../application/deliveries.port';
 
 @Injectable()
 export class PrismaDeliveriesRepository implements DeliveriesRepository {
@@ -51,7 +50,81 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
     });
   }
 
-  async create(orderId: string, actorId: string, input: CreateDeliveryDto) {
+  progress(orderId: string, actorId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.salesOrder.findFirst({
+          where: {
+            id: orderId,
+            lines: {
+              some: {},
+              every: {
+                store: {
+                  status: 'ACTIVE',
+                  userAccess: { some: { userId: actorId, user: { status: 'ACTIVE' } } },
+                },
+              },
+            },
+          },
+          include: {
+            lines: {
+              include: { product: { select: { name: true, sku: true } }, store: { select: { name: true } } },
+            },
+          },
+        });
+        if (!order) throw new NotFoundException('Commande introuvable ou non autorisée.');
+        const confirmed = await tx.deliveryLine.groupBy({
+          by: ['storeId', 'productId'],
+          where: { delivery: { orderId, status: 'CONFIRMED' } },
+          _sum: { quantity: true },
+        });
+        const delivered = new Map(
+          confirmed.map((line) => [
+            line.storeId + ':' + line.productId,
+            line._sum.quantity ?? new Prisma.Decimal(0),
+          ]),
+        );
+        const ordered = new Map<
+          string,
+          { storeId: string; productId: string; store: string; product: string; sku: string; quantity: Prisma.Decimal }
+        >();
+        for (const line of order.lines) {
+          const key = line.storeId + ':' + line.productId;
+          if (!line.quantity.isFinite() || !line.quantity.greaterThan(0))
+            throw new ConflictException('Quantité de commande invalide.');
+          const previous = ordered.get(key);
+          if (previous) previous.quantity = previous.quantity.plus(line.quantity);
+          else
+            ordered.set(key, {
+              storeId: line.storeId,
+              productId: line.productId,
+              store: line.store.name,
+              product: line.product.name,
+              sku: line.product.sku,
+              quantity: line.quantity,
+            });
+        }
+        if ([...delivered.keys()].some((key) => !ordered.has(key)))
+          throw new ConflictException('Historique de livraison incohérent.');
+        const lines = [...ordered].map(([key, line]) => {
+          const done = delivered.get(key) ?? new Prisma.Decimal(0);
+          const remaining = line.quantity.minus(done);
+          if (done.isNegative() || remaining.isNegative())
+            throw new ConflictException('Historique de livraison incohérent.');
+          return {
+            ...line,
+            quantity: line.quantity.toFixed(3),
+            delivered: done.toFixed(3),
+            remaining: remaining.toFixed(3),
+          };
+        });
+        return { orderId, status: order.status, lines };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+  }
+
+  async create(orderId: string, actorId: string, input: DeliveryInput) {
     return this.prisma.$transaction(
       async (tx) => {
         await tx.$queryRaw`SELECT id FROM "SalesOrder" WHERE id = ${orderId}::uuid FOR UPDATE`;
@@ -71,6 +144,27 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         });
         if (!stores.length || allowed !== stores.length)
           throw new ForbiddenException('Accès magasin refusé.');
+        const number = input.operationKey ? 'BL-' + input.operationKey.toUpperCase() : undefined;
+        if (number) {
+          const existing = await tx.deliveryNote.findUnique({ where: { number }, include: { lines: true } });
+          if (existing) {
+            if (
+              existing.orderId !== orderId ||
+              existing.lines.length !== input.lines.length ||
+              !input.lines.every((line) =>
+                existing.lines.some(
+                  (saved) =>
+                    saved.storeId === line.storeId &&
+                    saved.productId === line.productId &&
+                    saved.quantity.eq(line.quantity),
+                ),
+              ) ||
+              new Set(input.lines.map((line) => line.storeId + ':' + line.productId)).size !== input.lines.length
+            )
+              throw new ConflictException('Clé de livraison déjà utilisée avec des données différentes.');
+            return existing;
+          }
+        }
         if (order.status !== 'CONFIRMED' && order.status !== 'PARTIALLY_DELIVERED') {
           throw new ConflictException('La commande doit être confirmée.');
         }
@@ -86,7 +180,13 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
             delivered.set(key, (delivered.get(key) ?? new Prisma.Decimal(0)).plus(line.quantity));
           }
         }
-        if (!input.lines.length) throw new ConflictException('Bon de livraison sans lignes.');
+        if (!input.lines.length || input.lines.length > 100)
+          throw new ConflictException('Un bon de livraison doit contenir de 1 à 100 lignes.');
+        if (
+          number &&
+          new Set(input.lines.map((line) => line.storeId + ':' + line.productId)).size !== input.lines.length
+        )
+          throw new ConflictException('Produit et magasin en double dans le bon de livraison.');
         const requested = new Map<string, Prisma.Decimal>();
         for (const line of input.lines) {
           const key = `${line.storeId}:${line.productId}`;
@@ -107,7 +207,7 @@ export class PrismaDeliveriesRepository implements DeliveriesRepository {
         }
         const note = await tx.deliveryNote.create({
           data: {
-            number: `BL-${randomUUID().slice(0, 12).toUpperCase()}`,
+            number: number ?? `BL-${randomUUID().slice(0, 12).toUpperCase()}`,
             orderId,
             lines: {
               create: input.lines.map((line) => ({

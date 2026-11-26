@@ -25,6 +25,14 @@ describe('CreateDeliveryDto', () => {
     },
   );
 
+  it('rejette une quantité hors précision de la base et un lot trop grand', async () => {
+    expect((await validateQuantity('1000000000000000')).length).toBeGreaterThan(0);
+    const dto = plainToInstance(CreateDeliveryDto, {
+      lines: Array.from({ length: 101 }, () => ({ storeId, productId, quantity: '1' })),
+    });
+    expect((await validate(dto)).length).toBeGreaterThan(0);
+  });
+
   it('rejette un bon sans ligne', async () => {
     const dto = plainToInstance(CreateDeliveryDto, { lines: [] });
     expect((await validate(dto)).length).toBeGreaterThan(0);

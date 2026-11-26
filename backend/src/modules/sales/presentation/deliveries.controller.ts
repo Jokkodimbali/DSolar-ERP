@@ -52,6 +52,12 @@ export class DeliveriesController {
     return this.deliveries.list(orderId, actorId);
   }
 
+  @Get('progress')
+  @RequirePermissions('sales.read')
+  progress(@Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUserId() actorId: string) {
+    return this.deliveries.progress(orderId, actorId);
+  }
+
   @Get(':deliveryId')
   @RequirePermissions('sales.read')
   get(

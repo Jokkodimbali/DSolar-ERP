@@ -32,6 +32,7 @@ describe('PrismaDeliveriesRepository', () => {
       create: jest.fn(),
       update: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
     },
     storeStock: { updateMany: jest.fn() },
     stockMovement: { create: jest.fn() },
@@ -46,6 +47,7 @@ describe('PrismaDeliveriesRepository', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     tx.userStoreAccess.count.mockResolvedValue(1);
+    tx.deliveryNote.findUnique.mockResolvedValue(null);
     tx.storeStock.updateMany.mockResolvedValue({ count: 1 });
     tx.stockMovement.create.mockResolvedValue({});
     tx.auditLog.create.mockResolvedValue({});
@@ -98,6 +100,21 @@ describe('PrismaDeliveriesRepository', () => {
         },
       }),
     );
+  });
+
+  it('rejoue la même création sans nouvelle écriture et refuse une demande différente', async () => {
+    tx.salesOrder.findUnique.mockResolvedValue({ ...order('3'), status: 'DELIVERED' });
+    const operationKey = '00000000-0000-4000-8000-000000000009';
+    const saved = { id: deliveryId, orderId, status: 'CONFIRMED', lines: [line('1')] };
+    tx.deliveryNote.findUnique.mockResolvedValue(saved);
+    await expect(
+      repository.create(orderId, actorId, { operationKey, lines: [{ storeId, productId, quantity: '1.000' }] }),
+    ).resolves.toEqual(saved);
+    await expect(
+      repository.create(orderId, actorId, { operationKey, lines: [{ storeId, productId, quantity: '2' }] }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.deliveryNote.create).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
 
   it('refuse de créer une livraison supérieure au reliquat', async () => {
