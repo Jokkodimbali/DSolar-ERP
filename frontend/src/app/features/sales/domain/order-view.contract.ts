@@ -31,7 +31,7 @@ function cents(value: string): bigint {
 }
 function summary(value: unknown) {
   if (!isRecord(value)) return invalid();
-  const status = Object.keys(orderStatusLabels).find((key) => key === value['status']) as OrderStatus | undefined;
+  const status = (Object.keys(orderStatusLabels) as OrderStatus[]).find((key) => key === value['status']);
   const display = parseRecentOrders({ items: [value] })[0];
   if (!status || !display) return invalid();
   return { ...display, rawStatus: status };

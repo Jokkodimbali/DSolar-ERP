@@ -1147,16 +1147,57 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect((await request('/sales-orders/from-proforma/' + draft.id, 'POST', {}, token)).status).toBe(409);
       const salesOrderPath = '/sales-orders/' + parseId(converted.data);
       const stockPath = '/inventory' + path + '/products/' + product.id;
-      const stockBefore = parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id);
+      const stockBefore = parseBalance(
+        (await request(stockPath, 'GET', undefined, token)).data,
+        store.id,
+        product.id,
+      );
+      const milli = (amount: string) => {
+        const [whole = '0', fraction = ''] = amount.split('.');
+        return BigInt(whole) * 1000n + BigInt(fraction.padEnd(3, '0'));
+      };
+      expect((await request(salesOrderPath + '/confirm', 'POST', {})).status).toBe(401);
       expect((await request(salesOrderPath + '/confirm', 'POST', {}, token)).status).toBe(201);
-      const stockReserved = parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id);
+      const stockReserved = parseBalance(
+        (await request(stockPath, 'GET', undefined, token)).data,
+        store.id,
+        product.id,
+      );
       expect(stockReserved.quantity).toBe(stockBefore.quantity);
-      expect(Number(stockReserved.reserved)).toBe(Number(stockBefore.reserved) + 2);
+      expect(milli(stockReserved.reserved)).toBe(milli(stockBefore.reserved) + 2000n);
+      expect(milli(stockReserved.available)).toBe(milli(stockBefore.available) - 2000n);
       expect((await request(salesOrderPath + '/confirm', 'POST', {}, token)).status).toBe(409);
-      expect(parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id)).toEqual(stockReserved);
+      expect(
+        parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id),
+      ).toEqual(stockReserved);
       expect((await request(salesOrderPath + '/cancel', 'POST', {}, token)).status).toBe(201);
       expect((await request(salesOrderPath + '/cancel', 'POST', {}, token)).status).toBe(409);
-      expect(parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id)).toEqual(stockBefore);
+      expect(
+        parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id),
+      ).toEqual(stockBefore);
+      const excessive = await request(
+        '/proformas',
+        'POST',
+        { ...input, lines: input.lines.map((line) => ({ ...line, quantity: 1000000 })) },
+        token,
+      );
+      expect(excessive.status).toBe(201);
+      const excessivePath = '/proformas/' + parseId(excessive.data);
+      expect((await request(excessivePath + '/issue', 'POST', {}, token)).status).toBe(201);
+      expect((await request(excessivePath + '/accept', 'POST', {}, token)).status).toBe(201);
+      const excessiveOrder = await request(
+        '/sales-orders/from-proforma/' + parseId(excessive.data),
+        'POST',
+        {},
+        token,
+      );
+      expect(excessiveOrder.status).toBe(201);
+      const excessiveOrderPath = '/sales-orders/' + parseId(excessiveOrder.data);
+      expect((await request(excessiveOrderPath + '/confirm', 'POST', {}, token)).status).toBe(409);
+      expect(
+        parseBalance((await request(stockPath, 'GET', undefined, token)).data, store.id, product.id),
+      ).toEqual(stockBefore);
+      expect((await request(excessiveOrderPath + '/cancel', 'POST', {}, token)).status).toBe(201);
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);

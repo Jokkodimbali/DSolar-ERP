@@ -89,6 +89,7 @@ export class PrismaOrdersRepository implements OrdersRepository {
             });
           }
         }
+        assertStoredSalesPricing(order.lines, order.total);
         const sortedTotals = [...totals.values()].sort((a, b) => {
           const left = `${a.storeId}:${a.productId}`;
           const right = `${b.storeId}:${b.productId}`;

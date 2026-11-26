@@ -374,8 +374,11 @@ try {
   await page.locator('input[formControlName="quantity"]').fill('2');
   await page.locator('input[formControlName="unitPrice"]').fill('1000');
   await page.locator('input[formControlName="taxRate"]').fill('18');
+  let browserProforma = '';
   await page.route('**/api/v1/proformas', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
+    browserProforma = route.request().postDataJSON().number;
+    assert.match(browserProforma, /^PF-[0-9A-F-]{36}$/);
     const response = await route.fetch();
     assert.equal(response.status(), 201);
     await route.abort();
@@ -387,8 +390,8 @@ try {
   await page.getByRole('button', { name: 'Reprendre le devis', exact: true }).click();
   await page.getByText('2\u202f360,00 FCFA', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'proforma.png'), fullPage: true });
-  const browserProforma = (await page.locator('app-feedback').filter({ hasText: /^Proforma PF-/ }).innerText()).match(/PF-[A-Z0-9-]+/)?.[0];
   assert(browserProforma);
+  await page.getByTestId('proforma-reference').getByText(browserProforma, { exact: true }).waitFor();
   await page.getByRole('link', { name: 'Consulter les devis' }).click();
   await page.getByRole('searchbox', { name: 'Rechercher', exact: true }).fill(browserProforma);
   await page.getByRole('button', { name: 'Filtrer', exact: true }).click();
@@ -422,8 +425,17 @@ try {
   await page.screenshot({ path: join(artifacts, 'proformas-lifecycle.png'), fullPage: true });
   await page.getByRole('link', { name: /^CMD-/ }).click();
   await page.getByRole('button', { name: 'Confirmer la commande', exact: true }).click();
+  await page.route('**/api/v1/sales-orders/*/confirm', async (route) => {
+    const response = await route.fetch();
+    assert.equal(response.status(), 201);
+    await route.abort();
+  });
   await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
-  await page.getByText('Commande confirmée. Stock réservé.', { exact: true }).waitFor();
+  await page.getByRole('alert').filter({ hasText: 'Actualisez la commande avant toute nouvelle opération' }).waitFor();
+  await page.unroute('**/api/v1/sales-orders/*/confirm');
+  await page.getByRole('button', { name: 'Actualiser', exact: true }).click();
+  await page.getByTestId('sales-order-status').getByText('Confirmée', { exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Confirmer la commande', exact: true }).count(), 0);
   await page.getByRole('button', { name: 'Annuler la commande', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmer', exact: true }).click();
   await page.getByText('Commande annulée.', { exact: true }).waitFor();

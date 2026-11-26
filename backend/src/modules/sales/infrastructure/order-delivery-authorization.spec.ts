@@ -76,6 +76,27 @@ describe('Sécurité des commandes et des livraisons', () => {
     expect(tx.$executeRaw).not.toHaveBeenCalled();
   });
 
+  it('refuse de réserver le stock si la valorisation historique est incohérente', async () => {
+    tx.userStoreAccess.count.mockResolvedValue(1);
+    tx.salesOrder.findUnique.mockResolvedValue({
+      ...order,
+      status: 'DRAFT',
+      total: new Prisma.Decimal('200.01'),
+      lines: [
+        {
+          ...line,
+          unitPrice: new Prisma.Decimal(100),
+          discount: new Prisma.Decimal(0),
+          taxRate: new Prisma.Decimal(0),
+          lineTotal: new Prisma.Decimal(200),
+        },
+      ],
+    });
+    await expect(orders.confirm('order', 'actor')).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.$executeRaw).not.toHaveBeenCalled();
+    expect(tx.salesOrder.update).not.toHaveBeenCalled();
+  });
+
   it('refuse une quantité négative masquée dans un bon de livraison', async () => {
     tx.userStoreAccess.count.mockResolvedValue(1);
     tx.salesOrder.findUnique.mockResolvedValue({

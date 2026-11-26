@@ -5,7 +5,14 @@
 >
   @if (detailMode) {
   <a class="secondary" routerLink="/ventes/commandes">Retour aux commandes</a>
-  <button class="secondary" type="button" [disabled]="busy() || loading() || !!pending()" (click)="refreshDetail()">Actualiser</button>
+  <button
+    class="secondary"
+    type="button"
+    [disabled]="busy() || loading() || !!pending()"
+    (click)="refreshDetail()"
+  >
+    Actualiser
+  </button>
   }
 </app-page-header>
 <app-feedback [message]="error()" kind="error" />
@@ -23,7 +30,7 @@
       <dt>Total</dt>
       <dd>{{ order.total }}</dd>
     </div>
-    <div>
+    <div data-testid="sales-order-status">
       <dt>Statut</dt>
       <dd>{{ order.status }}</dd>
     </div>
@@ -70,7 +77,12 @@
   @if (session.can('sales.manage')) {
   <div class="ui-actions">
     @for (action of actions(order.rawStatus); track action) {
-    <button type="button" [class]="action === 'confirm' ? 'primary' : 'secondary'" [disabled]="busy() || !!pending()" (click)="ask(action)">
+    <button
+      type="button"
+      [class]="action === 'confirm' ? 'primary' : 'secondary'"
+      [disabled]="busy() || !!pending()"
+      (click)="ask(action)"
+    >
       {{ action === 'confirm' ? 'Confirmer la commande' : 'Annuler la commande' }}
     </button>
     }
@@ -142,7 +154,12 @@
     </table>
   </div>
   <p class="muted small">{{ data.total }} commande(s)</p>
-  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="loading()" (change)="load($event)" />
+  <app-pagination
+    [page]="data.page"
+    [pages]="data.pages || 1"
+    [disabled]="loading()"
+    (change)="load($event)"
+  />
   }
 </section>
 }

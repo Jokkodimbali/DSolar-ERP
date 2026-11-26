@@ -53,6 +53,7 @@ export class OrdersPage {
           switchMap(([params]) => {
             this.detail.set(null);
             this.pending.set(null);
+            this.success.set('');
             this.error.set('');
             this.loading.set(true);
             const id = params.get('id') ?? '';
@@ -91,8 +92,12 @@ export class OrdersPage {
   ask(action: OrderAction): void {
     const item = this.detail();
     if (
-      !item || this.loading() || this.busy() || this.pending() ||
-      !this.session.can('sales.manage') || !this.actions(item.rawStatus).includes(action)
+      !item ||
+      this.loading() ||
+      this.busy() ||
+      this.pending() ||
+      !this.session.can('sales.manage') ||
+      !this.actions(item.rawStatus).includes(action)
     )
       return;
     this.error.set('');
@@ -104,8 +109,12 @@ export class OrdersPage {
     const item = this.detail();
     const action = this.pending();
     if (
-      !item || !action || this.busy() || this.loading() ||
-      !this.session.can('sales.manage') || !this.actions(item.rawStatus).includes(action)
+      !item ||
+      !action ||
+      this.busy() ||
+      this.loading() ||
+      !this.session.can('sales.manage') ||
+      !this.actions(item.rawStatus).includes(action)
     )
       return;
     this.busy.set(true);
