@@ -45,6 +45,17 @@ describe('Documents PDF commerciaux', () => {
     expect(data).toContain('/Logo Do');
     expect(data).toContain(Buffer.from('TOTAL TTC : 118,00 FCFA', 'latin1').toString('hex'));
   });
+  it('génère un avoir avec la référence de facture et les montants fiscaux enregistrés', () => {
+    const data = new SalesPdfRenderer().render({
+      kind: 'CREDIT_NOTE', number: 'AV-1', status: 'ISSUED', issuedAt: new Date('2026-11-26'),
+      customer: doc.customer, invoiceNumber: 'FAC-1', reason: 'Correction de prix',
+      amount: '59.00', netAmount: '50.00', taxAmount: '9.00',
+      lines: [{ sku: 'SOL', name: 'Centrale', netAmount: '50.00', taxAmount: '9.00' }],
+    }).toString('ascii');
+    for (const row of ['TOTAL HT : 50,00 FCFA', 'TOTAL TVA : 9,00 FCFA', 'TOTAL TTC : 59,00 FCFA']) {
+      expect(data).toContain(Buffer.from(row, 'latin1').toString('hex'));
+    }
+  });
   it('pagine les lignes et conserve les offsets xref exacts', () => {
     const data = renderTextPdf(
       'TEST',

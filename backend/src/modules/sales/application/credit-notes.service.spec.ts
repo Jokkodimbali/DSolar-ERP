@@ -4,6 +4,7 @@ import { CreditNotesService } from './credit-notes.service';
 describe('CreditNotesService', () => {
   const repository: jest.Mocked<CreditNotesRepository> = {
     list: jest.fn(),
+    preview: jest.fn(),
     issue: jest.fn(),
   };
   const service = new CreditNotesService(repository);

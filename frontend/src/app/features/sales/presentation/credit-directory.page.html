@@ -1,0 +1,23 @@
+<app-page-header eyebrow="VENTES" heading="Avoirs clients" description="Consultez les avoirs et retrouvez leur facture d’origine.">
+  <a class="secondary" routerLink="/ventes/factures">Factures</a>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<section class="panel">
+  <form class="ui-toolbar" (submit)="$event.preventDefault(); search(term.value)">
+    <label class="ui-field">Rechercher<input #term type="search" maxlength="120" [value]="query()" placeholder="Référence, facture ou motif" /></label>
+    <button class="primary" type="submit" [disabled]="loading()">Rechercher</button>
+    <button class="secondary" type="button" [disabled]="loading()" (click)="load()">Actualiser</button>
+  </form>
+  @if (loading()) { <p role="status">Chargement des avoirs…</p> }
+  @else if (result(); as data) {
+    <p class="muted small">{{ data.total }} avoir(s)</p>
+    <div class="ui-table" role="region" aria-label="Liste des avoirs" tabindex="0">
+      <table><thead><tr><th scope="col">Référence</th><th scope="col">Émission</th><th scope="col">Motif</th><th scope="col">TTC</th><th scope="col">Actions</th></tr></thead>
+      <tbody>@for (note of data.items; track note.id) {
+        <tr><td>{{ note.number }}</td><td>{{ (note.issuedAt | date:'dd/MM/yyyy HH:mm') || '—' }}</td><td>{{ note.reason }}</td><td>{{ money(note.amount) }}</td>
+        <td><a class="secondary" [routerLink]="['/ventes/factures', note.invoiceId, 'avoirs']">Consulter la facture</a><app-sales-document-button [document]="{ kind: 'credit', id: note.id }" label="Télécharger l’avoir PDF" /></td></tr>
+      } @empty { <tr><td colspan="5">Aucun avoir correspondant.</td></tr> }</tbody></table>
+    </div>
+    <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="loading()" (change)="load($event)" />
+  }
+</section>

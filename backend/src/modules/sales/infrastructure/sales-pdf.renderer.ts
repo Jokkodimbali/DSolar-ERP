@@ -8,6 +8,7 @@ const TITLES = {
   PROFORMA: 'PROFORMA',
   DELIVERY: 'BON DE LIVRAISON',
   PAYMENT: 'JUSTIFICATIF DE PAIEMENT',
+  CREDIT_NOTE: 'AVOIR CLIENT',
 };
 
 const STATUS: Record<string, string> = {
@@ -84,6 +85,21 @@ function detail(document: SalesDocument): string[] {
         ...(document.reversals.length ? ['Ce justificatif ne prouve plus un encaissement actif.'] : []),
         '',
         'Justificatif interne du règlement enregistré ; ne remplace pas la facture.',
+      ];
+    case 'CREDIT_NOTE':
+      return [
+        'Facture d’origine : ' + document.invoiceNumber,
+        'Motif : ' + document.reason,
+        '',
+        ...document.lines.flatMap((line) => [
+          line.sku + ' | ' + line.name,
+          'HT crédité : ' + numberFr(line.netAmount) + ' | TVA créditée : ' + numberFr(line.taxAmount),
+        ]),
+        '',
+        ...(document.netAmount === null ? ['Ventilation HT historique non renseignée.'] : ['TOTAL HT : ' + numberFr(document.netAmount) + ' FCFA']),
+        ...(document.taxAmount === null ? ['Ventilation TVA historique non renseignée.'] : ['TOTAL TVA : ' + numberFr(document.taxAmount) + ' FCFA']),
+        'TOTAL TTC : ' + numberFr(document.amount) + ' FCFA',
+        'Avoir financier ; aucun mouvement de stock implicite.',
       ];
     default:
       return [

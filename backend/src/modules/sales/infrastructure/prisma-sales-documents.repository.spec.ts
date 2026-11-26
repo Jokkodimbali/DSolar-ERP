@@ -9,6 +9,7 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
     proforma: { findFirst: jest.fn() },
     payment: { findFirst: jest.fn() },
     deliveryNote: { findFirst: jest.fn() },
+    creditNote: { findFirst: jest.fn() },
   };
   const transaction = jest.fn((work: (client: typeof tx) => Promise<unknown>) => work(tx));
   const repo = new PrismaSalesDocumentsRepository({ $transaction: transaction } as unknown as PrismaService);
@@ -19,6 +20,15 @@ describe('Accès aux justificatifs et livraisons PDF', () => {
     tx.proforma.findFirst.mockResolvedValue(null);
     tx.payment.findFirst.mockResolvedValue(null);
     tx.deliveryNote.findFirst.mockResolvedValue(null);
+  });
+  it('refuse le PDF d’un avoir inaccessible par les magasins de sa facture', async () => {
+    tx.creditNote.findFirst.mockResolvedValue(null);
+    await expect(repo.find('CREDIT_NOTE', 'credit', 'actor')).resolves.toBeNull();
+    expect(tx.creditNote.findFirst.mock.calls[0][0].where).toMatchObject({
+      id: 'credit', invoice: { status: 'ISSUED', order: { lines: { some: {}, every: {
+        store: { status: 'ACTIVE', userAccess: { some: { userId: 'actor' } } },
+      } } } },
+    });
   });
   it('filtre les proformas sur les identifiants des magasins accessibles', async () => {
     await repo.find('PROFORMA', 'proforma', 'actor');

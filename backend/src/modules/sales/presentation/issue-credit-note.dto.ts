@@ -22,7 +22,22 @@ class IssueCreditNoteCreditAllocationDto {
   netAmount!: string;
 }
 
+export class PreviewCreditNoteDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => IssueCreditNoteCreditAllocationDto)
+  @SwaggerField({ type: () => [IssueCreditNoteCreditAllocationDto], minItems: 1, maxItems: 100 })
+  lines!: IssueCreditNoteCreditAllocationDto[];
+}
+
 export class IssueCreditNoteDto {
+  @IsOptional()
+  @IsUUID('4')
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  operationKey?: string;
+
   @Matches(/^(?!(?:0)(?:\.0{1,2})?$)(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/)
   @SwaggerField({
     type: String,

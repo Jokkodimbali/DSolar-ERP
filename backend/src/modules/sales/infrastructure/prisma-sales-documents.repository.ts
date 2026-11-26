@@ -207,6 +207,45 @@ export class PrismaSalesDocumentsRepository implements SalesDocumentsPort {
             })),
           };
         }
+        if (kind === 'CREDIT_NOTE') {
+          const item = await tx.creditNote.findFirst({
+            where: { id, invoice: { status: 'ISSUED', order: scope } },
+            select: {
+              number: true,
+              issuedAt: true,
+              reason: true,
+              amount: true,
+              netAmount: true,
+              taxAmount: true,
+              invoice: { select: { number: true, customer, companySettings } },
+              lines: {
+                select: { netAmount: true, taxAmount: true, invoiceLine: { select: { product } } },
+                orderBy: { id: 'asc' },
+              },
+            },
+          });
+          if (!item) return null;
+          return {
+            kind,
+            logo: await this.logo(tx, item.invoice.companySettings?.logoUrl),
+            company: item.invoice.companySettings,
+            number: item.number,
+            status: item.issuedAt ? 'ISSUED' : 'DRAFT',
+            issuedAt: item.issuedAt,
+            customer: item.invoice.customer,
+            invoiceNumber: item.invoice.number,
+            reason: item.reason,
+            amount: item.amount.toFixed(2),
+            netAmount: item.netAmount?.toFixed(2) ?? null,
+            taxAmount: item.taxAmount?.toFixed(2) ?? null,
+            lines: item.lines.map((row) => ({
+              sku: row.invoiceLine.product.sku,
+              name: row.invoiceLine.product.name,
+              netAmount: row.netAmount.toFixed(2),
+              taxAmount: row.taxAmount.toFixed(2),
+            })),
+          };
+        }
         const item = await tx.invoice.findFirst({
           where: { id, order: scope },
           select: {

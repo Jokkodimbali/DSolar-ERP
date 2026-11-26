@@ -105,6 +105,9 @@
     <a class="secondary" [routerLink]="['/ventes/reglements/commande', invoice.orderId]"
       >Règlements de la commande</a
     >
+    @if (invoice.status === 'ISSUED') {
+    <a class="secondary" [routerLink]="['/ventes/factures', invoice.id, 'avoirs']">Avoirs de la facture</a>
+    }
     @if (invoice.status === 'DRAFT' && session.can('sales.manage')) {
     <button
       type="button"

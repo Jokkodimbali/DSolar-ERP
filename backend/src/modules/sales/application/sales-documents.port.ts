@@ -1,6 +1,6 @@
 export const SALES_DOCUMENTS = Symbol('SALES_DOCUMENTS');
 export const SALES_PDF = Symbol('SALES_PDF');
-export type SalesDocumentKind = 'PROFORMA' | 'INVOICE' | 'DELIVERY' | 'PAYMENT';
+export type SalesDocumentKind = 'PROFORMA' | 'INVOICE' | 'DELIVERY' | 'PAYMENT' | 'CREDIT_NOTE';
 
 export interface CompanyDocumentIdentity {
   legalName: string;
@@ -61,7 +61,17 @@ export interface PaymentDocument extends DocumentBase {
   reversals: { amount: string; createdAt: Date }[];
 }
 
-export type SalesDocument = CommercialDocument | DeliveryDocument | PaymentDocument;
+export interface CreditNoteDocument extends DocumentBase {
+  kind: 'CREDIT_NOTE';
+  invoiceNumber: string;
+  reason: string;
+  amount: string;
+  netAmount: string | null;
+  taxAmount: string | null;
+  lines: { sku: string; name: string; netAmount: string; taxAmount: string }[];
+}
+
+export type SalesDocument = CommercialDocument | DeliveryDocument | PaymentDocument | CreditNoteDocument;
 
 export interface SalesDocumentsPort {
   find(kind: SalesDocumentKind, id: string, actorId: string, orderId?: string): Promise<SalesDocument | null>;

@@ -49,6 +49,15 @@ export class SalesDocumentsController {
   }
 
   @Header('Cache-Control', 'private, no-store')
+  @Get('credit-notes/:id/pdf')
+  async creditNote(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
+    return new StreamableFile(await this.service.download('CREDIT_NOTE', id, actorId), {
+      type: 'application/pdf',
+      disposition: 'attachment; filename="avoir-' + id + '.pdf"',
+    });
+  }
+
+  @Header('Cache-Control', 'private, no-store')
   @Get('invoices/:id/pdf')
   async invoice(@Param('id', ParseUUIDPipe) id: string, @CurrentUserId() actorId: string) {
     return new StreamableFile(await this.service.download('INVOICE', id, actorId), {

@@ -2,7 +2,7 @@ import { apiPath } from '../../../core/api/api-contract';
 import { storeId } from '../../stores/domain/store.contract';
 
 export type SalesDocument =
-  | { kind: 'proforma' | 'invoice'; id: string }
+  | { kind: 'proforma' | 'invoice' | 'credit'; id: string }
   | { kind: 'delivery' | 'payment'; id: string; orderId: string };
 
 export function documentPath(document: SalesDocument): string {
@@ -12,6 +12,8 @@ export function documentPath(document: SalesDocument): string {
       return apiPath('/proformas/' + id + '/pdf');
     case 'invoice':
       return apiPath('/invoices/' + id + '/pdf');
+    case 'credit':
+      return apiPath('/credit-notes/' + id + '/pdf');
     case 'delivery':
       return apiPath('/sales-orders/' + storeId(document.orderId) + '/deliveries/' + id + '/pdf');
     case 'payment':
@@ -22,7 +24,7 @@ export function documentPath(document: SalesDocument): string {
 }
 
 export function documentFilename(document: SalesDocument): string {
-  const prefix = { proforma: 'proforma', invoice: 'facture', delivery: 'livraison', payment: 'reglement' };
+  const prefix = { proforma: 'proforma', invoice: 'facture', delivery: 'livraison', payment: 'reglement', credit: 'avoir' };
   return prefix[document.kind] + '-' + storeId(document.id) + '.pdf';
 }
 

@@ -21,7 +21,7 @@ function money(value: bigint): string {
   return (value / 100n).toString() + '.' + (value % 100n).toString().padStart(2, '0');
 }
 
-export function allocateCredit(lines: HistoricalLine[], allocations: CreditAllocation[], amount: string) {
+export function allocateCredit(lines: HistoricalLine[], allocations: CreditAllocation[], amount?: string) {
   if (
     !allocations.length ||
     allocations.length > 100 ||
@@ -53,7 +53,7 @@ export function allocateCredit(lines: HistoricalLine[], allocations: CreditAlloc
       taxAmount: money(currentTax),
     };
   });
-  if (totalNet + totalTax !== cents(amount))
+  if (amount !== undefined && totalNet + totalTax !== cents(amount))
     throw new Error('Montant TTC différent de la ventilation calculée.');
   return { netAmount: money(totalNet), taxAmount: money(totalTax), lines: detail };
 }

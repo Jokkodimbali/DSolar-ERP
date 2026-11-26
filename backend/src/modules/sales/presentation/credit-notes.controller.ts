@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { CreditNotesService } from '../application/credit-notes.service';
-import { IssueCreditNoteDto } from './issue-credit-note.dto';
+import { IssueCreditNoteDto, PreviewCreditNoteDto } from './issue-credit-note.dto';
 
 @ApiTags('Avoirs')
 @ApiBearerAuth()
@@ -19,6 +19,16 @@ export class CreditNotesController {
     return this.creditNotes.list(invoiceId, actorId);
   }
 
+  @Post('preview')
+  @RequirePermissions('sales.manage')
+  preview(
+    @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
+    @CurrentUserId() actorId: string,
+    @Body() input: PreviewCreditNoteDto,
+  ) {
+    return this.creditNotes.preview(invoiceId, actorId, input.lines);
+  }
+
   @Post()
   @RequirePermissions('sales.manage')
   @SuccessMessage('Avoir client émis.')
@@ -27,6 +37,6 @@ export class CreditNotesController {
     @CurrentUserId() actorId: string,
     @Body() input: IssueCreditNoteDto,
   ) {
-    return this.creditNotes.issue(invoiceId, actorId, input.amount, input.reason, input.lines);
+    return this.creditNotes.issue(invoiceId, actorId, input.amount, input.reason, input.lines, input.operationKey);
   }
 }

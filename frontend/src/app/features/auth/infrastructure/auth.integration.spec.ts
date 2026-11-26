@@ -12,6 +12,7 @@ import { parseInvoice, parseInvoicePage, verifyInvoiceOrder } from '../../sales/
 import { parseOrderDetail } from '../../sales/domain/order-view.contract';
 import { parsePaymentSummary, verifyRecordedPayment } from '../../sales/domain/payment.contract';
 import { parseAllocations } from '../../sales/domain/payment-allocation.contract';
+import { parseCreditPreview, verifyIssuedCredit } from '../../sales/domain/credit-note.contract';
 import {
   parseDelivery,
   parseDeliveryPage,
@@ -1459,6 +1460,25 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
           deliveryOrderId,
         ).remaining,
       ).toBe('2360.00');
+      const creditLine = invoice.lines[0];
+      if (!creditLine) throw new Error('Ligne de facture absente.');
+      const creditLines = [{ invoiceLineId: creditLine.id, netAmount: '50.00' }];
+      const creditPath = '/invoices/' + invoice.id + '/credit-notes';
+      const creditPreview = await request(creditPath + '/preview', 'POST', { lines: creditLines }, token);
+      expect(creditPreview.status).toBe(201);
+      const calculatedCredit = parseCreditPreview(creditPreview.data, invoice.id, creditLines);
+      expect(calculatedCredit.amount).toBe('59.00');
+      const creditCommand = { operationKey: crypto.randomUUID(), amount: calculatedCredit.amount, reason: 'Correction de prix CI', lines: creditLines };
+      const creditIssued = await request(creditPath, 'POST', creditCommand, token);
+      expect(creditIssued.status).toBe(201);
+      const creditNote = verifyIssuedCredit(creditIssued.data, invoice.id, creditCommand);
+      const creditReplay = await request(creditPath, 'POST', creditCommand, token);
+      expect(creditReplay.status).toBe(201);
+      expect(verifyIssuedCredit(creditReplay.data, invoice.id, creditCommand).id).toBe(creditNote.id);
+      expect((await request(creditPath, 'POST', { ...creditCommand, reason: 'Autre correction de prix' }, token)).status).toBe(409);
+      expect(parsePaymentSummary(
+        (await request(paymentPath + '/summary', 'GET', undefined, token)).data, deliveryOrderId,
+      ).remaining).toBe('2301.00');
       expect(
         (await request('/customers/search?proformaId=' + draft.id, 'GET', undefined, token)).status,
       ).toBe(400);

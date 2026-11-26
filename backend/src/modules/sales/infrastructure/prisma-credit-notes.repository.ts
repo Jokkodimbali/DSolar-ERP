@@ -32,12 +32,89 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
     });
   }
 
+  private async context(tx: Prisma.TransactionClient, invoiceId: string, actorId: string) {
+    const invoice = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        creditNotes: { include: { lines: true } },
+        lines: true,
+        allocations: true,
+        order: { include: { lines: true } },
+      },
+    });
+    if (!invoice) throw new NotFoundException('Facture introuvable.');
+    if (!invoice.order) throw new ForbiddenException('Accès magasin refusé.');
+    const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
+    const allowed = await tx.userStoreAccess.count({
+      where: {
+        userId: actorId,
+        user: { status: 'ACTIVE' },
+        storeId: { in: stores },
+        store: { status: 'ACTIVE' },
+      },
+    });
+    if (!stores.length || allowed !== stores.length) {
+      throw new ForbiddenException('Accès magasin refusé.');
+    }
+    if (invoice.status !== 'ISSUED') {
+      throw new ConflictException('Seule une facture émise peut faire l’objet d’un avoir.');
+    }
+    const credited = invoice.creditNotes.reduce(
+      (sum, note) => sum.plus(note.amount),
+      new Prisma.Decimal(0),
+    );
+    const allocated = invoice.allocations.reduce(
+      (sum, allocation) => sum.plus(allocation.amount),
+      new Prisma.Decimal(0),
+    );
+    const available = invoice.totalTtc
+      .minus(credited)
+      .minus(Prisma.Decimal.max(allocated, invoice.order.amountPaid));
+
+    return { invoice, stores, available };
+  }
+
+  private calculate(invoice: Awaited<ReturnType<PrismaCreditNotesRepository['context']>>['invoice'], lines: CreditAllocation[], amount?: string) {
+    if (invoice.creditNotes.some((note) => !note.lines.length))
+      throw new ConflictException('Avoir historique sans détail : régularisation préalable requise.');
+    try {
+      return allocateCredit(
+        invoice.lines.map((line) => {
+          const prior = invoice.creditNotes.flatMap((note) => note.lines).filter((item) => item.invoiceLineId === line.id);
+          return {
+            id: line.id,
+            total: line.lineTotal.toFixed(2),
+            tax: line.taxAmount.toFixed(2),
+            priorNet: prior.reduce((sum, item) => sum.plus(item.netAmount), new Prisma.Decimal(0)).toFixed(2),
+            priorTax: prior.reduce((sum, item) => sum.plus(item.taxAmount), new Prisma.Decimal(0)).toFixed(2),
+          };
+        }),
+        lines,
+        amount,
+      );
+    } catch (error) {
+      throw new ConflictException(error instanceof Error ? error.message : 'Ventilation invalide.');
+    }
+  }
+
+  preview(invoiceId: string, actorId: string, lines: CreditAllocation[]) {
+    return this.prisma.$transaction(async (tx) => {
+      const { invoice, available } = await this.context(tx, invoiceId, actorId);
+      const detail = this.calculate(invoice, lines);
+      const amount = new Prisma.Decimal(detail.netAmount).plus(detail.taxAmount);
+      if (amount.greaterThan(available))
+        throw new ConflictException('Avoir supérieur au solde non encaissé de la facture.');
+      return { invoiceId, amount: amount.toFixed(2), available: available.toFixed(2), ...detail };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
+
   async issue(
     invoiceId: string,
     actorId: string,
     amountText: string,
     reason: string,
     lines?: CreditAllocation[],
+    operationKey?: string,
   ) {
     if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(amountText))
       throw new ConflictException('Montant de l’avoir invalide.');
@@ -53,43 +130,23 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
       async (tx) => {
         await tx.$queryRaw`SELECT o.id FROM "SalesOrder" o JOIN "Invoice" i ON i."orderId" = o.id WHERE i.id = ${invoiceId}::uuid FOR UPDATE OF o`;
         await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId}::uuid FOR UPDATE`;
-        const invoice = await tx.invoice.findUnique({
-          where: { id: invoiceId },
-          include: {
-            creditNotes: { include: { lines: true } },
-            lines: true,
-            allocations: true,
-            order: { include: { lines: true } },
-          },
-        });
-        if (!invoice) throw new NotFoundException('Facture introuvable.');
-        if (!invoice.order) throw new ForbiddenException('Accès magasin refusé.');
-        const stores = [...new Set(invoice.order.lines.map((line) => line.storeId))];
-        const allowed = await tx.userStoreAccess.count({
-          where: {
-            userId: actorId,
-            user: { status: 'ACTIVE' },
-            storeId: { in: stores },
-            store: { status: 'ACTIVE' },
-          },
-        });
-        if (!stores.length || allowed !== stores.length) {
-          throw new ForbiddenException('Accès magasin refusé.');
+        const { invoice, stores, available } = await this.context(tx, invoiceId, actorId);
+        const number = operationKey ? 'AV-' + operationKey.toUpperCase() : undefined;
+        if (number) {
+          const existing = await tx.creditNote.findUnique({ where: { number }, include: { lines: true } });
+          if (existing) {
+            if (
+              existing.invoiceId !== invoiceId ||
+              !existing.amount.eq(amount) ||
+              existing.reason !== normalizedReason ||
+              existing.lines.length !== (lines?.length ?? 0) ||
+              (lines && (new Set(lines.map((line) => line.invoiceLineId)).size !== lines.length ||
+                !lines.every((line) => existing.lines.some((saved) =>
+                  saved.invoiceLineId === line.invoiceLineId && saved.netAmount.eq(line.netAmount)))))
+            ) throw new ConflictException('Clé d’avoir déjà utilisée avec des données différentes.');
+            return existing;
+          }
         }
-        if (invoice.status !== 'ISSUED') {
-          throw new ConflictException('Seule une facture émise peut faire l’objet d’un avoir.');
-        }
-        const credited = invoice.creditNotes.reduce(
-          (sum, note) => sum.plus(note.amount),
-          new Prisma.Decimal(0),
-        );
-        const allocated = invoice.allocations.reduce(
-          (sum, allocation) => sum.plus(allocation.amount),
-          new Prisma.Decimal(0),
-        );
-        const available = invoice.totalTtc
-          .minus(credited)
-          .minus(Prisma.Decimal.max(allocated, invoice.order.amountPaid));
         if (amount.greaterThan(available)) {
           throw new ConflictException(
             'Avoir supérieur au solde non encaissé de la facture. Régularisez les règlements avant de créer cet avoir.',
@@ -97,32 +154,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
         }
         let detail: ReturnType<typeof allocateCredit> | undefined;
         if (lines) {
-          if (invoice.creditNotes.some((note) => !note.lines.length))
-            throw new ConflictException('Avoir historique sans détail : régularisation préalable requise.');
-          try {
-            detail = allocateCredit(
-              invoice.lines.map((line) => {
-                const prior = invoice.creditNotes
-                  .flatMap((note) => note.lines)
-                  .filter((item) => item.invoiceLineId === line.id);
-                return {
-                  id: line.id,
-                  total: line.lineTotal.toFixed(2),
-                  tax: line.taxAmount.toFixed(2),
-                  priorNet: prior
-                    .reduce((sum, item) => sum.plus(item.netAmount), new Prisma.Decimal(0))
-                    .toFixed(2),
-                  priorTax: prior
-                    .reduce((sum, item) => sum.plus(item.taxAmount), new Prisma.Decimal(0))
-                    .toFixed(2),
-                };
-              }),
-              lines,
-              amount.toFixed(2),
-            );
-          } catch (error) {
-            throw new ConflictException(error instanceof Error ? error.message : 'Ventilation invalide.');
-          }
+          detail = this.calculate(invoice, lines, amount.toFixed(2));
         } else if (
           invoice.creditNotes.some((note) => note.lines.length) ||
           (invoice.totalTax.gt(0) && !amount.eq(invoice.totalTtc))
@@ -131,7 +163,7 @@ export class PrismaCreditNotesRepository implements CreditNotesRepository {
         }
         const creditNote = await tx.creditNote.create({
           data: {
-            number: `AV-${randomUUID().slice(0, 12).toUpperCase()}`,
+            number: number ?? `AV-${randomUUID().slice(0, 12).toUpperCase()}`,
             invoiceId,
             amount,
             reason: normalizedReason,

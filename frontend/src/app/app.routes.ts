@@ -132,6 +132,16 @@ export const routes: Routes = [
           import('./features/sales/presentation/order-payments.page').then((m) => m.OrderPaymentsPage),
       },
       {
+        path: 'ventes/avoirs',
+        canActivate: [ordersReadGuard],
+        loadComponent: () => import('./features/sales/presentation/credit-directory.page').then((m) => m.CreditDirectoryPage),
+      },
+      {
+        path: 'ventes/factures/:id/avoirs',
+        canActivate: [ordersReadGuard],
+        loadComponent: () => import('./features/sales/presentation/credit-notes.page').then((m) => m.CreditNotesPage),
+      },
+      {
         path: 'ventes/factures/commande/:id',
         canActivate: [ordersReadGuard],
         loadComponent: () =>

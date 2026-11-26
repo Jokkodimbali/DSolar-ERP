@@ -1,0 +1,45 @@
+<app-page-header eyebrow="VENTES" heading="Avoirs clients" description="Corrigez une facture émise avec ventilation fiscale et motif obligatoire.">
+  <a class="secondary" routerLink="/ventes/avoirs">Tous les avoirs</a>
+  <a class="secondary" routerLink="/ventes/factures">Retour aux factures</a>
+  <button type="button" class="secondary" [disabled]="loading() || busy() || !!command()" (click)="load()">Actualiser</button>
+</app-page-header>
+<app-feedback [message]="error()" kind="error" />
+<app-feedback [message]="success()" kind="success" />
+@if (loading()) { <p role="status">Chargement des avoirs…</p> }
+@if (pending(); as request) {
+<section class="panel"><h2>Avoir en attente</h2><p>{{ money(request.amount) }} — {{ request.reason }}</p>
+<button type="button" class="primary" [disabled]="busy() || loading() || blocked()" (click)="resume()">Reprendre l’avoir</button></section>
+}
+@if (invoice(); as source) {
+<section class="panel">
+  <h2>Facture {{ source.number }}</h2>
+  <dl class="metrics"><div><dt>Total HT</dt><dd>{{ money(source.totalHt) }}</dd></div><div><dt>Taxes</dt><dd>{{ money(source.totalTax) }}</dd></div><div><dt>Total TTC</dt><dd>{{ money(source.totalTtc) }}</dd></div></dl>
+  <a class="secondary" [routerLink]="['/ventes/reglements/commande', source.orderId]">Consulter les règlements</a>
+</section>
+@if (source.status === 'ISSUED' && session.can('sales.manage') && !pending() && !blocked()) {
+<section class="panel">
+  <h2>Préparer un avoir</h2>
+  <div class="ui-table" role="region" aria-label="Ventilation fiscale de l’avoir" tabindex="0">
+    <table><thead><tr><th scope="col">Ligne produit</th><th scope="col">Montant HT</th><th scope="col">TVA</th><th scope="col">HT restant</th><th scope="col">HT à créditer</th></tr></thead>
+    <tbody>@for (line of rows(); track line.id) {
+      <tr><td>{{ productNames()[line.productId] || line.productId }}</td><td>{{ money(line.net) }}</td><td>{{ line.taxRate }} %</td><td>{{ money(line.remainingNet) }}</td>
+      <td><input #net type="text" inputmode="decimal" maxlength="19" [attr.aria-label]="'Montant HT à créditer ' + line.id" [value]="values()[line.id] || ''" [disabled]="busy() || !!command() || line.remainingNet === '0.00'" (input)="change(line.id, net.value)" /></td></tr>
+    }</tbody></table>
+  </div>
+  <label class="ui-field">Motif de l’avoir<textarea #reason maxlength="500" [disabled]="busy() || !!command()"></textarea></label>
+  <button type="button" class="primary" [disabled]="busy() || !!command()" (click)="ask(reason.value)">Calculer l’avoir</button>
+</section>
+}
+<section class="panel">
+  <h2>Historique des avoirs</h2>
+  <div class="ui-table" role="region" aria-label="Historique des avoirs" tabindex="0">
+    <table><thead><tr><th scope="col">Référence</th><th scope="col">Émission</th><th scope="col">Motif</th><th scope="col">HT</th><th scope="col">Taxes</th><th scope="col">TTC</th><th scope="col">Document</th></tr></thead>
+    <tbody>@for (note of notes(); track note.id) {
+      <tr><td>{{ note.number }}</td><td>{{ (note.issuedAt | date:'dd/MM/yyyy HH:mm') || '—' }}</td><td>{{ note.reason }}</td><td>{{ note.fiscal ? money(note.fiscal.netAmount) : 'Non ventilé' }}</td><td>{{ note.fiscal ? money(note.fiscal.taxAmount) : 'Non ventilé' }}</td><td>{{ money(note.amount) }}</td><td><app-sales-document-button [document]="{ kind: 'credit', id: note.id }" label="Télécharger l’avoir PDF" /></td></tr>
+    } @empty { <tr><td colspan="7">Aucun avoir émis.</td></tr> }</tbody></table>
+  </div>
+</section>
+}
+@if (preview(); as result) {
+<app-confirm heading="Émettre l’avoir ?" [description]="'HT : ' + money(result.netAmount) + ' · Taxes : ' + money(result.taxAmount) + ' · TTC : ' + money(result.amount) + '. Cette émission est définitive.'" [busy]="busy()" (confirmed)="confirm()" (cancelled)="cancel()" />
+}
