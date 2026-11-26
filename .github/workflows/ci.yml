@@ -24,10 +24,21 @@ jobs:
   frontend:
     name: Validation frontend
     uses: ./.github/workflows/frontend.yml
+    with:
+      phase: quality
+  migration:
+    name: Validation migrations
+    uses: ./.github/workflows/migration.yml
+  integration:
+    name: Intégration
+    needs: [backend, frontend]
+    uses: ./.github/workflows/frontend.yml
+    with:
+      phase: integration
   quality-gate:
     name: Contrôle qualité global
     if: ${{ always() }}
-    needs: [backend, frontend]
+    needs: [backend, frontend, integration, migration]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -35,17 +46,16 @@ jobs:
         env:
           BACKEND: ${{ needs.backend.result }}
           FRONTEND: ${{ needs.frontend.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          MIGRATION: ${{ needs.migration.result }}
         run: |
-          printf 'Backend : %s\nFrontend : %s\n' "$BACKEND" "$FRONTEND"
-          test "$BACKEND" = success && test "$FRONTEND" = success
-  migration:
-    name: Validation migrations
-    needs: [quality-gate]
-    uses: ./.github/workflows/migration.yml
+          printf 'Backend : %s\nFrontend : %s\nIntégration : %s\nMigration : %s\n' "$BACKEND" "$FRONTEND" "$INTEGRATION" "$MIGRATION"
+          test "$BACKEND" = success && test "$FRONTEND" = success &&
+            test "$INTEGRATION" = success && test "$MIGRATION" = success
   release:
     name: Livraison et déploiement
-    needs: [quality-gate, migration]
-    if: ${{ !cancelled() && needs.quality-gate.result == 'success' && needs.migration.result == 'success' }}
+    needs: [quality-gate]
+    if: ${{ !cancelled() && needs.quality-gate.result == 'success' }}
     uses: ./.github/workflows/deploy.yml
     with:
       deploy_production: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_production }}

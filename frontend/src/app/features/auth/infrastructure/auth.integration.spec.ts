@@ -973,6 +973,14 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       );
       expect(delivered.status).toBe('DELIVERED');
       expect(delivered.lines[0]?.remaining).toBe('0');
+      const receivedBalance = await request(
+        '/inventory' + path + '/products/' + catalogueProduct.id,
+        'GET',
+        undefined,
+        token,
+      );
+      expect(receivedBalance.status).toBe(200);
+      expect(parseBalance(receivedBalance.data, store.id, catalogueProduct.id).quantity).toBe('4.625');
       const closedOutstanding = await request(
         '/purchase-orders/search?search=CF-CONTRAT-CI&outstanding=true&page=1&limit=10',
         'GET',

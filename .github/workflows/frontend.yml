@@ -1,6 +1,10 @@
 name: Frontend
 on:
   workflow_call:
+    inputs:
+      phase:
+        type: string
+        required: true
 permissions:
   contents: read
 defaults:
@@ -8,6 +12,7 @@ defaults:
     working-directory: frontend
 jobs:
   quality:
+    if: ${{ inputs.phase == 'quality' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -58,7 +63,7 @@ jobs:
 
   integration:
     name: Contrats API
-    needs: quality
+    if: ${{ inputs.phase == 'integration' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -100,13 +105,30 @@ jobs:
           cache-dependency-path: |
             backend/package-lock.json
             frontend/package-lock.json
+      - name: Télécharger le backend validé
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-${{ github.sha }}
+          path: ${{ runner.temp }}/dsolar-build
+      - name: Télécharger le frontend validé
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: ${{ runner.temp }}/dsolar-build
+      - name: Restaurer les livrables du même commit
+        run: |
+          set -euo pipefail
+          tar -xzf "$RUNNER_TEMP/dsolar-build/backend.tar.gz" -C ../backend
+          mkdir -p "$RUNNER_TEMP/dsolar-ui"
+          tar -xzf "$RUNNER_TEMP/dsolar-build/frontend.tar.gz" -C "$RUNNER_TEMP/dsolar-ui"
+          test -s ../backend/dist/main.js
+          test -s "$RUNNER_TEMP/dsolar-ui/index.html"
       - name: Préparer NestJS et PostgreSQL de test
         working-directory: backend
         run: |
           npm ci --no-audit --no-fund
           npm run prisma:generate
           npm run prisma:deploy
-          npm run build
           node dist/scripts/bootstrap-admin.js
       - name: Préparer Angular
         run: |
@@ -127,6 +149,11 @@ jobs:
           curl --silent --fail http://127.0.0.1:3100/api/v1/health > /dev/null
           npm test -- --run src/app/features/auth/infrastructure/auth.integration.spec.ts
 
+      - name: Restaurer Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-ubuntu24-1.58.2
       - name: Installer Chromium de test
         run: |
           npm install --prefix "$RUNNER_TEMP/dsolar-browser" --no-save --no-package-lock --no-audit --no-fund playwright@1.58.2
@@ -140,8 +167,7 @@ jobs:
           (cd ../backend && exec node dist/main.js) > "$RUNNER_TEMP/dsolar-browser-api.log" 2>&1 &
           api=$!
           trap 'kill "$api" "${ui:-}" 2>/dev/null || true' EXIT
-          printf '%s\n' '{"/api":{"target":"http://127.0.0.1:3100","secure":false,"changeOrigin":false}}' > "$RUNNER_TEMP/dsolar-browser-proxy.json"
-          ./node_modules/.bin/ng serve --host localhost --port 4200 --proxy-config "$RUNNER_TEMP/dsolar-browser-proxy.json" > "$RUNNER_TEMP/dsolar-browser-ui.log" 2>&1 &
+          node scripts/serve-ci-build.mjs "$RUNNER_TEMP/dsolar-ui" > "$RUNNER_TEMP/dsolar-browser-ui.log" 2>&1 &
           ui=$!
           for attempt in $(seq 1 90); do
             if curl --silent --fail http://localhost:4200/api/v1/health > /dev/null; then break; fi

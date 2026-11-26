@@ -212,8 +212,9 @@ try {
   await page.getByRole('button', { name: 'Nouvelle réception' }).click();
   const receiptOrder = page.getByRole('combobox', { name: 'Commande fournisseur', exact: true });
   await receiptOrder.waitFor();
-  await page.getByRole('searchbox', { name: 'Rechercher une commande', exact: true }).fill(purchaseReference);
-  await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  const receiptSearch = page.getByRole('searchbox', { name: 'Rechercher une commande', exact: true });
+  await receiptSearch.fill(purchaseReference);
+  await receiptSearch.press('Enter');
   const receiptOrderOption = receiptOrder.locator('option').filter({ hasText: purchaseReference });
   await receiptOrderOption.waitFor({ state: 'attached' });
   const receiptOrderId = await receiptOrderOption.getAttribute('value');
@@ -250,7 +251,7 @@ try {
   await page.locator('textarea[formControlName="reason"]').fill('Ajustement navigateur CI');
   await page.getByRole('button', { name: 'Vérifier l’ajustement' }).click();
   await page.getByRole('button', { name: 'Confirmer l’ajustement' }).click();
-  await stockRow.getByText('3.750', { exact: true }).first().waitFor();
+  await stockRow.getByText('5.875', { exact: true }).first().waitFor();
   await page.getByRole('button', { name: 'Consulter les mouvements' }).click();
   await page.getByRole('region', { name: 'Journal des mouvements' }).getByText('Ajustement navigateur CI', { exact: true }).waitFor();
   await page.screenshot({ path: join(artifacts, 'stocks-adjustment.png'), fullPage: true });

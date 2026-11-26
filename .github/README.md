@@ -7,10 +7,14 @@ flowchart TD
   A[Push / PR / déclenchement manuel] --> B[ci.yml — orchestration]
   B --> C[backend.yml — qualité NestJS]
   B --> D[frontend.yml — qualité Angular]
+  B --> M[migration.yml — validation Prisma]
+  C --> T[Contrats API et navigateur — artefacts compilés]
+  D --> T
   C --> E[Contrôle qualité global]
   D --> E
-  E --> M[migration.yml — validation Prisma]
-  M --> F[deploy.yml — assemblage de la livraison]
+  T --> E
+  M --> E
+  E --> F[deploy.yml — assemblage de la livraison]
   F --> G[Bundle versionné + SHA256]
   G --> H{Main + demande manuelle explicite}
   H -->|Non| I[Artefact disponible]
@@ -24,12 +28,12 @@ flowchart TD
 - `migration.yml` valide le schéma Prisma, applique toutes les migrations sur un PostgreSQL éphémère dédié, vérifie leur statut et rejoue la commande de déploiement. Il ne se connecte jamais à Neon et ne nécessite aucun secret GitHub.
 - `deploy.yml` assemble exclusivement les deux artefacts du même commit validé, vérifie leur présence, produit un bundle scellé par SHA256 et, uniquement sur demande explicite depuis main, appelle l'adaptateur de déploiement.
 
-Une erreur dans les validations backend ou frontend bloque le contrôle global. Une erreur de migration bloque également l'assemblage. Les workflows réutilisables ne possèdent pas de déclencheur push autonome. Les validations ordinaires peuvent annuler une validation obsolète de la même branche ; une mise en production manuelle utilise un groupe de concurrence distinct et ne peut pas être annulée par un nouveau push. Les anciens workflows ponctuels qui modifiaient Git sont retirés ; l'historique Git les conserve. Les contrôles utilisent des permissions de lecture ; aucun commit automatique ni désactivation de tests.
+Les validations backend, frontend et migration démarrent en parallèle. Les contrats HTTP et Playwright utilisent les deux artefacts compilés du même commit, sans recompilation NestJS ni Angular. Le serveur HTTP de test est limité à localhost et transmet les requêtes API au backend éphémère. Chromium est mis en cache par version exacte ; les dépendances système restent vérifiées. Une erreur backend, frontend, intégration ou migration bloque le contrôle global et l'assemblage. Les workflows réutilisables ne possèdent pas de déclencheur push autonome. Les validations ordinaires peuvent annuler une validation obsolète de la même branche ; une mise en production manuelle utilise un groupe de concurrence distinct et ne peut pas être annulée par un nouveau push. Les anciens workflows ponctuels qui modifiaient Git sont retirés ; l'historique Git les conserve. Les contrôles utilisent des permissions de lecture ; aucun commit automatique ni désactivation de tests.
 
 ## Politique de branches
 
 - dev : développement et validation complète sur des bases de test éphémères, aucune migration automatique sur Neon ni production.
-- Pull request vers dev ou main : mêmes validations, aucun déploiement de production.
+- Pull request vers dev ou main : mêmes validations sur le commit de fusion GitHub, aucun déploiement de production. Un push sur une branche protégée et une PR peuvent viser deux arbres différents ; leurs contrôles ne sont pas interchangeables. La concurrence annule les validations obsolètes de la même référence.
 - main : livraison du commit validé, aucune publication automatique sans demande explicite.
 - Actions > CI > Run workflow > main > deploy_production : true : demande de mise en production après nouvelle validation complète.
 
