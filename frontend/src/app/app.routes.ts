@@ -120,12 +120,14 @@ export const routes: Routes = [
       {
         path: 'ventes/factures/commande/:id',
         canActivate: [ordersReadGuard],
-        loadComponent: () => import('./features/sales/presentation/invoices.page').then((m) => m.InvoicesPage),
+        loadComponent: () =>
+          import('./features/sales/presentation/invoices.page').then((m) => m.InvoicesPage),
       },
       {
         path: 'ventes/factures',
         canActivate: [ordersReadGuard],
-        loadComponent: () => import('./features/sales/presentation/invoices.page').then((m) => m.InvoicesPage),
+        loadComponent: () =>
+          import('./features/sales/presentation/invoices.page').then((m) => m.InvoicesPage),
       },
       {
         path: 'ventes/clients',

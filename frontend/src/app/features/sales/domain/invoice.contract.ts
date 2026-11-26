@@ -28,7 +28,12 @@ export function parseInvoice(value: unknown) {
   const id = storeId(row['id']);
   const status = (Object.keys(invoiceLabels) as InvoiceStatus[]).find((key) => key === row['status']);
   const issuedAt = row['issuedAt'] === null ? null : text(row['issuedAt']);
-  if (!status || (status === 'ISSUED') !== (issuedAt !== null) || (issuedAt && !Number.isFinite(Date.parse(issuedAt)))) return invalid();
+  if (
+    !status ||
+    (status === 'ISSUED') !== (issuedAt !== null) ||
+    (issuedAt && !Number.isFinite(Date.parse(issuedAt)))
+  )
+    return invalid();
   const totalHt = decimal(row['totalHt']);
   const totalTax = decimal(row['totalTax']);
   const totalTtc = decimal(row['totalTtc']);
@@ -40,7 +45,8 @@ export function parseInvoice(value: unknown) {
     const taxRate = decimal(line['taxRate'], 4, 3);
     const tax = decimal(line['taxAmount']);
     const total = decimal(line['lineTotal']);
-    if (scaled(quantity, 3) === 0n || scaled(taxRate, 4) > 1000000n || scaled(tax) > scaled(total)) return invalid();
+    if (scaled(quantity, 3) === 0n || scaled(taxRate, 4) > 1000000n || scaled(tax) > scaled(total))
+      return invalid();
     return {
       id: storeId(line['id']),
       productId: storeId(line['productId']),
@@ -57,30 +63,67 @@ export function parseInvoice(value: unknown) {
     scaled(totalHt) + scaled(totalTax) !== scaled(totalTtc) ||
     lines.reduce((sum, line) => sum + scaled(line.tax), 0n) !== scaled(totalTax) ||
     lines.reduce((sum, line) => sum + scaled(line.total), 0n) !== scaled(totalTtc)
-  ) return invalid();
+  )
+    return invalid();
   return {
-    id, number: text(row['number']), customerId: storeId(row['customerId']), orderId: storeId(row['orderId']),
-    status, issuedAt, totalHt, totalTax, totalTtc, lines,
+    id,
+    number: text(row['number']),
+    customerId: storeId(row['customerId']),
+    orderId: storeId(row['orderId']),
+    status,
+    issuedAt,
+    totalHt,
+    totalTax,
+    totalTtc,
+    lines,
   };
 }
 export type Invoice = ReturnType<typeof parseInvoice>;
 
 export function parseInvoicePage(value: unknown) {
   const page = parsePage(value, parseInvoice);
-  if (page.items.length !== Math.min(page.limit, Math.max(0, page.total - (page.page - 1) * page.limit)) ||
-    new Set(page.items.map((item) => item.id)).size !== page.items.length) return invalid();
+  if (
+    page.items.length !== Math.min(page.limit, Math.max(0, page.total - (page.page - 1) * page.limit)) ||
+    new Set(page.items.map((item) => item.id)).size !== page.items.length
+  )
+    return invalid();
   return page;
 }
 export function canInvoice(order: OrderDetail): boolean {
   return ['CONFIRMED', 'PARTIALLY_DELIVERED', 'DELIVERED'].includes(order.rawStatus);
 }
 export function verifyInvoiceOrder(invoice: Invoice, order: OrderDetail): Invoice {
-  if (invoice.orderId !== order.id || invoice.customerId !== order.customerId ||
-    scaled(invoice.totalTtc) !== scaled(order.rawTotal) || invoice.lines.length !== order.lines.length) return invalid();
-  const keys = order.lines.map((line) => [line.productId, scaled(line.quantity, 3), scaled(line.rawPrice),
-    scaled(line.rawDiscount), scaled(line.taxRate, 4), scaled(line.rawTotal)].join(':')).sort();
-  const actual = invoice.lines.map((line) => [line.productId, scaled(line.quantity, 3), scaled(line.unitPrice),
-    scaled(line.discount), scaled(line.taxRate, 4), scaled(line.total)].join(':')).sort();
+  if (
+    invoice.orderId !== order.id ||
+    invoice.customerId !== order.customerId ||
+    scaled(invoice.totalTtc) !== scaled(order.rawTotal) ||
+    invoice.lines.length !== order.lines.length
+  )
+    return invalid();
+  const keys = order.lines
+    .map((line) =>
+      [
+        line.productId,
+        scaled(line.quantity, 3),
+        scaled(line.rawPrice),
+        scaled(line.rawDiscount),
+        scaled(line.taxRate, 4),
+        scaled(line.rawTotal),
+      ].join(':'),
+    )
+    .sort();
+  const actual = invoice.lines
+    .map((line) =>
+      [
+        line.productId,
+        scaled(line.quantity, 3),
+        scaled(line.unitPrice),
+        scaled(line.discount),
+        scaled(line.taxRate, 4),
+        scaled(line.total),
+      ].join(':'),
+    )
+    .sort();
   if (keys.some((key, index) => key !== actual[index])) return invalid();
   return invoice;
 }

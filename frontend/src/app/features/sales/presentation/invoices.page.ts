@@ -12,7 +12,14 @@ import { SessionService } from '../../auth/application/session.service';
 import { formatMoney } from '../../dashboard/domain/dashboard.contract';
 import { ProductsApi } from '../../products/infrastructure/products.api';
 import { storeId } from '../../stores/domain/store.contract';
-import { canInvoice, invoiceLabels, type Invoice, type InvoiceAction, type InvoiceStatus, type parseInvoicePage } from '../domain/invoice.contract';
+import {
+  canInvoice,
+  invoiceLabels,
+  type Invoice,
+  type InvoiceAction,
+  type InvoiceStatus,
+  type parseInvoicePage,
+} from '../domain/invoice.contract';
 import type { OrderDetail } from '../domain/order-view.contract';
 import { CustomersApi } from '../infrastructure/customers.api';
 import { InvoicesApi } from '../infrastructure/invoices.api';
@@ -21,7 +28,15 @@ import { SalesDocumentButtonComponent } from './sales-document-button.component'
 
 @Component({
   selector: 'app-invoices-page',
-  imports: [DatePipe, RouterLink, ConfirmComponent, FeedbackComponent, PageHeaderComponent, PaginationComponent, SalesDocumentButtonComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    ConfirmComponent,
+    FeedbackComponent,
+    PageHeaderComponent,
+    PaginationComponent,
+    SalesDocumentButtonComponent,
+  ],
   templateUrl: './invoices.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -74,11 +89,16 @@ export class InvoicesPage {
     if (this.loading() || this.busy() || this.pending()) return;
     this.loading.set(true);
     this.checked.set(false);
-    const order = this.orderId ? this.orders.detail(this.orderId).pipe(
-      switchMap((item) => this.api.linked(item).pipe(map((invoice) => ({ item, invoice })))),
-    ) : of(null);
+    const order = this.orderId
+      ? this.orders
+          .detail(this.orderId)
+          .pipe(switchMap((item) => this.api.linked(item).pipe(map((invoice) => ({ item, invoice })))))
+      : of(null);
     forkJoin({ order, result: this.api.search(page, this.query(), this.status(), this.orderId) })
-      .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: ({ order, result }) => {
           this.order.set(order?.item ?? null);
@@ -86,18 +106,26 @@ export class InvoicesPage {
             this.names.update((names) => ({ ...names, [order.item.customerId]: order.item.customerName }));
             this.productsNames.update((names) => ({
               ...names,
-              ...Object.fromEntries(order.item.lines.map((line) => [line.productId, line.product + ' · ' + line.sku])),
+              ...Object.fromEntries(
+                order.item.lines.map((line) => [line.productId, line.product + ' · ' + line.sku]),
+              ),
             }));
           }
           this.linked.set(order?.invoice ?? null);
           this.checked.set(true);
           this.result.set(result);
           const ids = [...new Set(result.items.map((item) => item.customerId))];
-          if (ids.length) forkJoin(ids.map((id) => this.customers.get(id).pipe(catchError(() => of(null)))))
-            .pipe(takeUntilDestroyed(this.destroy))
-            .subscribe((items) => this.names.update((names) => ({
-              ...names, ...Object.fromEntries(items.filter((item) => item !== null).map((item) => [item.id, item.name])),
-            })));
+          if (ids.length)
+            forkJoin(ids.map((id) => this.customers.get(id).pipe(catchError(() => of(null)))))
+              .pipe(takeUntilDestroyed(this.destroy))
+              .subscribe((items) =>
+                this.names.update((names) => ({
+                  ...names,
+                  ...Object.fromEntries(
+                    items.filter((item) => item !== null).map((item) => [item.id, item.name]),
+                  ),
+                })),
+              );
         },
         error: (error: unknown) => {
           this.result.set(null);
@@ -110,25 +138,43 @@ export class InvoicesPage {
     if (this.loading() || this.busy() || this.pending()) return;
     this.error.set('');
     this.busy.set(true);
-    this.api.get(id).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
-      next: (invoice) => {
-        this.detail.set(invoice);
-        if (!this.session.can('products.read')) return;
-        const ids = [...new Set(invoice.lines.map((line) => line.productId))];
-        forkJoin(ids.map((productId) => this.products.get(productId).pipe(catchError(() => of(null)))))
-          .pipe(takeUntilDestroyed(this.destroy))
-          .subscribe((items) => this.productsNames.update((names) => ({
-            ...names, ...Object.fromEntries(items.filter((item) => item !== null).map((item) => [item.id, item.name + ' · ' + item.sku])),
-          })));
-      },
-      error: (error: unknown) => this.error.set(errorMessage(error)),
-    });
+    this.api
+      .get(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (invoice) => {
+          this.detail.set(invoice);
+          if (!this.session.can('products.read')) return;
+          const ids = [...new Set(invoice.lines.map((line) => line.productId))];
+          forkJoin(ids.map((productId) => this.products.get(productId).pipe(catchError(() => of(null)))))
+            .pipe(takeUntilDestroyed(this.destroy))
+            .subscribe((items) =>
+              this.productsNames.update((names) => ({
+                ...names,
+                ...Object.fromEntries(
+                  items
+                    .filter((item) => item !== null)
+                    .map((item) => [item.id, item.name + ' · ' + item.sku]),
+                ),
+              })),
+            );
+        },
+        error: (error: unknown) => this.error.set(errorMessage(error)),
+      });
   }
 
   ask(action: InvoiceAction | 'create'): void {
     if (this.loading() || this.busy() || this.pending() || !this.session.can('sales.manage')) return;
     const order = this.order();
-    if (action === 'create' ? !order || !canInvoice(order) || !this.checked() || this.linked() : this.detail()?.status !== 'DRAFT') return;
+    if (
+      action === 'create'
+        ? !order || !canInvoice(order) || !this.checked() || this.linked()
+        : this.detail()?.status !== 'DRAFT'
+    )
+      return;
     this.error.set('');
     this.success.set('');
     this.pending.set(action);
@@ -139,8 +185,18 @@ export class InvoicesPage {
     const order = this.order();
     const detail = this.detail();
     if (!action || this.busy() || !this.session.can('sales.manage')) return;
-    if (action === 'create' ? !order || !canInvoice(order) || !this.checked() || this.linked() : detail?.status !== 'DRAFT') return;
-    const request = action === 'create' && order ? this.api.create(order) : detail && action !== 'create' ? this.api.action(detail.id, action) : null;
+    if (
+      action === 'create'
+        ? !order || !canInvoice(order) || !this.checked() || this.linked()
+        : detail?.status !== 'DRAFT'
+    )
+      return;
+    const request =
+      action === 'create' && order
+        ? this.api.create(order)
+        : detail && action !== 'create'
+          ? this.api.action(detail.id, action)
+          : null;
     if (!request) return;
     this.busy.set(true);
     request.pipe(takeUntilDestroyed(this.destroy)).subscribe({

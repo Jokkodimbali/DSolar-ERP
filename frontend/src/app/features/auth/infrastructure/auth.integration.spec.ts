@@ -1337,7 +1337,10 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
       expect(parseInvoice(issuedInvoice.data).status).toBe('ISSUED');
       expect((await request('/invoices/' + invoice.id + '/cancel', 'POST', {}, token)).status).toBe(409);
       const invoiceList = await request(
-        '/invoices/search?orderId=' + deliveryOrderId + '&page=1&limit=10', 'GET', undefined, token,
+        '/invoices/search?orderId=' + deliveryOrderId + '&page=1&limit=10',
+        'GET',
+        undefined,
+        token,
       );
       expect(invoiceList.status).toBe(200);
       expect(parseInvoicePage(invoiceList.data).items.map((item) => item.id)).toEqual([invoice.id]);

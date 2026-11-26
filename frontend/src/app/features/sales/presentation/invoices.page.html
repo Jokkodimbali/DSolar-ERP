@@ -1,4 +1,8 @@
-<app-page-header eyebrow="VENTES" heading="Factures" description="Créez et consultez les factures associées aux commandes de vente.">
+<app-page-header
+  eyebrow="VENTES"
+  heading="Factures"
+  description="Créez et consultez les factures associées aux commandes de vente."
+>
   @if (order()) {
   <a class="secondary" routerLink="/ventes/factures">Toutes les factures</a>
   }
@@ -8,65 +12,194 @@
 <app-feedback [message]="success()" kind="success" />
 @if (order(); as source) {
 <section class="panel">
-  <div class="page-heading"><h2>Commande {{ source.number }}</h2><a class="secondary" [routerLink]="['/ventes/commandes', source.id]">Voir la commande</a></div>
+  <div class="page-heading">
+    <h2>Commande {{ source.number }}</h2>
+    <a class="secondary" [routerLink]="['/ventes/commandes', source.id]">Voir la commande</a>
+  </div>
   <p>{{ source.customerName }} · {{ source.total }} · {{ source.status }}</p>
   @if (linked(); as invoice) {
-  <button type="button" class="secondary" [disabled]="busy() || loading() || !!pending()" (click)="open(invoice.id)">Voir la facture {{ invoice.number }}</button>
+  <button
+    type="button"
+    class="secondary"
+    [disabled]="busy() || loading() || !!pending()"
+    (click)="open(invoice.id)"
+  >
+    Voir la facture {{ invoice.number }}
+  </button>
   } @else if (checked() && eligible(source) && session.can('sales.manage')) {
-  <button type="button" class="primary" [disabled]="busy() || loading() || !!pending()" (click)="ask('create')">Créer la facture</button>
+  <button
+    type="button"
+    class="primary"
+    [disabled]="busy() || loading() || !!pending()"
+    (click)="ask('create')"
+  >
+    Créer la facture
+  </button>
   }
 </section>
-}
-@if (detail(); as invoice) {
+} @if (detail(); as invoice) {
 <section class="panel">
-  <div class="page-heading"><h2>{{ invoice.number }}</h2>
-  <app-sales-document-button [document]="{ kind: 'invoice', id: invoice.id }" label="Télécharger la facture PDF" [disabled]="busy() || !!pending()" />
-  <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="detail.set(null)">Fermer</button></div>
+  <div class="page-heading">
+    <h2>{{ invoice.number }}</h2>
+    <app-sales-document-button
+      [document]="{ kind: 'invoice', id: invoice.id }"
+      label="Télécharger la facture PDF"
+      [disabled]="busy() || !!pending()"
+    />
+    <button type="button" class="secondary" [disabled]="busy() || !!pending()" (click)="detail.set(null)">
+      Fermer
+    </button>
+  </div>
   <dl class="metrics">
-    <div><dt>Statut</dt><dd>{{ labels[invoice.status] }}</dd></div>
-    <div><dt>Émission</dt><dd>{{ (invoice.issuedAt | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
-    <div><dt>Total HT</dt><dd>{{ money(invoice.totalHt) }}</dd></div>
-    <div><dt>Total taxes</dt><dd>{{ money(invoice.totalTax) }}</dd></div>
-    <div><dt>Total TTC</dt><dd>{{ money(invoice.totalTtc) }}</dd></div>
+    <div>
+      <dt>Statut</dt>
+      <dd>{{ labels[invoice.status] }}</dd>
+    </div>
+    <div>
+      <dt>Émission</dt>
+      <dd>{{ (invoice.issuedAt | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Total HT</dt>
+      <dd>{{ money(invoice.totalHt) }}</dd>
+    </div>
+    <div>
+      <dt>Total taxes</dt>
+      <dd>{{ money(invoice.totalTax) }}</dd>
+    </div>
+    <div>
+      <dt>Total TTC</dt>
+      <dd>{{ money(invoice.totalTtc) }}</dd>
+    </div>
   </dl>
   <div class="ui-table" role="region" aria-label="Lignes de facture" tabindex="0">
     <table>
-      <thead><tr><th scope="col">Produit</th><th scope="col">Quantité</th><th scope="col">Prix HT</th><th scope="col">Remise</th><th scope="col">Taxe</th><th scope="col">Montant taxe</th><th scope="col">Total TTC</th></tr></thead>
-      <tbody>@for (line of invoice.lines; track line.id) {
-      <tr><td>{{ productsNames()[line.productId] || line.productId }}</td><td>{{ line.quantity }}</td><td>{{ money(line.unitPrice) }}</td><td>{{ money(line.discount) }}</td><td>{{ line.taxRate }} %</td><td>{{ money(line.tax) }}</td><td>{{ money(line.total) }}</td></tr>
-      }</tbody>
+      <thead>
+        <tr>
+          <th scope="col">Produit</th>
+          <th scope="col">Quantité</th>
+          <th scope="col">Prix HT</th>
+          <th scope="col">Remise</th>
+          <th scope="col">Taxe</th>
+          <th scope="col">Montant taxe</th>
+          <th scope="col">Total TTC</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of invoice.lines; track line.id) {
+        <tr>
+          <td>{{ productsNames()[line.productId] || line.productId }}</td>
+          <td>{{ line.quantity }}</td>
+          <td>{{ money(line.unitPrice) }}</td>
+          <td>{{ money(line.discount) }}</td>
+          <td>{{ line.taxRate }} %</td>
+          <td>{{ money(line.tax) }}</td>
+          <td>{{ money(line.total) }}</td>
+        </tr>
+        }
+      </tbody>
     </table>
   </div>
   <div class="ui-actions">
     <a class="secondary" [routerLink]="['/ventes/commandes', invoice.orderId]">Commande associée</a>
     @if (invoice.status === 'DRAFT' && session.can('sales.manage')) {
-    <button type="button" class="primary" [disabled]="busy() || loading() || !!pending()" (click)="ask('issue')">Émettre la facture</button>
-    <button type="button" class="secondary" [disabled]="busy() || loading() || !!pending()" (click)="ask('cancel')">Annuler le brouillon</button>
+    <button
+      type="button"
+      class="primary"
+      [disabled]="busy() || loading() || !!pending()"
+      (click)="ask('issue')"
+    >
+      Émettre la facture
+    </button>
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="busy() || loading() || !!pending()"
+      (click)="ask('cancel')"
+    >
+      Annuler le brouillon
+    </button>
     }
   </div>
 </section>
-}
-@if (pending(); as action) {
-<app-confirm [heading]="action === 'create' ? 'Créer la facture ?' : action === 'issue' ? 'Émettre la facture ?' : 'Annuler le brouillon ?'"
- [description]="action === 'issue' ? 'Une facture émise ne peut être annulée directement. Toute correction passe par un avoir.' : 'Le serveur vérifie la commande, les montants et les autorisations.'"
- [busy]="busy()" (confirmed)="apply()" (cancelled)="pending.set(null)" />
+} @if (pending(); as action) {
+<app-confirm
+  [heading]="action === 'create' ? 'Créer la facture ?' : action === 'issue' ? 'Émettre la facture ?' : 'Annuler le brouillon ?'"
+  [description]="action === 'issue' ? 'Une facture émise ne peut être annulée directement. Toute correction passe par un avoir.' : 'Le serveur vérifie la commande, les montants et les autorisations.'"
+  [busy]="busy()"
+  (confirmed)="apply()"
+  (cancelled)="pending.set(null)"
+/>
 }
 <section class="panel">
   <form class="ui-toolbar" (submit)="$event.preventDefault(); filter(term.value, state.value)">
-    <label class="ui-field">Rechercher<input #term type="search" maxlength="120" [value]="query()" placeholder="Référence ou client" /></label>
-    <label class="ui-field">Statut<select #state [value]="status()"><option value="">Tous</option>@for (value of statuses; track value) { <option [value]="value">{{ labels[value] }}</option> }</select></label>
+    <label class="ui-field"
+      >Rechercher<input
+        #term
+        type="search"
+        maxlength="120"
+        [value]="query()"
+        placeholder="Référence ou client"
+    /></label>
+    <label class="ui-field"
+      >Statut<select #state [value]="status()">
+        <option value="">Tous</option>
+        @for (value of statuses; track value) {
+        <option [value]="value">{{ labels[value] }}</option>
+        }
+      </select></label
+    >
     <button type="submit" class="primary" [disabled]="busy() || loading() || !!pending()">Filtrer</button>
-    <button type="button" class="secondary" [disabled]="busy() || loading() || !!pending()" (click)="load()">Actualiser</button>
+    <button type="button" class="secondary" [disabled]="busy() || loading() || !!pending()" (click)="load()">
+      Actualiser
+    </button>
   </form>
-  @if (loading()) { <p role="status">Chargement des factures…</p> }
-  @else if (result(); as data) {
+  @if (loading()) {
+  <p role="status">Chargement des factures…</p>
+  } @else if (result(); as data) {
   <p class="muted small">{{ data.total }} facture(s)</p>
   <div class="ui-table" role="region" aria-label="Liste des factures" tabindex="0">
-    <table><thead><tr><th scope="col">Référence</th><th scope="col">Client</th><th scope="col">Statut</th><th scope="col">Total TTC</th><th scope="col">Actions</th></tr></thead>
-    <tbody>@for (invoice of data.items; track invoice.id) {
-      <tr><td>{{ invoice.number }}</td><td>{{ names()[invoice.customerId] || invoice.customerId }}</td><td>{{ labels[invoice.status] }}</td><td>{{ money(invoice.totalTtc) }}</td><td><button class="secondary" type="button" [disabled]="busy() || !!pending()" (click)="open(invoice.id)">Détails</button></td></tr>
-    } @empty { <tr><td colspan="5">Aucune facture correspondante.</td></tr> }</tbody></table>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Référence</th>
+          <th scope="col">Client</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Total TTC</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (invoice of data.items; track invoice.id) {
+        <tr>
+          <td>{{ invoice.number }}</td>
+          <td>{{ names()[invoice.customerId] || invoice.customerId }}</td>
+          <td>{{ labels[invoice.status] }}</td>
+          <td>{{ money(invoice.totalTtc) }}</td>
+          <td>
+            <button
+              class="secondary"
+              type="button"
+              [disabled]="busy() || !!pending()"
+              (click)="open(invoice.id)"
+            >
+              Détails
+            </button>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="5">Aucune facture correspondante.</td>
+        </tr>
+        }
+      </tbody>
+    </table>
   </div>
-  <app-pagination [page]="data.page" [pages]="data.pages || 1" [disabled]="busy() || !!pending()" (change)="load($event)" />
+  <app-pagination
+    [page]="data.page"
+    [pages]="data.pages || 1"
+    [disabled]="busy() || !!pending()"
+    (change)="load($event)"
+  />
   }
 </section>
