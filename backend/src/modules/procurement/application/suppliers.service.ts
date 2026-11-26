@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { SUPPLIERS_REPOSITORY, SupplierInput, SuppliersRepository } from './suppliers.repository';
 
@@ -12,11 +13,26 @@ export class SuppliersService {
     if (!supplier) throw new NotFoundException('Fournisseur introuvable.');
     return supplier;
   }
-  async create(input: SupplierInput, actorId: string) {
+  async create(input: SupplierInput, actorId: string, operationKey?: string) {
     const cleaned = this.normalize(input);
     this.validate(cleaned);
     if (!cleaned.name) throw new BadRequestException('Le nom du fournisseur est obligatoire.');
-    return this.suppliers.create(cleaned as SupplierInput, actorId);
+    if (!operationKey) return this.suppliers.create(cleaned as SupplierInput, actorId);
+    const fingerprint = createHash('sha256')
+      .update(
+        JSON.stringify([
+          cleaned.name,
+          cleaned.taxId ?? null,
+          cleaned.phone ?? null,
+          cleaned.email ?? null,
+          cleaned.address ?? null,
+        ]),
+      )
+      .digest('hex');
+    return this.suppliers.create(cleaned as SupplierInput, actorId, {
+      key: `supplier.create:${actorId}:${operationKey}`,
+      fingerprint,
+    });
   }
   async update(id: string, input: Partial<SupplierInput>, actorId: string) {
     await this.get(id);

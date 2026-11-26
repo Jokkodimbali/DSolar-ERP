@@ -44,6 +44,7 @@ export class SuppliersPage {
   readonly editing = signal<Supplier | 'new' | null>(null);
   readonly detail = signal<Supplier | null>(null);
   readonly pendingStatus = signal<Supplier | null>(null);
+  private creationKey: string | null = null;
   readonly form = new FormGroup({
     name: new FormControl('', {
       nonNullable: true,
@@ -122,6 +123,7 @@ export class SuppliersPage {
     if (!this.session.can('inventory.manage') || this.busy() || this.loading()) return;
     this.close();
     this.editing.set(supplier);
+    this.creationKey = supplier === 'new' ? crypto.randomUUID() : null;
     this.form.reset(
       supplier === 'new'
         ? { name: '', taxId: '', phone: '', email: '', address: '' }
@@ -151,7 +153,10 @@ export class SuppliersPage {
       email: email.trim() || null,
       address: address.trim() || null,
     };
-    const request = target === 'new' ? this.api.create(input) : this.api.update(target.id, input);
+    const request =
+      target === 'new'
+        ? this.api.create(input, (this.creationKey ??= crypto.randomUUID()))
+        : this.api.update(target.id, input);
     this.mutate(request, target === 'new' ? 'Fournisseur créé.' : 'Fournisseur mis à jour.');
   }
 
@@ -173,6 +178,7 @@ export class SuppliersPage {
   close(): void {
     if (this.busy()) return;
     this.editing.set(null);
+    this.creationKey = null;
     this.detail.set(null);
     this.pendingStatus.set(null);
     this.error.set('');

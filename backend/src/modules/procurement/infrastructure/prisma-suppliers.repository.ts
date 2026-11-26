@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
-import { SupplierInput, SuppliersRepository } from '../application/suppliers.repository';
+import { SupplierCreationKey, SupplierInput, SuppliersRepository } from '../application/suppliers.repository';
 
 @Injectable()
 export class PrismaSuppliersRepository implements SuppliersRepository {
@@ -12,14 +12,46 @@ export class PrismaSuppliersRepository implements SuppliersRepository {
   find(id: string) {
     return this.prisma.supplier.findUnique({ where: { id } });
   }
-  create(input: SupplierInput, actorId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.supplier.create({ data: input });
-      await tx.auditLog.create({
-        data: { actorId, action: 'SUPPLIER_CREATED', entityType: 'Supplier', entityId: created.id },
+  async create(input: SupplierInput, actorId: string, operation?: SupplierCreationKey) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if (operation) {
+          await tx.idempotencyKey.create({
+            data: { key: operation.key, operation: 'SUPPLIER_CREATE' },
+          });
+        }
+        const created = await tx.supplier.create({ data: input });
+        await tx.auditLog.create({
+          data: { actorId, action: 'SUPPLIER_CREATED', entityType: 'Supplier', entityId: created.id },
+        });
+        if (operation) {
+          await tx.idempotencyKey.update({
+            where: { key: operation.key },
+            data: { response: { id: created.id, fingerprint: operation.fingerprint } },
+          });
+        }
+        return created;
       });
-      return created;
-    });
+    } catch (error: unknown) {
+      if (!operation || !(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002')
+        throw error;
+      const existing = await this.prisma.idempotencyKey.findUnique({ where: { key: operation.key } });
+      const response = existing?.response;
+      if (
+        existing?.operation !== 'SUPPLIER_CREATE' ||
+        !response ||
+        typeof response !== 'object' ||
+        Array.isArray(response) ||
+        response['fingerprint'] !== operation.fingerprint ||
+        typeof response['id'] !== 'string'
+      )
+        throw new ConflictException(
+          'Cette opération de création a déjà été utilisée avec des données différentes.',
+        );
+      const supplier = await this.find(response['id']);
+      if (!supplier) throw new ConflictException('Le fournisseur associé à cette opération est introuvable.');
+      return supplier;
+    }
   }
   async update(id: string, input: Partial<SupplierInput>, actorId: string) {
     try {

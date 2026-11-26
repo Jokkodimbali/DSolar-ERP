@@ -2,12 +2,16 @@ import { ApiProperty as SwaggerField } from '@nestjs/swagger';
 import { SuccessMessage } from '../../../infrastructure/http/success-message.interceptor';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { CurrentUserId } from '../../identity/presentation/current-user.decorator';
 import { AccessGuard, RequirePermissions } from '../../identity/presentation/access.guard';
 import { SuppliersService } from '../application/suppliers.service';
 
 export class SupplierDto {
+  @IsOptional()
+  @IsUUID('4')
+  @SwaggerField({ required: false, type: String, format: 'uuid' })
+  operationKey?: string;
   @IsString() @IsNotEmpty() @MaxLength(180) @SwaggerField({ type: String, maxLength: 180 }) name!: string;
   @IsOptional()
   @IsString()
@@ -74,7 +78,8 @@ export class SuppliersController {
     @Body() dto: SupplierDto,
     @CurrentUserId() actorId: string,
   ) {
-    return this.suppliers.create(dto, actorId);
+    const { operationKey, ...input } = dto;
+    return this.suppliers.create(input, actorId, operationKey);
   }
   @Patch(':id') @RequirePermissions('inventory.manage') @SuccessMessage('Fournisseur mis à jour.') update(
     @Param('id', ParseUUIDPipe) id: string,

@@ -185,6 +185,17 @@ describe.skipIf(process.env.DSOLAR_AUTH_INTEGRATION !== '1')('Contrat HTTP NestJ
     expect(supplierResponse.status).toBe(201);
     const supplier = parseSupplier(supplierResponse.data);
     const supplierPath = '/suppliers/' + supplier.id;
+    const command = { name: 'Fournisseur idempotent CI', operationKey: crypto.randomUUID() };
+    const duplicates = await Promise.all([
+      request('/suppliers', 'POST', command, keeper.jetonAcces),
+      request('/suppliers', 'POST', command, keeper.jetonAcces),
+    ]);
+    for (const response of duplicates) expect(response.status).toBe(201);
+    expect(parseSupplier(duplicates[0]?.data).id).toBe(parseSupplier(duplicates[1]?.data).id);
+    expect(
+      (await request('/suppliers', 'POST', { ...command, name: 'Autre fournisseur' }, keeper.jetonAcces))
+        .status,
+    ).toBe(409);
     expect(parseSupplier((await request(supplierPath, 'GET', undefined, admin.jetonAcces)).data)).toEqual(
       supplier,
     );
